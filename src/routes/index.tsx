@@ -211,7 +211,7 @@ function ProductPage() {
         {/* AI Summary */}
         <section className="mb-16">
           <h2 className="mb-5 text-base font-semibold tracking-tight text-foreground">
-            AI Summary
+            Summary
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
             <OpinionCard

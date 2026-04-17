@@ -240,16 +240,15 @@ function ProductPage() {
           <h2 className="mb-5 text-base font-semibold tracking-tight text-foreground">
             Is it for you?
           </h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <FitCard
               variant="yes"
               title="YES — works well"
               items={[
                 { label: "Dry skin", strength: 3 },
                 { label: "Sensitive skin", strength: 3 },
-                { label: "Compromised barrier", strength: 3 },
+                { label: "Compromised barrier", strength: 2 },
                 { label: "Eczema-prone", strength: 2 },
-                { label: "Cold/dry climates", strength: 2 },
               ]}
             />
             <FitCard
@@ -257,14 +256,13 @@ function ProductPage() {
               title="SKIP — may not work"
               items={[
                 { label: "Very oily skin", strength: 3 },
-                { label: "Fungal acne-prone", strength: 3 },
-                { label: "Humid climates", strength: 2 },
+                { label: "Acne-prone (fungal)", strength: 3 },
+                { label: "Humid climates", strength: 1 },
                 { label: "Dislikes rich textures", strength: 2 },
-                { label: "Layering under silicone SPF", strength: 1 },
               ]}
             />
           </div>
-          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+          <div style={{ display: "flex", gap: "16px", marginTop: "12px", fontSize: "11px", color: "#999" }}>
             <LegendItem strength={3} label="Strong match" />
             <LegendItem strength={2} label="Moderate" />
             <LegendItem strength={1} label="Mild" />

@@ -240,16 +240,15 @@ function ProductPage() {
           <h2 className="mb-5 text-base font-semibold tracking-tight text-foreground">
             Is it for you?
           </h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             <FitCard
               variant="yes"
               title="YES — works well"
               items={[
                 { label: "Dry skin", strength: 3 },
                 { label: "Sensitive skin", strength: 3 },
-                { label: "Compromised barrier", strength: 3 },
+                { label: "Compromised barrier", strength: 2 },
                 { label: "Eczema-prone", strength: 2 },
-                { label: "Cold/dry climates", strength: 2 },
               ]}
             />
             <FitCard
@@ -257,14 +256,13 @@ function ProductPage() {
               title="SKIP — may not work"
               items={[
                 { label: "Very oily skin", strength: 3 },
-                { label: "Fungal acne-prone", strength: 3 },
-                { label: "Humid climates", strength: 2 },
+                { label: "Acne-prone (fungal)", strength: 3 },
+                { label: "Humid climates", strength: 1 },
                 { label: "Dislikes rich textures", strength: 2 },
-                { label: "Layering under silicone SPF", strength: 1 },
               ]}
             />
           </div>
-          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+          <div style={{ display: "flex", gap: "16px", marginTop: "12px", fontSize: "11px", color: "#999" }}>
             <LegendItem strength={3} label="Strong match" />
             <LegendItem strength={2} label="Moderate" />
             <LegendItem strength={1} label="Mild" />
@@ -373,17 +371,27 @@ function OpinionCard({
   );
 }
 
-function Dots({ strength, color }: { strength: number; color: "yes" | "skip" }) {
-  const filledClass = color === "yes" ? "bg-tea-leaf" : "bg-tea-danger";
+function Dots({
+  strength,
+  color,
+}: {
+  strength: number;
+  color: "yes" | "skip" | "grey";
+}) {
+  const fill = color === "yes" ? "#1D9E75" : color === "skip" ? "#D85A30" : "#999999";
   return (
-    <div className="flex shrink-0 items-center" style={{ gap: "3px" }}>
+    <div style={{ display: "flex", gap: "3px", alignItems: "center" }}>
       {[1, 2, 3].map((i) => (
-        <span
+        <div
           key={i}
-          style={{ width: "8px", height: "8px", borderRadius: "50%" }}
-          className={
-            i <= strength ? filledClass : "border border-border bg-transparent"
-          }
+          style={{
+            width: "8px",
+            height: "8px",
+            borderRadius: "50%",
+            display: "inline-block",
+            background: i <= strength ? fill : "transparent",
+            border: i <= strength ? "none" : "1.5px solid #ccc",
+          }}
         />
       ))}
     </div>
@@ -399,36 +407,48 @@ function FitCard({
   title: string;
   items: { label: string; strength: number }[];
 }) {
-  const labelClass =
-    variant === "yes"
-      ? "bg-tea-sage/40 text-tea-leaf"
-      : "bg-tea-danger/15 text-tea-danger";
+  const labelColor = variant === "yes" ? "#1D9E75" : "#D85A30";
   return (
-    <Card className="border border-border bg-background p-5 shadow-none">
-      <span
-        className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide ${labelClass}`}
+    <div
+      style={{
+        background: "white",
+        border: "0.5px solid #e5e5e5",
+        borderRadius: "12px",
+        padding: "16px 20px",
+      }}
+    >
+      <div
+        style={{
+          color: labelColor,
+          fontSize: "12px",
+          fontWeight: 500,
+          marginBottom: "12px",
+        }}
       >
         {title}
-      </span>
-      <ul className="mt-4 space-y-3">
-        {items.map((it) => (
-          <li
-            key={it.label}
-            className="flex items-center justify-between gap-3"
-          >
-            <span className="text-sm text-foreground">{it.label}</span>
-            <Dots strength={it.strength} color={variant} />
-          </li>
-        ))}
-      </ul>
-    </Card>
+      </div>
+      {items.map((it) => (
+        <div
+          key={it.label}
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "8px",
+          }}
+        >
+          <span style={{ fontSize: "13px", color: "#333333" }}>{it.label}</span>
+          <Dots strength={it.strength} color={variant} />
+        </div>
+      ))}
+    </div>
   );
 }
 
 function LegendItem({ strength, label }: { strength: number; label: string }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <Dots strength={strength} color="yes" />
+    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+      <Dots strength={strength} color="grey" />
       <span>{label}</span>
     </div>
   );

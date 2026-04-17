@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Heart, MessageCircle, Play, Share2, ArrowUpCircle, Check, X, ExternalLink, ChevronDown } from "lucide-react";
+import { Heart, MessageCircle, Play, Share2, ArrowUpCircle, ExternalLink, ChevronDown } from "lucide-react";
 import { ProductChat } from "@/components/ProductChat";
 
 export const Route = createFileRoute("/")({

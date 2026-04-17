@@ -274,6 +274,8 @@ function ProductPage() {
           </div>
         </section>
 
+        <ProductChat />
+
         {/* Ratings by Age */}
         <section className="mb-16">
           <h2 className="mb-5 text-sm font-semibold uppercase tracking-widest text-muted-foreground">

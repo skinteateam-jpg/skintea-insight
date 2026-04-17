@@ -252,6 +252,62 @@ function ProductPage() {
           </div>
         </section>
 
+        {/* Ratings by Age */}
+        <section className="mb-16">
+          <h2 className="mb-5 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            Ratings by Age
+          </h2>
+          <Card className="p-6 shadow-sm">
+            <div className="space-y-5">
+              {ageRatings.map((a) => (
+                <div key={a.label}>
+                  <div className="mb-2 flex items-baseline justify-between">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm font-semibold text-foreground">{a.label}</span>
+                      <span className="text-xs text-muted-foreground">{a.sub}</span>
+                    </div>
+                    <span className="text-sm font-medium text-tea-leaf">{a.value}%</span>
+                  </div>
+                  <Progress value={a.value} className="h-2 bg-secondary" />
+                </div>
+              ))}
+            </div>
+          </Card>
+        </section>
+
+        {/* Key Ingredients */}
+        <section className="mb-16">
+          <h2 className="mb-5 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            Key Ingredients
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {keyIngredients.map((ing) => (
+              <Badge
+                key={ing}
+                variant="secondary"
+                className="rounded-full bg-tea-sage/30 px-3 py-1.5 text-sm font-medium text-foreground hover:bg-tea-sage/40"
+              >
+                {ing}
+              </Badge>
+            ))}
+          </div>
+          <Collapsible open={showAllIngredients} onOpenChange={setShowAllIngredients} className="mt-5">
+            <CollapsibleTrigger className="flex items-center gap-1.5 text-sm font-medium text-tea-leaf transition hover:opacity-70">
+              {showAllIngredients ? "Hide" : "Full ingredient list"}
+              <ChevronDown
+                className={`h-4 w-4 transition-transform ${showAllIngredients ? "rotate-180" : ""}`}
+              />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-4">
+              <Card className="p-5 shadow-sm">
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {fullIngredients.join(", ")}.
+                </p>
+              </Card>
+            </CollapsibleContent>
+          </Collapsible>
+        </section>
+
         {/* Confidence */}
         <section className="border-t border-border pt-10">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-muted-foreground">

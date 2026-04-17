@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Heart, MessageCircle, Play, Share2, ArrowUpCircle, Check, X, ExternalLink, ChevronDown } from "lucide-react";
+import { ProductChat } from "@/components/ProductChat";
 
 export const Route = createFileRoute("/")({
   component: ProductPage,
@@ -272,6 +273,8 @@ function ProductPage() {
             </Card>
           </div>
         </section>
+
+        <ProductChat />
 
         {/* Ratings by Age */}
         <section className="mb-16">

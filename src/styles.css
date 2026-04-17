@@ -79,10 +79,10 @@
   --accent-foreground: oklch(0.3 0.05 165);
 
   --tea-sage: oklch(0.78 0.06 155);
-  --tea-leaf: oklch(0.45 0.09 165);
+  --tea-leaf: oklch(0.6 0.13 162);
   --tea-cream: oklch(0.97 0.02 90);
   --tea-warning: oklch(0.7 0.15 55);
-  --tea-danger: oklch(0.62 0.17 25);
+  --tea-danger: oklch(0.62 0.17 38);
   --color-tea-sage: var(--tea-sage);
   --color-tea-leaf: var(--tea-leaf);
   --color-tea-cream: var(--tea-cream);

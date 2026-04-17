@@ -240,7 +240,7 @@ function ProductPage() {
           <h2 className="mb-5 text-base font-semibold tracking-tight text-foreground">
             Is it for you?
           </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3">
             <FitCard
               variant="yes"
               title="YES — works well"
@@ -376,13 +376,14 @@ function OpinionCard({
 function Dots({ strength, color }: { strength: number; color: "yes" | "skip" }) {
   const filledClass = color === "yes" ? "bg-tea-leaf" : "bg-tea-danger";
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex shrink-0 items-center" style={{ gap: "3px" }}>
       {[1, 2, 3].map((i) => (
         <span
           key={i}
-          className={`h-2 w-2 rounded-full ${
+          style={{ width: "8px", height: "8px", borderRadius: "50%" }}
+          className={
             i <= strength ? filledClass : "border border-border bg-transparent"
-          }`}
+          }
         />
       ))}
     </div>
@@ -411,7 +412,10 @@ function FitCard({
       </span>
       <ul className="mt-4 space-y-3">
         {items.map((it) => (
-          <li key={it.label} className="flex items-center justify-between gap-3">
+          <li
+            key={it.label}
+            className="flex items-center justify-between gap-3"
+          >
             <span className="text-sm text-foreground">{it.label}</span>
             <Dots strength={it.strength} color={variant} />
           </li>

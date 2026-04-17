@@ -240,7 +240,7 @@ function ProductPage() {
           <h2 className="mb-5 text-base font-semibold tracking-tight text-foreground">
             Is it for you?
           </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-3">
             <FitCard
               variant="yes"
               title="YES — works well"

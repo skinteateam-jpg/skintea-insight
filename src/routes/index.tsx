@@ -44,11 +44,11 @@ const instagrams = [
 ];
 
 const ageRatings = [
-  { label: "10代", sub: "Teens", value: 72 },
-  { label: "20代", sub: "20s", value: 88 },
-  { label: "30代", sub: "30s", value: 94 },
-  { label: "40代", sub: "40s", value: 91 },
-  { label: "50代+", sub: "50s+", value: 84 },
+  { label: "Teens", sub: "13–19", value: 72 },
+  { label: "20s", sub: "20–29", value: 88 },
+  { label: "30s", sub: "30–39", value: 94 },
+  { label: "40s", sub: "40–49", value: 91 },
+  { label: "50s+", sub: "50 and up", value: 84 },
 ];
 
 const keyIngredients = [

@@ -3,7 +3,10 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Heart, MessageCircle, Play, Share2, ArrowUpCircle, Check, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Heart, MessageCircle, Play, Share2, ArrowUpCircle, Check, X, ExternalLink, ChevronDown } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: ProductPage,
@@ -39,6 +42,32 @@ const instagrams = [
   { user: "derm.maria", likes: "21.1K", caption: "Ceramides 1, 3 and 6-II — here's why that matters." },
 ];
 
+const ageRatings = [
+  { label: "10代", sub: "Teens", value: 72 },
+  { label: "20代", sub: "20s", value: 88 },
+  { label: "30代", sub: "30s", value: 94 },
+  { label: "40代", sub: "40s", value: 91 },
+  { label: "50代+", sub: "50s+", value: 84 },
+];
+
+const keyIngredients = [
+  "Ceramide NP",
+  "Ceramide AP",
+  "Ceramide EOP",
+  "Hyaluronic Acid",
+  "Niacinamide",
+  "Cholesterol",
+  "Phytosphingosine",
+];
+
+const fullIngredients = [
+  "Purified Water", "Glycerin", "Caprylic/Capric Triglyceride", "Cetearyl Alcohol",
+  "Ceramide NP", "Ceramide AP", "Ceramide EOP", "Carbomer", "Dimethicone",
+  "Behentrimonium Methosulfate", "Sodium Hyaluronate", "Cholesterol", "Phenoxyethanol",
+  "Disodium EDTA", "Phytosphingosine", "Tocopherol", "Niacinamide", "Xanthan Gum",
+  "Polyglyceryl-3 Diisostearate", "Sodium Lauroyl Lactylate", "Ethylhexylglycerin",
+];
+
 const reddits = [
   { sub: "r/SkincareAddiction", up: "2.4k", title: "CeraVe Moisturizing Cream finally fixed my barrier", comments: 312 },
   { sub: "r/30PlusSkinCare", up: "1.1k", title: "Mature skin review after 6 months of daily use", comments: 184 },
@@ -48,23 +77,39 @@ const reddits = [
 
 function ProductPage() {
   const [tab, setTab] = useState("tiktok");
+  const [showAllIngredients, setShowAllIngredients] = useState(false);
 
   return (
     <main className="min-h-screen bg-background">
       <div className="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-20">
         {/* Header */}
-        <header className="mb-14">
-          <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="font-medium tracking-wide text-tea-leaf">{product.brand}</span>
-            <span>·</span>
-            <span>{product.category}</span>
+        <header className="mb-14 grid gap-8 sm:grid-cols-[240px_1fr] sm:items-start">
+          <div className="aspect-square w-full overflow-hidden rounded-2xl bg-gradient-to-br from-tea-cream via-accent to-tea-sage/40 shadow-sm">
+            <div className="flex h-full w-full items-center justify-center">
+              <div className="h-32 w-20 rounded-md bg-background/70 shadow-inner sm:h-40 sm:w-24" />
+            </div>
           </div>
-          <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-            {product.name}
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            {product.tagline}
-          </p>
+          <div>
+            <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="font-medium tracking-wide text-tea-leaf">{product.brand}</span>
+              <span>·</span>
+              <span>{product.category}</span>
+            </div>
+            <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+              {product.name}
+            </h1>
+            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+              {product.tagline}
+            </p>
+            <Button
+              asChild
+              className="mt-6 rounded-full bg-tea-leaf px-6 text-primary-foreground hover:bg-tea-leaf/90"
+            >
+              <a href="https://www.sephora.com" target="_blank" rel="noopener noreferrer">
+                Buy on Sephora <ExternalLink className="h-4 w-4" />
+              </a>
+            </Button>
+          </div>
         </header>
 
         {/* Content Aggregation */}

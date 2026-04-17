@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Heart, MessageCircle, Play, Share2, ArrowUpCircle, Check, X, ExternalLink, ChevronDown } from "lucide-react";
+import { Heart, MessageCircle, Play, Share2, ArrowUpCircle, ExternalLink, ChevronDown } from "lucide-react";
 import { ProductChat } from "@/components/ProductChat";
 
 export const Route = createFileRoute("/")({
@@ -237,40 +237,37 @@ function ProductPage() {
 
         {/* Fit Summary */}
         <section className="mb-16">
-          <h2 className="mb-5 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+          <h2 className="mb-5 text-base font-semibold tracking-tight text-foreground">
             Is it for you?
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Card className="p-5 shadow-sm">
-              <div className="mb-3 flex items-center gap-2">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-tea-leaf text-primary-foreground">
-                  <Check className="h-3.5 w-3.5" />
-                </div>
-                <h3 className="text-sm font-semibold text-foreground">Best For</h3>
-              </div>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                {["Dry skin", "Sensitive skin", "Compromised barrier", "Eczema-prone", "Cold/dry climates"].map((i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <span className="h-1 w-1 rounded-full bg-tea-leaf" /> {i}
-                  </li>
-                ))}
-              </ul>
-            </Card>
-            <Card className="p-5 shadow-sm">
-              <div className="mb-3 flex items-center gap-2">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-tea-danger text-primary-foreground">
-                  <X className="h-3.5 w-3.5" />
-                </div>
-                <h3 className="text-sm font-semibold text-foreground">Not For</h3>
-              </div>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                {["Very oily skin", "Acne-prone (fungal)", "Humid climates", "Those who dislike rich textures"].map((i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <span className="h-1 w-1 rounded-full bg-tea-danger" /> {i}
-                  </li>
-                ))}
-              </ul>
-            </Card>
+            <FitCard
+              variant="yes"
+              title="YES — works well"
+              items={[
+                { label: "Dry skin", strength: 3 },
+                { label: "Sensitive skin", strength: 3 },
+                { label: "Compromised barrier", strength: 3 },
+                { label: "Eczema-prone", strength: 2 },
+                { label: "Cold/dry climates", strength: 2 },
+              ]}
+            />
+            <FitCard
+              variant="skip"
+              title="SKIP — may not work"
+              items={[
+                { label: "Very oily skin", strength: 3 },
+                { label: "Fungal acne-prone", strength: 3 },
+                { label: "Humid climates", strength: 2 },
+                { label: "Dislikes rich textures", strength: 2 },
+                { label: "Layering under silicone SPF", strength: 1 },
+              ]}
+            />
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+            <LegendItem strength={3} label="Strong match" />
+            <LegendItem strength={2} label="Moderate" />
+            <LegendItem strength={1} label="Mild" />
           </div>
         </section>
 
@@ -373,5 +370,62 @@ function OpinionCard({
       </div>
       <p className="mt-4 text-sm text-foreground">{sentence}</p>
     </Card>
+  );
+}
+
+function Dots({ strength, color }: { strength: number; color: "yes" | "skip" }) {
+  const filledClass = color === "yes" ? "bg-tea-leaf" : "bg-tea-danger";
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3].map((i) => (
+        <span
+          key={i}
+          className={`h-2 w-2 rounded-full ${
+            i <= strength ? filledClass : "border border-border bg-transparent"
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+
+function FitCard({
+  variant,
+  title,
+  items,
+}: {
+  variant: "yes" | "skip";
+  title: string;
+  items: { label: string; strength: number }[];
+}) {
+  const labelClass =
+    variant === "yes"
+      ? "bg-tea-sage/40 text-tea-leaf"
+      : "bg-tea-danger/15 text-tea-danger";
+  return (
+    <Card className="border border-border bg-background p-5 shadow-none">
+      <span
+        className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide ${labelClass}`}
+      >
+        {title}
+      </span>
+      <ul className="mt-4 space-y-3">
+        {items.map((it) => (
+          <li key={it.label} className="flex items-center justify-between gap-3">
+            <span className="text-sm text-foreground">{it.label}</span>
+            <Dots strength={it.strength} color={variant} />
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+function LegendItem({ strength, label }: { strength: number; label: string }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <Dots strength={strength} color="yes" />
+      <span>{label}</span>
+    </div>
   );
 }

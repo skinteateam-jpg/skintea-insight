@@ -68,6 +68,14 @@ const fullIngredients = [
   "Polyglyceryl-3 Diisostearate", "Sodium Lauroyl Lactylate", "Ethylhexylglycerin",
 ];
 
+const affiliates = [
+  { name: "Sephora", url: "https://www.sephora.com" },
+  { name: "Amazon", url: "https://www.amazon.com" },
+  { name: "Ulta", url: "https://www.ulta.com" },
+  { name: "LTK", url: "https://www.shopltk.com" },
+  { name: "Rakuten", url: "https://www.rakuten.com" },
+];
+
 const reddits = [
   { sub: "r/SkincareAddiction", up: "2.4k", title: "CeraVe Moisturizing Cream finally fixed my barrier", comments: 312 },
   { sub: "r/30PlusSkinCare", up: "1.1k", title: "Mature skin review after 6 months of daily use", comments: 184 },
@@ -101,14 +109,24 @@ function ProductPage() {
             <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
               {product.tagline}
             </p>
-            <Button
-              asChild
-              className="mt-6 rounded-full bg-tea-leaf px-6 text-primary-foreground hover:bg-tea-leaf/90"
-            >
-              <a href="https://www.sephora.com" target="_blank" rel="noopener noreferrer">
-                Buy on Sephora <ExternalLink className="h-4 w-4" />
-              </a>
-            </Button>
+            <div className="mt-6 flex flex-wrap gap-2">
+              {affiliates.map((a, i) => (
+                <Button
+                  key={a.name}
+                  asChild
+                  variant={i === 0 ? "default" : "outline"}
+                  className={
+                    i === 0
+                      ? "rounded-full bg-tea-leaf px-5 text-primary-foreground hover:bg-tea-leaf/90"
+                      : "rounded-full border-border px-5 text-foreground hover:bg-secondary"
+                  }
+                >
+                  <a href={a.url} target="_blank" rel="noopener noreferrer">
+                    {a.name} <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </Button>
+              ))}
+            </div>
           </div>
         </header>
 
@@ -191,25 +209,28 @@ function ProductPage() {
 
         {/* AI Summary */}
         <section className="mb-16">
-          <h2 className="mb-5 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+          <h2 className="mb-5 text-base font-semibold tracking-tight text-foreground">
             AI Summary
           </h2>
-          <div className="space-y-3">
-            <SummaryBlock
-              label="Majority Opinion"
-              accent="bg-tea-sage/30"
-              text="Most users describe it as a reliable, no-frills moisturizer that strengthens the skin barrier within 2–4 weeks. Especially loved in winter for its rich texture and ceramide content. Frequently called a 'holy grail' for dry and sensitive skin."
+          <div className="grid gap-3 sm:grid-cols-2">
+            <OpinionCard
+              label="Majority"
+              percent={78}
+              barClass="bg-tea-leaf"
+              sentence="Strengthens the skin barrier within a few weeks."
             />
-            <SummaryBlock
-              label="Minority Opinion"
-              accent="bg-tea-cream"
-              text="A smaller group reports it feels too heavy or pilly under sunscreen, and a few oily/acne-prone users say it triggered congestion or small breakouts after extended use."
+            <OpinionCard
+              label="Minority"
+              percent={22}
+              barClass="bg-tea-danger"
+              sentence="Feels heavy and may pill under sunscreen."
             />
-            <SummaryBlock
-              label="Insight"
-              accent="bg-accent"
-              text="Opinions diverge mainly by skin type and climate. Dry/normal skin in cold weather tends to thrive; oily skin in humid climates often prefers the lotion version. Pilling complaints typically trace back to layering with silicone-heavy SPFs."
-            />
+          </div>
+          <div className="mt-3 rounded-xl bg-secondary px-4 py-3">
+            <p className="text-xs font-medium text-muted-foreground">Why opinions differ</p>
+            <p className="mt-1 text-sm text-foreground">
+              Skin type and climate shape the experience more than the formula itself.
+            </p>
           </div>
         </section>
 
@@ -327,15 +348,27 @@ function ProductPage() {
   );
 }
 
-function SummaryBlock({ label, text, accent }: { label: string; text: string; accent: string }) {
+function OpinionCard({
+  label,
+  percent,
+  barClass,
+  sentence,
+}: {
+  label: string;
+  percent: number;
+  barClass: string;
+  sentence: string;
+}) {
   return (
-    <Card className="overflow-hidden p-0 shadow-sm">
-      <div className="flex flex-col sm:flex-row">
-        <div className={`${accent} px-5 py-3 sm:w-48 sm:py-5`}>
-          <p className="text-xs font-semibold uppercase tracking-wider text-foreground">{label}</p>
-        </div>
-        <p className="flex-1 p-5 text-sm leading-relaxed text-foreground">{text}</p>
+    <Card className="border border-border bg-background p-5 shadow-none">
+      <div className="flex items-baseline justify-between">
+        <span className="text-sm font-medium text-muted-foreground">{label}</span>
       </div>
+      <div className="mt-2 text-4xl font-bold tracking-tight text-foreground">{percent}%</div>
+      <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+        <div className={`h-full ${barClass}`} style={{ width: `${percent}%` }} />
+      </div>
+      <p className="mt-4 text-sm text-foreground">{sentence}</p>
     </Card>
   );
 }

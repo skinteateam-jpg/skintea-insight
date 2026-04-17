@@ -372,3 +372,60 @@ function OpinionCard({
     </Card>
   );
 }
+
+function Dots({ strength, color }: { strength: number; color: "yes" | "skip" }) {
+  const filledClass = color === "yes" ? "bg-tea-leaf" : "bg-tea-danger";
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3].map((i) => (
+        <span
+          key={i}
+          className={`h-2 w-2 rounded-full ${
+            i <= strength ? filledClass : "border border-border bg-transparent"
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+
+function FitCard({
+  variant,
+  title,
+  items,
+}: {
+  variant: "yes" | "skip";
+  title: string;
+  items: { label: string; strength: number }[];
+}) {
+  const labelClass =
+    variant === "yes"
+      ? "bg-tea-sage/40 text-tea-leaf"
+      : "bg-tea-danger/15 text-tea-danger";
+  return (
+    <Card className="border border-border bg-background p-5 shadow-none">
+      <span
+        className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide ${labelClass}`}
+      >
+        {title}
+      </span>
+      <ul className="mt-4 space-y-3">
+        {items.map((it) => (
+          <li key={it.label} className="flex items-center justify-between gap-3">
+            <span className="text-sm text-foreground">{it.label}</span>
+            <Dots strength={it.strength} color={variant} />
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+function LegendItem({ strength, label }: { strength: number; label: string }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <Dots strength={strength} color="yes" />
+      <span>{label}</span>
+    </div>
+  );
+}

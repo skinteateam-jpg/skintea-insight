@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Heart, MessageCircle, Play, Share2, ArrowUpCircle, ExternalLink, ChevronDown } from "lucide-react";
+import { Heart, MessageCircle, Play, Share2, ArrowUpCircle, ExternalLink, ChevronDown, Pencil, Bookmark } from "lucide-react";
 import { ProductChat } from "@/components/ProductChat";
 
 export const Route = createFileRoute("/")({
@@ -89,7 +89,7 @@ function ProductPage() {
   const [showAllIngredients, setShowAllIngredients] = useState(false);
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-background" style={{ paddingBottom: "80px" }}>
       <div className="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-20">
         {/* Header */}
         <header className="mb-14 grid gap-8 sm:grid-cols-[240px_1fr] sm:items-start">
@@ -341,6 +341,59 @@ function ProductPage() {
             </p>
           </div>
         </section>
+      </div>
+
+      <div
+        style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: "white",
+          borderTop: "0.5px solid #e5e5e5",
+          padding: "12px 20px",
+          display: "flex",
+          gap: "12px",
+          zIndex: 999,
+        }}
+      >
+        <button
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            background: "#1D9E75",
+            color: "white",
+            borderRadius: "10px",
+            fontSize: "15px",
+            fontWeight: 500,
+            height: "48px",
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
+          <Pencil style={{ width: "18px", height: "18px" }} />
+          Spill the tea
+        </button>
+        <button
+          aria-label="Save"
+          style={{
+            width: "56px",
+            height: "48px",
+            background: "white",
+            border: "0.5px solid #e5e5e5",
+            borderRadius: "10px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#333",
+            cursor: "pointer",
+          }}
+        >
+          <Bookmark style={{ width: "20px", height: "20px" }} />
+        </button>
       </div>
     </main>
   );

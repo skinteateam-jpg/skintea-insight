@@ -1,26 +1,240 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
+import { Heart, MessageCircle, Play, Share2, ArrowUpCircle, Check, X } from "lucide-react";
 
 export const Route = createFileRoute("/")({
-  component: Index,
+  component: ProductPage,
+  head: () => ({
+    meta: [
+      { title: "CeraVe Moisturizing Cream — Skintea" },
+      {
+        name: "description",
+        content:
+          "Real opinions on CeraVe Moisturizing Cream from TikTok, Instagram and Reddit, summarized by AI.",
+      },
+    ],
+  }),
 });
 
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
+const product = {
+  name: "Moisturizing Cream",
+  brand: "CeraVe",
+  category: "Moisturizer",
+  tagline: "Daily face and body cream for normal to dry skin, with ceramides and hyaluronic acid.",
+};
+
+const tiktoks = [
+  { user: "@skinwithliv", views: "1.2M", likes: "184K", caption: "My HG winter moisturizer for 3 years straight 🧴" },
+  { user: "@dermdoctor", views: "890K", likes: "92K", caption: "Why dermatologists keep recommending this one." },
+  { user: "@glowby.mei", views: "430K", likes: "61K", caption: "Drugstore vs luxury — this beats them all." },
+  { user: "@routine.daily", views: "210K", likes: "27K", caption: "Day 30 of using only CeraVe — results." },
+];
+
+const instagrams = [
+  { user: "skincare.notes", likes: "12.4K", caption: "Texture check: thick but melts in. Zero pilling." },
+  { user: "thatcleangirl", likes: "8.9K", caption: "My winter barrier reset routine ✨" },
+  { user: "derm.maria", likes: "21.1K", caption: "Ceramides 1, 3 and 6-II — here's why that matters." },
+];
+
+const reddits = [
+  { sub: "r/SkincareAddiction", up: "2.4k", title: "CeraVe Moisturizing Cream finally fixed my barrier", comments: 312 },
+  { sub: "r/30PlusSkinCare", up: "1.1k", title: "Mature skin review after 6 months of daily use", comments: 184 },
+  { sub: "r/AsianBeauty", up: "684", title: "Layering CeraVe under sunscreen — pilling thoughts?", comments: 97 },
+  { sub: "r/Skincare_Addiction", up: "512", title: "Unpopular: it broke me out. Anyone else?", comments: 246 },
+];
+
+function ProductPage() {
+  const [tab, setTab] = useState("tiktok");
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <main className="min-h-screen bg-background">
+      <div className="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-20">
+        {/* Header */}
+        <header className="mb-14">
+          <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="font-medium tracking-wide text-tea-leaf">{product.brand}</span>
+            <span>·</span>
+            <span>{product.category}</span>
+          </div>
+          <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+            {product.name}
+          </h1>
+          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+            {product.tagline}
+          </p>
+        </header>
+
+        {/* Content Aggregation */}
+        <section className="mb-16">
+          <h2 className="mb-5 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            What people are saying
+          </h2>
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabsList className="mb-6 grid w-full grid-cols-3 rounded-full bg-secondary p-1">
+              <TabsTrigger value="tiktok" className="rounded-full">TikTok</TabsTrigger>
+              <TabsTrigger value="instagram" className="rounded-full">Instagram</TabsTrigger>
+              <TabsTrigger value="reddit" className="rounded-full">Reddit</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="tiktok">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                {tiktoks.map((t) => (
+                  <Card
+                    key={t.user}
+                    className="group relative aspect-[9/14] overflow-hidden border-0 bg-gradient-to-br from-foreground to-foreground/70 p-0 shadow-sm"
+                  >
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-background/20 backdrop-blur transition group-hover:scale-110">
+                        <Play className="h-5 w-5 fill-background text-background" />
+                      </div>
+                    </div>
+                    <div className="absolute inset-x-0 bottom-0 space-y-1 bg-gradient-to-t from-black/80 to-transparent p-3">
+                      <p className="text-xs font-medium text-white">{t.user}</p>
+                      <p className="line-clamp-2 text-[11px] leading-snug text-white/80">{t.caption}</p>
+                      <div className="flex items-center gap-3 pt-1 text-[10px] text-white/70">
+                        <span className="flex items-center gap-1"><Play className="h-3 w-3" /> {t.views}</span>
+                        <span className="flex items-center gap-1"><Heart className="h-3 w-3" /> {t.likes}</span>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="instagram">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                {instagrams.map((p) => (
+                  <Card key={p.user} className="overflow-hidden p-0 shadow-sm">
+                    <div className="aspect-square bg-gradient-to-br from-tea-cream via-accent to-tea-sage/40" />
+                    <div className="space-y-2 p-3">
+                      <p className="text-xs font-semibold text-foreground">@{p.user}</p>
+                      <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">{p.caption}</p>
+                      <div className="flex items-center gap-3 pt-1 text-[11px] text-muted-foreground">
+                        <span className="flex items-center gap-1"><Heart className="h-3 w-3" /> {p.likes}</span>
+                        <span className="flex items-center gap-1"><Share2 className="h-3 w-3" /></span>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="reddit">
+              <div className="space-y-3">
+                {reddits.map((r) => (
+                  <Card key={r.title} className="flex items-start gap-3 p-4 shadow-sm">
+                    <div className="flex flex-col items-center text-muted-foreground">
+                      <ArrowUpCircle className="h-4 w-4 text-tea-warning" />
+                      <span className="text-xs font-semibold text-foreground">{r.up}</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-tea-leaf">{r.sub}</p>
+                      <p className="mt-1 text-sm font-medium leading-snug text-foreground">{r.title}</p>
+                      <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                        <MessageCircle className="h-3 w-3" /> {r.comments} comments
+                      </p>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </section>
+
+        {/* AI Summary */}
+        <section className="mb-16">
+          <h2 className="mb-5 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            AI Summary
+          </h2>
+          <div className="space-y-3">
+            <SummaryBlock
+              label="Majority Opinion"
+              accent="bg-tea-sage/30"
+              text="Most users describe it as a reliable, no-frills moisturizer that strengthens the skin barrier within 2–4 weeks. Especially loved in winter for its rich texture and ceramide content. Frequently called a 'holy grail' for dry and sensitive skin."
+            />
+            <SummaryBlock
+              label="Minority Opinion"
+              accent="bg-tea-cream"
+              text="A smaller group reports it feels too heavy or pilly under sunscreen, and a few oily/acne-prone users say it triggered congestion or small breakouts after extended use."
+            />
+            <SummaryBlock
+              label="Insight"
+              accent="bg-accent"
+              text="Opinions diverge mainly by skin type and climate. Dry/normal skin in cold weather tends to thrive; oily skin in humid climates often prefers the lotion version. Pilling complaints typically trace back to layering with silicone-heavy SPFs."
+            />
+          </div>
+        </section>
+
+        {/* Fit Summary */}
+        <section className="mb-16">
+          <h2 className="mb-5 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            Is it for you?
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Card className="p-5 shadow-sm">
+              <div className="mb-3 flex items-center gap-2">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-tea-leaf text-primary-foreground">
+                  <Check className="h-3.5 w-3.5" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">Best For</h3>
+              </div>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                {["Dry skin", "Sensitive skin", "Compromised barrier", "Eczema-prone", "Cold/dry climates"].map((i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <span className="h-1 w-1 rounded-full bg-tea-leaf" /> {i}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+            <Card className="p-5 shadow-sm">
+              <div className="mb-3 flex items-center gap-2">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-tea-danger text-primary-foreground">
+                  <X className="h-3.5 w-3.5" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">Not For</h3>
+              </div>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                {["Very oily skin", "Acne-prone (fungal)", "Humid climates", "Those who dislike rich textures"].map((i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <span className="h-1 w-1 rounded-full bg-tea-danger" /> {i}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </div>
+        </section>
+
+        {/* Confidence */}
+        <section className="border-t border-border pt-10">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            Confidence Level
+          </h2>
+          <div className="flex flex-col items-start gap-2">
+            <Badge className="rounded-full bg-tea-leaf px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-tea-leaf">
+              High
+            </Badge>
+            <p className="text-sm text-muted-foreground">
+              Based on 1,200+ posts and consistent sentiment across all three platforms over the past 12 months.
+            </p>
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }
 
-function Index() {
-  return <PlaceholderIndex />;
+function SummaryBlock({ label, text, accent }: { label: string; text: string; accent: string }) {
+  return (
+    <Card className="overflow-hidden p-0 shadow-sm">
+      <div className="flex flex-col sm:flex-row">
+        <div className={`${accent} px-5 py-3 sm:w-48 sm:py-5`}>
+          <p className="text-xs font-semibold uppercase tracking-wider text-foreground">{label}</p>
+        </div>
+        <p className="flex-1 p-5 text-sm leading-relaxed text-foreground">{text}</p>
+      </div>
+    </Card>
+  );
 }

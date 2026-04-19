@@ -255,6 +255,7 @@ function ProductsPage() {
           icon="🔥"
           products={soaring}
           onSave={() => setShowLogin(true)}
+          trendingBadge
         />
         <RankingSection
           title="TikTok Ranking"
@@ -405,12 +406,14 @@ function RankingSection({
   products,
   onSave,
   showRecommend,
+  trendingBadge,
 }: {
   title: string;
   icon?: string;
   products: Product[];
   onSave: () => void;
   showRecommend?: boolean;
+  trendingBadge?: boolean;
 }) {
   return (
     <section style={{ padding: "16px 16px 8px" }}>
@@ -459,6 +462,7 @@ function RankingSection({
             rank={idx + 1}
             onSave={onSave}
             showRecommend={showRecommend}
+            trendingBadge={trendingBadge}
           />
         ))}
       </div>
@@ -471,11 +475,13 @@ function ProductCard({
   rank,
   onSave,
   showRecommend,
+  trendingBadge,
 }: {
   product: Product;
   rank: number;
   onSave: () => void;
   showRecommend?: boolean;
+  trendingBadge?: boolean;
 }) {
   return (
     <div
@@ -500,21 +506,38 @@ function ProductCard({
           fontSize: 36,
         }}
       >
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            background: rank === 1 ? C.crimson : C.espresso,
-            color: C.surface,
-            padding: "3px 7px",
-            fontSize: 10,
-            fontWeight: 900,
-            letterSpacing: "0.02em",
-          }}
-        >
-          #{rank}
-        </div>
+        {trendingBadge ? (
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              padding: "3px 5px",
+              fontSize: 14,
+              lineHeight: 1,
+            }}
+            aria-label="Trending"
+          >
+            📈
+          </div>
+        ) : (
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              background: rank === 1 ? C.crimson : C.espresso,
+              color: C.surface,
+              padding: "3px 7px",
+              fontSize: 10,
+              fontWeight: 900,
+              letterSpacing: "0.02em",
+              borderRadius: 0,
+            }}
+          >
+            {String(rank).padStart(2, "0")}
+          </div>
+        )}
         <button
           onClick={(e) => {
             e.preventDefault();

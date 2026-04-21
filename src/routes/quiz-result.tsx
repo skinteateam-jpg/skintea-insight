@@ -182,7 +182,7 @@ function QuizResultPage() {
           </Link>
           <nav style={{ display: "flex", gap: 18, fontSize: 13 }}>
             <Link to="/products" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Products</Link>
-            <span style={{ color: "#fff", opacity: 0.85 }}>Quiz</span>
+            <Link to="/quiz" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Quiz</Link>
             <span style={{ color: "#fff", opacity: 0.6, display: "inline-flex", alignItems: "center", gap: 4 }}>
               Tea <Lock size={12} />
             </span>

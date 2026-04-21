@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Lock, Check, AlertTriangle, X, Sparkles, RotateCcw } from "lucide-react";
+import { Lock, Check, AlertTriangle, X, Sparkles, RotateCcw, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/quiz-result")({
   component: QuizResultPage,
@@ -43,6 +43,12 @@ const C = {
 // ---------- Placeholder result data ----------
 const result = {
   skinType: "Oily",
+  persona: {
+    name: "The Glazed Donut",
+    emoji: "🍩",
+    tagline: "Shiny by 2pm, glowing by accident. We work with it, not against it.",
+  },
+  ethnicity: "East Asian", // from quiz; null if not provided
   concerns: ["Enlarged pores", "Occasional breakouts", "Sensitivity on cheeks"],
   summary: "Oily skin with sensitivity around the cheeks.",
   ingredients: {
@@ -55,33 +61,77 @@ const result = {
     minority: "21% prefer richer creams at night",
     sample: "Based on 14,200 reviews from Reddit, TikTok & Sephora",
   },
-  products: [
+  categories: [
     {
+      category: "Cleanser",
+      emoji: "🧼",
+      brand: "CeraVe",
+      name: "Foaming Facial Cleanser",
+      good: ["Niacinamide", "Ceramides"],
+      watch: "Fragrance-free formula — but contains SLS",
+      reason: "Cuts oil without stripping your barrier",
+    },
+    {
+      category: "Toner",
+      emoji: "💦",
+      brand: "COSRX",
+      name: "AHA/BHA Clarifying Treatment Toner",
+      good: ["Salicylic acid", "Willow bark"],
+      watch: "Contains low % AHA — go slow if sensitive",
+      reason: "Unclogs pores between cleanses",
+    },
+    {
+      category: "Serum",
+      emoji: "🧪",
       brand: "The Ordinary",
       name: "Niacinamide 10% + Zinc 1%",
-      price: "$6.50",
-      emoji: "🧪",
-      matched: [{ label: "Niacinamide", kind: "good" as const }],
-      reason: "Has Niacinamide — good for oily, breakout-prone skin",
+      good: ["Niacinamide", "Zinc PCA"],
+      watch: "Can pill under sunscreen if over-applied",
+      reason: "Targets pores + breakouts in one step",
     },
     {
-      brand: "Paula's Choice",
-      name: "2% BHA Liquid Exfoliant",
-      price: "$34.00",
-      emoji: "💧",
-      matched: [{ label: "Salicylic acid", kind: "good" as const }],
-      reason: "Salicylic acid clears pores without over-drying",
+      category: "Moisturizer",
+      emoji: "🥛",
+      brand: "Beauty of Joseon",
+      name: "Dynasty Cream",
+      good: ["Centella asiatica", "Hyaluronic acid"],
+      watch: "Lightly fragranced with rice extract",
+      reason: "Lightweight hydration that won't clog you",
     },
     {
-      brand: "COSRX",
-      name: "Centella Blemish Cream",
-      price: "$15.00",
-      emoji: "🌿",
-      matched: [
-        { label: "Centella", kind: "good" as const },
-        { label: "Fragrance-free", kind: "good" as const },
-      ],
-      reason: "Centella calms sensitivity on the cheeks",
+      category: "Face Mask",
+      emoji: "🍃",
+      brand: "Innisfree",
+      name: "Super Volcanic Pore Clay Mask",
+      good: ["Volcanic clay", "Green tea"],
+      watch: "Don't leave on past 10 min — can over-dry",
+      reason: "Weekly pore reset for oily zones",
+    },
+  ],
+  twins: [
+    {
+      name: "Mei Tanaka",
+      handle: "@meiglow",
+      avatar: "👩🏻",
+      matchLabel: "Oily + Sensitive like you",
+      ethnicity: "East Asian",
+      swearsBy: "Beauty of Joseon Relief Sun",
+    },
+    {
+      name: "Hana Park",
+      handle: "@hanaskin",
+      avatar: "🧑🏻‍🦰",
+      matchLabel: "Oily skin, breakout-prone",
+      ethnicity: "East Asian",
+      swearsBy: "Niacinamide 10% serum",
+    },
+    {
+      name: "Yuki R.",
+      handle: "@yuki.routine",
+      avatar: "👧🏻",
+      matchLabel: "Oily + enlarged pores",
+      ethnicity: "East Asian",
+      swearsBy: "COSRX BHA toner, 3x a week",
     },
   ],
 };

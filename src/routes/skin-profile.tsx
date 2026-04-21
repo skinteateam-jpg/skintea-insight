@@ -250,6 +250,26 @@ function FilterRow({ items, active, onChange }: { items: string[]; active: strin
 }
 
 // ---------- Tab 1: The Tea ----------
+function TopPicksRow() {
+  return (
+    <>
+      <SectionTitle>★ Top 3 Picks</SectionTitle>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+        {TOP_PICKS.map((p, i) => (
+          <div key={i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", position: "relative" }}>
+            <div style={{ position: "absolute", top: 8, left: 8, background: C.gold, color: "#fff", fontSize: 9, fontWeight: 800, padding: "3px 6px", borderRadius: 4, letterSpacing: 0.5 }}>★ TOP PICK</div>
+            <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 40 }}>{p.emoji}</div>
+            <div style={{ padding: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{p.name}</div>
+              <div style={{ fontSize: 11, color: C.textLight, marginTop: 2 }}>{p.brand}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 function TeaTab() {
   const [openPost, setOpenPost] = useState<typeof POSTS[number] | null>(null);
   return (

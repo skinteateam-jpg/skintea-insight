@@ -166,7 +166,7 @@ function QuizResultPage() {
         }}
       >
         <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Link to="/" style={{ color: "#fff", textDecoration: "none", fontWeight: 800, letterSpacing: "0.02em" }}>
+          <Link to="/product-detail" style={{ color: "#fff", textDecoration: "none", fontWeight: 800, letterSpacing: "0.02em" }}>
             SKIN<span style={{ color: C.crimson }}>TEA</span>
           </Link>
           <nav style={{ display: "flex", gap: 18, fontSize: 13 }}>
@@ -446,7 +446,7 @@ function QuizResultPage() {
           {/* Retake */}
           <div style={{ textAlign: "center", marginTop: 12 }}>
             <Link
-              to="/"
+              to="/products"
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 fontSize: 13, color: C.textMid, textDecoration: "underline",

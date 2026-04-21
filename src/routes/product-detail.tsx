@@ -9,7 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Heart, MessageCircle, Play, Share2, ArrowUpCircle, ExternalLink, ChevronDown, Pencil, Bookmark } from "lucide-react";
 import { ProductChat } from "@/components/ProductChat";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/product-detail")({
   component: ProductPage,
   head: () => ({
     meta: [

@@ -138,22 +138,33 @@ const defaultResult = {
 
 function QuizResultPage() {
   const [saved, setSaved] = useState(false);
+  const [stored, setStored] = useState<null | {
+    skinTypeLabel?: string;
+    persona?: { name: string; emoji: string; tagline: string };
+    concerns?: string[];
+    ingredients?: { good: string[]; watch: string[]; avoid: string[] };
+  }>(null);
 
-  // Persist quiz result so other pages can highlight ingredients
+  // Hydrate from quiz payload written by /quiz
   useEffect(() => {
     try {
-      const payload = {
-        skinType: result.skinType,
-        concerns: result.concerns,
-        ingredients: result.ingredients,
-        savedAt: new Date().toISOString(),
-      };
-      localStorage.setItem("skintea.quizResult", JSON.stringify(payload));
-      setSaved(true);
+      const raw = localStorage.getItem("skintea.quizResult");
+      if (raw) {
+        setStored(JSON.parse(raw));
+        setSaved(true);
+      }
     } catch {
-      // ignore storage errors (private mode, etc.)
+      // ignore
     }
   }, []);
+
+  const result = {
+    ...defaultResult,
+    skinType: stored?.skinTypeLabel ?? defaultResult.skinType,
+    persona: stored?.persona ?? defaultResult.persona,
+    concerns: stored?.concerns?.length ? stored.concerns : defaultResult.concerns,
+    ingredients: stored?.ingredients ?? defaultResult.ingredients,
+  };
 
   return (
     <div style={{ background: C.bg, color: C.espresso, minHeight: "100vh" }}>

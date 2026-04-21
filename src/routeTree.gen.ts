@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TeaProductsRouteImport } from './routes/tea-products'
 import { Route as SkinProfileRouteImport } from './routes/skin-profile'
 import { Route as QuizResultRouteImport } from './routes/quiz-result'
 import { Route as QuizRouteImport } from './routes/quiz'
@@ -17,6 +18,11 @@ import { Route as ProductDetailRouteImport } from './routes/product-detail'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductsIdV2RouteImport } from './routes/products.$id-v2'
 
+const TeaProductsRoute = TeaProductsRouteImport.update({
+  id: '/tea-products',
+  path: '/tea-products',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SkinProfileRoute = SkinProfileRouteImport.update({
   id: '/skin-profile',
   path: '/skin-profile',
@@ -60,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
   '/skin-profile': typeof SkinProfileRoute
+  '/tea-products': typeof TeaProductsRoute
   '/products/$id-v2': typeof ProductsIdV2Route
 }
 export interface FileRoutesByTo {
@@ -69,6 +76,7 @@ export interface FileRoutesByTo {
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
   '/skin-profile': typeof SkinProfileRoute
+  '/tea-products': typeof TeaProductsRoute
   '/products/$id-v2': typeof ProductsIdV2Route
 }
 export interface FileRoutesById {
@@ -79,6 +87,7 @@ export interface FileRoutesById {
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
   '/skin-profile': typeof SkinProfileRoute
+  '/tea-products': typeof TeaProductsRoute
   '/products/$id-v2': typeof ProductsIdV2Route
 }
 export interface FileRouteTypes {
@@ -90,6 +99,7 @@ export interface FileRouteTypes {
     | '/quiz'
     | '/quiz-result'
     | '/skin-profile'
+    | '/tea-products'
     | '/products/$id-v2'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -99,6 +109,7 @@ export interface FileRouteTypes {
     | '/quiz'
     | '/quiz-result'
     | '/skin-profile'
+    | '/tea-products'
     | '/products/$id-v2'
   id:
     | '__root__'
@@ -108,6 +119,7 @@ export interface FileRouteTypes {
     | '/quiz'
     | '/quiz-result'
     | '/skin-profile'
+    | '/tea-products'
     | '/products/$id-v2'
   fileRoutesById: FileRoutesById
 }
@@ -118,10 +130,18 @@ export interface RootRouteChildren {
   QuizRoute: typeof QuizRoute
   QuizResultRoute: typeof QuizResultRoute
   SkinProfileRoute: typeof SkinProfileRoute
+  TeaProductsRoute: typeof TeaProductsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tea-products': {
+      id: '/tea-products'
+      path: '/tea-products'
+      fullPath: '/tea-products'
+      preLoaderRoute: typeof TeaProductsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/skin-profile': {
       id: '/skin-profile'
       path: '/skin-profile'
@@ -193,6 +213,7 @@ const rootRouteChildren: RootRouteChildren = {
   QuizRoute: QuizRoute,
   QuizResultRoute: QuizResultRoute,
   SkinProfileRoute: SkinProfileRoute,
+  TeaProductsRoute: TeaProductsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

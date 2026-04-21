@@ -1,549 +1,600 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import {
-  Pencil, Plus, Share2, FileDown, AlertTriangle, Check, Minus,
-  X, Stethoscope, Sparkles, Lock,
-} from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState, type ReactNode } from "react";
+import { Pencil, Plus, Lock, Star, X, Bookmark, Link2, Download, ArrowUp, ArrowDown } from "lucide-react";
 
 export const Route = createFileRoute("/skin-profile")({
   component: SkinProfilePage,
   head: () => ({
     meta: [
       { title: "Skin Profile — Skintea" },
-      { name: "description", content: "Your personal skin record. A living document you can share with your dermatologist." },
+      { name: "description", content: "Public shelf, private skin chart. Track products, treatments, and skin score over time." },
       { property: "og:title", content: "Skin Profile — Skintea" },
-      { property: "og:description", content: "A clinical-style skin chart that updates as you log products and reactions." },
+      { property: "og:description", content: "Track products, treatments, and your skin score over time." },
     ],
   }),
 });
 
+// ---------- Theme ----------
 const C = {
-  espresso: "#1C0A00",
-  crimson: "#A8001C",
   bg: "#FAFAF8",
   surface: "#FFFFFF",
-  border: "#EDEBE8",
-  borderStrong: "#D4CFC8",
+  border: "#F0EEE8",
+  borderStrong: "#E2DED6",
+  ink: "#1C0A00",
   textMid: "#5C4033",
-  textLight: "#9E8070",
-  imageBg: "#F5F0EB",
+  textLight: "#9A8978",
   good: "#0F7A4A",
   goodBg: "#E8F5EE",
-  warn: "#A87400",
-  warnBg: "#FBF1DC",
+  warn: "#B8860B",
+  warnBg: "#FBF3DC",
   bad: "#A8001C",
   badBg: "#FCE8EC",
-  neutralBg: "#F2EFEC",
-  neutralFg: "#5C4033",
+  gold: "#C9A227",
 };
 
-type IngredientState = "works" | "neutral" | "reacted";
-type Outcome = "Worked" | "Neutral" | "Reacted";
-type ProductLog = { id: string; name: string; startedAt: string; outcome: Outcome };
-type Reaction = { id: string; ingredient: string; date: string; symptom: "Redness" | "Breakout" | "Dryness" | "Other" };
-
-type QuizResult = {
-  skinType: string;
-  concerns: string[];
-  ingredients: { good: string[]; watch: string[]; avoid: string[] };
-  savedAt: string;
+type SkinType = "Oily" | "Dry" | "Combination" | "Sensitive" | "Normal";
+const PERSONAS: Record<SkinType, { name: string; emoji: string; color: string; bg: string }> = {
+  Oily:        { name: "The Glazed Donut",   emoji: "🍩", color: "#A8001C", bg: "#FCE8EC" },
+  Dry:         { name: "The Desert Girl",    emoji: "🏜️", color: "#B5651D", bg: "#FBEDDC" },
+  Combination: { name: "The Mood Board",     emoji: "🎭", color: "#6B3FA0", bg: "#EFE5F7" },
+  Sensitive:   { name: "The Main Character", emoji: "🌸", color: "#C2185B", bg: "#FCE4EC" },
+  Normal:      { name: "The Unbothered",     emoji: "😮‍💨", color: "#2E7D32", bg: "#E6F4EA" },
 };
 
-const PROFILE_KEY = "skintea.skinProfile";
-const QUIZ_KEY = "skintea.quizResult";
-
-type StoredProfile = {
-  ingredientStates: Record<string, IngredientState>;
-  productLog: ProductLog[];
-  reactions: Reaction[];
-  updatedAt: string;
+// ---------- Mock user ----------
+const USER = {
+  username: "miarose",
+  skinType: "Oily" as SkinType,
+  concerns: ["Acne", "Large pores"],
+  posts: 24,
+  following: 182,
+  followers: 1430,
 };
 
-function loadJSON<T>(key: string): T | null {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : null;
-  } catch { return null; }
-}
+type Match = "good" | "warn" | "bad";
+const matchStyle = (m: Match) =>
+  m === "good"
+    ? { bg: C.goodBg, color: C.good, label: "✓ Fits you" }
+    : m === "warn"
+    ? { bg: C.warnBg, color: C.warn, label: "△ Check" }
+    : { bg: C.badBg, color: C.bad, label: "✕ Avoid" };
+
+// ---------- Mock data ----------
+const TOP_PICKS = [
+  { emoji: "🧴", name: "Foaming Cleanser", brand: "CeraVe" },
+  { emoji: "💧", name: "BHA Liquid", brand: "Paula's Choice" },
+  { emoji: "☀️", name: "UV Daily", brand: "Beauty of Joseon" },
+];
+
+const POSTS = [
+  { id: 1, emoji: "🧴", bg: "#FCE8EC", caption: "Current AM routine, simplified.", date: "Apr 12", likes: 412, comments: 38, products: [
+    { emoji: "🧴", name: "Foaming Cleanser", brand: "CeraVe", category: "Cleanser", match: "good" as Match },
+    { emoji: "☀️", name: "UV Daily", brand: "Beauty of Joseon", category: "SPF", match: "good" as Match },
+  ]},
+  { id: 2, emoji: "💧", bg: "#EFE5F7", caption: "BHA week 6 update.", date: "Apr 8", likes: 287, comments: 19, products: [
+    { emoji: "💧", name: "BHA Liquid", brand: "Paula's Choice", category: "Serum", match: "good" as Match },
+  ]},
+  { id: 3, emoji: "🌸", bg: "#FCE4EC", caption: "Tried this mask. Mixed feelings.", date: "Apr 3", likes: 156, comments: 22, products: [
+    { emoji: "🌸", name: "Clay Mask", brand: "Innisfree", category: "Face Mask", match: "warn" as Match },
+  ]},
+  { id: 4, emoji: "🍵", bg: "#E6F4EA", caption: "Green tea toner > everything.", date: "Mar 28", likes: 503, comments: 41, products: [
+    { emoji: "🍵", name: "Green Tea Toner", brand: "Innisfree", category: "Toner", match: "good" as Match },
+  ]},
+  { id: 5, emoji: "🧊", bg: "#E3F2FD", caption: "Ice globes hype check.", date: "Mar 22", likes: 198, comments: 14, products: [
+    { emoji: "🧊", name: "Ice Globes", brand: "Skintea Lab", category: "Device", match: "good" as Match },
+  ]},
+  { id: 6, emoji: "🩹", bg: "#FBF3DC", caption: "Pimple patch saves.", date: "Mar 18", likes: 342, comments: 27, products: [
+    { emoji: "🩹", name: "Hydro Patches", brand: "COSRX", category: "Treatment", match: "good" as Match },
+  ]},
+];
+
+const SHELF: Record<string, Array<{ emoji: string; name: string; brand: string; match: Match; top?: boolean }>> = {
+  Cleanser:   [{ emoji: "🧴", name: "Foaming Cleanser", brand: "CeraVe", match: "good", top: true }, { emoji: "🧼", name: "Gel Wash", brand: "La Roche", match: "good" }],
+  Toner:      [{ emoji: "🍵", name: "Green Tea Toner", brand: "Innisfree", match: "good" }, { emoji: "🌹", name: "Rose Toner", brand: "Klairs", match: "warn" }],
+  Serum:      [{ emoji: "💧", name: "BHA Liquid", brand: "Paula's Choice", match: "good", top: true }, { emoji: "✨", name: "Vitamin C", brand: "Skinceuticals", match: "warn" }],
+  Moisturizer:[{ emoji: "🥛", name: "Moisturizing Cream", brand: "CeraVe", match: "good" }],
+  "Face Mask":[{ emoji: "🌸", name: "Clay Mask", brand: "Innisfree", match: "warn" }, { emoji: "🍯", name: "Honey Mask", brand: "I'm From", match: "good" }],
+  Device:     [{ emoji: "🧊", name: "Ice Globes", brand: "Skintea Lab", match: "good" }],
+  SPF:        [{ emoji: "☀️", name: "UV Daily", brand: "Beauty of Joseon", match: "good", top: true }],
+};
+
+const SAVED = [
+  { emoji: "🌿", name: "Centella Ampoule", brand: "Purito", category: "Serum", match: "good" as Match },
+  { emoji: "🧴", name: "Cream Cleanser", brand: "Aveeno", category: "Cleanser", match: "warn" as Match },
+  { emoji: "💄", name: "Tinted Balm", brand: "Rhode", category: "Makeup", match: "good" as Match },
+  { emoji: "☀️", name: "Mineral SPF", brand: "EltaMD", category: "SPF", match: "good" as Match },
+  { emoji: "🧪", name: "Retinol 0.3", brand: "The Ordinary", category: "Serum", match: "bad" as Match },
+  { emoji: "🌹", name: "Rose Water", brand: "Heritage", category: "Toner", match: "warn" as Match },
+];
+const SAVED_FILTERS = ["Recently Saved", "Cleanser", "Toner", "Serum", "Moisturizer", "SPF", "Makeup"];
+
+const SCORE_TREND = [62, 65, 64, 68, 72, 75, 78];
+const TREND_MONTHS = ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr"];
+
+const PROBLEMS = [
+  { name: "Hormonal acne", status: "improving" as const, pct: 65 },
+  { name: "Large pores",   status: "monitoring" as const, pct: 30 },
+  { name: "Dark spots",    status: "improving" as const, pct: 50 },
+  { name: "Texture",       status: "fixed" as const, pct: 100 },
+];
+
+const TREATMENTS = [
+  { id: 1, emoji: "💉", name: "Skin Botox", category: "Injection", date: "Mar 2026", rating: 5,
+    notes: "Microdose botox along the T-zone. Pores noticeably tighter at week 3. No movement loss.",
+    fixed: ["Large pores"], working: ["Oil control"] },
+  { id: 2, emoji: "🔦", name: "IPL Photofacial", category: "Light Therapy", date: "Feb 2026", rating: 4,
+    notes: "Three sessions, 4 weeks apart. Significant fade on cheek hyperpigmentation.",
+    fixed: ["Dark spots"], working: [] },
+  { id: 3, emoji: "🧖", name: "Hydrafacial", category: "Facial", date: "Jan 2026", rating: 4,
+    notes: "Good extraction. Skin felt smooth for ~2 weeks.",
+    fixed: [], working: ["Texture", "Congestion"] },
+];
+const TREAT_FILTERS = ["All", "Injection", "Light Therapy", "Facial", "Surgery", "Laser"];
+
+const NEXT_STEPS = [
+  { name: "Add azelaic acid 10%", type: "Skincare", text: "Targets your remaining acne and post-inflammatory marks without irritating oily skin." },
+  { name: "Book a 4th IPL session", type: "Treatment", text: "Trend shows hyperpigmentation responds well — one more session likely closes it out." },
+  { name: "Pillowcase swap weekly", type: "Habit", text: "Cuts down bacterial load. Quick win for chronic cheek breakouts." },
+];
+
+// ---------- Page ----------
+type Tab = "tea" | "shelf" | "saved" | "chart";
 
 function SkinProfilePage() {
-  const [quiz, setQuiz] = useState<QuizResult | null>(null);
-  const [profile, setProfile] = useState<StoredProfile>({
-    ingredientStates: {},
-    productLog: [],
-    reactions: [],
-    updatedAt: new Date().toISOString(),
-  });
-  const [hydrated, setHydrated] = useState(false);
-  const [showAddProduct, setShowAddProduct] = useState(false);
-  const [newProduct, setNewProduct] = useState({ name: "", outcome: "Worked" as Outcome });
-
-  useEffect(() => {
-    setQuiz(loadJSON<QuizResult>(QUIZ_KEY));
-    const stored = loadJSON<StoredProfile>(PROFILE_KEY);
-    if (stored) setProfile(stored);
-    setHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch {}
-  }, [profile, hydrated]);
-
-  const allIngredients = useMemo(() => {
-    if (!quiz) return [] as { name: string; bucket: "good" | "watch" | "avoid" }[];
-    return [
-      ...quiz.ingredients.good.map((n) => ({ name: n, bucket: "good" as const })),
-      ...quiz.ingredients.watch.map((n) => ({ name: n, bucket: "watch" as const })),
-      ...quiz.ingredients.avoid.map((n) => ({ name: n, bucket: "avoid" as const })),
-    ];
-  }, [quiz]);
-
-  function setIngredientState(name: string, state: IngredientState) {
-    setProfile((p) => ({
-      ...p,
-      ingredientStates: { ...p.ingredientStates, [name]: state },
-      updatedAt: new Date().toISOString(),
-    }));
-  }
-
-  function addProduct() {
-    if (!newProduct.name.trim()) return;
-    const entry: ProductLog = {
-      id: crypto.randomUUID(),
-      name: newProduct.name.trim(),
-      startedAt: new Date().toISOString().slice(0, 10),
-      outcome: newProduct.outcome,
-    };
-    setProfile((p) => ({ ...p, productLog: [entry, ...p.productLog], updatedAt: new Date().toISOString() }));
-    setNewProduct({ name: "", outcome: "Worked" });
-    setShowAddProduct(false);
-  }
-
-  function generateShareLink() {
-    const id = crypto.randomUUID().slice(0, 8);
-    const url = `${window.location.origin}/skin-profile/share/${id}`;
-    navigator.clipboard?.writeText(url).catch(() => {});
-    alert(`Shareable link copied:\n${url}\n\n(Excludes product recs and CTAs)`);
-  }
-
-  function downloadPDF() {
-    if (!quiz) return;
-    const lines = [
-      "Skin Profile — Prepared by Skintea",
-      "=".repeat(40),
-      `Generated: ${new Date().toLocaleDateString()}`,
-      "",
-      `Skin type: ${quiz.skinType}`,
-      `Concerns: ${quiz.concerns.join(", ")}`,
-      "",
-      "INGREDIENT MAP",
-      ...allIngredients.map((i) => `  ${i.name}: ${profile.ingredientStates[i.name] ?? "untested"}`),
-      "",
-      "PRODUCT LOG",
-      ...profile.productLog.map((p) => `  ${p.startedAt} — ${p.name} — ${p.outcome}`),
-      "",
-      "REACTION LOG (Important for your dermatologist)",
-      ...profile.reactions.map((r) => `  ${r.date} — ${r.ingredient} — ${r.symptom}`),
-    ];
-    const blob = new Blob([lines.join("\n")], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "skin-profile.txt";
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  // Auto-derive reactions from products marked Reacted (placeholder linkage)
-  const productsLogged = profile.productLog.length;
-
-  if (!hydrated) {
-    return <div style={{ background: C.bg, minHeight: "100vh" }} />;
-  }
+  const [tab, setTab] = useState<Tab>("tea");
+  const persona = PERSONAS[USER.skinType];
 
   return (
-    <div style={{ background: C.bg, color: C.espresso, minHeight: "100vh" }}>
-      <Nav />
-
-      {/* Hero */}
-      <section style={{ background: C.espresso, color: "#fff", padding: "20px 20px 36px" }}>
-        <div style={{ maxWidth: 760, margin: "0 auto" }}>
-          <div style={{ color: C.crimson, fontSize: 11, fontWeight: 800, letterSpacing: "0.14em", marginBottom: 10, display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <Stethoscope size={12} /> SKIN RECORD
-          </div>
-          <h1 style={{ fontSize: 28, lineHeight: 1.15, fontWeight: 800, margin: 0, maxWidth: 520 }}>
-            Your skin profile.
-          </h1>
-          <p style={{ color: "#D9CFC8", fontSize: 14, marginTop: 10, maxWidth: 520 }}>
-            A living record of your skin — updated as you log products and reactions. Built to share with your dermatologist.
-          </p>
-        </div>
-      </section>
-
-      <main style={{ background: C.bg, borderRadius: "20px 20px 0 0", marginTop: -16, padding: "24px 16px 60px" }}>
-        <div style={{ maxWidth: 760, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
-
-          {!quiz ? (
-            <Card>
-              <div style={{ textAlign: "center", padding: "20px 8px" }}>
-                <div style={{ fontSize: 32, marginBottom: 8 }}>🧬</div>
-                <div style={{ fontSize: 18, fontWeight: 800 }}>No profile yet</div>
-                <p style={{ marginTop: 8, fontSize: 14, color: C.textMid }}>
-                  Take the skin quiz to generate your profile.
-                </p>
-                <Link
-                  to="/quiz-result"
-                  style={{
-                    display: "inline-block", marginTop: 14,
-                    background: C.crimson, color: "#fff",
-                    padding: "12px 18px", borderRadius: 12,
-                    fontWeight: 700, fontSize: 14, textDecoration: "none",
-                  }}
-                >
-                  Take the skin quiz
-                </Link>
-              </div>
-            </Card>
-          ) : (
-            <>
-              {/* 1. SKIN CHART SUMMARY */}
-              <SectionLabel>SKIN CHART SUMMARY</SectionLabel>
-              <Card>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 11, color: C.textLight, fontWeight: 700, letterSpacing: "0.1em" }}>SKIN TYPE</div>
-                    <div style={{ fontSize: 26, fontWeight: 800, marginTop: 2 }}>{quiz.skinType}</div>
-                    <div style={{ fontSize: 11, color: C.textLight, fontWeight: 700, letterSpacing: "0.1em", marginTop: 14 }}>
-                      TOP CONCERNS
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
-                      {quiz.concerns.map((c) => (
-                        <span key={c} style={pill(C.imageBg, C.espresso)}>{c}</span>
-                      ))}
-                    </div>
-                  </div>
-                  <button type="button" style={btnGhost()}>
-                    <Pencil size={13} /> Edit
-                  </button>
-                </div>
-                <div style={{ marginTop: 16, paddingTop: 12, borderTop: `1px solid ${C.border}`, fontSize: 12, color: C.textLight }}>
-                  Last updated {new Date(profile.updatedAt).toLocaleDateString()}
-                </div>
-              </Card>
-
-              {/* 2. INGREDIENT MAP */}
-              <SectionLabel>INGREDIENT MAP</SectionLabel>
-              <Card>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <div style={{ fontSize: 13, color: C.textMid }}>
-                    Tap a state for each ingredient as you learn what works.
-                  </div>
-                  <div style={{ fontSize: 11, color: C.textLight, fontWeight: 700, letterSpacing: "0.06em" }}>
-                    BASED ON {productsLogged} PRODUCT{productsLogged === 1 ? "" : "S"} LOGGED
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {allIngredients.map((ing) => {
-                    const state = profile.ingredientStates[ing.name];
-                    return (
-                      <div
-                        key={ing.name}
-                        style={{
-                          display: "flex", alignItems: "center", justifyContent: "space-between",
-                          gap: 10, padding: "10px 12px",
-                          background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12,
-                        }}
-                      >
-                        <div style={{ minWidth: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 14, fontWeight: 600 }}>{ing.name}</span>
-                          <span style={{ fontSize: 10, color: C.textLight, fontWeight: 700, letterSpacing: "0.08em" }}>
-                            · QUIZ: {ing.bucket.toUpperCase()}
-                          </span>
-                        </div>
-                        <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-                          <StateBtn active={state === "works"} fg={C.good} bg={C.goodBg} onClick={() => setIngredientState(ing.name, "works")} title="Works for me">
-                            <Check size={13} />
-                          </StateBtn>
-                          <StateBtn active={state === "neutral"} fg={C.neutralFg} bg={C.neutralBg} onClick={() => setIngredientState(ing.name, "neutral")} title="Neutral">
-                            <Minus size={13} />
-                          </StateBtn>
-                          <StateBtn active={state === "reacted"} fg={C.bad} bg={C.badBg} onClick={() => setIngredientState(ing.name, "reacted")} title="Caused reaction">
-                            <X size={13} />
-                          </StateBtn>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div style={{ display: "flex", gap: 14, marginTop: 12, fontSize: 11, color: C.textLight, flexWrap: "wrap" }}>
-                  <Legend fg={C.good} bg={C.goodBg} label="Works" />
-                  <Legend fg={C.neutralFg} bg={C.neutralBg} label="Neutral" />
-                  <Legend fg={C.bad} bg={C.badBg} label="Reacted" />
-                </div>
-              </Card>
-
-              {/* 3. PRODUCT LOG */}
-              <SectionLabel>PRODUCT LOG</SectionLabel>
-              <Card>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <div style={{ fontSize: 13, color: C.textMid }}>
-                    {profile.productLog.length === 0 ? "No products logged yet." : `${profile.productLog.length} entr${profile.productLog.length === 1 ? "y" : "ies"}`}
-                  </div>
-                  <button type="button" onClick={() => setShowAddProduct((v) => !v)} style={btnDark()}>
-                    <Plus size={13} /> Add Product
-                  </button>
-                </div>
-
-                {showAddProduct && (
-                  <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12, marginBottom: 12 }}>
-                    <input
-                      placeholder="Product name (e.g. CeraVe Foaming Cleanser)"
-                      value={newProduct.name}
-                      onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                      style={{
-                        width: "100%", boxSizing: "border-box",
-                        padding: "10px 12px", borderRadius: 10,
-                        border: `1px solid ${C.borderStrong}`, fontSize: 14,
-                        background: "#fff", color: C.espresso,
-                      }}
-                    />
-                    <div style={{ display: "flex", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
-                      {(["Worked", "Neutral", "Reacted"] as Outcome[]).map((o) => {
-                        const active = newProduct.outcome === o;
-                        const styleByOutcome = o === "Worked"
-                          ? { fg: C.good, bg: C.goodBg }
-                          : o === "Neutral"
-                            ? { fg: C.neutralFg, bg: C.neutralBg }
-                            : { fg: C.bad, bg: C.badBg };
-                        return (
-                          <button
-                            key={o}
-                            type="button"
-                            onClick={() => setNewProduct({ ...newProduct, outcome: o })}
-                            style={{
-                              ...pill(active ? styleByOutcome.bg : "#fff", active ? styleByOutcome.fg : C.textMid),
-                              border: `1px solid ${active ? styleByOutcome.fg + "55" : C.border}`,
-                              cursor: "pointer", fontWeight: 700,
-                            }}
-                          >
-                            {o}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                      <button type="button" onClick={addProduct} style={{ ...btnDark(), padding: "8px 14px" }}>Save</button>
-                      <button type="button" onClick={() => setShowAddProduct(false)} style={{ ...btnGhost(), padding: "8px 14px" }}>Cancel</button>
-                    </div>
-                  </div>
-                )}
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {profile.productLog.map((p) => {
-                    const tone = p.outcome === "Worked"
-                      ? { fg: C.good, bg: C.goodBg }
-                      : p.outcome === "Reacted"
-                        ? { fg: C.bad, bg: C.badBg }
-                        : { fg: C.neutralFg, bg: C.neutralBg };
-                    return (
-                      <div
-                        key={p.id}
-                        style={{
-                          display: "flex", justifyContent: "space-between", alignItems: "center",
-                          gap: 10, padding: "10px 12px",
-                          background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12,
-                        }}
-                      >
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700 }}>{p.name}</div>
-                          <div style={{ fontSize: 11, color: C.textLight, marginTop: 2 }}>Started {p.startedAt}</div>
-                        </div>
-                        <span style={{ ...pill(tone.bg, tone.fg), fontWeight: 700 }}>{p.outcome}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
-
-              {/* 4. REACTION LOG */}
-              <SectionLabel>REACTION LOG</SectionLabel>
-              <div
-                style={{
-                  background: C.surface, border: `1px solid ${C.border}`,
-                  borderLeft: `4px solid ${C.crimson}`,
-                  borderRadius: 16, padding: 20,
-                }}
-              >
-                <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: C.crimson, fontWeight: 800, letterSpacing: "0.14em" }}>
-                  <AlertTriangle size={12} /> IMPORTANT FOR YOUR DERMATOLOGIST
-                </div>
-                <p style={{ margin: "8px 0 14px", fontSize: 13, color: C.textMid }}>
-                  Ingredients flagged as causing a reaction, with date and symptom.
-                </p>
-
-                {profile.reactions.length === 0 ? (
-                  <div style={{ fontSize: 13, color: C.textLight, fontStyle: "italic" }}>
-                    No reactions logged. Mark an ingredient as "Reacted" in the map above to track here.
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {profile.reactions.map((r) => (
-                      <div
-                        key={r.id}
-                        style={{
-                          display: "flex", justifyContent: "space-between", alignItems: "center",
-                          padding: "10px 12px", background: C.badBg,
-                          border: `1px solid ${C.crimson}22`, borderRadius: 12,
-                        }}
-                      >
-                        <div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: C.espresso }}>{r.ingredient}</div>
-                          <div style={{ fontSize: 11, color: C.textMid, marginTop: 2 }}>{r.date}</div>
-                        </div>
-                        <span style={{ ...pill("#fff", C.bad), border: `1px solid ${C.crimson}33`, fontWeight: 700 }}>
-                          {r.symptom}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* 5. SKINTEA INSIGHTS */}
-              <SectionLabel>SKINTEA INSIGHTS</SectionLabel>
-              <Card>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                  <div style={{ fontSize: 36, fontWeight: 800, color: C.crimson, lineHeight: 1 }}>72%</div>
-                  <div style={{ fontSize: 13, color: C.textMid }}>this month</div>
-                </div>
-                <p style={{ margin: "10px 0 0", fontSize: 15, fontWeight: 600, lineHeight: 1.4 }}>
-                  Among {quiz.skinType} skin users this month, 72% are avoiding alcohol-based toners.
-                </p>
-                <div style={{ marginTop: 12, height: 8, background: C.imageBg, borderRadius: 999, overflow: "hidden" }}>
-                  <div style={{ width: "72%", height: "100%", background: C.crimson }} />
-                </div>
-                <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.border}`, fontSize: 12, color: C.textLight }}>
-                  Updated weekly · Based on 14,200+ reviews
-                </div>
-              </Card>
-
-              {/* 6. SHARE */}
-              <SectionLabel>SHARE YOUR SKIN PROFILE</SectionLabel>
-              <Card>
-                <p style={{ margin: 0, fontSize: 14, color: C.textMid, lineHeight: 1.5 }}>
-                  Share this with your dermatologist before your appointment — no more explaining from scratch.
-                </p>
-                <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-                  <button type="button" onClick={generateShareLink} style={btnDark()}>
-                    <Share2 size={14} /> Generate Shareable Link
-                  </button>
-                  <button type="button" onClick={downloadPDF} style={btnGhost()}>
-                    <FileDown size={14} /> Download PDF
-                  </button>
-                </div>
-                <div style={{ marginTop: 14, padding: 12, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 12, fontSize: 12, color: C.textLight }}>
-                  <div style={{ fontWeight: 700, color: C.espresso, marginBottom: 4, display: "inline-flex", alignItems: "center", gap: 6 }}>
-                    <Sparkles size={12} /> Shared version includes
-                  </div>
-                  Skin type, concerns, ingredient map, product log, reaction log, and Skintea data.
-                  <div style={{ fontWeight: 700, color: C.espresso, marginTop: 10, marginBottom: 4 }}>Excluded</div>
-                  Product recommendations, sample kit, and any monetization elements.
-                </div>
-              </Card>
-            </>
-          )}
-        </div>
+    <div style={{ background: C.bg, minHeight: "100vh", color: C.ink, fontFamily: "'DM Sans', system-ui, sans-serif" }}>
+      <Header persona={persona} tab={tab} setTab={setTab} />
+      <main style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px 80px" }}>
+        {tab === "tea" && <TeaTab />}
+        {tab === "shelf" && <ShelfTab />}
+        {tab === "saved" && <SavedTab />}
+        {tab === "chart" && <ChartTab persona={persona} />}
       </main>
     </div>
   );
 }
 
-// ---------- Subcomponents ----------
-function Nav() {
+// ---------- Header ----------
+function Header({ persona, tab, setTab }: { persona: typeof PERSONAS[SkinType]; tab: Tab; setTab: (t: Tab) => void }) {
+  const tabs: Array<{ id: Tab; icon: string; label: string; private?: boolean }> = [
+    { id: "tea", icon: "☕", label: "The Tea" },
+    { id: "shelf", icon: "🧴", label: "My Shelf" },
+    { id: "saved", icon: "🔖", label: "Saved", private: true },
+    { id: "chart", icon: "📋", label: "Skin Chart", private: true },
+  ];
   return (
-    <header style={{ background: C.espresso, color: "#fff", padding: "16px 20px" }}>
-      <div style={{ maxWidth: 760, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Link to="/" style={{ color: "#fff", textDecoration: "none", fontWeight: 800, letterSpacing: "0.02em" }}>
-          SKIN<span style={{ color: C.crimson }}>TEA</span>
-        </Link>
-        <nav style={{ display: "flex", gap: 18, fontSize: 13 }}>
-          <Link to="/products" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Products</Link>
-          <Link to="/quiz-result" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Quiz</Link>
-          <Link to="/skin-profile" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Profile</Link>
-          <span style={{ color: "#fff", opacity: 0.6, display: "inline-flex", alignItems: "center", gap: 4 }}>
-            Tea <Lock size={12} />
-          </span>
-        </nav>
+    <header style={{ position: "sticky", top: 0, zIndex: 30, background: C.surface, borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: "16px 16px 0" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 64, height: 64, borderRadius: "50%", background: persona.bg, display: "grid", placeItems: "center", fontSize: 30, flexShrink: 0 }}>{persona.emoji}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontWeight: 700, fontSize: 16 }}>@{USER.username}</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 999, background: persona.bg, color: persona.color, fontWeight: 700, fontSize: 12 }}>
+                {persona.name} {persona.emoji}
+              </span>
+            </div>
+            <div style={{ fontSize: 12, color: C.textLight, marginTop: 2 }}>{USER.concerns.join(" · ")}</div>
+            <div style={{ display: "flex", gap: 16, marginTop: 8, fontSize: 13 }}>
+              <span><b>{USER.posts}</b> <span style={{ color: C.textLight }}>posts</span></span>
+              <span><b>{USER.following}</b> <span style={{ color: C.textLight }}>following</span></span>
+              <span><b>{USER.followers.toLocaleString()}</b> <span style={{ color: C.textLight }}>followers</span></span>
+            </div>
+          </div>
+          <button style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, background: C.ink, color: "#fff", fontSize: 12, fontWeight: 600, border: "none", cursor: "pointer", flexShrink: 0 }}>
+            <Pencil size={12} /> Edit
+          </button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", marginTop: 16 }}>
+          {tabs.map(t => {
+            const active = tab === t.id;
+            return (
+              <button key={t.id} onClick={() => setTab(t.id)}
+                style={{ background: "transparent", border: "none", cursor: "pointer", padding: "10px 4px 12px",
+                  borderBottom: active ? `2px solid ${C.ink}` : "2px solid transparent",
+                  color: active ? C.ink : C.textLight }}>
+                <div style={{ fontSize: 22, lineHeight: 1 }}>{t.icon}</div>
+                <div style={{ fontSize: 11, marginTop: 4, fontWeight: active ? 700 : 500 }}>{t.label}</div>
+                {t.private && <div style={{ fontSize: 8, marginTop: 2, color: C.textLight, letterSpacing: 0.5, fontWeight: 700 }}>PRIVATE</div>}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </header>
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+// ---------- Reusable bits ----------
+function PrivateLabel() {
   return (
-    <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.14em", color: C.crimson, marginTop: 8 }}>
-      {children}
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: C.textLight, fontWeight: 700, letterSpacing: 0.5, marginBottom: 16 }}>
+      <Lock size={12} /> PRIVATE — Only you can see this
     </div>
   );
 }
 
-function Card({ children }: { children: React.ReactNode }) {
+function MatchPill({ match }: { match: Match }) {
+  const s = matchStyle(match);
+  return <span style={{ display: "inline-block", padding: "3px 8px", borderRadius: 6, background: s.bg, color: s.color, fontSize: 10, fontWeight: 700 }}>{s.label}</span>;
+}
+
+function SectionTitle({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
-    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 16, padding: 20 }}>
-      {children}
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", margin: "28px 0 12px" }}>
+      <h2 style={{ fontSize: 14, fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase", color: C.ink, margin: 0 }}>{children}</h2>
+      {action}
     </div>
   );
 }
 
-function StateBtn({
-  active, fg, bg, onClick, title, children,
-}: {
-  active: boolean; fg: string; bg: string; onClick: () => void; title: string; children: React.ReactNode;
-}) {
+function FilterRow({ items, active, onChange }: { items: string[]; active: string; onChange: (s: string) => void }) {
   return (
-    <button
-      type="button" onClick={onClick} title={title} aria-label={title}
-      style={{
-        width: 30, height: 30, borderRadius: 8,
-        background: active ? bg : "#fff",
-        color: active ? fg : C.textLight,
-        border: `1px solid ${active ? fg + "55" : C.border}`,
-        display: "grid", placeItems: "center",
-        cursor: "pointer", padding: 0,
-      }}
-    >
-      {children}
-    </button>
+    <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, margin: "0 -16px", padding: "0 16px 4px" }}>
+      {items.map(i => {
+        const on = i === active;
+        return (
+          <button key={i} onClick={() => onChange(i)}
+            style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: "pointer",
+              border: `1px solid ${on ? C.ink : C.border}`, background: on ? C.ink : C.surface, color: on ? "#fff" : C.textMid }}>
+            {i}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
-function Legend({ fg, bg, label }: { fg: string; bg: string; label: string }) {
+// ---------- Tab 1: The Tea ----------
+function TeaTab() {
+  const [openPost, setOpenPost] = useState<typeof POSTS[number] | null>(null);
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-      <span style={{ width: 12, height: 12, borderRadius: 4, background: bg, border: `1px solid ${fg}55` }} />
-      {label}
-    </span>
+    <>
+      <SectionTitle>★ Top 3 Picks</SectionTitle>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+        {TOP_PICKS.map((p, i) => (
+          <div key={i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", position: "relative" }}>
+            <div style={{ position: "absolute", top: 8, left: 8, background: C.gold, color: "#fff", fontSize: 9, fontWeight: 800, padding: "3px 6px", borderRadius: 4, letterSpacing: 0.5 }}>★ TOP PICK</div>
+            <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 40 }}>{p.emoji}</div>
+            <div style={{ padding: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{p.name}</div>
+              <div style={{ fontSize: 11, color: C.textLight, marginTop: 2 }}>{p.brand}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <SectionTitle>Posts</SectionTitle>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
+        {POSTS.map(p => (
+          <button key={p.id} onClick={() => setOpenPost(p)}
+            style={{ position: "relative", aspectRatio: "1", background: p.bg, border: "none", cursor: "pointer", display: "grid", placeItems: "center", padding: 0 }}>
+            <span style={{ fontSize: 56 }}>{p.emoji}</span>
+            <span style={{ position: "absolute", bottom: 6, right: 6, background: "rgba(0,0,0,0.65)", color: "#fff", fontSize: 10, fontWeight: 600, padding: "3px 6px", borderRadius: 4 }}>🏷 {p.products.length}</span>
+          </button>
+        ))}
+      </div>
+
+      {openPost && <PostSheet post={openPost} onClose={() => setOpenPost(null)} />}
+    </>
   );
 }
 
-function pill(bg: string, fg: string): React.CSSProperties {
-  return { fontSize: 12, padding: "6px 10px", borderRadius: 999, background: bg, color: fg, fontWeight: 600 };
+function PostSheet({ post, onClose }: { post: typeof POSTS[number]; onClose: () => void }) {
+  const persona = PERSONAS[USER.skinType];
+  return (
+    <Sheet onClose={onClose}>
+      <div style={{ aspectRatio: "1", background: post.bg, display: "grid", placeItems: "center", fontSize: 120, borderRadius: 12, marginBottom: 16 }}>{post.emoji}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+        <span style={{ fontWeight: 700 }}>@{USER.username}</span>
+        <span style={{ padding: "2px 8px", borderRadius: 999, background: persona.bg, color: persona.color, fontSize: 10, fontWeight: 700 }}>{persona.name} {persona.emoji}</span>
+      </div>
+      <div style={{ fontSize: 11, color: C.textLight }}>{post.date}</div>
+      <p style={{ marginTop: 10, fontSize: 14, lineHeight: 1.5 }}>{post.caption}</p>
+      <div style={{ display: "flex", gap: 16, fontSize: 13, color: C.textMid, marginTop: 8 }}>
+        <span>♥ {post.likes}</span><span>💬 {post.comments}</span>
+      </div>
+
+      <div style={{ marginTop: 20, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Products in this post</div>
+      <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+        {post.products.map((pr, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10 }}>
+            <div style={{ width: 44, height: 44, background: "#F5F0EB", borderRadius: 8, display: "grid", placeItems: "center", fontSize: 22 }}>{pr.emoji}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>{pr.name}</div>
+              <div style={{ fontSize: 11, color: C.textLight }}>{pr.brand} · {pr.category}</div>
+              <div style={{ marginTop: 4 }}><MatchPill match={pr.match} /></div>
+            </div>
+            <button style={{ display: "grid", placeItems: "center", width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface, cursor: "pointer" }}>
+              <Bookmark size={16} />
+            </button>
+          </div>
+        ))}
+      </div>
+    </Sheet>
+  );
 }
-function btnDark(): React.CSSProperties {
-  return {
-    background: C.espresso, color: "#fff", border: "none",
-    borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 700,
-    cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
-  };
+
+// ---------- Tab 2: My Shelf ----------
+function ShelfTab() {
+  const cats = ["All", ...Object.keys(SHELF)];
+  const [active, setActive] = useState("All");
+  const visible = active === "All" ? Object.entries(SHELF) : Object.entries(SHELF).filter(([c]) => c === active);
+  return (
+    <>
+      <div style={{ marginTop: 8 }}><FilterRow items={cats} active={active} onChange={setActive} /></div>
+      {visible.map(([cat, items]) => (
+        <div key={cat} style={{ marginTop: 24 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>{cat}</div>
+          <div style={{ display: "flex", gap: 10, overflowX: "auto", margin: "0 -16px", padding: "0 16px 8px" }}>
+            {items.map((p, i) => (
+              <div key={i} style={{ flexShrink: 0, width: 120, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", position: "relative" }}>
+                {p.top && <div style={{ position: "absolute", top: 6, left: 6, background: C.gold, color: "#fff", fontSize: 8, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
+                <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 36 }}>{p.emoji}</div>
+                <div style={{ padding: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, minHeight: 26 }}>{p.name}</div>
+                  <div style={{ fontSize: 10, color: C.textLight, margin: "2px 0 6px" }}>{p.brand}</div>
+                  <MatchPill match={p.match} />
+                </div>
+              </div>
+            ))}
+            <button style={{ flexShrink: 0, width: 120, aspectRatio: "0.78", border: `1.5px dashed ${C.borderStrong}`, borderRadius: 10, background: "transparent", cursor: "pointer", display: "grid", placeItems: "center", color: C.textLight }}>
+              <Plus size={22} />
+            </button>
+          </div>
+        </div>
+      ))}
+    </>
+  );
 }
-function btnGhost(): React.CSSProperties {
-  return {
-    background: "transparent", color: C.espresso,
-    border: `1px solid ${C.borderStrong}`,
-    borderRadius: 10, padding: "10px 14px", fontSize: 13, fontWeight: 700,
-    cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6,
-  };
+
+// ---------- Tab 3: Saved ----------
+function SavedTab() {
+  const [active, setActive] = useState("Recently Saved");
+  const items = active === "Recently Saved" ? SAVED : SAVED.filter(s => s.category === active);
+  return (
+    <>
+      <PrivateLabel />
+      <FilterRow items={SAVED_FILTERS} active={active} onChange={setActive} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginTop: 16 }}>
+        {items.map((p, i) => (
+          <div key={i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+            <div style={{ aspectRatio: "1.3", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 44 }}>{p.emoji}</div>
+            <div style={{ padding: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{p.name}</div>
+              <div style={{ fontSize: 10, color: C.textLight, marginTop: 2 }}>{p.category}</div>
+              <div style={{ marginTop: 6 }}><MatchPill match={p.match} /></div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 10 }}>
+                <button style={{ padding: "7px 0", fontSize: 11, fontWeight: 600, borderRadius: 6, border: "none", background: C.ink, color: "#fff", cursor: "pointer" }}>Add to Shelf</button>
+                <button style={{ padding: "7px 0", fontSize: 11, fontWeight: 600, borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.textMid, cursor: "pointer" }}>Remove</button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+// ---------- Tab 4: Skin Chart ----------
+function ChartTab({ persona }: { persona: typeof PERSONAS[SkinType] }) {
+  const [openTreat, setOpenTreat] = useState<typeof TREATMENTS[number] | null>(null);
+  const [treatFilter, setTreatFilter] = useState("All");
+  const treats = treatFilter === "All" ? TREATMENTS : TREATMENTS.filter(t => t.category === treatFilter);
+
+  return (
+    <>
+      <PrivateLabel />
+
+      {/* Score cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
+          <div style={{ fontSize: 11, color: C.textLight, fontWeight: 600 }}>Skin Score</div>
+          <div style={{ fontSize: 40, fontWeight: 800, lineHeight: 1.1, marginTop: 4 }}>78</div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, color: C.good, fontWeight: 700, marginTop: 4 }}>
+            <ArrowUp size={12} /> +6 <span style={{ color: C.textLight, fontWeight: 500 }}>vs last month</span>
+          </div>
+          <div style={{ height: 6, background: C.border, borderRadius: 999, marginTop: 10, overflow: "hidden" }}>
+            <div style={{ width: "78%", height: "100%", background: persona.color }} />
+          </div>
+        </div>
+        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
+          <div style={{ fontSize: 11, color: C.textLight, fontWeight: 600 }}>Skin Age</div>
+          <div style={{ fontSize: 40, fontWeight: 800, lineHeight: 1.1, marginTop: 4 }}>23</div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, color: C.good, fontWeight: 700, marginTop: 4 }}>
+            <ArrowDown size={12} /> 2 yrs <span style={{ color: C.textLight, fontWeight: 500 }}>actual: 25</span>
+          </div>
+          <div style={{ fontSize: 11, color: C.good, marginTop: 10, fontWeight: 600 }}>Looking younger 🎉</div>
+        </div>
+      </div>
+
+      {/* Trend graph */}
+      <SectionTitle>Score Trend</SectionTitle>
+      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16 }}>
+        <TrendChart values={SCORE_TREND} months={TREND_MONTHS} color={persona.color} />
+      </div>
+
+      {/* Problem tracker */}
+      <SectionTitle>Problem Tracker</SectionTitle>
+      <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+        {PROBLEMS.map((p, i) => {
+          const badge = p.status === "fixed" ? { bg: C.goodBg, color: C.good, text: "✓ Fixed" }
+            : p.status === "improving" ? { bg: C.badBg, color: C.bad, text: "↑ Improving" }
+            : { bg: "#EFEFEC", color: C.textMid, text: "Monitoring" };
+          return (
+            <div key={p.name} style={{ padding: 14, borderBottom: i < PROBLEMS.length - 1 ? `1px solid ${C.border}` : "none" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>{p.name}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: badge.bg, color: badge.color }}>{badge.text}</span>
+              </div>
+              <div style={{ height: 5, background: C.border, borderRadius: 999, overflow: "hidden" }}>
+                <div style={{ width: `${p.pct}%`, height: "100%", background: badge.color }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Treatment log */}
+      <SectionTitle action={
+        <button style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "6px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+          <Plus size={12} /> Add
+        </button>
+      }>Treatment Log</SectionTitle>
+      <FilterRow items={TREAT_FILTERS} active={treatFilter} onChange={setTreatFilter} />
+      <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+        {treats.map(t => (
+          <button key={t.id} onClick={() => setOpenTreat(t)}
+            style={{ textAlign: "left", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, cursor: "pointer", width: "100%" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ fontSize: 32 }}>{t.emoji}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>{t.name}</div>
+                <div style={{ fontSize: 11, color: C.textLight }}>{t.category} · {t.date}</div>
+              </div>
+              <div style={{ display: "flex", gap: 1 }}>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} size={12} fill={i < t.rating ? C.gold : "transparent"} color={i < t.rating ? C.gold : C.borderStrong} />
+                ))}
+              </div>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+              {t.fixed.map(f => <span key={f} style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: C.goodBg, color: C.good }}>✓ Fixed {f}</span>)}
+              {t.working.map(w => <span key={w} style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: C.warnBg, color: C.warn }}>△ {w}</span>)}
+            </div>
+            <div style={{ fontSize: 11, color: C.textLight, marginTop: 8 }}>Tap for full notes →</div>
+          </button>
+        ))}
+      </div>
+
+      {/* Next steps */}
+      <SectionTitle>Best Next Steps</SectionTitle>
+      <div style={{ fontSize: 12, color: C.textLight, marginTop: -8, marginBottom: 12 }}>Based on your skin data + treatment history</div>
+      <div style={{ display: "grid", gap: 12 }}>
+        {NEXT_STEPS.map((s, i) => (
+          <div key={i} style={{ display: "flex", gap: 12, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
+            <div style={{ flexShrink: 0, width: 28, height: 28, borderRadius: "50%", background: C.ink, color: "#fff", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 700 }}>{i + 1}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 13, fontWeight: 700 }}>{s.name}</span>
+                <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 999, background: "#EFEFEC", color: C.textMid, textTransform: "uppercase", letterSpacing: 0.5 }}>{s.type}</span>
+              </div>
+              <div style={{ fontSize: 12, color: C.textMid, marginTop: 4, lineHeight: 1.5 }}>{s.text}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Share */}
+      <div style={{ background: C.ink, color: "#fff", borderRadius: 14, padding: 20, marginTop: 28 }}>
+        <div style={{ fontSize: 16, fontWeight: 700 }}>📋 Share with your Dermatologist</div>
+        <div style={{ fontSize: 13, opacity: 0.75, marginTop: 6, lineHeight: 1.5 }}>No more explaining from scratch. Send this before your appointment.</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 14 }}>
+          <button style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 0", borderRadius: 8, background: "#fff", color: C.ink, border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+            <Link2 size={14} /> Get Link
+          </button>
+          <button style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 0", borderRadius: 8, background: "#3A2418", color: "#fff", border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+            <Download size={14} /> PDF
+          </button>
+        </div>
+      </div>
+
+      {openTreat && <TreatmentSheet t={openTreat} onClose={() => setOpenTreat(null)} />}
+    </>
+  );
+}
+
+function TreatmentSheet({ t, onClose }: { t: typeof TREATMENTS[number]; onClose: () => void }) {
+  const allFixed = t.working.length === 0 && t.fixed.length > 0;
+  return (
+    <Sheet onClose={onClose}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ fontSize: 40 }}>{t.emoji}</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>{t.name}</div>
+          <div style={{ fontSize: 12, color: C.textLight }}>{t.category} · {t.date}</div>
+        </div>
+        <div style={{ display: "flex", gap: 1 }}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Star key={i} size={14} fill={i < t.rating ? C.gold : "transparent"} color={i < t.rating ? C.gold : C.borderStrong} />
+          ))}
+        </div>
+      </div>
+      <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.6, marginTop: 14 }}>{t.notes}</p>
+
+      {t.fixed.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, color: C.textMid, marginBottom: 8 }}>Fixed</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {t.fixed.map(f => <span key={f} style={{ fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 999, background: C.goodBg, color: C.good }}>✓ {f}</span>)}
+          </div>
+        </div>
+      )}
+      {t.working.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, color: C.textMid, marginBottom: 8 }}>Still working on</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {t.working.map(w => <span key={w} style={{ fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 999, background: C.warnBg, color: C.warn }}>△ {w}</span>)}
+          </div>
+        </div>
+      )}
+      {allFixed && <div style={{ marginTop: 16, fontSize: 13, fontWeight: 700, color: C.good }}>✓ All concerns resolved</div>}
+    </Sheet>
+  );
+}
+
+// ---------- Trend chart ----------
+function TrendChart({ values, months, color }: { values: number[]; months: string[]; color: string }) {
+  const W = 320, H = 140, P = 16;
+  const max = 100, min = 0;
+  const pts = values.map((v, i) => {
+    const x = P + (i * (W - P * 2)) / (values.length - 1);
+    const y = P + ((max - v) * (H - P * 2)) / (max - min);
+    return { x, y };
+  });
+  const path = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
+  const area = `${path} L${pts[pts.length - 1].x},${H - P} L${pts[0].x},${H - P} Z`;
+  const id = useMemo(() => `g-${Math.random().toString(36).slice(2, 7)}`, []);
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }}>
+        <defs>
+          <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.35" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={area} fill={`url(#${id})`} />
+        <path d={path} fill="none" stroke={color} strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round" />
+        {pts.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r="3.2" fill="#fff" stroke={color} strokeWidth="2" />
+        ))}
+      </svg>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 10, color: C.textLight }}>
+        {months.map(m => <span key={m}>{m}</span>)}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Bottom sheet ----------
+function Sheet({ children, onClose }: { children: ReactNode; onClose: () => void }) {
+  return (
+    <div onClick={onClose}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div onClick={e => e.stopPropagation()}
+        style={{ width: "100%", maxWidth: 560, maxHeight: "90vh", overflowY: "auto", background: C.bg, borderRadius: "16px 16px 0 0", padding: "20px 18px 32px", position: "relative" }}>
+        <div style={{ width: 40, height: 4, background: C.borderStrong, borderRadius: 999, margin: "0 auto 14px" }} />
+        <button onClick={onClose}
+          style={{ position: "absolute", top: 14, right: 14, width: 30, height: 30, borderRadius: "50%", background: C.surface, border: `1px solid ${C.border}`, display: "grid", placeItems: "center", cursor: "pointer" }}>
+          <X size={14} />
+        </button>
+        {children}
+      </div>
+    </div>
+  );
 }

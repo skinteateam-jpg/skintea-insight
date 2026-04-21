@@ -232,7 +232,12 @@ function TeaProductsPage() {
           className="sticky top-0 z-30 flex items-center justify-between border-b px-5 py-3.5"
           style={{ background: "#ffffff", borderColor: "#f0ede8", color: "#1a1a1a" }}
         >
-          <h1 className="font-display text-2xl font-semibold tracking-tight">Product Talk</h1>
+          <div>
+            <h1 className="font-display text-2xl font-semibold leading-none tracking-tight">Product Talk</h1>
+            <p className="mt-1 text-[10px] font-bold tracking-[0.12em] text-neutral-500">
+              REAL OPINIONS · NO INFLUENCER BIAS
+            </p>
+          </div>
           <button
             onClick={() => openCompose()}
             className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-transform active:scale-95"

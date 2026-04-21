@@ -1,508 +1,173 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Heart, MessageCircle, Play, Share2, ArrowUpCircle, ExternalLink, ChevronDown, Pencil, Bookmark } from "lucide-react";
-import { ProductChat } from "@/components/ProductChat";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
-  component: ProductPage,
+  component: HomePage,
   head: () => ({
     meta: [
-      { title: "CeraVe Moisturizing Cream — Skintea" },
+      { title: "Skintea — Real reviews. Bold decisions." },
       {
         name: "description",
         content:
-          "Real opinions on CeraVe Moisturizing Cream from TikTok, Instagram and Reddit, summarized by AI.",
+          "The honest skincare decision platform. Real reviews from TikTok, Reddit, and Instagram — turned into clear insights.",
+      },
+      { property: "og:title", content: "Skintea — Real reviews. Bold decisions." },
+      {
+        property: "og:description",
+        content:
+          "Real reviews from TikTok, Reddit, and Instagram — turned into clear insights.",
       },
     ],
   }),
 });
 
-const product = {
-  name: "Moisturizing Cream",
-  brand: "CeraVe",
-  category: "Moisturizer",
-  tagline: "Daily face and body cream for normal to dry skin, with ceramides and hyaluronic acid.",
+const C = {
+  espresso: "#1C0A00",
+  crimson: "#A8001C",
+  bg: "#FAFAF8",
+  surface: "#FFFFFF",
+  border: "#EDEBE8",
+  textMid: "#5C4033",
+  textLight: "#9E8070",
 };
 
-const tiktoks = [
-  { user: "@skinwithliv", views: "1.2M", likes: "184K", caption: "My HG winter moisturizer for 3 years straight 🧴" },
-  { user: "@dermdoctor", views: "890K", likes: "92K", caption: "Why dermatologists keep recommending this one." },
-  { user: "@glowby.mei", views: "430K", likes: "61K", caption: "Drugstore vs luxury — this beats them all." },
-  { user: "@routine.daily", views: "210K", likes: "27K", caption: "Day 30 of using only CeraVe — results." },
-];
-
-const instagrams = [
-  { user: "skincare.notes", likes: "12.4K", caption: "Texture check: thick but melts in. Zero pilling." },
-  { user: "thatcleangirl", likes: "8.9K", caption: "My winter barrier reset routine ✨" },
-  { user: "derm.maria", likes: "21.1K", caption: "Ceramides 1, 3 and 6-II — here's why that matters." },
-];
-
-const ageRatings = [
-  { label: "Teens", sub: "13–19", value: 72 },
-  { label: "20s", sub: "20–29", value: 88 },
-  { label: "30s", sub: "30–39", value: 94 },
-  { label: "40s", sub: "40–49", value: 91 },
-  { label: "50s+", sub: "50 and up", value: 84 },
-];
-
-const keyIngredients = [
-  "Ceramide NP",
-  "Ceramide AP",
-  "Ceramide EOP",
-  "Hyaluronic Acid",
-  "Niacinamide",
-  "Cholesterol",
-  "Phytosphingosine",
-];
-
-const fullIngredients = [
-  "Purified Water", "Glycerin", "Caprylic/Capric Triglyceride", "Cetearyl Alcohol",
-  "Ceramide NP", "Ceramide AP", "Ceramide EOP", "Carbomer", "Dimethicone",
-  "Behentrimonium Methosulfate", "Sodium Hyaluronate", "Cholesterol", "Phenoxyethanol",
-  "Disodium EDTA", "Phytosphingosine", "Tocopherol", "Niacinamide", "Xanthan Gum",
-  "Polyglyceryl-3 Diisostearate", "Sodium Lauroyl Lactylate", "Ethylhexylglycerin",
-];
-
-const affiliates = [
-  { name: "Sephora", url: "https://www.sephora.com" },
-  { name: "Amazon", url: "https://www.amazon.com" },
-  { name: "Ulta", url: "https://www.ulta.com" },
-  { name: "LTK", url: "https://www.shopltk.com" },
-  { name: "Rakuten", url: "https://www.rakuten.com" },
-];
-
-const reddits = [
-  { sub: "r/SkincareAddiction", up: "2.4k", title: "CeraVe Moisturizing Cream finally fixed my barrier", comments: 312 },
-  { sub: "r/30PlusSkinCare", up: "1.1k", title: "Mature skin review after 6 months of daily use", comments: 184 },
-  { sub: "r/AsianBeauty", up: "684", title: "Layering CeraVe under sunscreen — pilling thoughts?", comments: 97 },
-  { sub: "r/Skincare_Addiction", up: "512", title: "Unpopular: it broke me out. Anyone else?", comments: 246 },
-];
-
-function ProductPage() {
-  const [tab, setTab] = useState("tiktok");
-  const [showAllIngredients, setShowAllIngredients] = useState(false);
-
+function HomePage() {
   return (
-    <main className="min-h-screen bg-background" style={{ paddingBottom: "80px" }}>
-      <div className="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-20">
-        {/* Header */}
-        <header className="mb-14 grid gap-8 sm:grid-cols-[240px_1fr] sm:items-start">
-          <div className="aspect-square w-full overflow-hidden rounded-2xl bg-gradient-to-br from-tea-cream via-accent to-tea-sage/40 shadow-sm">
-            <div className="flex h-full w-full items-center justify-center">
-              <div className="h-32 w-20 rounded-md bg-background/70 shadow-inner sm:h-40 sm:w-24" />
-            </div>
-          </div>
-          <div>
-            <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="font-medium tracking-wide text-tea-leaf">{product.brand}</span>
-              <span>·</span>
-              <span>{product.category}</span>
-            </div>
-            <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-              {product.name}
-            </h1>
-            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-              {product.tagline}
-            </p>
-            <div className="mt-6 flex flex-wrap gap-2">
-              {affiliates.map((a, i) => (
-                <Button
-                  key={a.name}
-                  asChild
-                  variant={i === 0 ? "default" : "outline"}
-                  className={
-                    i === 0
-                      ? "rounded-full bg-tea-leaf px-5 text-primary-foreground hover:bg-tea-leaf/90"
-                      : "rounded-full border-border px-5 text-foreground hover:bg-secondary"
-                  }
-                >
-                  <a href={a.url} target="_blank" rel="noopener noreferrer">
-                    {a.name} <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                </Button>
-              ))}
-            </div>
-          </div>
-        </header>
-
-        {/* Content Aggregation */}
-        <section className="mb-16">
-          <h2 className="mb-5 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            What people are saying
-          </h2>
-          <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className="mb-6 grid w-full grid-cols-3 rounded-full bg-secondary p-1">
-              <TabsTrigger value="tiktok" className="rounded-full">TikTok</TabsTrigger>
-              <TabsTrigger value="instagram" className="rounded-full">Instagram</TabsTrigger>
-              <TabsTrigger value="reddit" className="rounded-full">Reddit</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="tiktok">
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                {tiktoks.map((t) => (
-                  <Card
-                    key={t.user}
-                    className="group relative aspect-[9/14] overflow-hidden border-0 bg-gradient-to-br from-foreground to-foreground/70 p-0 shadow-sm"
-                  >
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-background/20 backdrop-blur transition group-hover:scale-110">
-                        <Play className="h-5 w-5 fill-background text-background" />
-                      </div>
-                    </div>
-                    <div className="absolute inset-x-0 bottom-0 space-y-1 bg-gradient-to-t from-black/80 to-transparent p-3">
-                      <p className="text-xs font-medium text-white">{t.user}</p>
-                      <p className="line-clamp-2 text-[11px] leading-snug text-white/80">{t.caption}</p>
-                      <div className="flex items-center gap-3 pt-1 text-[10px] text-white/70">
-                        <span className="flex items-center gap-1"><Play className="h-3 w-3" /> {t.views}</span>
-                        <span className="flex items-center gap-1"><Heart className="h-3 w-3" /> {t.likes}</span>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="instagram">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                {instagrams.map((p) => (
-                  <Card key={p.user} className="overflow-hidden p-0 shadow-sm">
-                    <div className="aspect-square bg-gradient-to-br from-tea-cream via-accent to-tea-sage/40" />
-                    <div className="space-y-2 p-3">
-                      <p className="text-xs font-semibold text-foreground">@{p.user}</p>
-                      <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">{p.caption}</p>
-                      <div className="flex items-center gap-3 pt-1 text-[11px] text-muted-foreground">
-                        <span className="flex items-center gap-1"><Heart className="h-3 w-3" /> {p.likes}</span>
-                        <span className="flex items-center gap-1"><Share2 className="h-3 w-3" /></span>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="reddit">
-              <div className="space-y-3">
-                {reddits.map((r) => (
-                  <Card key={r.title} className="flex items-start gap-3 p-4 shadow-sm">
-                    <div className="flex flex-col items-center text-muted-foreground">
-                      <ArrowUpCircle className="h-4 w-4 text-tea-warning" />
-                      <span className="text-xs font-semibold text-foreground">{r.up}</span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium text-tea-leaf">{r.sub}</p>
-                      <p className="mt-1 text-sm font-medium leading-snug text-foreground">{r.title}</p>
-                      <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-                        <MessageCircle className="h-3 w-3" /> {r.comments} comments
-                      </p>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </section>
-
-        {/* AI Summary */}
-        <section className="mb-16">
-          <h2 className="mb-5 text-base font-semibold tracking-tight text-foreground">
-            Summary
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <OpinionCard
-              label="Majority"
-              percent={78}
-              barClass="bg-tea-leaf"
-              sentence="Strengthens the skin barrier within a few weeks."
-            />
-            <OpinionCard
-              label="Minority"
-              percent={22}
-              barClass="bg-tea-danger"
-              sentence="Feels heavy and may pill under sunscreen."
-            />
-          </div>
-          <div className="mt-3 rounded-xl bg-secondary px-4 py-3">
-            <p className="text-xs font-medium text-muted-foreground">Why opinions differ</p>
-            <p className="mt-1 text-sm text-foreground">
-              Skin type and climate shape the experience more than the formula itself.
-            </p>
-          </div>
-        </section>
-
-        {/* Fit Summary */}
-        <section className="mb-16">
-          <h2 className="mb-5 text-base font-semibold tracking-tight text-foreground">
-            Is it for you?
-          </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <FitCard
-              variant="yes"
-              title="YES — works well"
-              items={[
-                { label: "Dry skin", strength: 3 },
-                { label: "Sensitive skin", strength: 3 },
-                { label: "Compromised barrier", strength: 2 },
-                { label: "Eczema-prone", strength: 2 },
-              ]}
-            />
-            <FitCard
-              variant="skip"
-              title="SKIP — may not work"
-              items={[
-                { label: "Very oily skin", strength: 3 },
-                { label: "Acne-prone (fungal)", strength: 3 },
-                { label: "Humid climates", strength: 1 },
-                { label: "Dislikes rich textures", strength: 2 },
-              ]}
-            />
-          </div>
-          <div style={{ display: "flex", gap: "16px", marginTop: "12px", fontSize: "11px", color: "#999" }}>
-            <LegendItem strength={3} label="Strong match" />
-            <LegendItem strength={2} label="Moderate" />
-            <LegendItem strength={1} label="Mild" />
-          </div>
-        </section>
-
-        <ProductChat />
-
-        {/* Ratings by Age */}
-        <section className="mb-16">
-          <h2 className="mb-5 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            Ratings by Age
-          </h2>
-          <Card className="p-6 shadow-sm">
-            <div className="space-y-5">
-              {ageRatings.map((a) => (
-                <div key={a.label}>
-                  <div className="mb-2 flex items-baseline justify-between">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-sm font-semibold text-foreground">{a.label}</span>
-                      <span className="text-xs text-muted-foreground">{a.sub}</span>
-                    </div>
-                    <span className="text-sm font-medium text-tea-leaf">{a.value}%</span>
-                  </div>
-                  <Progress value={a.value} className="h-2 bg-secondary" />
-                </div>
-              ))}
-            </div>
-          </Card>
-        </section>
-
-        {/* Key Ingredients */}
-        <section className="mb-16">
-          <h2 className="mb-5 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            Key Ingredients
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {keyIngredients.map((ing) => (
-              <Badge
-                key={ing}
-                variant="secondary"
-                className="rounded-full bg-tea-sage/30 px-3 py-1.5 text-sm font-medium text-foreground hover:bg-tea-sage/40"
-              >
-                {ing}
-              </Badge>
-            ))}
-          </div>
-          <Collapsible open={showAllIngredients} onOpenChange={setShowAllIngredients} className="mt-5">
-            <CollapsibleTrigger className="flex items-center gap-1.5 text-sm font-medium text-tea-leaf transition hover:opacity-70">
-              {showAllIngredients ? "Hide" : "Full ingredient list"}
-              <ChevronDown
-                className={`h-4 w-4 transition-transform ${showAllIngredients ? "rotate-180" : ""}`}
-              />
-            </CollapsibleTrigger>
-            <CollapsibleContent className="mt-4">
-              <Card className="p-5 shadow-sm">
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {fullIngredients.join(", ")}.
-                </p>
-              </Card>
-            </CollapsibleContent>
-          </Collapsible>
-        </section>
-
-        {/* Confidence */}
-        <section className="border-t border-border pt-10">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            Confidence Level
-          </h2>
-          <div className="flex flex-col items-start gap-2">
-            <Badge className="rounded-full bg-tea-leaf px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-tea-leaf">
-              High
-            </Badge>
-            <p className="text-sm text-muted-foreground">
-              Based on 1,200+ posts and consistent sentiment across all three platforms over the past 12 months.
-            </p>
-          </div>
-        </section>
-      </div>
-
-      <div
+    <div style={{ background: C.espresso, minHeight: "100vh", color: "#fff" }}>
+      {/* Nav */}
+      <nav
         style={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: "white",
-          borderTop: "0.5px solid #e5e5e5",
-          padding: "12px 20px",
+          maxWidth: 1100,
+          margin: "0 auto",
+          padding: "20px 24px",
           display: "flex",
-          gap: "12px",
-          zIndex: 999,
+          alignItems: "center",
+          justifyContent: "space-between",
         }}
       >
-        <button
-          style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "8px",
-            background: "#1D9E75",
-            color: "white",
-            borderRadius: "10px",
-            fontSize: "15px",
-            fontWeight: 500,
-            height: "48px",
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
-          <Pencil style={{ width: "18px", height: "18px" }} />
-          Spill the tea
-        </button>
-        <button
-          aria-label="Save"
-          style={{
-            width: "56px",
-            height: "48px",
-            background: "white",
-            border: "0.5px solid #e5e5e5",
-            borderRadius: "10px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#333",
-            cursor: "pointer",
-          }}
-        >
-          <Bookmark style={{ width: "20px", height: "20px" }} />
-        </button>
-      </div>
-    </main>
-  );
-}
+        <Link to="/" style={{ color: "#fff", textDecoration: "none", fontWeight: 900, fontSize: 22, letterSpacing: "-0.04em" }}>
+          SKIN<span style={{ color: C.crimson }}>TEA</span>
+        </Link>
+        <div style={{ display: "flex", gap: 22, fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          <Link to="/products" style={{ color: "#fff", textDecoration: "none" }}>Products</Link>
+          <Link to="/quiz-result" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Quiz</Link>
+          <Link to="/skin-profile" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Profile</Link>
+        </div>
+      </nav>
 
-function OpinionCard({
-  label,
-  percent,
-  barClass,
-  sentence,
-}: {
-  label: string;
-  percent: number;
-  barClass: string;
-  sentence: string;
-}) {
-  return (
-    <Card className="border border-border bg-background p-5 shadow-none">
-      <div className="flex items-baseline justify-between">
-        <span className="text-sm font-medium text-muted-foreground">{label}</span>
-      </div>
-      <div className="mt-2 text-4xl font-bold tracking-tight text-foreground">{percent}%</div>
-      <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-        <div className={`h-full ${barClass}`} style={{ width: `${percent}%` }} />
-      </div>
-      <p className="mt-4 text-sm text-foreground">{sentence}</p>
-    </Card>
-  );
-}
-
-function Dots({
-  strength,
-  color,
-}: {
-  strength: number;
-  color: "yes" | "skip" | "grey";
-}) {
-  const fill = color === "yes" ? "#1D9E75" : color === "skip" ? "#D85A30" : "#999999";
-  return (
-    <div style={{ display: "flex", gap: "3px", alignItems: "center" }}>
-      {[1, 2, 3].map((i) => (
+      {/* Hero */}
+      <section style={{ maxWidth: 900, margin: "0 auto", padding: "80px 24px 60px", textAlign: "center" }}>
         <div
-          key={i}
           style={{
-            width: "8px",
-            height: "8px",
-            borderRadius: "50%",
             display: "inline-block",
-            background: i <= strength ? fill : "transparent",
-            border: i <= strength ? "none" : "1.5px solid #ccc",
+            color: C.crimson,
+            fontSize: 12,
+            fontWeight: 800,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            marginBottom: 20,
           }}
-        />
-      ))}
+        >
+          The honest skincare decision platform
+        </div>
+        <h1
+          style={{
+            fontSize: 64,
+            fontWeight: 900,
+            lineHeight: 1.05,
+            letterSpacing: "-0.03em",
+            margin: "0 0 20px",
+          }}
+        >
+          Real reviews.
+          <br />
+          <span style={{ color: C.crimson }}>Bold decisions.</span>
+        </h1>
+        <p style={{ fontSize: 18, color: "rgba(255,255,255,0.7)", maxWidth: 560, margin: "0 auto 36px", lineHeight: 1.5 }}>
+          Aggregated from TikTok, Reddit and Instagram. Structured by AI. Built for the way you actually shop for skincare.
+        </p>
+        <div style={{ display: "inline-flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+          <Link
+            to="/products"
+            style={{
+              background: C.crimson,
+              color: "#fff",
+              padding: "14px 28px",
+              borderRadius: 999,
+              textDecoration: "none",
+              fontSize: 14,
+              fontWeight: 800,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+            }}
+          >
+            Browse products
+          </Link>
+          <Link
+            to="/quiz-result"
+            style={{
+              background: "transparent",
+              color: "#fff",
+              padding: "14px 28px",
+              borderRadius: 999,
+              textDecoration: "none",
+              fontSize: 14,
+              fontWeight: 800,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+              border: "1.5px solid rgba(255,255,255,0.4)",
+            }}
+          >
+            Take the quiz
+          </Link>
+        </div>
+      </section>
+
+      {/* Feature cards */}
+      <section style={{ maxWidth: 1100, margin: "0 auto", padding: "20px 24px 100px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+          <FeatureCard
+            label="Discover"
+            title="Trending products"
+            desc="See what's actually working — ranked by real users, not paid placements."
+            to="/products"
+          />
+          <FeatureCard
+            label="Personalize"
+            title="Your skin quiz"
+            desc="Get matched to products and ingredients made for your skin type."
+            to="/quiz-result"
+          />
+          <FeatureCard
+            label="Track"
+            title="Skin profile"
+            desc="Your living skin record. Log products, track reactions, share with derms."
+            to="/skin-profile"
+          />
+        </div>
+      </section>
     </div>
   );
 }
 
-function FitCard({
-  variant,
-  title,
-  items,
-}: {
-  variant: "yes" | "skip";
-  title: string;
-  items: { label: string; strength: number }[];
-}) {
-  const labelColor = variant === "yes" ? "#1D9E75" : "#D85A30";
+function FeatureCard({ label, title, desc, to }: { label: string; title: string; desc: string; to: "/products" | "/quiz-result" | "/skin-profile" }) {
   return (
-    <div
+    <Link
+      to={to}
       style={{
-        background: "white",
-        border: "0.5px solid #e5e5e5",
-        borderRadius: "12px",
-        padding: "16px 20px",
+        display: "block",
+        background: C.surface,
+        color: C.espresso,
+        borderRadius: 16,
+        padding: "24px 22px",
+        textDecoration: "none",
+        border: `1px solid ${C.border}`,
       }}
     >
-      <div
-        style={{
-          color: labelColor,
-          fontSize: "12px",
-          fontWeight: 500,
-          marginBottom: "12px",
-        }}
-      >
-        {title}
+      <div style={{ color: C.crimson, fontSize: 11, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>
+        {label}
       </div>
-      {items.map((it) => (
-        <div
-          key={it.label}
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "8px",
-          }}
-        >
-          <span style={{ fontSize: "13px", color: "#333333" }}>{it.label}</span>
-          <Dots strength={it.strength} color={variant} />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function LegendItem({ strength, label }: { strength: number; label: string }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-      <Dots strength={strength} color="grey" />
-      <span>{label}</span>
-    </div>
+      <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 8, letterSpacing: "-0.01em" }}>{title}</div>
+      <div style={{ fontSize: 14, color: C.textMid, lineHeight: 1.5 }}>{desc}</div>
+    </Link>
   );
 }

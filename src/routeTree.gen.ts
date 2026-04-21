@@ -14,6 +14,7 @@ import { Route as QuizResultRouteImport } from './routes/quiz-result'
 import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as ProductDetailRouteImport } from './routes/product-detail'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductsIdV2RouteImport } from './routes/products.$id-v2'
 
 const SkinProfileRoute = SkinProfileRouteImport.update({
@@ -41,6 +42,11 @@ const ProductDetailRoute = ProductDetailRouteImport.update({
   path: '/product-detail',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProductsIdV2Route = ProductsIdV2RouteImport.update({
   id: '/$id-v2',
   path: '/$id-v2',
@@ -48,6 +54,7 @@ const ProductsIdV2Route = ProductsIdV2RouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof IndexRoute
   '/product-detail': typeof ProductDetailRoute
   '/products': typeof ProductsRouteWithChildren
   '/quiz': typeof QuizRoute
@@ -56,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/products/$id-v2': typeof ProductsIdV2Route
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/product-detail': typeof ProductDetailRoute
   '/products': typeof ProductsRouteWithChildren
   '/quiz': typeof QuizRoute
@@ -65,6 +73,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/product-detail': typeof ProductDetailRoute
   '/products': typeof ProductsRouteWithChildren
   '/quiz': typeof QuizRoute
@@ -75,6 +84,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/product-detail'
     | '/products'
     | '/quiz'
@@ -83,6 +93,7 @@ export interface FileRouteTypes {
     | '/products/$id-v2'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/product-detail'
     | '/products'
     | '/quiz'
@@ -91,6 +102,7 @@ export interface FileRouteTypes {
     | '/products/$id-v2'
   id:
     | '__root__'
+    | '/'
     | '/product-detail'
     | '/products'
     | '/quiz'
@@ -100,6 +112,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   ProductDetailRoute: typeof ProductDetailRoute
   ProductsRoute: typeof ProductsRouteWithChildren
   QuizRoute: typeof QuizRoute
@@ -144,6 +157,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductDetailRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/products/$id-v2': {
       id: '/products/$id-v2'
       path: '/$id-v2'
@@ -167,6 +187,7 @@ const ProductsRouteWithChildren = ProductsRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   ProductDetailRoute: ProductDetailRoute,
   ProductsRoute: ProductsRouteWithChildren,
   QuizRoute: QuizRoute,

@@ -457,7 +457,7 @@ function QuizResultPage() {
           {/* Retake */}
           <div style={{ textAlign: "center", marginTop: 12 }}>
             <Link
-              to="/products"
+              to="/quiz"
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 fontSize: 13, color: C.textMid, textDecoration: "underline",

@@ -33,6 +33,22 @@ const CHARACTERS: Record<SkinType, { emoji: string; name: string }> = {
   normal: { emoji: "😮‍💨", name: "Unbothered" },
 };
 
+const SKIN_BG: Record<SkinType, string> = {
+  oily: "#fef3c7",
+  dry: "#fce7f3",
+  combo: "#ede9fe",
+  sensitive: "#fee2e2",
+  normal: "#e0f2fe",
+};
+
+function timeAgo(ts: number) {
+  const diff = Math.max(1, Math.floor((Date.now() - ts) / 1000));
+  if (diff < 60) return `${diff}s`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  return `${Math.floor(diff / 86400)}d`;
+}
+
 const TAGS: { key: TagKey | "all"; label: string }[] = [
   { key: "all", label: "All" },
   { key: "night-out", label: "💋 Night Out" },
@@ -213,21 +229,21 @@ function TeaProductsPage() {
       <div className="mx-auto max-w-[480px] pb-32">
         {/* Sticky nav */}
         <header
-          className="sticky top-0 z-30 flex items-center justify-between px-5 py-3.5"
-          style={{ background: "#1a1a1a", color: "#faf8f5" }}
+          className="sticky top-0 z-30 flex items-center justify-between border-b px-5 py-3.5"
+          style={{ background: "#ffffff", borderColor: "#f0ede8", color: "#1a1a1a" }}
         >
           <h1 className="font-display text-2xl font-semibold tracking-tight">Product Talk</h1>
           <button
             onClick={() => openCompose()}
             className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-transform active:scale-95"
-            style={{ background: "#fbbf24", color: "#1a1a1a" }}
+            style={{ background: "#1a1a1a", color: "#ffffff" }}
           >
             <Coffee className="h-4 w-4" /> Spill
           </button>
         </header>
 
         {/* Tag filter bar */}
-        <div className="sticky top-[60px] z-20 border-b border-black/5" style={{ background: "#faf8f5" }}>
+        <div className="sticky top-[60px] z-20 border-b" style={{ background: "#faf8f5", borderColor: "#f0ede8" }}>
           <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 py-3">
             {TAGS.map((t) => {
               const active = activeTag === t.key;
@@ -235,10 +251,11 @@ function TeaProductsPage() {
                 <button
                   key={t.key}
                   onClick={() => setActiveTag(t.key)}
-                  className="whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors"
+                  className="whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors"
                   style={{
-                    background: active ? "#1a1a1a" : "rgba(0,0,0,0.05)",
-                    color: active ? "#faf8f5" : "#1a1a1a",
+                    background: active ? "#1a1a1a" : "transparent",
+                    color: active ? "#ffffff" : "#1a1a1a",
+                    borderColor: active ? "#1a1a1a" : "#e5e2dc",
                   }}
                 >
                   {t.label}
@@ -262,13 +279,23 @@ function TeaProductsPage() {
             ].map((c, i) => (
               <div
                 key={i}
-                className="relative h-44 w-32 flex-shrink-0 overflow-hidden rounded-2xl shadow-sm"
-                style={{ backgroundImage: `url(${c.img})`, backgroundSize: "cover", backgroundPosition: "center" }}
+                className="relative flex-shrink-0 overflow-hidden shadow-sm"
+                style={{
+                  width: "120px",
+                  height: "150px",
+                  borderRadius: "14px",
+                  backgroundImage: `url(${c.img})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
               >
-                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-2.5 text-white">
-                  <p className="text-[11px] font-semibold leading-tight">{c.label}</p>
-                  <p className="mt-1 flex items-center gap-1 text-[10px] opacity-90">
+                <div
+                  className="absolute inset-0"
+                  style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75), rgba(0,0,0,0))" }}
+                />
+                <div className="absolute bottom-0 left-0 right-0 p-2.5">
+                  <p className="text-[11px] font-bold leading-tight text-white">{c.label}</p>
+                  <p className="mt-1 flex items-center gap-1 text-[10px] font-semibold" style={{ color: "#fbbf24" }}>
                     <Flame className="h-2.5 w-2.5" /> {c.heat}
                   </p>
                 </div>
@@ -368,9 +395,20 @@ function TeaProductsPage() {
 function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => void; onSaved: () => void }) {
   const char = CHARACTERS[post.skinType];
   return (
-    <article className="overflow-hidden rounded-[18px] bg-white shadow-sm">
+    <article
+      className="overflow-hidden bg-white shadow-sm"
+      style={{ borderRadius: "18px", border: "1px solid #f0ede8", padding: "14px" }}
+    >
       {post.promptContext && (
-        <div className="border-b px-4 py-2.5" style={{ background: "rgba(251,191,36,0.12)", borderColor: "rgba(251,191,36,0.3)" }}>
+        <div
+          className="-mx-3.5 -mt-3.5 mb-3 px-4 py-2.5"
+          style={{
+            background: "rgba(251,191,36,0.12)",
+            borderBottom: "1px solid rgba(251,191,36,0.3)",
+            borderTopLeftRadius: "17px",
+            borderTopRightRadius: "17px",
+          }}
+        >
           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#92500a" }}>
             replying to prompt
           </p>
@@ -378,16 +416,22 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
         </div>
       )}
 
-      <div className="flex items-start gap-3 px-4 pt-4">
+      <div className="flex items-center gap-3">
         <div
-          className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-xl"
-          style={{ background: "#faf8f5" }}
+          className="flex flex-shrink-0 items-center justify-center rounded-full"
+          style={{
+            width: "34px",
+            height: "34px",
+            background: SKIN_BG[post.skinType],
+            fontSize: "17px",
+            lineHeight: 1,
+          }}
         >
           {char.emoji}
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-display text-sm font-semibold text-[#1a1a1a]">{char.name}</p>
-          <p className="text-[11px] text-neutral-500">{skinTypeLabel(post.skinType)} skin</p>
+          <p className="text-[11px] text-neutral-500">{timeAgo(post.createdAt)} ago</p>
         </div>
         <span
           className="flex-shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold"
@@ -397,21 +441,25 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
         </span>
       </div>
 
-      <div className="px-4 pb-3 pt-3">
+      <div className="pb-3 pt-3">
         <p className="text-[15px] leading-relaxed text-[#1a1a1a]">{post.text}</p>
       </div>
 
-      {post.images.length > 0 && <ImageGrid images={post.images} />}
+      {post.images.length > 0 && (
+        <div className="[&>div]:!px-0">
+          <ImageGrid images={post.images} />
+        </div>
+      )}
 
       {post.products.length > 0 && (
-        <div className="space-y-2 px-4 pt-3">
+        <div className="space-y-2 pt-3">
           {post.products.map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}
         </div>
       )}
 
-      <div className="flex items-center gap-1 px-2 pb-2 pt-3">
+      <div className="-mx-2 flex items-center gap-1 pt-2">
         <ActionBtn
           icon={<Check className={`h-4 w-4 ${post.helpedByMe ? "text-green-600" : ""}`} />}
           label={String(post.helped)}

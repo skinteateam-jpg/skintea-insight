@@ -210,8 +210,15 @@ function QuizResultPage() {
           <Card>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
               <div>
-                <div style={{ fontSize: 11, color: C.textLight, fontWeight: 700, letterSpacing: "0.1em" }}>SKIN TYPE</div>
-                <div style={{ fontSize: 28, fontWeight: 800, marginTop: 2 }}>{result.skinType}</div>
+                <div style={{ fontSize: 11, color: C.textLight, fontWeight: 700, letterSpacing: "0.1em" }}>
+                  YOU'RE GIVING — {result.skinType.toUpperCase()}
+                </div>
+                <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4, lineHeight: 1.1 }}>
+                  {result.persona.name}
+                </div>
+                <div style={{ fontSize: 13, color: C.textMid, marginTop: 6, maxWidth: 360, lineHeight: 1.45 }}>
+                  {result.persona.tagline}
+                </div>
               </div>
               <div
                 style={{
@@ -220,7 +227,7 @@ function QuizResultPage() {
                 }}
                 aria-hidden
               >
-                💧
+                {result.persona.emoji}
               </div>
             </div>
 
@@ -317,10 +324,26 @@ function QuizResultPage() {
           {/* 4. PRODUCTS */}
           <SectionLabel>RECOMMENDED FOR YOU</SectionLabel>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {result.products.map((p) => (
-              <ProductCard key={p.name} product={p} />
+            {result.categories.map((c) => (
+              <CategoryCard key={c.category} item={c} />
             ))}
           </div>
+
+          {/* 4b. SKIN TWIN */}
+          <SectionLabel>YOUR SKIN TWIN</SectionLabel>
+          <p style={{ margin: "-8px 0 0", fontSize: 14, color: C.textMid }}>
+            Same skin type. Same vibe. See what's working for them.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {result.twins
+              .filter((t) => !result.ethnicity || t.ethnicity === result.ethnicity)
+              .map((t) => (
+                <TwinCard key={t.handle} twin={t} />
+              ))}
+          </div>
+          <p style={{ margin: "-4px 0 0", fontSize: 11, color: C.textLight, fontStyle: "italic" }}>
+            Matched by skin type and background — not sponsored.
+          </p>
 
           {/* 5. SAMPLE KIT */}
           <SectionLabel>TRY BEFORE YOU COMMIT</SectionLabel>

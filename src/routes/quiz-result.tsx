@@ -41,7 +41,7 @@ const C = {
 };
 
 // ---------- Placeholder result data ----------
-const result = {
+const defaultResult = {
   skinType: "Oily",
   persona: {
     name: "The Glazed Donut",

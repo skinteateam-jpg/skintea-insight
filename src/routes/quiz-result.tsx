@@ -539,13 +539,12 @@ function IngredientGroup({
   );
 }
 
-function ProductCard({
-  product,
+function CategoryCard({
+  item,
 }: {
-  product: {
-    brand: string; name: string; price: string; emoji: string;
-    matched: { label: string; kind: "good" | "bad" }[];
-    reason: string;
+  item: {
+    category: string; emoji: string; brand: string; name: string;
+    good: string[]; watch: string; reason: string;
   };
 }) {
   return (
@@ -568,37 +567,95 @@ function ProductCard({
         }}
         aria-hidden
       >
-        {product.emoji}
+        {item.emoji}
       </div>
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: 11, color: C.textLight, fontWeight: 600 }}>{product.brand}</div>
-        <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2, lineHeight: 1.3 }}>
-          {product.name}
+        <div style={{ fontSize: 10, color: C.crimson, fontWeight: 800, letterSpacing: "0.14em" }}>
+          {item.category.toUpperCase()}
+        </div>
+        <div style={{ fontSize: 11, color: C.textLight, fontWeight: 600, marginTop: 4 }}>{item.brand}</div>
+        <div style={{ fontSize: 14, fontWeight: 700, marginTop: 1, lineHeight: 1.3 }}>
+          {item.name}
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-          {product.matched.map((m) => {
-            const isGood = m.kind === "good";
-            return (
-              <span
-                key={m.label}
-                style={{
-                  fontSize: 11,
-                  padding: "3px 8px",
-                  borderRadius: 999,
-                  background: isGood ? C.goodBg : C.badBg,
-                  color: isGood ? C.good : C.bad,
-                  fontWeight: 700,
-                }}
-              >
-                {isGood ? "✓" : "✕"} {m.label}
-              </span>
-            );
-          })}
+          {item.good.map((g) => (
+            <span
+              key={g}
+              style={{
+                fontSize: 11, padding: "3px 8px", borderRadius: 999,
+                background: C.goodBg, color: C.good, fontWeight: 700,
+              }}
+            >
+              ✓ {g}
+            </span>
+          ))}
+          <span
+            style={{
+              fontSize: 11, padding: "3px 8px", borderRadius: 999,
+              background: C.warnBg, color: C.warn, fontWeight: 700,
+            }}
+          >
+            ⚠ {item.watch}
+          </span>
         </div>
         <p style={{ margin: "8px 0 0", fontSize: 12, color: C.textMid, lineHeight: 1.4 }}>
-          {product.reason}
+          {item.reason}
         </p>
-        <div style={{ marginTop: 8, fontSize: 14, fontWeight: 800 }}>{product.price}</div>
+      </div>
+    </div>
+  );
+}
+
+function TwinCard({
+  twin,
+}: {
+  twin: { name: string; handle: string; avatar: string; matchLabel: string; ethnicity: string; swearsBy: string };
+}) {
+  return (
+    <div
+      style={{
+        background: C.surface, border: `1px solid ${C.border}`,
+        borderRadius: 16, padding: 14,
+        display: "flex", gap: 12, alignItems: "flex-start",
+      }}
+    >
+      <div
+        style={{
+          width: 56, height: 56, borderRadius: 999,
+          background: C.imageBg,
+          display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0,
+        }}
+        aria-hidden
+      >
+        {twin.avatar}
+      </div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontSize: 14, fontWeight: 700 }}>{twin.name}</div>
+        <div style={{ fontSize: 12, color: C.textLight, marginTop: 1 }}>{twin.handle}</div>
+        <div
+          style={{
+            display: "inline-block", marginTop: 8,
+            fontSize: 11, padding: "3px 8px", borderRadius: 999,
+            background: C.badBg, color: C.crimson, fontWeight: 700,
+          }}
+        >
+          {twin.matchLabel}
+        </div>
+        <p style={{ margin: "8px 0 0", fontSize: 12, color: C.textMid, lineHeight: 1.4 }}>
+          Swears by: <strong style={{ color: C.espresso }}>{twin.swearsBy}</strong>
+        </p>
+        <button
+          type="button"
+          style={{
+            marginTop: 10, background: "transparent",
+            border: `1px solid ${C.borderStrong}`,
+            color: C.espresso, borderRadius: 999,
+            padding: "6px 12px", fontSize: 12, fontWeight: 700,
+            cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4,
+          }}
+        >
+          See their routine <ArrowRight size={12} />
+        </button>
       </div>
     </div>
   );

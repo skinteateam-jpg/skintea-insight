@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState, type ReactNode } from "react";
 import { Pencil, Plus, Lock, Star, X, Bookmark, Link2, Download, ArrowUp, ArrowDown } from "lucide-react";
 
@@ -320,6 +320,10 @@ function PostSheet({ post, onClose }: { post: typeof POSTS[number]; onClose: () 
 }
 
 // ---------- Tab 2: My Shelf ----------
+function slugify(s: string) {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
 function ShelfTab() {
   const cats = ["All", ...Object.keys(SHELF)];
   const [active, setActive] = useState("All");
@@ -332,15 +336,20 @@ function ShelfTab() {
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>{cat}</div>
           <div style={{ display: "flex", gap: 10, overflowX: "auto", margin: "0 -16px", padding: "0 16px 8px" }}>
             {items.map((p, i) => (
-              <div key={i} style={{ flexShrink: 0, width: 120, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", position: "relative" }}>
-                {p.top && <div style={{ position: "absolute", top: 6, left: 6, background: C.gold, color: "#fff", fontSize: 8, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
+              <Link
+                key={i}
+                to="/products/$id"
+                params={{ id: slugify(`${p.brand}-${p.name}`) }}
+                style={{ flexShrink: 0, width: 120, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", position: "relative", textDecoration: "none", color: "inherit", display: "block" }}
+              >
+                {p.top && <div style={{ position: "absolute", top: 6, left: 6, background: C.gold, color: "#fff", fontSize: 8, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5, zIndex: 1 }}>TOP PICK</div>}
                 <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 36 }}>{p.emoji}</div>
                 <div style={{ padding: 8 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, minHeight: 26 }}>{p.name}</div>
                   <div style={{ fontSize: 10, color: C.textLight, margin: "2px 0 6px" }}>{p.brand}</div>
                   <MatchPill match={p.match} />
                 </div>
-              </div>
+              </Link>
             ))}
             <button style={{ flexShrink: 0, width: 120, aspectRatio: "0.78", border: `1.5px dashed ${C.borderStrong}`, borderRadius: 10, background: "transparent", cursor: "pointer", display: "grid", placeItems: "center", color: C.textLight }}>
               <Plus size={22} />

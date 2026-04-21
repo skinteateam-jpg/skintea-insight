@@ -608,7 +608,7 @@ function ProductCard({
           </div>
         )}
         <Link
-          to="/"
+          to="/product-detail"
           style={{
             marginTop: 4,
             color: C.crimson,

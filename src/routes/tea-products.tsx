@@ -33,6 +33,22 @@ const CHARACTERS: Record<SkinType, { emoji: string; name: string }> = {
   normal: { emoji: "😮‍💨", name: "Unbothered" },
 };
 
+const SKIN_BG: Record<SkinType, string> = {
+  oily: "#fef3c7",
+  dry: "#fce7f3",
+  combo: "#ede9fe",
+  sensitive: "#fee2e2",
+  normal: "#e0f2fe",
+};
+
+function timeAgo(ts: number) {
+  const diff = Math.max(1, Math.floor((Date.now() - ts) / 1000));
+  if (diff < 60) return `${diff}s`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  return `${Math.floor(diff / 86400)}d`;
+}
+
 const TAGS: { key: TagKey | "all"; label: string }[] = [
   { key: "all", label: "All" },
   { key: "night-out", label: "💋 Night Out" },

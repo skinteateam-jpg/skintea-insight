@@ -395,9 +395,20 @@ function TeaProductsPage() {
 function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => void; onSaved: () => void }) {
   const char = CHARACTERS[post.skinType];
   return (
-    <article className="overflow-hidden rounded-[18px] bg-white shadow-sm">
+    <article
+      className="overflow-hidden bg-white shadow-sm"
+      style={{ borderRadius: "18px", border: "1px solid #f0ede8", padding: "14px" }}
+    >
       {post.promptContext && (
-        <div className="border-b px-4 py-2.5" style={{ background: "rgba(251,191,36,0.12)", borderColor: "rgba(251,191,36,0.3)" }}>
+        <div
+          className="-mx-3.5 -mt-3.5 mb-3 px-4 py-2.5"
+          style={{
+            background: "rgba(251,191,36,0.12)",
+            borderBottom: "1px solid rgba(251,191,36,0.3)",
+            borderTopLeftRadius: "17px",
+            borderTopRightRadius: "17px",
+          }}
+        >
           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#92500a" }}>
             replying to prompt
           </p>
@@ -405,16 +416,22 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
         </div>
       )}
 
-      <div className="flex items-start gap-3 px-4 pt-4">
+      <div className="flex items-center gap-3">
         <div
-          className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-xl"
-          style={{ background: "#faf8f5" }}
+          className="flex flex-shrink-0 items-center justify-center rounded-full"
+          style={{
+            width: "34px",
+            height: "34px",
+            background: SKIN_BG[post.skinType],
+            fontSize: "17px",
+            lineHeight: 1,
+          }}
         >
           {char.emoji}
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-display text-sm font-semibold text-[#1a1a1a]">{char.name}</p>
-          <p className="text-[11px] text-neutral-500">{skinTypeLabel(post.skinType)} skin</p>
+          <p className="text-[11px] text-neutral-500">{timeAgo(post.createdAt)} ago</p>
         </div>
         <span
           className="flex-shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold"
@@ -424,21 +441,25 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
         </span>
       </div>
 
-      <div className="px-4 pb-3 pt-3">
+      <div className="pb-3 pt-3">
         <p className="text-[15px] leading-relaxed text-[#1a1a1a]">{post.text}</p>
       </div>
 
-      {post.images.length > 0 && <ImageGrid images={post.images} />}
+      {post.images.length > 0 && (
+        <div className="-mx-3.5">
+          <ImageGrid images={post.images} />
+        </div>
+      )}
 
       {post.products.length > 0 && (
-        <div className="space-y-2 px-4 pt-3">
+        <div className="space-y-2 pt-3">
           {post.products.map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}
         </div>
       )}
 
-      <div className="flex items-center gap-1 px-2 pb-2 pt-3">
+      <div className="-mx-2 flex items-center gap-1 pt-2">
         <ActionBtn
           icon={<Check className={`h-4 w-4 ${post.helpedByMe ? "text-green-600" : ""}`} />}
           label={String(post.helped)}

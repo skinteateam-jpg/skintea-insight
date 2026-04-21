@@ -29,14 +29,16 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Skintea" },
+      { name: "description", content: "The honest skincare decision platform. Real reviews from TikTok, Reddit, and Instagram — turned into clear insights." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Skintea" },
+      { property: "og:description", content: "The honest skincare decision platform. Real reviews from TikTok, Reddit, and Instagram — turned into clear insights." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Skintea" },
+      { name: "twitter:description", content: "The honest skincare decision platform. Real reviews from TikTok, Reddit, and Instagram — turned into clear insights." },
     ],
     links: [
       {

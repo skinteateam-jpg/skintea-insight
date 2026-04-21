@@ -9,126 +9,38 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SkinProfileRouteImport } from './routes/skin-profile'
-import { Route as QuizResultRouteImport } from './routes/quiz-result'
-import { Route as ProductsRouteImport } from './routes/products'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ProductsIdV2RouteImport } from './routes/products.$id-v2'
-import { Route as ProductsIdRouteImport } from './routes/products.$id'
 
-const SkinProfileRoute = SkinProfileRouteImport.update({
-  id: '/skin-profile',
-  path: '/skin-profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const QuizResultRoute = QuizResultRouteImport.update({
-  id: '/quiz-result',
-  path: '/quiz-result',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProductsRoute = ProductsRouteImport.update({
-  id: '/products',
-  path: '/products',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProductsIdV2Route = ProductsIdV2RouteImport.update({
-  id: '/$id-v2',
-  path: '/$id-v2',
-  getParentRoute: () => ProductsRoute,
-} as any)
-const ProductsIdRoute = ProductsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ProductsRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/products': typeof ProductsRouteWithChildren
-  '/quiz-result': typeof QuizResultRoute
-  '/skin-profile': typeof SkinProfileRoute
-  '/products/$id': typeof ProductsIdRoute
-  '/products/$id-v2': typeof ProductsIdV2Route
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/products': typeof ProductsRouteWithChildren
-  '/quiz-result': typeof QuizResultRoute
-  '/skin-profile': typeof SkinProfileRoute
-  '/products/$id': typeof ProductsIdRoute
-  '/products/$id-v2': typeof ProductsIdV2Route
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/products': typeof ProductsRouteWithChildren
-  '/quiz-result': typeof QuizResultRoute
-  '/skin-profile': typeof SkinProfileRoute
-  '/products/$id': typeof ProductsIdRoute
-  '/products/$id-v2': typeof ProductsIdV2Route
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/products'
-    | '/quiz-result'
-    | '/skin-profile'
-    | '/products/$id'
-    | '/products/$id-v2'
+  fullPaths: '/'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/products'
-    | '/quiz-result'
-    | '/skin-profile'
-    | '/products/$id'
-    | '/products/$id-v2'
-  id:
-    | '__root__'
-    | '/'
-    | '/products'
-    | '/quiz-result'
-    | '/skin-profile'
-    | '/products/$id'
-    | '/products/$id-v2'
+  to: '/'
+  id: '__root__' | '/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ProductsRoute: typeof ProductsRouteWithChildren
-  QuizResultRoute: typeof QuizResultRoute
-  SkinProfileRoute: typeof SkinProfileRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/skin-profile': {
-      id: '/skin-profile'
-      path: '/skin-profile'
-      fullPath: '/skin-profile'
-      preLoaderRoute: typeof SkinProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/quiz-result': {
-      id: '/quiz-result'
-      path: '/quiz-result'
-      fullPath: '/quiz-result'
-      preLoaderRoute: typeof QuizResultRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/products': {
-      id: '/products'
-      path: '/products'
-      fullPath: '/products'
-      preLoaderRoute: typeof ProductsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -136,52 +48,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/products/$id-v2': {
-      id: '/products/$id-v2'
-      path: '/$id-v2'
-      fullPath: '/products/$id-v2'
-      preLoaderRoute: typeof ProductsIdV2RouteImport
-      parentRoute: typeof ProductsRoute
-    }
-    '/products/$id': {
-      id: '/products/$id'
-      path: '/$id'
-      fullPath: '/products/$id'
-      preLoaderRoute: typeof ProductsIdRouteImport
-      parentRoute: typeof ProductsRoute
-    }
   }
 }
 
-interface ProductsRouteChildren {
-  ProductsIdRoute: typeof ProductsIdRoute
-  ProductsIdV2Route: typeof ProductsIdV2Route
-}
-
-const ProductsRouteChildren: ProductsRouteChildren = {
-  ProductsIdRoute: ProductsIdRoute,
-  ProductsIdV2Route: ProductsIdV2Route,
-}
-
-const ProductsRouteWithChildren = ProductsRoute._addFileChildren(
-  ProductsRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ProductsRoute: ProductsRouteWithChildren,
-  QuizResultRoute: QuizResultRoute,
-  SkinProfileRoute: SkinProfileRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

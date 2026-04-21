@@ -229,21 +229,21 @@ function TeaProductsPage() {
       <div className="mx-auto max-w-[480px] pb-32">
         {/* Sticky nav */}
         <header
-          className="sticky top-0 z-30 flex items-center justify-between px-5 py-3.5"
-          style={{ background: "#1a1a1a", color: "#faf8f5" }}
+          className="sticky top-0 z-30 flex items-center justify-between border-b px-5 py-3.5"
+          style={{ background: "#ffffff", borderColor: "#f0ede8", color: "#1a1a1a" }}
         >
           <h1 className="font-display text-2xl font-semibold tracking-tight">Product Talk</h1>
           <button
             onClick={() => openCompose()}
             className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-transform active:scale-95"
-            style={{ background: "#fbbf24", color: "#1a1a1a" }}
+            style={{ background: "#1a1a1a", color: "#ffffff" }}
           >
             <Coffee className="h-4 w-4" /> Spill
           </button>
         </header>
 
         {/* Tag filter bar */}
-        <div className="sticky top-[60px] z-20 border-b border-black/5" style={{ background: "#faf8f5" }}>
+        <div className="sticky top-[60px] z-20 border-b" style={{ background: "#faf8f5", borderColor: "#f0ede8" }}>
           <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 py-3">
             {TAGS.map((t) => {
               const active = activeTag === t.key;
@@ -251,10 +251,11 @@ function TeaProductsPage() {
                 <button
                   key={t.key}
                   onClick={() => setActiveTag(t.key)}
-                  className="whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors"
+                  className="whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors"
                   style={{
-                    background: active ? "#1a1a1a" : "rgba(0,0,0,0.05)",
-                    color: active ? "#faf8f5" : "#1a1a1a",
+                    background: active ? "#1a1a1a" : "transparent",
+                    color: active ? "#ffffff" : "#1a1a1a",
+                    borderColor: active ? "#1a1a1a" : "#e5e2dc",
                   }}
                 >
                   {t.label}

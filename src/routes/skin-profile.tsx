@@ -250,8 +250,7 @@ function FilterRow({ items, active, onChange }: { items: string[]; active: strin
 }
 
 // ---------- Tab 1: The Tea ----------
-function TeaTab() {
-  const [openPost, setOpenPost] = useState<typeof POSTS[number] | null>(null);
+function TopPicksRow() {
   return (
     <>
       <SectionTitle>★ Top 3 Picks</SectionTitle>
@@ -267,6 +266,15 @@ function TeaTab() {
           </div>
         ))}
       </div>
+    </>
+  );
+}
+
+function TeaTab() {
+  const [openPost, setOpenPost] = useState<typeof POSTS[number] | null>(null);
+  return (
+    <>
+      <TopPicksRow />
 
       <SectionTitle>Posts</SectionTitle>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
@@ -326,6 +334,7 @@ function ShelfTab() {
   const visible = active === "All" ? Object.entries(SHELF) : Object.entries(SHELF).filter(([c]) => c === active);
   return (
     <>
+      <TopPicksRow />
       <div style={{ marginTop: 8 }}><FilterRow items={cats} active={active} onChange={setActive} /></div>
       {visible.map(([cat, items]) => (
         <div key={cat} style={{ marginTop: 24 }}>

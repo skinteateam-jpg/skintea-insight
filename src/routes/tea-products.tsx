@@ -446,7 +446,7 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
       </div>
 
       {post.images.length > 0 && (
-        <div className="-mx-3.5">
+        <div className="[&>div]:!px-0">
           <ImageGrid images={post.images} />
         </div>
       )}

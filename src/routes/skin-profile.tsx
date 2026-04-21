@@ -334,6 +334,7 @@ function ShelfTab() {
   const visible = active === "All" ? Object.entries(SHELF) : Object.entries(SHELF).filter(([c]) => c === active);
   return (
     <>
+      <TopPicksRow />
       <div style={{ marginTop: 8 }}><FilterRow items={cats} active={active} onChange={setActive} /></div>
       {visible.map(([cat, items]) => (
         <div key={cat} style={{ marginTop: 24 }}>

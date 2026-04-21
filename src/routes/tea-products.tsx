@@ -279,13 +279,23 @@ function TeaProductsPage() {
             ].map((c, i) => (
               <div
                 key={i}
-                className="relative h-44 w-32 flex-shrink-0 overflow-hidden rounded-2xl shadow-sm"
-                style={{ backgroundImage: `url(${c.img})`, backgroundSize: "cover", backgroundPosition: "center" }}
+                className="relative flex-shrink-0 overflow-hidden shadow-sm"
+                style={{
+                  width: "120px",
+                  height: "150px",
+                  borderRadius: "14px",
+                  backgroundImage: `url(${c.img})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
               >
-                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-2.5 text-white">
-                  <p className="text-[11px] font-semibold leading-tight">{c.label}</p>
-                  <p className="mt-1 flex items-center gap-1 text-[10px] opacity-90">
+                <div
+                  className="absolute inset-0"
+                  style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75), rgba(0,0,0,0))" }}
+                />
+                <div className="absolute bottom-0 left-0 right-0 p-2.5">
+                  <p className="text-[11px] font-bold leading-tight text-white">{c.label}</p>
+                  <p className="mt-1 flex items-center gap-1 text-[10px] font-semibold" style={{ color: "#fbbf24" }}>
                     <Flame className="h-2.5 w-2.5" /> {c.heat}
                   </p>
                 </div>

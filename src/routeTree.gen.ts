@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SkinProfileRouteImport } from './routes/skin-profile'
 import { Route as QuizResultRouteImport } from './routes/quiz-result'
+import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as ProductDetailRouteImport } from './routes/product-detail'
 import { Route as ProductsIdV2RouteImport } from './routes/products.$id-v2'
@@ -23,6 +24,11 @@ const SkinProfileRoute = SkinProfileRouteImport.update({
 const QuizResultRoute = QuizResultRouteImport.update({
   id: '/quiz-result',
   path: '/quiz-result',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const QuizRoute = QuizRouteImport.update({
+  id: '/quiz',
+  path: '/quiz',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProductsRoute = ProductsRouteImport.update({
@@ -44,6 +50,7 @@ const ProductsIdV2Route = ProductsIdV2RouteImport.update({
 export interface FileRoutesByFullPath {
   '/product-detail': typeof ProductDetailRoute
   '/products': typeof ProductsRouteWithChildren
+  '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
   '/skin-profile': typeof SkinProfileRoute
   '/products/$id-v2': typeof ProductsIdV2Route
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/product-detail': typeof ProductDetailRoute
   '/products': typeof ProductsRouteWithChildren
+  '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
   '/skin-profile': typeof SkinProfileRoute
   '/products/$id-v2': typeof ProductsIdV2Route
@@ -59,6 +67,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/product-detail': typeof ProductDetailRoute
   '/products': typeof ProductsRouteWithChildren
+  '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
   '/skin-profile': typeof SkinProfileRoute
   '/products/$id-v2': typeof ProductsIdV2Route
@@ -68,6 +77,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/product-detail'
     | '/products'
+    | '/quiz'
     | '/quiz-result'
     | '/skin-profile'
     | '/products/$id-v2'
@@ -75,6 +85,7 @@ export interface FileRouteTypes {
   to:
     | '/product-detail'
     | '/products'
+    | '/quiz'
     | '/quiz-result'
     | '/skin-profile'
     | '/products/$id-v2'
@@ -82,6 +93,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/product-detail'
     | '/products'
+    | '/quiz'
     | '/quiz-result'
     | '/skin-profile'
     | '/products/$id-v2'
@@ -90,6 +102,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   ProductDetailRoute: typeof ProductDetailRoute
   ProductsRoute: typeof ProductsRouteWithChildren
+  QuizRoute: typeof QuizRoute
   QuizResultRoute: typeof QuizResultRoute
   SkinProfileRoute: typeof SkinProfileRoute
 }
@@ -108,6 +121,13 @@ declare module '@tanstack/react-router' {
       path: '/quiz-result'
       fullPath: '/quiz-result'
       preLoaderRoute: typeof QuizResultRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/quiz': {
+      id: '/quiz'
+      path: '/quiz'
+      fullPath: '/quiz'
+      preLoaderRoute: typeof QuizRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/products': {
@@ -149,6 +169,7 @@ const ProductsRouteWithChildren = ProductsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   ProductDetailRoute: ProductDetailRoute,
   ProductsRoute: ProductsRouteWithChildren,
+  QuizRoute: QuizRoute,
   QuizResultRoute: QuizResultRoute,
   SkinProfileRoute: SkinProfileRoute,
 }

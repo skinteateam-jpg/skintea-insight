@@ -41,7 +41,7 @@ const C = {
 };
 
 // ---------- Placeholder result data ----------
-const result = {
+const defaultResult = {
   skinType: "Oily",
   persona: {
     name: "The Glazed Donut",
@@ -138,22 +138,33 @@ const result = {
 
 function QuizResultPage() {
   const [saved, setSaved] = useState(false);
+  const [stored, setStored] = useState<null | {
+    skinTypeLabel?: string;
+    persona?: { name: string; emoji: string; tagline: string };
+    concerns?: string[];
+    ingredients?: { good: string[]; watch: string[]; avoid: string[] };
+  }>(null);
 
-  // Persist quiz result so other pages can highlight ingredients
+  // Hydrate from quiz payload written by /quiz
   useEffect(() => {
     try {
-      const payload = {
-        skinType: result.skinType,
-        concerns: result.concerns,
-        ingredients: result.ingredients,
-        savedAt: new Date().toISOString(),
-      };
-      localStorage.setItem("skintea.quizResult", JSON.stringify(payload));
-      setSaved(true);
+      const raw = localStorage.getItem("skintea.quizResult");
+      if (raw) {
+        setStored(JSON.parse(raw));
+        setSaved(true);
+      }
     } catch {
-      // ignore storage errors (private mode, etc.)
+      // ignore
     }
   }, []);
+
+  const result = {
+    ...defaultResult,
+    skinType: stored?.skinTypeLabel ?? defaultResult.skinType,
+    persona: stored?.persona ?? defaultResult.persona,
+    concerns: stored?.concerns?.length ? stored.concerns : defaultResult.concerns,
+    ingredients: stored?.ingredients ?? defaultResult.ingredients,
+  };
 
   return (
     <div style={{ background: C.bg, color: C.espresso, minHeight: "100vh" }}>
@@ -171,7 +182,7 @@ function QuizResultPage() {
           </Link>
           <nav style={{ display: "flex", gap: 18, fontSize: 13 }}>
             <Link to="/products" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Products</Link>
-            <span style={{ color: "#fff", opacity: 0.85 }}>Quiz</span>
+            <Link to="/quiz" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Quiz</Link>
             <span style={{ color: "#fff", opacity: 0.6, display: "inline-flex", alignItems: "center", gap: 4 }}>
               Tea <Lock size={12} />
             </span>
@@ -446,7 +457,7 @@ function QuizResultPage() {
           {/* Retake */}
           <div style={{ textAlign: "center", marginTop: 12 }}>
             <Link
-              to="/products"
+              to="/quiz"
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 fontSize: 13, color: C.textMid, textDecoration: "underline",

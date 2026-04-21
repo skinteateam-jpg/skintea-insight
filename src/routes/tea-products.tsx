@@ -84,7 +84,7 @@ const PRODUCT_CATALOG: TaggedProduct[] = [
 ];
 
 const PROMPTS = [
-  "What's the one product you'd repurchase forever?",
+  "what's in your 'just in case tonight' bag? 💋",
   "Worst skincare mistake you've ever made?",
   "Drugstore dupe that beat the luxury original?",
   "What's currently sitting on your shelf collecting dust?",

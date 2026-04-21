@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Lock, Check, AlertTriangle, X, Sparkles, RotateCcw } from "lucide-react";
+import { Lock, Check, AlertTriangle, X, Sparkles, RotateCcw, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/quiz-result")({
   component: QuizResultPage,
@@ -43,6 +43,12 @@ const C = {
 // ---------- Placeholder result data ----------
 const result = {
   skinType: "Oily",
+  persona: {
+    name: "The Glazed Donut",
+    emoji: "🍩",
+    tagline: "Shiny by 2pm, glowing by accident. We work with it, not against it.",
+  },
+  ethnicity: "East Asian", // from quiz; null if not provided
   concerns: ["Enlarged pores", "Occasional breakouts", "Sensitivity on cheeks"],
   summary: "Oily skin with sensitivity around the cheeks.",
   ingredients: {
@@ -55,33 +61,77 @@ const result = {
     minority: "21% prefer richer creams at night",
     sample: "Based on 14,200 reviews from Reddit, TikTok & Sephora",
   },
-  products: [
+  categories: [
     {
+      category: "Cleanser",
+      emoji: "🧼",
+      brand: "CeraVe",
+      name: "Foaming Facial Cleanser",
+      good: ["Niacinamide", "Ceramides"],
+      watch: "Fragrance-free formula — but contains SLS",
+      reason: "Cuts oil without stripping your barrier",
+    },
+    {
+      category: "Toner",
+      emoji: "💦",
+      brand: "COSRX",
+      name: "AHA/BHA Clarifying Treatment Toner",
+      good: ["Salicylic acid", "Willow bark"],
+      watch: "Contains low % AHA — go slow if sensitive",
+      reason: "Unclogs pores between cleanses",
+    },
+    {
+      category: "Serum",
+      emoji: "🧪",
       brand: "The Ordinary",
       name: "Niacinamide 10% + Zinc 1%",
-      price: "$6.50",
-      emoji: "🧪",
-      matched: [{ label: "Niacinamide", kind: "good" as const }],
-      reason: "Has Niacinamide — good for oily, breakout-prone skin",
+      good: ["Niacinamide", "Zinc PCA"],
+      watch: "Can pill under sunscreen if over-applied",
+      reason: "Targets pores + breakouts in one step",
     },
     {
-      brand: "Paula's Choice",
-      name: "2% BHA Liquid Exfoliant",
-      price: "$34.00",
-      emoji: "💧",
-      matched: [{ label: "Salicylic acid", kind: "good" as const }],
-      reason: "Salicylic acid clears pores without over-drying",
+      category: "Moisturizer",
+      emoji: "🥛",
+      brand: "Beauty of Joseon",
+      name: "Dynasty Cream",
+      good: ["Centella asiatica", "Hyaluronic acid"],
+      watch: "Lightly fragranced with rice extract",
+      reason: "Lightweight hydration that won't clog you",
     },
     {
-      brand: "COSRX",
-      name: "Centella Blemish Cream",
-      price: "$15.00",
-      emoji: "🌿",
-      matched: [
-        { label: "Centella", kind: "good" as const },
-        { label: "Fragrance-free", kind: "good" as const },
-      ],
-      reason: "Centella calms sensitivity on the cheeks",
+      category: "Face Mask",
+      emoji: "🍃",
+      brand: "Innisfree",
+      name: "Super Volcanic Pore Clay Mask",
+      good: ["Volcanic clay", "Green tea"],
+      watch: "Don't leave on past 10 min — can over-dry",
+      reason: "Weekly pore reset for oily zones",
+    },
+  ],
+  twins: [
+    {
+      name: "Mei Tanaka",
+      handle: "@meiglow",
+      avatar: "👩🏻",
+      matchLabel: "Oily + Sensitive like you",
+      ethnicity: "East Asian",
+      swearsBy: "Beauty of Joseon Relief Sun",
+    },
+    {
+      name: "Hana Park",
+      handle: "@hanaskin",
+      avatar: "🧑🏻‍🦰",
+      matchLabel: "Oily skin, breakout-prone",
+      ethnicity: "East Asian",
+      swearsBy: "Niacinamide 10% serum",
+    },
+    {
+      name: "Yuki R.",
+      handle: "@yuki.routine",
+      avatar: "👧🏻",
+      matchLabel: "Oily + enlarged pores",
+      ethnicity: "East Asian",
+      swearsBy: "COSRX BHA toner, 3x a week",
     },
   ],
 };
@@ -160,8 +210,15 @@ function QuizResultPage() {
           <Card>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
               <div>
-                <div style={{ fontSize: 11, color: C.textLight, fontWeight: 700, letterSpacing: "0.1em" }}>SKIN TYPE</div>
-                <div style={{ fontSize: 28, fontWeight: 800, marginTop: 2 }}>{result.skinType}</div>
+                <div style={{ fontSize: 11, color: C.textLight, fontWeight: 700, letterSpacing: "0.1em" }}>
+                  YOU'RE GIVING — {result.skinType.toUpperCase()}
+                </div>
+                <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4, lineHeight: 1.1 }}>
+                  {result.persona.name}
+                </div>
+                <div style={{ fontSize: 13, color: C.textMid, marginTop: 6, maxWidth: 360, lineHeight: 1.45 }}>
+                  {result.persona.tagline}
+                </div>
               </div>
               <div
                 style={{
@@ -170,7 +227,7 @@ function QuizResultPage() {
                 }}
                 aria-hidden
               >
-                💧
+                {result.persona.emoji}
               </div>
             </div>
 
@@ -267,10 +324,26 @@ function QuizResultPage() {
           {/* 4. PRODUCTS */}
           <SectionLabel>RECOMMENDED FOR YOU</SectionLabel>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {result.products.map((p) => (
-              <ProductCard key={p.name} product={p} />
+            {result.categories.map((c) => (
+              <CategoryCard key={c.category} item={c} />
             ))}
           </div>
+
+          {/* 4b. SKIN TWIN */}
+          <SectionLabel>YOUR SKIN TWIN</SectionLabel>
+          <p style={{ margin: "-8px 0 0", fontSize: 14, color: C.textMid }}>
+            Same skin type. Same vibe. See what's working for them.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {result.twins
+              .filter((t) => !result.ethnicity || t.ethnicity === result.ethnicity)
+              .map((t) => (
+                <TwinCard key={t.handle} twin={t} />
+              ))}
+          </div>
+          <p style={{ margin: "-4px 0 0", fontSize: 11, color: C.textLight, fontStyle: "italic" }}>
+            Matched by skin type and background — not sponsored.
+          </p>
 
           {/* 5. SAMPLE KIT */}
           <SectionLabel>TRY BEFORE YOU COMMIT</SectionLabel>
@@ -466,13 +539,12 @@ function IngredientGroup({
   );
 }
 
-function ProductCard({
-  product,
+function CategoryCard({
+  item,
 }: {
-  product: {
-    brand: string; name: string; price: string; emoji: string;
-    matched: { label: string; kind: "good" | "bad" }[];
-    reason: string;
+  item: {
+    category: string; emoji: string; brand: string; name: string;
+    good: string[]; watch: string; reason: string;
   };
 }) {
   return (
@@ -495,37 +567,95 @@ function ProductCard({
         }}
         aria-hidden
       >
-        {product.emoji}
+        {item.emoji}
       </div>
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: 11, color: C.textLight, fontWeight: 600 }}>{product.brand}</div>
-        <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2, lineHeight: 1.3 }}>
-          {product.name}
+        <div style={{ fontSize: 10, color: C.crimson, fontWeight: 800, letterSpacing: "0.14em" }}>
+          {item.category.toUpperCase()}
+        </div>
+        <div style={{ fontSize: 11, color: C.textLight, fontWeight: 600, marginTop: 4 }}>{item.brand}</div>
+        <div style={{ fontSize: 14, fontWeight: 700, marginTop: 1, lineHeight: 1.3 }}>
+          {item.name}
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-          {product.matched.map((m) => {
-            const isGood = m.kind === "good";
-            return (
-              <span
-                key={m.label}
-                style={{
-                  fontSize: 11,
-                  padding: "3px 8px",
-                  borderRadius: 999,
-                  background: isGood ? C.goodBg : C.badBg,
-                  color: isGood ? C.good : C.bad,
-                  fontWeight: 700,
-                }}
-              >
-                {isGood ? "✓" : "✕"} {m.label}
-              </span>
-            );
-          })}
+          {item.good.map((g) => (
+            <span
+              key={g}
+              style={{
+                fontSize: 11, padding: "3px 8px", borderRadius: 999,
+                background: C.goodBg, color: C.good, fontWeight: 700,
+              }}
+            >
+              ✓ {g}
+            </span>
+          ))}
+          <span
+            style={{
+              fontSize: 11, padding: "3px 8px", borderRadius: 999,
+              background: C.warnBg, color: C.warn, fontWeight: 700,
+            }}
+          >
+            ⚠ {item.watch}
+          </span>
         </div>
         <p style={{ margin: "8px 0 0", fontSize: 12, color: C.textMid, lineHeight: 1.4 }}>
-          {product.reason}
+          {item.reason}
         </p>
-        <div style={{ marginTop: 8, fontSize: 14, fontWeight: 800 }}>{product.price}</div>
+      </div>
+    </div>
+  );
+}
+
+function TwinCard({
+  twin,
+}: {
+  twin: { name: string; handle: string; avatar: string; matchLabel: string; ethnicity: string; swearsBy: string };
+}) {
+  return (
+    <div
+      style={{
+        background: C.surface, border: `1px solid ${C.border}`,
+        borderRadius: 16, padding: 14,
+        display: "flex", gap: 12, alignItems: "flex-start",
+      }}
+    >
+      <div
+        style={{
+          width: 56, height: 56, borderRadius: 999,
+          background: C.imageBg,
+          display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0,
+        }}
+        aria-hidden
+      >
+        {twin.avatar}
+      </div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontSize: 14, fontWeight: 700 }}>{twin.name}</div>
+        <div style={{ fontSize: 12, color: C.textLight, marginTop: 1 }}>{twin.handle}</div>
+        <div
+          style={{
+            display: "inline-block", marginTop: 8,
+            fontSize: 11, padding: "3px 8px", borderRadius: 999,
+            background: C.badBg, color: C.crimson, fontWeight: 700,
+          }}
+        >
+          {twin.matchLabel}
+        </div>
+        <p style={{ margin: "8px 0 0", fontSize: 12, color: C.textMid, lineHeight: 1.4 }}>
+          Swears by: <strong style={{ color: C.espresso }}>{twin.swearsBy}</strong>
+        </p>
+        <button
+          type="button"
+          style={{
+            marginTop: 10, background: "transparent",
+            border: `1px solid ${C.borderStrong}`,
+            color: C.espresso, borderRadius: 999,
+            padding: "6px 12px", fontSize: 12, fontWeight: 700,
+            cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4,
+          }}
+        >
+          See their routine <ArrowRight size={12} />
+        </button>
       </div>
     </div>
   );

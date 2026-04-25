@@ -41,8 +41,8 @@ const SKIN_BG: Record<SkinType, string> = {
   normal: "#e0f2fe",
 };
 
-function timeAgo(ts: number) {
-  const diff = Math.max(1, Math.floor((Date.now() - ts) / 1000));
+function formatAgo(diffSec: number) {
+  const diff = Math.max(1, Math.floor(diffSec));
   if (diff < 60) return `${diff}s`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`;

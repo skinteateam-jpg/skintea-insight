@@ -436,7 +436,7 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-display text-sm font-semibold text-[#1a1a1a]">{char.name}</p>
-          <p className="text-[11px] text-neutral-500">{timeAgo(post.createdAt)} ago</p>
+          <p className="text-[11px] text-neutral-500">{formatAgo(post.createdAt)} ago</p>
         </div>
         <span
           className="flex-shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold"

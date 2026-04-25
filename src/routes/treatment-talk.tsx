@@ -299,37 +299,37 @@ function Field({ label, value }: { label: string; value: string }) {
 
 function TimelineStrip({ stages }: { stages: Stage[] }) {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {stages.map((s) => {
         const c = BADGE_COLORS[s.badge];
         return (
-          <div key={s.key} className="shrink-0" style={{ width: 80 }}>
+          <div key={s.key} className="shrink-0" style={{ width: 64 }}>
             <div
               className="relative flex items-center justify-center overflow-hidden rounded-lg"
               style={{
-                width: 80,
-                height: 80,
+                width: 64,
+                height: 64,
                 background: CREAM,
                 border: `1px solid ${BORDER}`,
               }}
             >
-              <span className="text-3xl">{s.emoji}</span>
+              <span className="text-2xl">{s.emoji}</span>
               <span
-                className="absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[8px] font-bold"
-                style={{ background: c.bg, color: c.fg }}
+                className="absolute bottom-0.5 left-0.5 rounded-full text-[7px] font-bold"
+                style={{ background: c.bg, color: c.fg, padding: "1px 4px" }}
               >
                 {c.label}
               </span>
             </div>
             <div
-              className="mt-1 text-[10px] font-bold leading-tight"
+              className="mt-1 text-[9px] font-bold leading-tight"
               style={{ color: ESPRESSO, fontFamily: "'DM Sans', sans-serif" }}
             >
               {s.label}
             </div>
             {s.note && (
               <div
-                className="text-[9px] leading-tight"
+                className="text-[8px] leading-tight"
                 style={{ color: MUTED, fontFamily: "'DM Sans', sans-serif" }}
               >
                 {s.note}
@@ -341,15 +341,15 @@ function TimelineStrip({ stages }: { stages: Stage[] }) {
       <button
         className="flex shrink-0 flex-col items-center justify-center rounded-lg"
         style={{
-          width: 80,
-          height: 80,
+          width: 64,
+          height: 64,
           background: "#fff",
           border: `1px dashed ${BORDER}`,
           color: MUTED,
         }}
       >
-        <Plus size={18} />
-        <span className="mt-1 text-[9px] font-medium" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <Plus size={14} />
+        <span className="mt-0.5 text-[8px] font-medium" style={{ fontFamily: "'DM Sans', sans-serif" }}>
           Add stage
         </span>
       </button>

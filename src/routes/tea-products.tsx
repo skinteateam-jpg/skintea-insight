@@ -41,8 +41,8 @@ const SKIN_BG: Record<SkinType, string> = {
   normal: "#e0f2fe",
 };
 
-function timeAgo(ts: number) {
-  const diff = Math.max(1, Math.floor((Date.now() - ts) / 1000));
+function formatAgo(diffSec: number) {
+  const diff = Math.max(1, Math.floor(diffSec));
   if (diff < 60) return `${diff}s`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
@@ -112,14 +112,14 @@ const INITIAL_POSTS: Post[] = [
     text: "Okay this niacinamide is the only thing keeping my t-zone alive in this humidity. Two weeks in and the shine is genuinely down 50%.",
     images: ["https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=600"],
     products: [PRODUCT_CATALOG[1]],
-    helped: 124, helpedByMe: false, saved: false, comments: 18, createdAt: Date.now() - 1000,
+    helped: 124, helpedByMe: false, saved: false, comments: 18, createdAt: 120,
   },
   {
     id: "2", skinType: "sensitive", tag: "hot-tea",
     text: "Hot take: retinol culture has gone too far. Not everyone needs to be peeling at 24. My barrier is finally healed after I quit cold turkey.",
     images: [],
     products: [PRODUCT_CATALOG[4]],
-    helped: 287, helpedByMe: false, saved: false, comments: 64, createdAt: Date.now() - 2000,
+    helped: 287, helpedByMe: false, saved: false, comments: 64, createdAt: 540,
   },
   {
     id: "3", skinType: "combo", tag: "grwm",
@@ -130,14 +130,14 @@ const INITIAL_POSTS: Post[] = [
       "https://images.unsplash.com/photo-1571908598047-29e7a98c1c2c?w=600",
     ],
     products: [PRODUCT_CATALOG[3]],
-    helped: 91, helpedByMe: false, saved: false, comments: 12, createdAt: Date.now() - 3000,
+    helped: 91, helpedByMe: false, saved: false, comments: 12, createdAt: 1800,
   },
   {
     id: "4", skinType: "dry", tag: "question",
     text: "Is it normal for a hyaluronic serum to actually make my skin drier in winter? Or is my barrier cooked?",
     images: [],
     products: [],
-    helped: 23, helpedByMe: false, saved: false, comments: 41, createdAt: Date.now() - 4000,
+    helped: 23, helpedByMe: false, saved: false, comments: 41, createdAt: 7200,
     promptContext: "What's currently sitting on your shelf collecting dust?",
   },
   {
@@ -151,7 +151,7 @@ const INITIAL_POSTS: Post[] = [
       "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?w=600",
     ],
     products: [PRODUCT_CATALOG[0]],
-    helped: 156, helpedByMe: false, saved: false, comments: 22, createdAt: Date.now() - 5000,
+    helped: 156, helpedByMe: false, saved: false, comments: 22, createdAt: 21600,
   },
 ];
 
@@ -193,7 +193,7 @@ function TeaProductsPage() {
       ...newPost,
       id: Math.random().toString(36).slice(2),
       helped: 0, helpedByMe: false, saved: false, comments: 0,
-      createdAt: Date.now(),
+      createdAt: 1,
     };
     setPosts((prev) => [post, ...prev]);
   };
@@ -436,7 +436,7 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-display text-sm font-semibold text-[#1a1a1a]">{char.name}</p>
-          <p className="text-[11px] text-neutral-500">{timeAgo(post.createdAt)} ago</p>
+          <p className="text-[11px] text-neutral-500">{formatAgo(post.createdAt)} ago</p>
         </div>
         <span
           className="flex-shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold"

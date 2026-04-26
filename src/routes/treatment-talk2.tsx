@@ -688,7 +688,7 @@ function TreatmentTalkPage() {
   const [sort, setSort] = useState(SORTS[0]);
   const [showInsights, setShowInsights] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
-  const treatments = useTreatments();
+  const { treatments, loading: treatmentsLoading } = useTreatments();
 
   const filtered = useMemo(() => {
     return POSTS.filter((p) => (chip === "All" ? true : p.treatment === chip)).filter((p) =>
@@ -800,7 +800,11 @@ function TreatmentTalkPage() {
                 Treatment
               </div>
             </div>
-            <ChipScroll items={treatments} active={chip} onChange={setChip} />
+            {treatmentsLoading ? (
+              <ChipSkeletonRow />
+            ) : (
+              <ChipScroll items={treatments} active={chip} onChange={setChip} />
+            )}
             <div className="px-4">
               <div className="text-[8px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>
                 Skin type

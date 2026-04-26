@@ -280,7 +280,7 @@ function ProgressBar({ pct }: { pct: number }) {
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg p-2.5" style={{ background: CREAM }}>
+    <div className="tt-field rounded-lg p-2.5" style={{ background: CREAM }}>
       <div
         className="text-[8px] font-bold uppercase tracking-wider"
         style={{ color: MUTED, fontFamily: "'DM Sans', sans-serif" }}
@@ -288,7 +288,7 @@ function Field({ label, value }: { label: string; value: string }) {
         {label}
       </div>
       <div
-        className="mt-1 text-[12px] leading-snug"
+        className="tt-field-value mt-1 text-[12px] leading-snug"
         style={{ color: ESPRESSO, fontFamily: "'DM Sans', sans-serif" }}
       >
         {value}
@@ -389,7 +389,7 @@ function OutcomeRow({ outcome }: { outcome: Post["outcome"] }) {
 function PostCard({ post, locked }: { post: Post; locked?: boolean }) {
   const avatarBg = SKIN_BG[post.skinType] ?? CREAM;
   return (
-    <div className="relative">
+    <div className="tt-post-card relative">
       <article
         className="rounded-2xl p-4"
         style={{
@@ -449,7 +449,7 @@ function PostCard({ post, locked }: { post: Post; locked?: boolean }) {
           </div>
 
           {/* Fields */}
-          <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="tt-fields mt-3 grid grid-cols-2 gap-2">
             <Field label="Cost" value={post.fields.cost} />
             <Field label="Sessions / Area" value={post.fields.sessions} />
             <Field label="What happened" value={post.fields.happened} />

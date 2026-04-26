@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import {
   Lock,
   Plus,
-  Search,
   Bell,
   Home,
   User,

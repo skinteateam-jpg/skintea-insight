@@ -14,7 +14,170 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      members: {
+        Row: {
+          active: boolean
+          created_at: string
+          expires_at: string | null
+          id: string
+          plan: string
+          started_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan: string
+          started_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan?: string
+          started_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      posts: {
+        Row: {
+          cost: string | null
+          created_at: string
+          id: string
+          outcome: Database["public"]["Enums"]["post_outcome"] | null
+          sessions: string | null
+          skin_type: string | null
+          surprised_me: string | null
+          tags: string[]
+          treatment_id: string | null
+          updated_at: string
+          user_id: string
+          warn_if: string | null
+          what_happened: string | null
+          works_for: string | null
+        }
+        Insert: {
+          cost?: string | null
+          created_at?: string
+          id?: string
+          outcome?: Database["public"]["Enums"]["post_outcome"] | null
+          sessions?: string | null
+          skin_type?: string | null
+          surprised_me?: string | null
+          tags?: string[]
+          treatment_id?: string | null
+          updated_at?: string
+          user_id: string
+          warn_if?: string | null
+          what_happened?: string | null
+          works_for?: string | null
+        }
+        Update: {
+          cost?: string | null
+          created_at?: string
+          id?: string
+          outcome?: Database["public"]["Enums"]["post_outcome"] | null
+          sessions?: string | null
+          skin_type?: string | null
+          surprised_me?: string | null
+          tags?: string[]
+          treatment_id?: string | null
+          updated_at?: string
+          user_id?: string
+          warn_if?: string | null
+          what_happened?: string | null
+          works_for?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_treatment_id_fkey"
+            columns: ["treatment_id"]
+            isOneToOne: false
+            referencedRelation: "treatments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          is_admin: boolean
+          is_derm: boolean
+          is_member: boolean
+          name: string | null
+          skin_type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_admin?: boolean
+          is_derm?: boolean
+          is_member?: boolean
+          name?: string | null
+          skin_type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_admin?: boolean
+          is_derm?: boolean
+          is_member?: boolean
+          name?: string | null
+          skin_type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      treatments: {
+        Row: {
+          active: boolean
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +186,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      post_outcome: "would_again" | "modified" | "wouldnt"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +313,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      post_outcome: ["would_again", "modified", "wouldnt"],
+    },
   },
 } as const

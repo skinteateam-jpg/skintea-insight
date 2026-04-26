@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Lock,
   Plus,
@@ -38,17 +39,29 @@ const WARM_WHITE = "#FFFCF8";
 const BORDER = "#E8E0D8";
 const MUTED = "#8A7E76";
 
-const TREATMENTS = [
-  "All",
-  "Botox",
-  "Juvelook",
-  "Rejuran",
-  "Fillers",
-  "Lumecca",
-  "Skin Boosters",
-  "Laser",
-  "Peels",
-];
+// Fallback used only until the DB list loads
+const FALLBACK_TREATMENTS = ["All"];
+
+function useTreatments() {
+  const [treatments, setTreatments] = useState<string[]>(FALLBACK_TREATMENTS);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("treatments")
+        .select("name")
+        .eq("active", true)
+        .order("sort_order", { ascending: true });
+      if (!cancelled && !error && data) {
+        setTreatments(["All", ...data.map((t) => t.name as string)]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return treatments;
+}
 
 const SKIN_TYPES = [
   { id: "all", label: "All", emoji: "" },
@@ -567,7 +580,7 @@ function InsightCard({
   );
 }
 
-function Composer({ onClose }: { onClose: () => void }) {
+function Composer({ onClose, treatments }: { onClose: () => void; treatments: string[] }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center md:items-center" style={{ background: "rgba(28,10,0,0.5)" }}>
       <div
@@ -585,7 +598,7 @@ function Composer({ onClose }: { onClose: () => void }) {
             <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Treatment</label>
             <div className="relative">
               <select className="w-full appearance-none rounded-lg px-3 py-2.5 text-[13px]" style={{ border: `1px solid ${BORDER}`, background: "#fff", color: ESPRESSO, fontFamily: "'DM Sans', sans-serif" }}>
-                {TREATMENTS.slice(1).concat("Other").map(t => <option key={t}>{t}</option>)}
+                {treatments.filter((t) => t !== "All").concat("Other").map((t: string) => <option key={t}>{t}</option>)}
               </select>
               <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" color={MUTED} />
             </div>
@@ -650,6 +663,7 @@ function TreatmentTalkPage() {
   const [sort, setSort] = useState(SORTS[0]);
   const [showInsights, setShowInsights] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
+  const treatments = useTreatments();
 
   const filtered = useMemo(() => {
     return POSTS.filter((p) => (chip === "All" ? true : p.treatment === chip)).filter((p) =>
@@ -761,7 +775,7 @@ function TreatmentTalkPage() {
                 Treatment
               </div>
             </div>
-            <ChipScroll items={TREATMENTS} active={chip} onChange={setChip} />
+            <ChipScroll items={treatments} active={chip} onChange={setChip} />
             <div className="px-4">
               <div className="text-[8px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>
                 Skin type
@@ -803,7 +817,7 @@ function TreatmentTalkPage() {
                     Treatment
                   </div>
                   <div className="space-y-1">
-                    {TREATMENTS.map((t) => {
+                    {treatments.map((t: string) => {
                       const active = chip === t;
                       return (
                         <button
@@ -949,7 +963,7 @@ function TreatmentTalkPage() {
           </div>
         </nav>
 
-        {composerOpen && <Composer onClose={() => setComposerOpen(false)} />}
+        {composerOpen && <Composer onClose={() => setComposerOpen(false)} treatments={treatments} />}
       </div>
     </>
   );

@@ -682,6 +682,7 @@ function Composer({ onClose, treatments }: { onClose: () => void; treatments: st
 }
 
 function TreatmentTalkPage() {
+  // declared below
   const [activeTab, setActiveTab] = useState<"product" | "treatment" | "surgery">("treatment");
   const [chip, setChip] = useState("All");
   const [skin, setSkin] = useState("all");

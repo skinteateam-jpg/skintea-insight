@@ -580,7 +580,7 @@ function InsightCard({
   );
 }
 
-function Composer({ onClose }: { onClose: () => void }) {
+function Composer({ onClose, treatments }: { onClose: () => void; treatments: string[] }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center md:items-center" style={{ background: "rgba(28,10,0,0.5)" }}>
       <div
@@ -598,7 +598,7 @@ function Composer({ onClose }: { onClose: () => void }) {
             <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Treatment</label>
             <div className="relative">
               <select className="w-full appearance-none rounded-lg px-3 py-2.5 text-[13px]" style={{ border: `1px solid ${BORDER}`, background: "#fff", color: ESPRESSO, fontFamily: "'DM Sans', sans-serif" }}>
-                {TREATMENTS.slice(1).concat("Other").map(t => <option key={t}>{t}</option>)}
+                {treatments.filter((t) => t !== "All").concat("Other").map((t: string) => <option key={t}>{t}</option>)}
               </select>
               <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" color={MUTED} />
             </div>

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TreatmentTalk2RouteImport } from './routes/treatment-talk2'
 import { Route as TreatmentTalkRouteImport } from './routes/treatment-talk'
 import { Route as TeaProductsRouteImport } from './routes/tea-products'
 import { Route as SkinProfileRouteImport } from './routes/skin-profile'
@@ -19,6 +20,11 @@ import { Route as ProductDetailRouteImport } from './routes/product-detail'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductsIdV2RouteImport } from './routes/products.$id-v2'
 
+const TreatmentTalk2Route = TreatmentTalk2RouteImport.update({
+  id: '/treatment-talk2',
+  path: '/treatment-talk2',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TreatmentTalkRoute = TreatmentTalkRouteImport.update({
   id: '/treatment-talk',
   path: '/treatment-talk',
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/skin-profile': typeof SkinProfileRoute
   '/tea-products': typeof TeaProductsRoute
   '/treatment-talk': typeof TreatmentTalkRoute
+  '/treatment-talk2': typeof TreatmentTalk2Route
   '/products/$id-v2': typeof ProductsIdV2Route
 }
 export interface FileRoutesByTo {
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/skin-profile': typeof SkinProfileRoute
   '/tea-products': typeof TeaProductsRoute
   '/treatment-talk': typeof TreatmentTalkRoute
+  '/treatment-talk2': typeof TreatmentTalk2Route
   '/products/$id-v2': typeof ProductsIdV2Route
 }
 export interface FileRoutesById {
@@ -97,6 +105,7 @@ export interface FileRoutesById {
   '/skin-profile': typeof SkinProfileRoute
   '/tea-products': typeof TeaProductsRoute
   '/treatment-talk': typeof TreatmentTalkRoute
+  '/treatment-talk2': typeof TreatmentTalk2Route
   '/products/$id-v2': typeof ProductsIdV2Route
 }
 export interface FileRouteTypes {
@@ -110,6 +119,7 @@ export interface FileRouteTypes {
     | '/skin-profile'
     | '/tea-products'
     | '/treatment-talk'
+    | '/treatment-talk2'
     | '/products/$id-v2'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/skin-profile'
     | '/tea-products'
     | '/treatment-talk'
+    | '/treatment-talk2'
     | '/products/$id-v2'
   id:
     | '__root__'
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '/skin-profile'
     | '/tea-products'
     | '/treatment-talk'
+    | '/treatment-talk2'
     | '/products/$id-v2'
   fileRoutesById: FileRoutesById
 }
@@ -144,10 +156,18 @@ export interface RootRouteChildren {
   SkinProfileRoute: typeof SkinProfileRoute
   TeaProductsRoute: typeof TeaProductsRoute
   TreatmentTalkRoute: typeof TreatmentTalkRoute
+  TreatmentTalk2Route: typeof TreatmentTalk2Route
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/treatment-talk2': {
+      id: '/treatment-talk2'
+      path: '/treatment-talk2'
+      fullPath: '/treatment-talk2'
+      preLoaderRoute: typeof TreatmentTalk2RouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/treatment-talk': {
       id: '/treatment-talk'
       path: '/treatment-talk'
@@ -235,6 +255,7 @@ const rootRouteChildren: RootRouteChildren = {
   SkinProfileRoute: SkinProfileRoute,
   TeaProductsRoute: TeaProductsRoute,
   TreatmentTalkRoute: TreatmentTalkRoute,
+  TreatmentTalk2Route: TreatmentTalk2Route,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

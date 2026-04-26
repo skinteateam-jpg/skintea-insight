@@ -709,35 +709,38 @@ function TreatmentTalkPage() {
           className="sticky top-0 z-30"
           style={{ background: WARM_WHITE, borderBottom: `1px solid ${BORDER}` }}
         >
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-            <div>
-              <div
-                className="text-2xl leading-none"
-                style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }}
-              >
-                skintea
-              </div>
-              <div
-                className="mt-0.5 text-[10px] italic"
-                style={{ color: MUTED, fontFamily: "'DM Sans', sans-serif" }}
-              >
-                Got the skintea? Spill it.
-              </div>
+          <div className="mx-auto max-w-7xl px-4 pt-3 pb-2">
+            <div
+              className="text-[20px] leading-none"
+              style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }}
+            >
+              skintea
             </div>
-            <nav className="hidden items-center gap-1 md:flex">
+            <div
+              className="mt-0.5 text-[10px] italic"
+              style={{ color: MUTED, fontFamily: "'DM Sans', sans-serif" }}
+            >
+              Got the skintea? Spill it.
+            </div>
+            <div className="mt-2 flex w-full items-stretch">
               {[
-                { k: "product", l: "Product Talk", to: "/tea-products" as const },
-                { k: "treatment", l: "Treatment Talk", to: "/treatment-talk" as const },
-                { k: "surgery", l: "Surgery Talk", to: "/treatment-talk" as const },
+                { k: "product", l: "Product Talk" },
+                { k: "treatment", l: "Treatment Talk" },
+                { k: "surgery", l: "Surgery Talk" },
               ].map((t) => {
                 const active = activeTab === t.k;
                 return (
                   <button
                     key={t.k}
                     onClick={() => setActiveTab(t.k as typeof activeTab)}
-                    className="px-3 py-2 text-[13px] font-semibold"
+                    className="pb-1.5 pt-1"
                     style={{
+                      flex: 1,
+                      textAlign: "center",
+                      fontSize: 11,
+                      whiteSpace: "nowrap",
                       color: active ? ESPRESSO : MUTED,
+                      fontWeight: active ? 500 : 400,
                       borderBottom: `2px solid ${active ? CRIMSON : "transparent"}`,
                       fontFamily: "'DM Sans', sans-serif",
                     }}
@@ -746,47 +749,46 @@ function TreatmentTalkPage() {
                   </button>
                 );
               })}
-            </nav>
-            <div className="hidden md:flex items-center gap-2">
-              <button className="rounded-full p-2" style={{ border: `1px solid ${BORDER}` }}>
-                <Search size={16} color={ESPRESSO} />
-              </button>
-              <button
-                onClick={() => setComposerOpen(true)}
-                className="rounded-full px-4 py-2 text-[12px] font-bold"
-                style={{ background: CRIMSON, color: "#fff" }}
-              >
-                Spill the needle ✦
-              </button>
             </div>
           </div>
 
-          {/* Mobile tab pills */}
-          <div className="flex items-center gap-1 px-4 pb-2 md:hidden">
-            {[
-              { k: "product", l: "Product Talk" },
-              { k: "treatment", l: "Treatment Talk" },
-              { k: "surgery", l: "Surgery Talk" },
-            ].map((t) => {
-              const active = activeTab === t.k;
-              return (
-                <button
-                  key={t.k}
-                  onClick={() => setActiveTab(t.k as typeof activeTab)}
-                  className="px-2.5 py-1.5 text-[12px] font-semibold"
-                  style={{
-                    color: active ? ESPRESSO : MUTED,
-                    borderBottom: `2px solid ${active ? CRIMSON : "transparent"}`,
-                  }}
-                >
-                  {t.l}
-                </button>
-              );
-            })}
+          {/* Filter chip rows */}
+          <div style={{ background: WARM_WHITE }}>
+            <div className="px-4 pt-2">
+              <div className="text-[8px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>
+                Treatment
+              </div>
+            </div>
+            <ChipScroll items={TREATMENTS} active={chip} onChange={setChip} />
+            <div className="px-4">
+              <div className="text-[8px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>
+                Skin type
+              </div>
+            </div>
+            <div className="flex gap-2 overflow-x-auto px-4 pt-1.5 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {SKIN_TYPES.map((s) => {
+                const isActive = skin === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => setSkin(s.id)}
+                    className="shrink-0 rounded-full"
+                    style={{
+                      padding: "5px 12px",
+                      fontSize: 10,
+                      backgroundColor: isActive ? ESPRESSO : "#fff",
+                      color: isActive ? "#fff" : ESPRESSO,
+                      border: `1px solid ${isActive ? ESPRESSO : BORDER}`,
+                      fontFamily: "'DM Sans', sans-serif",
+                    }}
+                  >
+                    {s.emoji && <span className="mr-1">{s.emoji}</span>}
+                    {s.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-
-          {/* Filter chips */}
-          <ChipScroll items={TREATMENTS} active={chip} onChange={setChip} />
         </header>
 
         <main className="mx-auto max-w-7xl overflow-x-hidden px-4 pt-4">

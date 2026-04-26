@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Lock,
   Plus,
@@ -38,17 +39,29 @@ const WARM_WHITE = "#FFFCF8";
 const BORDER = "#E8E0D8";
 const MUTED = "#8A7E76";
 
-const TREATMENTS = [
-  "All",
-  "Botox",
-  "Juvelook",
-  "Rejuran",
-  "Fillers",
-  "Lumecca",
-  "Skin Boosters",
-  "Laser",
-  "Peels",
-];
+// Fallback used only until the DB list loads
+const FALLBACK_TREATMENTS = ["All"];
+
+function useTreatments() {
+  const [treatments, setTreatments] = useState<string[]>(FALLBACK_TREATMENTS);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("treatments")
+        .select("name")
+        .eq("active", true)
+        .order("sort_order", { ascending: true });
+      if (!cancelled && !error && data) {
+        setTreatments(["All", ...data.map((t) => t.name as string)]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return treatments;
+}
 
 const SKIN_TYPES = [
   { id: "all", label: "All", emoji: "" },

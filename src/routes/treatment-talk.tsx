@@ -863,7 +863,7 @@ function TreatmentTalkPage() {
                 )}
               </div>
 
-              <div className="space-y-4">
+              <div className="tt-feed space-y-4">
                 {filtered.map((p, i) => (
                   <PostCard key={p.id} post={p} locked={i >= 2} />
                 ))}

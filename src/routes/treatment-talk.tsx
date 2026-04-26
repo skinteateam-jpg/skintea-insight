@@ -670,6 +670,40 @@ function TreatmentTalkPage() {
       />
 
       <div className="min-h-screen overflow-x-hidden pb-24 md:pb-8" style={{ background: CREAM, fontFamily: "'DM Sans', sans-serif", maxWidth: "100vw" }}>
+        <style>{`
+          @media (max-width: 767px) {
+            .tt-feed {
+              padding: 0 12px;
+              box-sizing: border-box;
+              max-width: 100vw;
+            }
+            .tt-post-card {
+              width: 100%;
+              max-width: 100%;
+              overflow: hidden;
+              box-sizing: border-box;
+            }
+            .tt-post-card > article {
+              width: 100%;
+              max-width: 100%;
+              box-sizing: border-box;
+            }
+            .tt-fields {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              width: 100%;
+              box-sizing: border-box;
+            }
+            .tt-field {
+              min-width: 0;
+              box-sizing: border-box;
+            }
+            .tt-field, .tt-field-value {
+              word-break: break-word;
+              overflow-wrap: break-word;
+            }
+          }
+        `}</style>
         {/* Top nav */}
         <header
           className="sticky top-0 z-30"

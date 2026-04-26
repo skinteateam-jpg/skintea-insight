@@ -88,6 +88,24 @@ function useTreatments() {
   return { treatments, loading };
 }
 
+function ChipSkeletonRow() {
+  return (
+    <div className="flex gap-2 overflow-x-hidden px-4 pt-1.5 pb-3">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div
+          key={i}
+          className="shrink-0 rounded-full animate-pulse"
+          style={{
+            width: 56 + ((i * 13) % 40),
+            height: 24,
+            background: "#EEE6DC",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 const SKIN_TYPES = [
   { id: "all", label: "All", emoji: "" },
   { id: "oily", label: "Oily", emoji: "🍩" },

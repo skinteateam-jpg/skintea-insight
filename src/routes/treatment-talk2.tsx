@@ -37,7 +37,7 @@ const CRIMSON = "#A8001C";
 const CREAM = "#FAF7F2";
 const WARM_WHITE = "#FFFCF8";
 const BORDER = "#E8E0D8";
-const MUTED = "#8C7B6E";
+const MUTED = "#8A7E76";
 
 const TREATMENTS = [
   "All",

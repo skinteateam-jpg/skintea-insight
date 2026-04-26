@@ -672,7 +672,7 @@ function TreatmentTalkPage() {
         <style>{`
           @media (max-width: 767px) {
             .tt-feed {
-              padding: 0 12px;
+              padding: 0;
               box-sizing: border-box;
               max-width: 100vw;
             }
@@ -686,6 +686,7 @@ function TreatmentTalkPage() {
               width: 100%;
               max-width: 100%;
               box-sizing: border-box;
+              padding: 11px;
             }
             .tt-fields {
               display: grid;
@@ -701,6 +702,8 @@ function TreatmentTalkPage() {
               word-break: break-word;
               overflow-wrap: break-word;
             }
+            .tt-main { padding-left: 12px; padding-right: 12px; }
+            .tt-section { min-width: 0; }
           }
         `}</style>
         {/* Top nav */}
@@ -790,7 +793,7 @@ function TreatmentTalkPage() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-7xl overflow-x-hidden px-4 pt-4">
+        <main className="tt-main mx-auto max-w-7xl overflow-x-hidden px-4 pt-4">
           <div className="grid gap-6 md:grid-cols-[220px_1fr] lg:grid-cols-[220px_1fr_220px]">
             {/* Left sidebar */}
             <aside className="hidden md:block">
@@ -866,7 +869,7 @@ function TreatmentTalkPage() {
             </aside>
 
             {/* Feed */}
-            <section>
+            <section className="tt-section min-w-0">
               <div className="mb-4 flex items-end justify-between">
                 <h1
                   className="text-2xl md:text-3xl"

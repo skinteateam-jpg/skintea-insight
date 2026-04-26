@@ -39,28 +39,53 @@ const WARM_WHITE = "#FFFCF8";
 const BORDER = "#E8E0D8";
 const MUTED = "#8A7E76";
 
-// Fallback used only until the DB list loads
-const FALLBACK_TREATMENTS = ["All"];
+// Hardcoded fallback — used while loading and if the fetch fails or returns empty
+const FALLBACK_TREATMENT_NAMES = [
+  "Botox",
+  "Juvelook",
+  "Rejuran",
+  "Fillers",
+  "Lumecca",
+  "Potenza",
+  "Morpheus8",
+  "Skin Boosters",
+  "Laser",
+  "Peels",
+  "RF Microneedling",
+  "PRP",
+  "Sculptra",
+];
+const FALLBACK_TREATMENTS = ["All", ...FALLBACK_TREATMENT_NAMES];
 
 function useTreatments() {
   const [treatments, setTreatments] = useState<string[]>(FALLBACK_TREATMENTS);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data, error } = await supabase
-        .from("treatments")
-        .select("name")
-        .eq("active", true)
-        .order("sort_order", { ascending: true });
-      if (!cancelled && !error && data) {
-        setTreatments(["All", ...data.map((t) => t.name as string)]);
+      try {
+        const { data, error } = await supabase
+          .from("treatments")
+          .select("name")
+          .eq("active", true)
+          .order("sort_order", { ascending: true });
+        if (cancelled) return;
+        if (error || !data || data.length === 0) {
+          setTreatments(FALLBACK_TREATMENTS);
+        } else {
+          setTreatments(["All", ...data.map((t) => t.name as string)]);
+        }
+      } catch {
+        if (!cancelled) setTreatments(FALLBACK_TREATMENTS);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
   }, []);
-  return treatments;
+  return { treatments, loading };
 }
 
 const SKIN_TYPES = [

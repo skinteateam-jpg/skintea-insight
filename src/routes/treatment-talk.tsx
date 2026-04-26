@@ -669,7 +669,7 @@ function TreatmentTalkPage() {
         rel="stylesheet"
       />
 
-      <div className="min-h-screen pb-24 md:pb-8" style={{ background: CREAM, fontFamily: "'DM Sans', sans-serif" }}>
+      <div className="min-h-screen overflow-x-hidden pb-24 md:pb-8" style={{ background: CREAM, fontFamily: "'DM Sans', sans-serif", maxWidth: "100vw" }}>
         {/* Top nav */}
         <header
           className="sticky top-0 z-30"
@@ -755,7 +755,7 @@ function TreatmentTalkPage() {
           <ChipScroll items={TREATMENTS} active={chip} onChange={setChip} />
         </header>
 
-        <main className="mx-auto max-w-7xl px-4 pt-4">
+        <main className="mx-auto max-w-7xl overflow-x-hidden px-4 pt-4">
           <div className="grid gap-6 md:grid-cols-[220px_1fr] lg:grid-cols-[220px_1fr_220px]">
             {/* Left sidebar */}
             <aside className="hidden md:block">

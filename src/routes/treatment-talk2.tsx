@@ -663,6 +663,7 @@ function TreatmentTalkPage() {
   const [sort, setSort] = useState(SORTS[0]);
   const [showInsights, setShowInsights] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
+  const treatments = useTreatments();
 
   const filtered = useMemo(() => {
     return POSTS.filter((p) => (chip === "All" ? true : p.treatment === chip)).filter((p) =>
@@ -774,7 +775,7 @@ function TreatmentTalkPage() {
                 Treatment
               </div>
             </div>
-            <ChipScroll items={TREATMENTS} active={chip} onChange={setChip} />
+            <ChipScroll items={treatments} active={chip} onChange={setChip} />
             <div className="px-4">
               <div className="text-[8px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>
                 Skin type
@@ -816,7 +817,7 @@ function TreatmentTalkPage() {
                     Treatment
                   </div>
                   <div className="space-y-1">
-                    {TREATMENTS.map((t) => {
+                    {treatments.map((t: string) => {
                       const active = chip === t;
                       return (
                         <button
@@ -962,7 +963,7 @@ function TreatmentTalkPage() {
           </div>
         </nav>
 
-        {composerOpen && <Composer onClose={() => setComposerOpen(false)} />}
+        {composerOpen && <Composer onClose={() => setComposerOpen(false)} treatments={treatments} />}
       </div>
     </>
   );

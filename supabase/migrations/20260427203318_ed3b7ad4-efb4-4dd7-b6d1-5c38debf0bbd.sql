@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.surgery_likes_count_trigger() FROM PUBLIC, anon, authenticated;

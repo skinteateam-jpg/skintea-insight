@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TreatmentTalk2RouteImport } from './routes/treatment-talk2'
 import { Route as TreatmentTalkRouteImport } from './routes/treatment-talk'
 import { Route as TeaProductsRouteImport } from './routes/tea-products'
+import { Route as SurgeryTalkRouteImport } from './routes/surgery-talk'
 import { Route as SkinProfileRouteImport } from './routes/skin-profile'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as QuizResultRouteImport } from './routes/quiz-result'
@@ -37,6 +38,11 @@ const TreatmentTalkRoute = TreatmentTalkRouteImport.update({
 const TeaProductsRoute = TeaProductsRouteImport.update({
   id: '/tea-products',
   path: '/tea-products',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SurgeryTalkRoute = SurgeryTalkRouteImport.update({
+  id: '/surgery-talk',
+  path: '/surgery-talk',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SkinProfileRoute = SkinProfileRouteImport.update({
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/quiz-result': typeof QuizResultRoute
   '/signup': typeof SignupRoute
   '/skin-profile': typeof SkinProfileRoute
+  '/surgery-talk': typeof SurgeryTalkRoute
   '/tea-products': typeof TeaProductsRoute
   '/treatment-talk': typeof TreatmentTalkRoute
   '/treatment-talk2': typeof TreatmentTalk2Route
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/quiz-result': typeof QuizResultRoute
   '/signup': typeof SignupRoute
   '/skin-profile': typeof SkinProfileRoute
+  '/surgery-talk': typeof SurgeryTalkRoute
   '/tea-products': typeof TeaProductsRoute
   '/treatment-talk': typeof TreatmentTalkRoute
   '/treatment-talk2': typeof TreatmentTalk2Route
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/quiz-result': typeof QuizResultRoute
   '/signup': typeof SignupRoute
   '/skin-profile': typeof SkinProfileRoute
+  '/surgery-talk': typeof SurgeryTalkRoute
   '/tea-products': typeof TeaProductsRoute
   '/treatment-talk': typeof TreatmentTalkRoute
   '/treatment-talk2': typeof TreatmentTalk2Route
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/quiz-result'
     | '/signup'
     | '/skin-profile'
+    | '/surgery-talk'
     | '/tea-products'
     | '/treatment-talk'
     | '/treatment-talk2'
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/quiz-result'
     | '/signup'
     | '/skin-profile'
+    | '/surgery-talk'
     | '/tea-products'
     | '/treatment-talk'
     | '/treatment-talk2'
@@ -187,6 +198,7 @@ export interface FileRouteTypes {
     | '/quiz-result'
     | '/signup'
     | '/skin-profile'
+    | '/surgery-talk'
     | '/tea-products'
     | '/treatment-talk'
     | '/treatment-talk2'
@@ -204,6 +216,7 @@ export interface RootRouteChildren {
   QuizResultRoute: typeof QuizResultRoute
   SignupRoute: typeof SignupRoute
   SkinProfileRoute: typeof SkinProfileRoute
+  SurgeryTalkRoute: typeof SurgeryTalkRoute
   TeaProductsRoute: typeof TeaProductsRoute
   TreatmentTalkRoute: typeof TreatmentTalkRoute
   TreatmentTalk2Route: typeof TreatmentTalk2Route
@@ -232,6 +245,13 @@ declare module '@tanstack/react-router' {
       path: '/tea-products'
       fullPath: '/tea-products'
       preLoaderRoute: typeof TeaProductsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/surgery-talk': {
+      id: '/surgery-talk'
+      path: '/surgery-talk'
+      fullPath: '/surgery-talk'
+      preLoaderRoute: typeof SurgeryTalkRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/skin-profile': {
@@ -335,6 +355,7 @@ const rootRouteChildren: RootRouteChildren = {
   QuizResultRoute: QuizResultRoute,
   SignupRoute: SignupRoute,
   SkinProfileRoute: SkinProfileRoute,
+  SurgeryTalkRoute: SurgeryTalkRoute,
   TeaProductsRoute: TeaProductsRoute,
   TreatmentTalkRoute: TreatmentTalkRoute,
   TreatmentTalk2Route: TreatmentTalk2Route,
@@ -344,3 +365,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

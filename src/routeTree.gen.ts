@@ -13,10 +13,12 @@ import { Route as TreatmentTalk2RouteImport } from './routes/treatment-talk2'
 import { Route as TreatmentTalkRouteImport } from './routes/treatment-talk'
 import { Route as TeaProductsRouteImport } from './routes/tea-products'
 import { Route as SkinProfileRouteImport } from './routes/skin-profile'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as QuizResultRouteImport } from './routes/quiz-result'
 import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as ProductDetailRouteImport } from './routes/product-detail'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ProductsIdV2RouteImport } from './routes/products.$id-v2'
@@ -42,6 +44,11 @@ const SkinProfileRoute = SkinProfileRouteImport.update({
   path: '/skin-profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QuizResultRoute = QuizResultRouteImport.update({
   id: '/quiz-result',
   path: '/quiz-result',
@@ -60,6 +67,11 @@ const ProductsRoute = ProductsRouteImport.update({
 const ProductDetailRoute = ProductDetailRouteImport.update({
   id: '/product-detail',
   path: '/product-detail',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -85,10 +97,12 @@ const AdminTreatmentsRoute = AdminTreatmentsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/product-detail': typeof ProductDetailRoute
   '/products': typeof ProductsRouteWithChildren
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
+  '/signup': typeof SignupRoute
   '/skin-profile': typeof SkinProfileRoute
   '/tea-products': typeof TeaProductsRoute
   '/treatment-talk': typeof TreatmentTalkRoute
@@ -99,10 +113,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/product-detail': typeof ProductDetailRoute
   '/products': typeof ProductsRouteWithChildren
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
+  '/signup': typeof SignupRoute
   '/skin-profile': typeof SkinProfileRoute
   '/tea-products': typeof TeaProductsRoute
   '/treatment-talk': typeof TreatmentTalkRoute
@@ -114,10 +130,12 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/product-detail': typeof ProductDetailRoute
   '/products': typeof ProductsRouteWithChildren
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
+  '/signup': typeof SignupRoute
   '/skin-profile': typeof SkinProfileRoute
   '/tea-products': typeof TeaProductsRoute
   '/treatment-talk': typeof TreatmentTalkRoute
@@ -130,10 +148,12 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/login'
     | '/product-detail'
     | '/products'
     | '/quiz'
     | '/quiz-result'
+    | '/signup'
     | '/skin-profile'
     | '/tea-products'
     | '/treatment-talk'
@@ -144,10 +164,12 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/login'
     | '/product-detail'
     | '/products'
     | '/quiz'
     | '/quiz-result'
+    | '/signup'
     | '/skin-profile'
     | '/tea-products'
     | '/treatment-talk'
@@ -158,10 +180,12 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/login'
     | '/product-detail'
     | '/products'
     | '/quiz'
     | '/quiz-result'
+    | '/signup'
     | '/skin-profile'
     | '/tea-products'
     | '/treatment-talk'
@@ -173,10 +197,12 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
   ProductDetailRoute: typeof ProductDetailRoute
   ProductsRoute: typeof ProductsRouteWithChildren
   QuizRoute: typeof QuizRoute
   QuizResultRoute: typeof QuizResultRoute
+  SignupRoute: typeof SignupRoute
   SkinProfileRoute: typeof SkinProfileRoute
   TeaProductsRoute: typeof TeaProductsRoute
   TreatmentTalkRoute: typeof TreatmentTalkRoute
@@ -215,6 +241,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SkinProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/quiz-result': {
       id: '/quiz-result'
       path: '/quiz-result'
@@ -241,6 +274,13 @@ declare module '@tanstack/react-router' {
       path: '/product-detail'
       fullPath: '/product-detail'
       preLoaderRoute: typeof ProductDetailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -288,10 +328,12 @@ const ProductsRouteWithChildren = ProductsRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LoginRoute: LoginRoute,
   ProductDetailRoute: ProductDetailRoute,
   ProductsRoute: ProductsRouteWithChildren,
   QuizRoute: QuizRoute,
   QuizResultRoute: QuizResultRoute,
+  SignupRoute: SignupRoute,
   SkinProfileRoute: SkinProfileRoute,
   TeaProductsRoute: TeaProductsRoute,
   TreatmentTalkRoute: TreatmentTalkRoute,
@@ -302,12 +344,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

@@ -18,7 +18,9 @@ import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as ProductDetailRouteImport } from './routes/product-detail'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ProductsIdV2RouteImport } from './routes/products.$id-v2'
+import { Route as AdminTreatmentsRouteImport } from './routes/admin.treatments'
 
 const TreatmentTalk2Route = TreatmentTalk2RouteImport.update({
   id: '/treatment-talk2',
@@ -65,10 +67,20 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProductsIdV2Route = ProductsIdV2RouteImport.update({
   id: '/$id-v2',
   path: '/$id-v2',
   getParentRoute: () => ProductsRoute,
+} as any)
+const AdminTreatmentsRoute = AdminTreatmentsRouteImport.update({
+  id: '/admin/treatments',
+  path: '/admin/treatments',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -81,7 +93,9 @@ export interface FileRoutesByFullPath {
   '/tea-products': typeof TeaProductsRoute
   '/treatment-talk': typeof TreatmentTalkRoute
   '/treatment-talk2': typeof TreatmentTalk2Route
+  '/admin/treatments': typeof AdminTreatmentsRoute
   '/products/$id-v2': typeof ProductsIdV2Route
+  '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -93,7 +107,9 @@ export interface FileRoutesByTo {
   '/tea-products': typeof TeaProductsRoute
   '/treatment-talk': typeof TreatmentTalkRoute
   '/treatment-talk2': typeof TreatmentTalk2Route
+  '/admin/treatments': typeof AdminTreatmentsRoute
   '/products/$id-v2': typeof ProductsIdV2Route
+  '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -106,7 +122,9 @@ export interface FileRoutesById {
   '/tea-products': typeof TeaProductsRoute
   '/treatment-talk': typeof TreatmentTalkRoute
   '/treatment-talk2': typeof TreatmentTalk2Route
+  '/admin/treatments': typeof AdminTreatmentsRoute
   '/products/$id-v2': typeof ProductsIdV2Route
+  '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -120,7 +138,9 @@ export interface FileRouteTypes {
     | '/tea-products'
     | '/treatment-talk'
     | '/treatment-talk2'
+    | '/admin/treatments'
     | '/products/$id-v2'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -132,7 +152,9 @@ export interface FileRouteTypes {
     | '/tea-products'
     | '/treatment-talk'
     | '/treatment-talk2'
+    | '/admin/treatments'
     | '/products/$id-v2'
+    | '/admin'
   id:
     | '__root__'
     | '/'
@@ -144,7 +166,9 @@ export interface FileRouteTypes {
     | '/tea-products'
     | '/treatment-talk'
     | '/treatment-talk2'
+    | '/admin/treatments'
     | '/products/$id-v2'
+    | '/admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -157,6 +181,8 @@ export interface RootRouteChildren {
   TeaProductsRoute: typeof TeaProductsRoute
   TreatmentTalkRoute: typeof TreatmentTalkRoute
   TreatmentTalk2Route: typeof TreatmentTalk2Route
+  AdminTreatmentsRoute: typeof AdminTreatmentsRoute
+  AdminIndexRoute: typeof AdminIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -224,12 +250,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/products/$id-v2': {
       id: '/products/$id-v2'
       path: '/$id-v2'
       fullPath: '/products/$id-v2'
       preLoaderRoute: typeof ProductsIdV2RouteImport
       parentRoute: typeof ProductsRoute
+    }
+    '/admin/treatments': {
+      id: '/admin/treatments'
+      path: '/admin/treatments'
+      fullPath: '/admin/treatments'
+      preLoaderRoute: typeof AdminTreatmentsRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -256,7 +296,18 @@ const rootRouteChildren: RootRouteChildren = {
   TeaProductsRoute: TeaProductsRoute,
   TreatmentTalkRoute: TreatmentTalkRoute,
   TreatmentTalk2Route: TreatmentTalk2Route,
+  AdminTreatmentsRoute: AdminTreatmentsRoute,
+  AdminIndexRoute: AdminIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Lock, Bell, Home, User as UserIcon, Compass, X, Heart, MessageCircle, Bookmark, Send,
@@ -223,9 +223,13 @@ function usePosts(surgeries: Surgery[]) {
   const [posts, setPosts] = useState<EnrichedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [usingDemo, setUsingDemo] = useState(false);
+  const hasLoadedRef = useRef(false);
+  const surgeriesRef = useRef(surgeries);
+  useEffect(() => { surgeriesRef.current = surgeries; }, [surgeries]);
 
   const reload = useCallback(async () => {
-    setLoading(true);
+    // Only show loading state on first load; subsequent reloads update in place
+    if (!hasLoadedRef.current) setLoading(true);
     try {
       const { data, error } = await supabase
         .from("surgery_posts")
@@ -233,10 +237,13 @@ function usePosts(surgeries: Surgery[]) {
         .order("created_at", { ascending: false })
         .limit(100);
       if (error || !data || data.length === 0) {
-        setPosts(DEMO_POSTS);
-        setUsingDemo(true);
+        // Don't flash to demo if we already have real posts loaded
+        if (!hasLoadedRef.current) {
+          setPosts(DEMO_POSTS);
+          setUsingDemo(true);
+        }
       } else {
-        const surgMap = new Map(surgeries.map((s) => [s.id, s.name]));
+        const surgMap = new Map(surgeriesRef.current.map((s) => [s.id, s.name]));
         const userIds = Array.from(new Set(data.map((p) => p.user_id)));
         let profileMap = new Map<string, { name: string | null; skin_type: string | null; is_derm: boolean }>();
         if (userIds.length > 0) {
@@ -263,15 +270,44 @@ function usePosts(surgeries: Surgery[]) {
         setUsingDemo(false);
       }
     } catch {
-      setPosts(DEMO_POSTS);
-      setUsingDemo(true);
+      if (!hasLoadedRef.current) {
+        setPosts(DEMO_POSTS);
+        setUsingDemo(true);
+      }
     } finally {
+      hasLoadedRef.current = true;
       setLoading(false);
     }
-  }, [surgeries]);
+  }, []); // stable: surgeries accessed via ref to avoid refetch loops
 
   useEffect(() => { reload(); }, [reload]);
-  return { posts, loading, usingDemo, reload };
+
+  // Re-enrich existing posts when surgeries finish loading (no refetch needed)
+  useEffect(() => {
+    if (surgeries.length === 0) return;
+    setPosts((prev) => {
+      if (prev.length === 0) return prev;
+      const surgMap = new Map(surgeries.map((s) => [s.id, s.name]));
+      let changed = false;
+      const next = prev.map((p) => {
+        if (!p.surgery_id) return p;
+        const name = surgMap.get(p.surgery_id);
+        if (name && name !== p.surgery_name) {
+          changed = true;
+          return { ...p, surgery_name: name };
+        }
+        return p;
+      });
+      return changed ? next : prev;
+    });
+  }, [surgeries]);
+
+  // Optimistic local update — used by like/save without refetching
+  const updatePost = useCallback((id: string, patch: Partial<EnrichedPost>) => {
+    setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+  }, []);
+
+  return { posts, loading, usingDemo, reload, updatePost };
 }
 
 // ============= UI primitives =============
@@ -505,7 +541,7 @@ function CommentSection({ postId, userId }: { postId: string; userId: string | n
 }
 
 // ============= Post card =============
-function PostCard({ post, locked, userId, onChange }: { post: EnrichedPost; locked: boolean; userId: string | null; onChange: () => void }) {
+function PostCard({ post, locked, userId, onLikeChange }: { post: EnrichedPost; locked: boolean; userId: string | null; onLikeChange: (delta: number) => void }) {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likes_count);
@@ -534,11 +570,11 @@ function PostCard({ post, locked, userId, onChange }: { post: EnrichedPost; lock
     if (liked) {
       await supabase.from("surgery_likes").delete().eq("post_id", post.id).eq("user_id", userId);
       setLiked(false); setLikesCount((c) => Math.max(0, c - 1));
+      onLikeChange(-1);
     } else {
       const { error } = await supabase.from("surgery_likes").insert({ post_id: post.id, user_id: userId });
-      if (!error) { setLiked(true); setLikesCount((c) => c + 1); }
+      if (!error) { setLiked(true); setLikesCount((c) => c + 1); onLikeChange(1); }
     }
-    onChange();
   }
   async function toggleSave() {
     if (!userId || post.user_id === "demo") return;
@@ -1076,7 +1112,7 @@ function SurgeryTalkPage() {
   const navigate = useNavigate();
   const userId = useSession();
   const { surgeries, loading: surgeriesLoading } = useSurgeries();
-  const { posts, reload } = usePosts(surgeries);
+  const { posts, loading: postsLoading, reload, updatePost } = usePosts(surgeries);
   const [chip, setChip] = useState<string>("All");
   const [skin, setSkin] = useState<string>("all");
   const [composerOpen, setComposerOpen] = useState(false);
@@ -1260,15 +1296,33 @@ function SurgeryTalkPage() {
           </div>
 
           <div className="space-y-4">
-            {filtered.length === 0 && (
+            {postsLoading ? (
+              <>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="rounded-xl p-4 animate-pulse"
+                    style={{ background: "#fff", border: `1px solid ${BORDER}`, height: 220 }}>
+                    <div style={{ width: "40%", height: 12, background: "#EEE6DC", borderRadius: 4 }} />
+                    <div className="mt-3" style={{ width: "100%", height: 80, background: "#F5EFE7", borderRadius: 8 }} />
+                    <div className="mt-3" style={{ width: "80%", height: 10, background: "#EEE6DC", borderRadius: 4 }} />
+                  </div>
+                ))}
+              </>
+            ) : filtered.length === 0 ? (
               <div className="rounded-xl p-6 text-center text-[12px]"
                 style={{ background: "#fff", border: `1px solid ${BORDER}`, color: MUTED }}>
                 No spills match those filters yet.
               </div>
+            ) : (
+              filtered.map((p, i) => (
+                <PostCard
+                  key={p.id}
+                  post={p}
+                  locked={i >= 1}
+                  userId={userId}
+                  onLikeChange={(delta) => updatePost(p.id, { likes_count: Math.max(0, p.likes_count + delta) })}
+                />
+              ))
             )}
-            {filtered.map((p, i) => (
-              <PostCard key={p.id} post={p} locked={i >= 1} userId={userId} onChange={reload} />
-            ))}
           </div>
         </main>
 

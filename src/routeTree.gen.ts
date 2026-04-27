@@ -13,6 +13,7 @@ import { Route as TreatmentTalk2RouteImport } from './routes/treatment-talk2'
 import { Route as TreatmentTalkRouteImport } from './routes/treatment-talk'
 import { Route as TeaProductsRouteImport } from './routes/tea-products'
 import { Route as SkinProfileRouteImport } from './routes/skin-profile'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as QuizResultRouteImport } from './routes/quiz-result'
 import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as ProductsRouteImport } from './routes/products'
@@ -41,6 +42,11 @@ const TeaProductsRoute = TeaProductsRouteImport.update({
 const SkinProfileRoute = SkinProfileRouteImport.update({
   id: '/skin-profile',
   path: '/skin-profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const QuizResultRoute = QuizResultRouteImport.update({
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/products': typeof ProductsRouteWithChildren
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
+  '/signup': typeof SignupRoute
   '/skin-profile': typeof SkinProfileRoute
   '/tea-products': typeof TeaProductsRoute
   '/treatment-talk': typeof TreatmentTalkRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/products': typeof ProductsRouteWithChildren
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
+  '/signup': typeof SignupRoute
   '/skin-profile': typeof SkinProfileRoute
   '/tea-products': typeof TeaProductsRoute
   '/treatment-talk': typeof TreatmentTalkRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/products': typeof ProductsRouteWithChildren
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
+  '/signup': typeof SignupRoute
   '/skin-profile': typeof SkinProfileRoute
   '/tea-products': typeof TeaProductsRoute
   '/treatment-talk': typeof TreatmentTalkRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/products'
     | '/quiz'
     | '/quiz-result'
+    | '/signup'
     | '/skin-profile'
     | '/tea-products'
     | '/treatment-talk'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/products'
     | '/quiz'
     | '/quiz-result'
+    | '/signup'
     | '/skin-profile'
     | '/tea-products'
     | '/treatment-talk'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/products'
     | '/quiz'
     | '/quiz-result'
+    | '/signup'
     | '/skin-profile'
     | '/tea-products'
     | '/treatment-talk'
@@ -190,6 +202,7 @@ export interface RootRouteChildren {
   ProductsRoute: typeof ProductsRouteWithChildren
   QuizRoute: typeof QuizRoute
   QuizResultRoute: typeof QuizResultRoute
+  SignupRoute: typeof SignupRoute
   SkinProfileRoute: typeof SkinProfileRoute
   TeaProductsRoute: typeof TeaProductsRoute
   TreatmentTalkRoute: typeof TreatmentTalkRoute
@@ -226,6 +239,13 @@ declare module '@tanstack/react-router' {
       path: '/skin-profile'
       fullPath: '/skin-profile'
       preLoaderRoute: typeof SkinProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/quiz-result': {
@@ -313,6 +333,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductsRoute: ProductsRouteWithChildren,
   QuizRoute: QuizRoute,
   QuizResultRoute: QuizResultRoute,
+  SignupRoute: SignupRoute,
   SkinProfileRoute: SkinProfileRoute,
   TeaProductsRoute: TeaProductsRoute,
   TreatmentTalkRoute: TreatmentTalkRoute,

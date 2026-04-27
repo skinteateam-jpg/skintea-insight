@@ -541,7 +541,7 @@ function CommentSection({ postId, userId }: { postId: string; userId: string | n
 }
 
 // ============= Post card =============
-function PostCard({ post, locked, userId, onChange }: { post: EnrichedPost; locked: boolean; userId: string | null; onChange: () => void }) {
+function PostCard({ post, locked, userId, onLikeChange }: { post: EnrichedPost; locked: boolean; userId: string | null; onLikeChange: (delta: number) => void }) {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likes_count);
@@ -570,11 +570,11 @@ function PostCard({ post, locked, userId, onChange }: { post: EnrichedPost; lock
     if (liked) {
       await supabase.from("surgery_likes").delete().eq("post_id", post.id).eq("user_id", userId);
       setLiked(false); setLikesCount((c) => Math.max(0, c - 1));
+      onLikeChange(-1);
     } else {
       const { error } = await supabase.from("surgery_likes").insert({ post_id: post.id, user_id: userId });
-      if (!error) { setLiked(true); setLikesCount((c) => c + 1); }
+      if (!error) { setLiked(true); setLikesCount((c) => c + 1); onLikeChange(1); }
     }
-    onChange();
   }
   async function toggleSave() {
     if (!userId || post.user_id === "demo") return;

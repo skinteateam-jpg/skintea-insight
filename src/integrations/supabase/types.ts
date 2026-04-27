@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      clinics: {
+        Row: {
+          address: string | null
+          badges: string[] | null
+          best_for: string[] | null
+          booking_url: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          is_verified: boolean
+          name: string
+          neighborhood: string | null
+          price_from: number | null
+          price_tier: string | null
+          tea_quote: string | null
+          tea_skin_type: string | null
+          trust_score: number | null
+          updated_at: string
+          yelp_rating: number | null
+          yelp_review_count: number | null
+        }
+        Insert: {
+          address?: string | null
+          badges?: string[] | null
+          best_for?: string[] | null
+          booking_url?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_verified?: boolean
+          name: string
+          neighborhood?: string | null
+          price_from?: number | null
+          price_tier?: string | null
+          tea_quote?: string | null
+          tea_skin_type?: string | null
+          trust_score?: number | null
+          updated_at?: string
+          yelp_rating?: number | null
+          yelp_review_count?: number | null
+        }
+        Update: {
+          address?: string | null
+          badges?: string[] | null
+          best_for?: string[] | null
+          booking_url?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          is_verified?: boolean
+          name?: string
+          neighborhood?: string | null
+          price_from?: number | null
+          price_tier?: string | null
+          tea_quote?: string | null
+          tea_skin_type?: string | null
+          trust_score?: number | null
+          updated_at?: string
+          yelp_rating?: number | null
+          yelp_review_count?: number | null
+        }
+        Relationships: []
+      }
       members: {
         Row: {
           active: boolean

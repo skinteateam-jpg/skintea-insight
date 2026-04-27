@@ -145,6 +145,215 @@ export type Database = {
         }
         Relationships: []
       }
+      surgeries: {
+        Row: {
+          active: boolean
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      surgery_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "surgery_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "surgery_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      surgery_likes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "surgery_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "surgery_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      surgery_posts: {
+        Row: {
+          city: string | null
+          clinic_name: string | null
+          comments_open: boolean
+          country: string | null
+          created_at: string
+          hashtags: string[]
+          id: string
+          likes_count: number
+          my_thoughts_vs_reality: string | null
+          outcome: Database["public"]["Enums"]["surgery_outcome"] | null
+          pain_level: number | null
+          photos: Json
+          recovery_time: string | null
+          skin_type: Database["public"]["Enums"]["surgery_skin_type"] | null
+          struggle: string | null
+          surgery_id: string | null
+          surprised_me: string | null
+          total_cost: string | null
+          updated_at: string
+          user_id: string
+          warn_if: string | null
+          what_happened: string | null
+          works_for: string | null
+        }
+        Insert: {
+          city?: string | null
+          clinic_name?: string | null
+          comments_open?: boolean
+          country?: string | null
+          created_at?: string
+          hashtags?: string[]
+          id?: string
+          likes_count?: number
+          my_thoughts_vs_reality?: string | null
+          outcome?: Database["public"]["Enums"]["surgery_outcome"] | null
+          pain_level?: number | null
+          photos?: Json
+          recovery_time?: string | null
+          skin_type?: Database["public"]["Enums"]["surgery_skin_type"] | null
+          struggle?: string | null
+          surgery_id?: string | null
+          surprised_me?: string | null
+          total_cost?: string | null
+          updated_at?: string
+          user_id: string
+          warn_if?: string | null
+          what_happened?: string | null
+          works_for?: string | null
+        }
+        Update: {
+          city?: string | null
+          clinic_name?: string | null
+          comments_open?: boolean
+          country?: string | null
+          created_at?: string
+          hashtags?: string[]
+          id?: string
+          likes_count?: number
+          my_thoughts_vs_reality?: string | null
+          outcome?: Database["public"]["Enums"]["surgery_outcome"] | null
+          pain_level?: number | null
+          photos?: Json
+          recovery_time?: string | null
+          skin_type?: Database["public"]["Enums"]["surgery_skin_type"] | null
+          struggle?: string | null
+          surgery_id?: string | null
+          surprised_me?: string | null
+          total_cost?: string | null
+          updated_at?: string
+          user_id?: string
+          warn_if?: string | null
+          what_happened?: string | null
+          works_for?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "surgery_posts_surgery_id_fkey"
+            columns: ["surgery_id"]
+            isOneToOne: false
+            referencedRelation: "surgeries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      surgery_saves: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "surgery_saves_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "surgery_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       treatments: {
         Row: {
           active: boolean
@@ -187,6 +396,8 @@ export type Database = {
     }
     Enums: {
       post_outcome: "would_again" | "modified" | "wouldnt"
+      surgery_outcome: "Would do again" | "Modified" | "Wouldn't"
+      surgery_skin_type: "Oily" | "Dry" | "Combination" | "Sensitive" | "Normal"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -315,6 +526,8 @@ export const Constants = {
   public: {
     Enums: {
       post_outcome: ["would_again", "modified", "wouldnt"],
+      surgery_outcome: ["Would do again", "Modified", "Wouldn't"],
+      surgery_skin_type: ["Oily", "Dry", "Combination", "Sensitive", "Normal"],
     },
   },
 } as const

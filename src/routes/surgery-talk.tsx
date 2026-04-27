@@ -1112,7 +1112,7 @@ function SurgeryTalkPage() {
   const navigate = useNavigate();
   const userId = useSession();
   const { surgeries, loading: surgeriesLoading } = useSurgeries();
-  const { posts, reload } = usePosts(surgeries);
+  const { posts, loading: postsLoading, reload, updatePost } = usePosts(surgeries);
   const [chip, setChip] = useState<string>("All");
   const [skin, setSkin] = useState<string>("all");
   const [composerOpen, setComposerOpen] = useState(false);
@@ -1296,15 +1296,33 @@ function SurgeryTalkPage() {
           </div>
 
           <div className="space-y-4">
-            {filtered.length === 0 && (
+            {postsLoading ? (
+              <>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="rounded-xl p-4 animate-pulse"
+                    style={{ background: "#fff", border: `1px solid ${BORDER}`, height: 220 }}>
+                    <div style={{ width: "40%", height: 12, background: "#EEE6DC", borderRadius: 4 }} />
+                    <div className="mt-3" style={{ width: "100%", height: 80, background: "#F5EFE7", borderRadius: 8 }} />
+                    <div className="mt-3" style={{ width: "80%", height: 10, background: "#EEE6DC", borderRadius: 4 }} />
+                  </div>
+                ))}
+              </>
+            ) : filtered.length === 0 ? (
               <div className="rounded-xl p-6 text-center text-[12px]"
                 style={{ background: "#fff", border: `1px solid ${BORDER}`, color: MUTED }}>
                 No spills match those filters yet.
               </div>
+            ) : (
+              filtered.map((p, i) => (
+                <PostCard
+                  key={p.id}
+                  post={p}
+                  locked={i >= 1}
+                  userId={userId}
+                  onLikeChange={(delta) => updatePost(p.id, { likes_count: Math.max(0, p.likes_count + delta) })}
+                />
+              ))
             )}
-            {filtered.map((p, i) => (
-              <PostCard key={p.id} post={p} locked={i >= 1} userId={userId} onChange={reload} />
-            ))}
           </div>
         </main>
 

@@ -246,7 +246,7 @@ function usePosts(surgeries: Surgery[]) {
             .in("user_id", userIds);
           if (profs) profileMap = new Map(profs.map((p) => [p.user_id, p as any]));
         }
-        const enriched: EnrichedPost[] = (data as PostRow[]).map((p) => {
+        const enriched: EnrichedPost[] = (data as unknown as PostRow[]).map((p) => {
           const prof = profileMap.get(p.user_id);
           const skin = p.skin_type ?? prof?.skin_type ?? "";
           return {

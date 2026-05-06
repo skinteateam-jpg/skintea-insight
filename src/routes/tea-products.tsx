@@ -305,7 +305,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
             <button
               onClick={() => openCompose(todaysPrompt)}
               className="flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-transform active:scale-95"
-              style={{ background: "#fbbf24", color: "#1a1a1a" }}
+              style={{ background: "#A8001C", color: "#FFFFFF" }}
             >
               Spill
             </button>

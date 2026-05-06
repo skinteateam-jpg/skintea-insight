@@ -243,7 +243,7 @@ function ProductPage() {
             <OpinionCard
               label="Minority"
               percent={22}
-              barColor="#1C0A00"
+              barColor="#C8BDB8"
               sentence="Feels heavy and may pill under sunscreen."
             />
           </div>
@@ -307,7 +307,7 @@ function ProductPage() {
                     </div>
                     <span className="text-sm font-medium" style={{ color: "#A8001C" }}>{a.value}%</span>
                   </div>
-                  <Progress value={a.value} className="h-2" style={{ background: "#FAF7F2" }} />
+                  <Progress value={a.value} className="h-2 [&>div]:bg-[#1C0A00]" style={{ background: "#FAF7F2" }} />
                 </div>
               ))}
             </div>

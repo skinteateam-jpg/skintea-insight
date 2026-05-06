@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, type ReactNode } from "react";
 import { Pencil, Plus, Lock, Star, X, Bookmark, Link2, Download, ArrowUp, ArrowDown } from "lucide-react";
+import BottomNav from "@/components/BottomNav";
 
 export const Route = createFileRoute("/skin-profile")({
   component: SkinProfilePage,

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { Search, Bookmark, ChevronRight, X } from "lucide-react";
+import BottomNav from "@/components/BottomNav";
 
 export const Route = createFileRoute("/products")({
   component: ProductsPage,
@@ -394,6 +395,7 @@ function ProductsPage() {
           </div>
         </div>
       )}
+      <BottomNav />
     </div>
   );
 }

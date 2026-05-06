@@ -1308,6 +1308,28 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
         {composerOpen && userId && (
           <Composer onClose={() => setComposerOpen(false)} surgeries={surgeries} userId={userId} onCreated={reload} />
         )}
+
+        <button
+          onClick={handleSpillClick}
+          style={{
+            position: "fixed",
+            bottom: 72,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#A8001C",
+            color: "#fff",
+            fontSize: 13,
+            fontWeight: 700,
+            borderRadius: 99,
+            padding: "12px 28px",
+            border: "none",
+            zIndex: 40,
+            cursor: "pointer",
+            fontFamily: "'DM Sans', sans-serif",
+          }}
+        >
+          Spill the tea ☕
+        </button>
       </div>
     </>
   );

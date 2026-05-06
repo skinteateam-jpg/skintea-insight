@@ -170,7 +170,7 @@ function skinTypeLabel(t: SkinType) {
 
 /* ---------- Page ---------- */
 
-function TeaProductsPage() {
+export function TeaProductsContent({ embedded = false }: { embedded?: boolean } = {}) {
   const [activeTag, setActiveTag] = React.useState<TagKey | "all">("all");
   const [posts, setPosts] = React.useState<Post[]>(INITIAL_POSTS);
   const [composeOpen, setComposeOpen] = React.useState(false);
@@ -392,9 +392,13 @@ function TeaProductsPage() {
           setComposeOpen(false);
         }}
       />
-      <BottomNav />
+      {!embedded && <BottomNav />}
     </div>
   );
+}
+
+function TeaProductsPage() {
+  return <TeaProductsContent />;
 }
 
 /* ---------- Post Card ---------- */

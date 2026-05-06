@@ -1,6 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import BottomNav from "@/components/BottomNav";
+import { TeaProductsContent } from "./tea-products";
+import { TreatmentTalkContent } from "./treatment-talk2";
+import { SurgeryTalkContent } from "./surgery-talk";
 
 export const Route = createFileRoute("/tea")({
   head: () => ({
@@ -75,10 +78,10 @@ function TeaPage() {
       </div>
 
       {/* Content */}
-      <main style={{ maxWidth: 720, margin: "0 auto", padding: "60px 16px", display: "flex", justifyContent: "center", alignItems: "center", minHeight: 400 }}>
-        <div style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO, fontSize: 24, textAlign: "center" }}>
-          {TABS.find((t) => t.id === tab)?.label}
-        </div>
+      <main>
+        {tab === "product" && <TeaProductsContent embedded />}
+        {tab === "treatment" && <TreatmentTalkContent embedded />}
+        {tab === "surgery" && <SurgeryTalkContent embedded />}
       </main>
 
       <BottomNav />

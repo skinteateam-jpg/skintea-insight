@@ -1109,7 +1109,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 // ============= Main page =============
-function SurgeryTalkPage() {
+export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } = {}) {
   const navigate = useNavigate();
   const userId = useSession();
   const { surgeries, loading: surgeriesLoading } = useSurgeries();
@@ -1327,7 +1327,7 @@ function SurgeryTalkPage() {
           </div>
         </main>
 
-        <BottomNav />
+        {!embedded && <BottomNav />}
 
         {disclaimerOpen && (
           <DisclaimerModal onCancel={() => setDisclaimerOpen(false)} onConfirm={handleDisclaimerConfirm} />
@@ -1338,4 +1338,8 @@ function SurgeryTalkPage() {
       </div>
     </>
   );
+}
+
+function SurgeryTalkPage() {
+  return <SurgeryTalkContent />;
 }

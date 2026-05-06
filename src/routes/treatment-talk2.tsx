@@ -700,7 +700,7 @@ function Composer({ onClose, treatments }: { onClose: () => void; treatments: st
   );
 }
 
-function TreatmentTalkPage() {
+export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean } = {}) {
   // declared below
   const [activeTab, setActiveTab] = useState<"product" | "treatment" | "surgery">("treatment");
   const [chip, setChip] = useState("All");
@@ -980,12 +980,16 @@ function TreatmentTalkPage() {
           </div>
         </main>
 
-        <BottomNav />
+        {!embedded && <BottomNav />}
 
         {composerOpen && <Composer onClose={() => setComposerOpen(false)} treatments={treatments} />}
       </div>
     </>
   );
+}
+
+function TreatmentTalkPage() {
+  return <TreatmentTalkContent />;
 }
 
 function InsightsBlock() {

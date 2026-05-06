@@ -190,7 +190,7 @@ function ClinicsPage() {
                 display: "inline-flex", alignItems: "center", gap: 6,
               }}
             >
-              <Search size={14} /> Find your clinic
+              <Search size={14} /> Search
             </button>
           </div>
         </div>

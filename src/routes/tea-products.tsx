@@ -352,14 +352,27 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
         </section>
       </div>
 
-      {/* Floating action button */}
+      {/* Floating Spill the tea button */}
       <button
         onClick={() => openCompose()}
-        aria-label="Spill the tea"
-        className="fixed bottom-6 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full text-2xl shadow-xl transition-transform active:scale-90"
-        style={{ background: "#fbbf24", color: "#1a1a1a", boxShadow: "0 10px 30px -8px rgba(251,191,36,0.6)" }}
+        style={{
+          position: "fixed",
+          bottom: 72,
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: "#A8001C",
+          color: "#fff",
+          fontSize: 13,
+          fontWeight: 700,
+          borderRadius: 99,
+          padding: "12px 28px",
+          border: "none",
+          zIndex: 40,
+          cursor: "pointer",
+          fontFamily: "'DM Sans', sans-serif",
+        }}
       >
-        ☕
+        Spill the tea ☕
       </button>
 
       {/* Compose sheet */}

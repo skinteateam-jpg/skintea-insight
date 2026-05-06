@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, LayoutGrid, List as ListIcon, Star } from "lucide-react";
+import BottomNav from "@/components/BottomNav";
 
 export const Route = createFileRoute("/clinics")({
   head: () => ({
@@ -280,6 +281,7 @@ function ClinicsPage() {
           </div>
         )}
       </div>
+      <BottomNav />
     </div>
   );
 }

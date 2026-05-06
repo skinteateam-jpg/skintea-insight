@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TreatmentTalk2RouteImport } from './routes/treatment-talk2'
 import { Route as TreatmentTalkRouteImport } from './routes/treatment-talk'
 import { Route as TeaProductsRouteImport } from './routes/tea-products'
+import { Route as TeaRouteImport } from './routes/tea'
 import { Route as SurgeryTalkRouteImport } from './routes/surgery-talk'
 import { Route as SkinProfileRouteImport } from './routes/skin-profile'
 import { Route as SignupRouteImport } from './routes/signup'
@@ -39,6 +40,11 @@ const TreatmentTalkRoute = TreatmentTalkRouteImport.update({
 const TeaProductsRoute = TeaProductsRouteImport.update({
   id: '/tea-products',
   path: '/tea-products',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TeaRoute = TeaRouteImport.update({
+  id: '/tea',
+  path: '/tea',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SurgeryTalkRoute = SurgeryTalkRouteImport.update({
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/skin-profile': typeof SkinProfileRoute
   '/surgery-talk': typeof SurgeryTalkRoute
+  '/tea': typeof TeaRoute
   '/tea-products': typeof TeaProductsRoute
   '/treatment-talk': typeof TreatmentTalkRoute
   '/treatment-talk2': typeof TreatmentTalk2Route
@@ -136,6 +143,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/skin-profile': typeof SkinProfileRoute
   '/surgery-talk': typeof SurgeryTalkRoute
+  '/tea': typeof TeaRoute
   '/tea-products': typeof TeaProductsRoute
   '/treatment-talk': typeof TreatmentTalkRoute
   '/treatment-talk2': typeof TreatmentTalk2Route
@@ -155,6 +163,7 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/skin-profile': typeof SkinProfileRoute
   '/surgery-talk': typeof SurgeryTalkRoute
+  '/tea': typeof TeaRoute
   '/tea-products': typeof TeaProductsRoute
   '/treatment-talk': typeof TreatmentTalkRoute
   '/treatment-talk2': typeof TreatmentTalk2Route
@@ -175,6 +184,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/skin-profile'
     | '/surgery-talk'
+    | '/tea'
     | '/tea-products'
     | '/treatment-talk'
     | '/treatment-talk2'
@@ -193,6 +203,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/skin-profile'
     | '/surgery-talk'
+    | '/tea'
     | '/tea-products'
     | '/treatment-talk'
     | '/treatment-talk2'
@@ -211,6 +222,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/skin-profile'
     | '/surgery-talk'
+    | '/tea'
     | '/tea-products'
     | '/treatment-talk'
     | '/treatment-talk2'
@@ -230,6 +242,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   SkinProfileRoute: typeof SkinProfileRoute
   SurgeryTalkRoute: typeof SurgeryTalkRoute
+  TeaRoute: typeof TeaRoute
   TeaProductsRoute: typeof TeaProductsRoute
   TreatmentTalkRoute: typeof TreatmentTalkRoute
   TreatmentTalk2Route: typeof TreatmentTalk2Route
@@ -258,6 +271,13 @@ declare module '@tanstack/react-router' {
       path: '/tea-products'
       fullPath: '/tea-products'
       preLoaderRoute: typeof TeaProductsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tea': {
+      id: '/tea'
+      path: '/tea'
+      fullPath: '/tea'
+      preLoaderRoute: typeof TeaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/surgery-talk': {
@@ -377,6 +397,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   SkinProfileRoute: SkinProfileRoute,
   SurgeryTalkRoute: SurgeryTalkRoute,
+  TeaRoute: TeaRoute,
   TeaProductsRoute: TeaProductsRoute,
   TreatmentTalkRoute: TreatmentTalkRoute,
   TreatmentTalk2Route: TreatmentTalk2Route,

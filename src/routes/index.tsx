@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Sparkles, Lock } from "lucide-react";
+import BottomNav from "@/components/BottomNav";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -171,6 +172,7 @@ function HomePage() {
           />
         </div>
       </main>
+      <BottomNav />
     </div>
   );
 }

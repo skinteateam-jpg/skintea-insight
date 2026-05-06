@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import BottomNav from "@/components/BottomNav";
 import {
   Lock, Bell, Home, User as UserIcon, Compass, X, Heart, MessageCircle, Bookmark, Send,
 } from "lucide-react";
@@ -1326,29 +1327,7 @@ function SurgeryTalkPage() {
           </div>
         </main>
 
-        {/* Bottom nav */}
-        <nav className="fixed bottom-0 left-0 right-0 z-40"
-          style={{ background: WARM_WHITE, borderTop: `1px solid ${BORDER}` }}>
-          <div className="mx-auto flex max-w-md items-center justify-between px-4 py-2">
-            <Link to="/" className="flex flex-col items-center" style={{ color: MUTED }}>
-              <Home size={20} /><span className="text-[9px] mt-0.5">Home</span>
-            </Link>
-            <button className="flex flex-col items-center" style={{ color: MUTED }}>
-              <Compass size={20} /><span className="text-[9px] mt-0.5">Explore</span>
-            </button>
-            <button onClick={handleSpillClick}
-              className="rounded-full px-4 py-2.5 text-[12px] font-bold shadow-lg"
-              style={{ background: CRIMSON, color: "#fff", marginTop: -16 }}>
-              Spill it all ✦
-            </button>
-            <button className="flex flex-col items-center" style={{ color: MUTED }}>
-              <Bell size={20} /><span className="text-[9px] mt-0.5">Alerts</span>
-            </button>
-            <button className="flex flex-col items-center" style={{ color: MUTED }}>
-              <UserIcon size={20} /><span className="text-[9px] mt-0.5">Profile</span>
-            </button>
-          </div>
-        </nav>
+        <BottomNav />
 
         {disclaimerOpen && (
           <DisclaimerModal onCancel={() => setDisclaimerOpen(false)} onConfirm={handleDisclaimerConfirm} />

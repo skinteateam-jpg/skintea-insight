@@ -334,7 +334,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
                 style={{ background: "#1a1a1a", borderColor: "#A8001C" }}
               >
                 <div className="flex-1 text-[#faf8f5]">
-                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#A8001C" }}>
+                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#fbbf24" }}>
                     Tea Prompt
                   </p>
                   <p className="mt-0.5 font-display text-sm font-semibold">{item.text}</p>

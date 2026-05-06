@@ -980,37 +980,7 @@ function TreatmentTalkPage() {
           </div>
         </main>
 
-        {/* Mobile bottom nav */}
-        <nav
-          className="fixed bottom-0 left-0 right-0 z-40 md:hidden"
-          style={{ background: WARM_WHITE, borderTop: `1px solid ${BORDER}` }}
-        >
-          <div className="mx-auto flex max-w-md items-center justify-between px-4 py-2">
-            <button className="flex flex-col items-center" style={{ color: MUTED }}>
-              <Home size={20} />
-              <span className="text-[9px] mt-0.5">Home</span>
-            </button>
-            <button className="flex flex-col items-center" style={{ color: MUTED }}>
-              <Compass size={20} />
-              <span className="text-[9px] mt-0.5">Explore</span>
-            </button>
-            <button
-              onClick={() => setComposerOpen(true)}
-              className="rounded-full px-4 py-2.5 text-[12px] font-bold shadow-lg"
-              style={{ background: CRIMSON, color: "#fff", marginTop: -16 }}
-            >
-              {centerLabel}
-            </button>
-            <button className="flex flex-col items-center" style={{ color: MUTED }}>
-              <Bell size={20} />
-              <span className="text-[9px] mt-0.5">Alerts</span>
-            </button>
-            <button className="flex flex-col items-center" style={{ color: MUTED }}>
-              <User size={20} />
-              <span className="text-[9px] mt-0.5">Profile</span>
-            </button>
-          </div>
-        </nav>
+        <BottomNav />
 
         {composerOpen && <Composer onClose={() => setComposerOpen(false)} treatments={treatments} />}
       </div>

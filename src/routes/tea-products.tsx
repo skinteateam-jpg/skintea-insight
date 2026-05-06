@@ -331,10 +331,10 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
               <div
                 key={item.key}
                 className="flex items-center gap-3 rounded-2xl border p-4"
-                style={{ background: "#1a1a1a", borderColor: "#fbbf24" }}
+                style={{ background: "#1a1a1a", borderColor: "#A8001C" }}
               >
                 <div className="flex-1 text-[#faf8f5]">
-                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#fbbf24" }}>
+                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#A8001C" }}>
                     Tea Prompt
                   </p>
                   <p className="mt-0.5 font-display text-sm font-semibold">{item.text}</p>
@@ -342,7 +342,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
                 <button
                   onClick={() => openCompose(item.text)}
                   className="rounded-full px-3.5 py-1.5 text-xs font-semibold"
-                  style={{ background: "#fbbf24", color: "#1a1a1a" }}
+                  style={{ background: "#A8001C", color: "#FFFFFF" }}
                 >
                   Spill
                 </button>

@@ -153,6 +153,7 @@ function SkinProfilePage() {
         {tab === "saved" && <SavedTab />}
         {tab === "chart" && <ChartTab persona={persona} />}
       </main>
+      <BottomNav />
     </div>
   );
 }

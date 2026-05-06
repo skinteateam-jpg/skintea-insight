@@ -486,7 +486,8 @@ function ProductCard({
   trendingBadge?: boolean;
 }) {
   return (
-    <div
+    <Link
+      to="/product-detail"
       style={{
         border: `1.5px solid ${C.border}`,
         borderRadius: 6,
@@ -494,6 +495,8 @@ function ProductCard({
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
+        textDecoration: "none",
+        color: "inherit",
       }}
     >
       {/* Image */}

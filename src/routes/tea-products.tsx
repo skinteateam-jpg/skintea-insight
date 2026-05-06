@@ -228,28 +228,8 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
       `}</style>
 
       <div className="mx-auto max-w-[480px] pb-32">
-        {/* Sticky nav */}
-        <header
-          className="sticky top-0 z-30 flex items-center justify-between border-b px-5 py-3.5"
-          style={{ background: "#ffffff", borderColor: "#f0ede8", color: "#1a1a1a" }}
-        >
-          <div>
-            <h1 className="font-display text-2xl font-semibold leading-none tracking-tight">Product Talk</h1>
-            <p className="mt-1 text-[10px] font-bold tracking-[0.12em] text-neutral-500">
-              REAL OPINIONS · NO INFLUENCER BIAS
-            </p>
-          </div>
-          <button
-            onClick={() => openCompose()}
-            className="flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-transform active:scale-95"
-            style={{ background: "#1a1a1a", color: "#ffffff" }}
-          >
-            <Coffee className="h-4 w-4" /> Spill
-          </button>
-        </header>
-
         {/* Tag filter bar */}
-        <div className="sticky top-[60px] z-20 border-b" style={{ background: "#faf8f5", borderColor: "#f0ede8" }}>
+        <div className="sticky top-0 z-20 border-b" style={{ background: "#faf8f5", borderColor: "#f0ede8" }}>
           <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 py-3">
             {TAGS.map((t) => {
               const active = activeTag === t.key;

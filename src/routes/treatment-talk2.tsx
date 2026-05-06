@@ -770,49 +770,6 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
           className="sticky top-0 z-30"
           style={{ background: WARM_WHITE, borderBottom: `1px solid ${BORDER}` }}
         >
-          <div className="mx-auto max-w-7xl px-4 pt-3 pb-2">
-            <div
-              className="text-[20px] leading-none"
-              style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }}
-            >
-              skintea
-            </div>
-            <div
-              className="mt-0.5 text-[10px] italic"
-              style={{ color: MUTED, fontFamily: "'DM Sans', sans-serif" }}
-            >
-              Got the skintea? Spill it.
-            </div>
-            <div className="mt-2 flex w-full items-stretch">
-              {[
-                { k: "product", l: "Product Talk" },
-                { k: "treatment", l: "Treatment Talk" },
-                { k: "surgery", l: "Surgery Talk" },
-              ].map((t) => {
-                const active = activeTab === t.k;
-                return (
-                  <button
-                    key={t.k}
-                    onClick={() => setActiveTab(t.k as typeof activeTab)}
-                    className="pb-1.5 pt-1"
-                    style={{
-                      flex: 1,
-                      textAlign: "center",
-                      fontSize: 11,
-                      whiteSpace: "nowrap",
-                      color: active ? ESPRESSO : MUTED,
-                      fontWeight: active ? 500 : 400,
-                      borderBottom: `2px solid ${active ? CRIMSON : "transparent"}`,
-                      fontFamily: "'DM Sans', sans-serif",
-                    }}
-                  >
-                    {t.l}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Filter chip rows */}
           <div style={{ background: WARM_WHITE }}>
             <div className="px-4 pt-2">

@@ -1231,33 +1231,6 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
         {/* Header */}
         <header className="sticky top-0 z-30"
           style={{ background: WARM_WHITE, borderBottom: `1px solid ${BORDER}` }}>
-          <div className="mx-auto max-w-2xl px-4 pt-3 pb-2">
-            <div className="text-[22px] leading-none"
-              style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }}>
-              skintea
-            </div>
-            <div className="mt-0.5 text-[11px] italic" style={{ color: MUTED }}>
-              Got the skintea? Spill it.
-            </div>
-            <div className="mt-2 flex w-full items-stretch">
-              {[
-                { to: "/tea-products", l: "Product Talk", active: false },
-                { to: "/treatment-talk2", l: "Treatment Talk", active: false },
-                { to: "/surgery-talk", l: "Surgery Talk", active: true },
-              ].map((t) => (
-                <Link key={t.to} to={t.to} className="pb-1.5 pt-1"
-                  style={{
-                    flex: 1, textAlign: "center", fontSize: 11, whiteSpace: "nowrap",
-                    color: t.active ? ESPRESSO : MUTED,
-                    fontWeight: t.active ? 500 : 400,
-                    borderBottom: `2px solid ${t.active ? CRIMSON : "transparent"}`,
-                  }}>
-                  {t.l}
-                </Link>
-              ))}
-            </div>
-          </div>
-
           {/* Surgery filter */}
           <div className="px-4 pt-2">
             <div className="text-[8px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>

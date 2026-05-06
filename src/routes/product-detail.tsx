@@ -211,7 +211,7 @@ function ProductPage() {
                 {reddits.map((r) => (
                   <Card key={r.title} className="flex items-start gap-3 p-4 shadow-sm">
                     <div className="flex flex-col items-center text-muted-foreground">
-                      <ArrowUpCircle className="h-4 w-4" style={{ color: "#A8001C" }} />
+                      <ArrowUpCircle className="h-4 w-4" style={{ color: "#1C0A00" }} />
                       <span className="text-xs font-semibold text-foreground">{r.up}</span>
                     </div>
                     <div className="min-w-0 flex-1">

@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TreatmentTalk2RouteImport } from './routes/treatment-talk2'
-import { Route as TreatmentTalkRouteImport } from './routes/treatment-talk'
 import { Route as TeaProductsRouteImport } from './routes/tea-products'
 import { Route as TeaRouteImport } from './routes/tea'
 import { Route as SurgeryTalkRouteImport } from './routes/surgery-talk'
@@ -30,11 +29,6 @@ import { Route as AdminTreatmentsRouteImport } from './routes/admin.treatments'
 const TreatmentTalk2Route = TreatmentTalk2RouteImport.update({
   id: '/treatment-talk2',
   path: '/treatment-talk2',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TreatmentTalkRoute = TreatmentTalkRouteImport.update({
-  id: '/treatment-talk',
-  path: '/treatment-talk',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TeaProductsRoute = TeaProductsRouteImport.update({
@@ -126,7 +120,6 @@ export interface FileRoutesByFullPath {
   '/surgery-talk': typeof SurgeryTalkRoute
   '/tea': typeof TeaRoute
   '/tea-products': typeof TeaProductsRoute
-  '/treatment-talk': typeof TreatmentTalkRoute
   '/treatment-talk2': typeof TreatmentTalk2Route
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/products/$id-v2': typeof ProductsIdV2Route
@@ -145,7 +138,6 @@ export interface FileRoutesByTo {
   '/surgery-talk': typeof SurgeryTalkRoute
   '/tea': typeof TeaRoute
   '/tea-products': typeof TeaProductsRoute
-  '/treatment-talk': typeof TreatmentTalkRoute
   '/treatment-talk2': typeof TreatmentTalk2Route
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/products/$id-v2': typeof ProductsIdV2Route
@@ -165,7 +157,6 @@ export interface FileRoutesById {
   '/surgery-talk': typeof SurgeryTalkRoute
   '/tea': typeof TeaRoute
   '/tea-products': typeof TeaProductsRoute
-  '/treatment-talk': typeof TreatmentTalkRoute
   '/treatment-talk2': typeof TreatmentTalk2Route
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/products/$id-v2': typeof ProductsIdV2Route
@@ -186,7 +177,6 @@ export interface FileRouteTypes {
     | '/surgery-talk'
     | '/tea'
     | '/tea-products'
-    | '/treatment-talk'
     | '/treatment-talk2'
     | '/admin/treatments'
     | '/products/$id-v2'
@@ -205,7 +195,6 @@ export interface FileRouteTypes {
     | '/surgery-talk'
     | '/tea'
     | '/tea-products'
-    | '/treatment-talk'
     | '/treatment-talk2'
     | '/admin/treatments'
     | '/products/$id-v2'
@@ -224,7 +213,6 @@ export interface FileRouteTypes {
     | '/surgery-talk'
     | '/tea'
     | '/tea-products'
-    | '/treatment-talk'
     | '/treatment-talk2'
     | '/admin/treatments'
     | '/products/$id-v2'
@@ -244,7 +232,6 @@ export interface RootRouteChildren {
   SurgeryTalkRoute: typeof SurgeryTalkRoute
   TeaRoute: typeof TeaRoute
   TeaProductsRoute: typeof TeaProductsRoute
-  TreatmentTalkRoute: typeof TreatmentTalkRoute
   TreatmentTalk2Route: typeof TreatmentTalk2Route
   AdminTreatmentsRoute: typeof AdminTreatmentsRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -257,13 +244,6 @@ declare module '@tanstack/react-router' {
       path: '/treatment-talk2'
       fullPath: '/treatment-talk2'
       preLoaderRoute: typeof TreatmentTalk2RouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/treatment-talk': {
-      id: '/treatment-talk'
-      path: '/treatment-talk'
-      fullPath: '/treatment-talk'
-      preLoaderRoute: typeof TreatmentTalkRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tea-products': {
@@ -399,7 +379,6 @@ const rootRouteChildren: RootRouteChildren = {
   SurgeryTalkRoute: SurgeryTalkRoute,
   TeaRoute: TeaRoute,
   TeaProductsRoute: TeaProductsRoute,
-  TreatmentTalkRoute: TreatmentTalkRoute,
   TreatmentTalk2Route: TreatmentTalk2Route,
   AdminTreatmentsRoute: AdminTreatmentsRoute,
   AdminIndexRoute: AdminIndexRoute,
@@ -407,3 +386,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

@@ -324,7 +324,8 @@ function ProductPage() {
               <Badge
                 key={ing}
                 variant="secondary"
-                className="rounded-full bg-tea-sage/30 px-3 py-1.5 text-sm font-medium text-foreground hover:bg-tea-sage/40"
+                className="rounded-full px-3 py-1.5 text-sm font-medium"
+                style={{ background: "#FAF7F2", color: "#1C0A00" }}
               >
                 {ing}
               </Badge>
@@ -369,12 +370,12 @@ function ProductPage() {
           bottom: 0,
           left: 0,
           right: 0,
-          background: "white",
-          borderTop: "0.5px solid #e5e5e5",
+          background: "#FFFCF8",
+          borderTop: "1px solid #E8E0D8",
           padding: "12px 20px",
           display: "flex",
           gap: "12px",
-          zIndex: 999,
+          zIndex: 50,
         }}
       >
         <button
@@ -384,31 +385,30 @@ function ProductPage() {
             alignItems: "center",
             justifyContent: "center",
             gap: "8px",
-            background: "#1D9E75",
+            background: "#A8001C",
             color: "white",
             borderRadius: "10px",
             fontSize: "15px",
-            fontWeight: 500,
-            height: "48px",
+            fontWeight: 700,
+            padding: "13px",
             border: "none",
             cursor: "pointer",
           }}
         >
-          <Pencil style={{ width: "18px", height: "18px" }} />
-          Spill the tea
+          ✏️ Spill the tea
         </button>
         <button
           aria-label="Save"
           style={{
-            width: "56px",
-            height: "48px",
-            background: "white",
-            border: "0.5px solid #e5e5e5",
+            width: "46px",
+            height: "46px",
+            background: "#fff",
+            border: "1px solid #E8E0D8",
             borderRadius: "10px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#333",
+            color: "#1C0A00",
             cursor: "pointer",
           }}
         >
@@ -452,7 +452,7 @@ function Dots({
   strength: number;
   color: "yes" | "skip" | "grey";
 }) {
-  const fill = color === "yes" ? "#1D9E75" : color === "skip" ? "#D85A30" : "#999999";
+  const fill = color === "yes" ? "#2D7A3A" : color === "skip" ? "#A8001C" : "#8A7E76";
   return (
     <div style={{ display: "flex", gap: "3px", alignItems: "center" }}>
       {[1, 2, 3].map((i) => (
@@ -463,8 +463,8 @@ function Dots({
             height: "8px",
             borderRadius: "50%",
             display: "inline-block",
-            background: i <= strength ? fill : "transparent",
-            border: i <= strength ? "none" : "1.5px solid #ccc",
+            background: i <= strength ? fill : "#E8E0D8",
+            border: "none",
           }}
         />
       ))}
@@ -481,7 +481,7 @@ function FitCard({
   title: string;
   items: { label: string; strength: number }[];
 }) {
-  const labelColor = variant === "yes" ? "#1D9E75" : "#D85A30";
+  const labelColor = variant === "yes" ? "#2D7A3A" : "#A8001C";
   return (
     <div
       style={{

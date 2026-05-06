@@ -8,10 +8,10 @@ const BORDER = "#E8E0D8";
 
 const TABS = [
   { to: "/", label: "Home", Icon: House },
-  { to: "/clinics", label: "Search", Icon: Search },
+  { to: "/clinics", label: "Clinics", Icon: Search },
   { to: "/tea", label: "Tea", Icon: Coffee },
   { to: "/products", label: "Ranking", Icon: Trophy },
-  { to: "/skin-profile", label: "Profile", Icon: User },
+  { to: "/skin-profile", label: "My Skin", Icon: User },
 ] as const;
 
 export default function BottomNav() {

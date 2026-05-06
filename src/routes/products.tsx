@@ -486,7 +486,8 @@ function ProductCard({
   trendingBadge?: boolean;
 }) {
   return (
-    <div
+    <Link
+      to="/product-detail"
       style={{
         border: `1.5px solid ${C.border}`,
         borderRadius: 6,
@@ -494,6 +495,8 @@ function ProductCard({
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
+        textDecoration: "none",
+        color: "inherit",
       }}
     >
       {/* Image */}
@@ -609,21 +612,19 @@ function ProductCard({
             <span style={{ color: C.textLight, fontWeight: 500 }}>({product.reviews})</span>
           </div>
         )}
-        <Link
-          to="/product-detail"
+        <span
           style={{
             marginTop: 4,
             color: C.crimson,
             fontSize: 11,
             fontWeight: 800,
-            textDecoration: "none",
             letterSpacing: "-0.01em",
           }}
         >
           What's the tea? →
-        </Link>
+        </span>
       </div>
-    </div>
+    </Link>
   );
 }
 

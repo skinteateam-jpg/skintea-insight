@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -6,8 +6,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Heart, MessageCircle, Play, Share2, ArrowUpCircle, ExternalLink, ChevronDown, Pencil, Bookmark } from "lucide-react";
+import { Heart, MessageCircle, Play, Share2, ArrowUpCircle, ExternalLink, ChevronDown, Pencil, Bookmark, ArrowLeft } from "lucide-react";
 import { ProductChat } from "@/components/ProductChat";
+import BottomNav from "@/components/BottomNav";
 
 export const Route = createFileRoute("/product-detail")({
   component: ProductPage,
@@ -87,20 +88,38 @@ const reddits = [
 function ProductPage() {
   const [tab, setTab] = useState("tiktok");
   const [showAllIngredients, setShowAllIngredients] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <main className="min-h-screen bg-background" style={{ paddingBottom: "80px" }}>
       <div className="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-20">
+        <button
+          onClick={() => navigate({ to: "/products" })}
+          aria-label="Back"
+          style={{
+            position: "absolute",
+            top: 16,
+            left: 16,
+            background: "transparent",
+            border: "none",
+            color: "#1C0A00",
+            cursor: "pointer",
+            padding: 8,
+            zIndex: 10,
+          }}
+        >
+          <ArrowLeft size={22} />
+        </button>
         {/* Header */}
         <header className="mb-14 grid gap-8 sm:grid-cols-[240px_1fr] sm:items-start">
-          <div className="aspect-square w-full overflow-hidden rounded-2xl bg-gradient-to-br from-tea-cream via-accent to-tea-sage/40 shadow-sm">
+          <div className="aspect-square w-full overflow-hidden rounded-2xl shadow-sm" style={{ background: "#FAF7F2" }}>
             <div className="flex h-full w-full items-center justify-center">
               <div className="h-32 w-20 rounded-md bg-background/70 shadow-inner sm:h-40 sm:w-24" />
             </div>
           </div>
           <div>
             <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="font-medium tracking-wide text-tea-leaf">{product.brand}</span>
+              <span className="font-medium tracking-wide" style={{ color: "#A8001C" }}>{product.brand}</span>
               <span>·</span>
               <span>{product.category}</span>
             </div>
@@ -116,10 +135,11 @@ function ProductPage() {
                   key={a.name}
                   asChild
                   variant={i === 0 ? "default" : "outline"}
-                  className={
+                  className="rounded-full px-5"
+                  style={
                     i === 0
-                      ? "rounded-full bg-tea-leaf px-5 text-primary-foreground hover:bg-tea-leaf/90"
-                      : "rounded-full border-border px-5 text-foreground hover:bg-secondary"
+                      ? { background: "#1C0A00", color: "#FFFFFF", border: "none" }
+                      : { background: "transparent", color: "#1C0A00", border: "1px solid #E8E0D8" }
                   }
                 >
                   <a href={a.url} target="_blank" rel="noopener noreferrer">
@@ -172,7 +192,7 @@ function ProductPage() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 {instagrams.map((p) => (
                   <Card key={p.user} className="overflow-hidden p-0 shadow-sm">
-                    <div className="aspect-square bg-gradient-to-br from-tea-cream via-accent to-tea-sage/40" />
+                    <div className="aspect-square" style={{ background: "#FAF7F2" }} />
                     <div className="space-y-2 p-3">
                       <p className="text-xs font-semibold text-foreground">@{p.user}</p>
                       <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">{p.caption}</p>
@@ -191,11 +211,11 @@ function ProductPage() {
                 {reddits.map((r) => (
                   <Card key={r.title} className="flex items-start gap-3 p-4 shadow-sm">
                     <div className="flex flex-col items-center text-muted-foreground">
-                      <ArrowUpCircle className="h-4 w-4 text-tea-warning" />
+                      <ArrowUpCircle className="h-4 w-4" style={{ color: "#A8001C" }} />
                       <span className="text-xs font-semibold text-foreground">{r.up}</span>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium text-tea-leaf">{r.sub}</p>
+                      <p className="text-xs font-medium" style={{ color: "#A8001C" }}>{r.sub}</p>
                       <p className="mt-1 text-sm font-medium leading-snug text-foreground">{r.title}</p>
                       <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
                         <MessageCircle className="h-3 w-3" /> {r.comments} comments
@@ -217,17 +237,17 @@ function ProductPage() {
             <OpinionCard
               label="Majority"
               percent={78}
-              barClass="bg-tea-leaf"
+              barColor="#A8001C"
               sentence="Strengthens the skin barrier within a few weeks."
             />
             <OpinionCard
               label="Minority"
               percent={22}
-              barClass="bg-tea-danger"
+              barColor="#1C0A00"
               sentence="Feels heavy and may pill under sunscreen."
             />
           </div>
-          <div className="mt-3 rounded-xl bg-secondary px-4 py-3">
+          <div className="mt-3 rounded-xl px-4 py-3" style={{ background: "#FAF7F2" }}>
             <p className="text-xs font-medium text-muted-foreground">Why opinions differ</p>
             <p className="mt-1 text-sm text-foreground">
               Skin type and climate shape the experience more than the formula itself.
@@ -285,9 +305,9 @@ function ProductPage() {
                       <span className="text-sm font-semibold text-foreground">{a.label}</span>
                       <span className="text-xs text-muted-foreground">{a.sub}</span>
                     </div>
-                    <span className="text-sm font-medium text-tea-leaf">{a.value}%</span>
+                    <span className="text-sm font-medium" style={{ color: "#A8001C" }}>{a.value}%</span>
                   </div>
-                  <Progress value={a.value} className="h-2 bg-secondary" />
+                  <Progress value={a.value} className="h-2" style={{ background: "#FAF7F2" }} />
                 </div>
               ))}
             </div>
@@ -311,7 +331,7 @@ function ProductPage() {
             ))}
           </div>
           <Collapsible open={showAllIngredients} onOpenChange={setShowAllIngredients} className="mt-5">
-            <CollapsibleTrigger className="flex items-center gap-1.5 text-sm font-medium text-tea-leaf transition hover:opacity-70">
+            <CollapsibleTrigger className="flex items-center gap-1.5 text-sm font-medium transition hover:opacity-70" style={{ color: "#A8001C" }}>
               {showAllIngredients ? "Hide" : "Full ingredient list"}
               <ChevronDown
                 className={`h-4 w-4 transition-transform ${showAllIngredients ? "rotate-180" : ""}`}
@@ -333,7 +353,7 @@ function ProductPage() {
             Confidence Level
           </h2>
           <div className="flex flex-col items-start gap-2">
-            <Badge className="rounded-full bg-tea-leaf px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-tea-leaf">
+            <Badge className="rounded-full px-4 py-1.5 text-sm font-medium" style={{ background: "#A8001C", color: "#FFFFFF" }}>
               High
             </Badge>
             <p className="text-sm text-muted-foreground">
@@ -395,6 +415,7 @@ function ProductPage() {
           <Bookmark style={{ width: "20px", height: "20px" }} />
         </button>
       </div>
+      <BottomNav />
     </main>
   );
 }
@@ -402,12 +423,12 @@ function ProductPage() {
 function OpinionCard({
   label,
   percent,
-  barClass,
+  barColor,
   sentence,
 }: {
   label: string;
   percent: number;
-  barClass: string;
+  barColor: string;
   sentence: string;
 }) {
   return (
@@ -417,7 +438,7 @@ function OpinionCard({
       </div>
       <div className="mt-2 text-4xl font-bold tracking-tight text-foreground">{percent}%</div>
       <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-        <div className={`h-full ${barClass}`} style={{ width: `${percent}%` }} />
+        <div className="h-full" style={{ width: `${percent}%`, background: barColor }} />
       </div>
       <p className="mt-4 text-sm text-foreground">{sentence}</p>
     </Card>

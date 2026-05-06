@@ -1,5 +1,6 @@
 import * as React from "react";
 import { createFileRoute } from "@tanstack/react-router";
+import BottomNav from "@/components/BottomNav";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -391,6 +392,7 @@ function TeaProductsPage() {
           setComposeOpen(false);
         }}
       />
+      <BottomNav />
     </div>
   );
 }

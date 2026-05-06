@@ -91,7 +91,7 @@ function ProductPage() {
   const navigate = useNavigate();
 
   return (
-    <main className="min-h-screen bg-background" style={{ paddingBottom: "80px" }}>
+    <main className="min-h-screen" style={{ paddingBottom: "80px", background: "#FFFCF8" }}>
       <div className="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-20">
         <button
           onClick={() => navigate({ to: "/products" })}

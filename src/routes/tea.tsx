@@ -37,45 +37,60 @@ function TeaPage() {
       <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
       {/* Header */}
-      <header style={{ background: ESPRESSO, color: CREAM, padding: "20px 16px" }}>
-        <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Link to="/" style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: CREAM, textDecoration: "none", fontWeight: 600 }}>
+      <header
+        style={{
+          background: WARM_WHITE,
+          borderBottom: `1px solid ${BORDER}`,
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
+        }}
+      >
+        <div style={{ maxWidth: 720, margin: "0 auto", padding: "14px 16px 0" }}>
+          <Link
+            to="/"
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: 22,
+              color: ESPRESSO,
+              textDecoration: "none",
+              fontWeight: 400,
+              lineHeight: 1,
+              display: "block",
+            }}
+          >
             skintea
           </Link>
-          <div style={{ fontSize: 11, color: CRIMSON, letterSpacing: 1.2, textTransform: "uppercase", fontWeight: 600 }}>
-            Tea
+          <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
+            Got the skintea? Spill it.
+          </div>
+          <div style={{ display: "flex", marginTop: 10 }}>
+            {TABS.map((t) => {
+              const active = tab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  style={{
+                    flex: 1,
+                    background: "transparent",
+                    border: "none",
+                    padding: "8px 4px",
+                    cursor: "pointer",
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: 13,
+                    fontWeight: active ? 600 : 400,
+                    color: active ? ESPRESSO : MUTED,
+                    borderBottom: `2px solid ${active ? CRIMSON : "transparent"}`,
+                  }}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </header>
-
-      {/* Tabs */}
-      <div style={{ background: WARM_WHITE, borderBottom: `1px solid ${BORDER}`, position: "sticky", top: 0, zIndex: 20 }}>
-        <div style={{ maxWidth: 720, margin: "0 auto", display: "flex" }}>
-          {TABS.map((t) => {
-            const active = tab === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                style={{
-                  flex: 1,
-                  background: "transparent",
-                  border: "none",
-                  padding: "14px 8px",
-                  cursor: "pointer",
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: 13,
-                  fontWeight: active ? 700 : 500,
-                  color: active ? ESPRESSO : MUTED,
-                  borderBottom: `2px solid ${active ? CRIMSON : "transparent"}`,
-                }}
-              >
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
 
       {/* Content */}
       <main>

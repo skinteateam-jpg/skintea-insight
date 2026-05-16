@@ -338,33 +338,52 @@ function ProductPage() {
 
         {/* Key Ingredients */}
         <section className="mb-16">
-          <h2 className="mb-5 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-            Key Ingredients
-          </h2>
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+              Key Ingredients
+            </h2>
+            {userSkinType && (
+              <span style={{ fontSize: "11px", background: "#FEF2F2", border: "0.5px solid #A8001C", color: "#A8001C", borderRadius: "20px", padding: "3px 10px", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                {userSkinType} skin active
+              </span>
+            )}
+          </div>
           <div className="flex flex-wrap gap-2">
             {keyIngredients.map((ing) => (
               <Badge
-                key={ing}
+                key={ing.name}
                 variant="secondary"
                 className="rounded-full px-3 py-1.5 text-sm font-medium"
-                style={{ background: "#FAF7F2", color: "#1C0A00" }}
+                style={getIngredientStyle(ing)}
               >
-                {ing}
+                {ing.name}
               </Badge>
             ))}
           </div>
+          {userSkinType && (
+            <div style={{ marginTop: "12px", background: "#FEF2F2", border: "0.5px solid #FCA5A5", borderRadius: "10px", padding: "10px 14px" }}>
+              <p style={{ margin: 0, fontSize: "12px", color: "#7F1D1D" }}>
+                <span style={{ color: "#A8001C", fontWeight: 600 }}>Crimson = great for your skin.</span> Amber = worth knowing about.
+              </p>
+            </div>
+          )}
           <Collapsible open={showAllIngredients} onOpenChange={setShowAllIngredients} className="mt-5">
             <CollapsibleTrigger className="flex items-center gap-1.5 text-sm font-medium transition hover:opacity-70" style={{ color: "#A8001C" }}>
               {showAllIngredients ? "Hide" : "Full ingredient list"}
-              <ChevronDown
-                className={`h-4 w-4 transition-transform ${showAllIngredients ? "rotate-180" : ""}`}
-              />
+              <ChevronDown className={`h-4 w-4 transition-transform ${showAllIngredients ? "rotate-180" : ""}`} />
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-4">
               <Card className="p-5 shadow-sm">
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {fullIngredients.join(", ")}.
-                </p>
+                <div className="flex flex-wrap gap-2">
+                  {fullIngredients.map((ing) => (
+                    <span
+                      key={ing.name}
+                      style={{ ...getIngredientStyle(ing), fontSize: "12px", borderRadius: "4px", padding: "3px 8px", display: "inline-block" }}
+                    >
+                      {ing.name}
+                    </span>
+                  ))}
+                </div>
               </Card>
             </CollapsibleContent>
           </Collapsible>

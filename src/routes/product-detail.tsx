@@ -102,6 +102,15 @@ function ProductPage() {
   const [tab, setTab] = useState("tiktok");
   const [showAllIngredients, setShowAllIngredients] = useState(false);
   const navigate = useNavigate();
+  const userSkinType = localStorage.getItem("skintea_skin_type") || null;
+
+  function getIngredientStyle(ing: { name: string; match: Record<string, "good" | "watch" | "neutral"> }) {
+    if (!userSkinType) return { background: "#FAF7F2", color: "#1C0A00", border: "none" };
+    const status = ing.match[userSkinType] || "neutral";
+    if (status === "good") return { background: "#FEF2F2", color: "#A8001C", border: "1px solid #A8001C", fontWeight: 600 };
+    if (status === "watch") return { background: "#FFFBEB", color: "#92400E", border: "1px solid #D97706", fontWeight: 500 };
+    return { background: "#FAF7F2", color: "#1C0A00", border: "none" };
+  }
 
   return (
     <main className="min-h-screen" style={{ paddingBottom: "80px", background: "#FFFCF8" }}>

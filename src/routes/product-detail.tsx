@@ -52,14 +52,14 @@ const ageRatings = [
   { label: "50s+", sub: "50 and up", value: 84 },
 ];
 
-const keyIngredients = [
-  "Ceramide NP",
-  "Ceramide AP",
-  "Ceramide EOP",
-  "Hyaluronic Acid",
-  "Niacinamide",
-  "Cholesterol",
-  "Phytosphingosine",
+const keyIngredients: { name: string; match: Record<string, "good" | "watch" | "neutral"> }[] = [
+  { name: "Ceramide NP", match: { dry: "good", sensitive: "good", oily: "neutral", combination: "neutral" } },
+  { name: "Ceramide AP", match: { dry: "good", sensitive: "good", oily: "neutral", combination: "neutral" } },
+  { name: "Ceramide EOP", match: { dry: "good", sensitive: "good", oily: "neutral", combination: "neutral" } },
+  { name: "Hyaluronic Acid", match: { dry: "good", sensitive: "good", oily: "watch", combination: "watch" } },
+  { name: "Niacinamide", match: { oily: "good", combination: "good", dry: "neutral", sensitive: "watch" } },
+  { name: "Cholesterol", match: { dry: "good", sensitive: "good", oily: "watch", combination: "neutral" } },
+  { name: "Phytosphingosine", match: { sensitive: "good", dry: "good", oily: "neutral", combination: "neutral" } },
 ];
 
 const fullIngredients = [

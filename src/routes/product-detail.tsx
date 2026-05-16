@@ -62,12 +62,25 @@ const keyIngredients: { name: string; match: Record<string, "good" | "watch" | "
   { name: "Phytosphingosine", match: { sensitive: "good", dry: "good", oily: "neutral", combination: "neutral" } },
 ];
 
-const fullIngredients = [
-  "Purified Water", "Glycerin", "Caprylic/Capric Triglyceride", "Cetearyl Alcohol",
-  "Ceramide NP", "Ceramide AP", "Ceramide EOP", "Carbomer", "Dimethicone",
-  "Behentrimonium Methosulfate", "Sodium Hyaluronate", "Cholesterol", "Phenoxyethanol",
-  "Disodium EDTA", "Phytosphingosine", "Tocopherol", "Niacinamide", "Xanthan Gum",
-  "Polyglyceryl-3 Diisostearate", "Sodium Lauroyl Lactylate", "Ethylhexylglycerin",
+const fullIngredients: { name: string; match: Record<string, "good" | "watch" | "neutral"> }[] = [
+  { name: "Purified Water", match: {} },
+  { name: "Glycerin", match: { dry: "good", sensitive: "good", oily: "neutral", combination: "neutral" } },
+  { name: "Caprylic/Capric Triglyceride", match: { dry: "good", oily: "watch", combination: "neutral", sensitive: "neutral" } },
+  { name: "Cetearyl Alcohol", match: { dry: "good", oily: "watch", sensitive: "neutral", combination: "neutral" } },
+  { name: "Ceramide NP", match: { dry: "good", sensitive: "good", oily: "neutral", combination: "neutral" } },
+  { name: "Ceramide AP", match: { dry: "good", sensitive: "good", oily: "neutral", combination: "neutral" } },
+  { name: "Ceramide EOP", match: { dry: "good", sensitive: "good", oily: "neutral", combination: "neutral" } },
+  { name: "Carbomer", match: {} },
+  { name: "Dimethicone", match: { dry: "good", sensitive: "good", oily: "watch", combination: "watch" } },
+  { name: "Sodium Hyaluronate", match: { dry: "good", sensitive: "good", oily: "watch", combination: "neutral" } },
+  { name: "Cholesterol", match: { dry: "good", sensitive: "good", oily: "watch", combination: "neutral" } },
+  { name: "Phenoxyethanol", match: {} },
+  { name: "Disodium EDTA", match: {} },
+  { name: "Phytosphingosine", match: { sensitive: "good", dry: "good", oily: "neutral", combination: "neutral" } },
+  { name: "Tocopherol", match: { dry: "good", sensitive: "good", oily: "neutral", combination: "neutral" } },
+  { name: "Niacinamide", match: { oily: "good", combination: "good", dry: "neutral", sensitive: "watch" } },
+  { name: "Xanthan Gum", match: {} },
+  { name: "Ethylhexylglycerin", match: {} },
 ];
 
 const affiliates = [

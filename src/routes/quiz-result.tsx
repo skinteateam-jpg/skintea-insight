@@ -150,8 +150,14 @@ function QuizResultPage() {
     try {
       const raw = localStorage.getItem("skintea.quizResult");
       if (raw) {
-        setStored(JSON.parse(raw));
+        const parsed = JSON.parse(raw);
+        setStored(parsed);
         setSaved(true);
+        if (parsed.skinTypeLabel) {
+          localStorage.setItem("skintea_skin_type", parsed.skinTypeLabel.toLowerCase());
+        }
+      } else {
+        localStorage.setItem("skintea_skin_type", defaultResult.skinType.toLowerCase());
       }
     } catch {
       // ignore

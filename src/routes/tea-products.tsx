@@ -680,7 +680,7 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
                     return (
                       <button
                         key={i}
-                        onClick={() => setActiveImg(i)}
+                        onClick={(e) => { e.stopPropagation(); setActiveImg(i); }}
                         aria-label={`Image ${i + 1}`}
                         style={{
                           width: on ? 12 : 4,
@@ -768,6 +768,7 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
           })}
           {post.totalSteps && post.totalSteps > 1 && (
             <button
+              onClick={(e) => e.stopPropagation()}
               className="mt-1"
               style={{
                 fontSize: 10,
@@ -799,7 +800,7 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
         }}
       >
         <button
-          onClick={onHelped}
+          onClick={(e) => { e.stopPropagation(); onHelped(); }}
           style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, background: "none", border: 0, padding: 0, cursor: "pointer" }}
           aria-label="Agree"
         >
@@ -824,6 +825,7 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
         </button>
 
         <button
+          onClick={(e) => e.stopPropagation()}
           style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: 0, padding: 0, cursor: "pointer", color: "#8A7E76" }}
           aria-label="Comments"
         >
@@ -834,13 +836,14 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
         <div className="flex-1" />
 
         <button
-          onClick={onSaved}
+          onClick={(e) => { e.stopPropagation(); onSaved(); }}
           style={{ background: "none", border: 0, padding: 4, cursor: "pointer", color: post.saved ? "#1C0A00" : "#8A7E76" }}
           aria-label="Save"
         >
           <Bookmark className="h-4 w-4" fill={post.saved ? "currentColor" : "none"} />
         </button>
         <button
+          onClick={(e) => e.stopPropagation()}
           style={{ background: "none", border: 0, padding: 4, cursor: "pointer", color: "#8A7E76" }}
           aria-label="Share"
         >

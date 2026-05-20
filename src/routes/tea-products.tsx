@@ -527,20 +527,7 @@ const POST_TYPE_BADGE: Record<PostType, { label: string; bg: string; color: stri
   spill: { label: "Spill", bg: "#FFF7E6", color: "#B45309" },
 };
 
-type StepRow = { num: number; label: string; product: string; circle: string; nameColor: string };
-
-const POST_STEPS: Record<string, StepRow[]> = {
-  "3": [
-    { num: 1, label: "Skin Prep", product: "Snail Mucin — COSRX", circle: "#5B3FA6", nameColor: "#5B3FA6" },
-    { num: 2, label: "Base", product: "Tinted SPF", circle: "#5B3FA6", nameColor: "#5B3FA6" },
-    { num: 3, label: "Finish", product: "Soft Pinch Blush", circle: "#5B3FA6", nameColor: "#5B3FA6" },
-  ],
-  "6": [
-    { num: 1, label: "Skin Prep", product: "Flawless Filter — Charlotte Tilbury", circle: "#A8001C", nameColor: "#A8001C" },
-    { num: 2, label: "Base", product: "Armani Luminous Silk", circle: "#C4743A", nameColor: "#C4743A" },
-    { num: 3, label: "Contour", product: "Hourglass Ambient", circle: "#C4743A", nameColor: "#C4743A" },
-  ],
-};
+const STEP_COLOR = { skin: "#A8001C", makeup: "#C4743A" } as const;
 
 function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => void; onSaved: () => void }) {
   const char = CHARACTERS[post.skinType];

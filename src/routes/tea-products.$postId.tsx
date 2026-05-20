@@ -399,48 +399,57 @@ function PostDetailPage() {
                       <p style={{ fontSize: 13, fontWeight: 500, color, marginTop: 2 }}>
                         {step.product}
                       </p>
-                      {post.products[i] && (
-                        <div
-                          style={{
-                            marginTop: 8,
-                            background: "#FFFCF8",
-                            border: "0.5px solid #E8E0D8",
-                            borderRadius: 10,
-                            padding: 8,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                          }}
-                        >
-                          <img
-                            src={post.products[i].image}
-                            alt=""
-                            style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover", flexShrink: 0 }}
-                          />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontSize: 12, color: "#1C0A00", fontWeight: 500 }}>
-                              {post.products[i].name} · {post.products[i].price}
-                            </p>
-                            <p style={{ fontSize: 10, color: "#888" }}>
-                              {post.products[i].approval}% of {skinTypeLabel(post.products[i].skinType)} skin approve
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => navAny({ to: "/products/$productId", params: { productId: post.products[i].id } })}
+                      <div style={{ marginTop: 8 }}>
+                        {post.products[i] ? (
+                          <div
+                            onClick={(e) => { e.stopPropagation(); navigate({ to: "/product-detail" }); }}
                             style={{
-                              marginLeft: "auto",
-                              fontSize: 11,
-                              color,
-                              background: "none",
-                              border: "none",
+                              background: "#FFFCF8",
+                              border: "0.5px solid #E8E0D8",
+                              borderRadius: 10,
+                              padding: 8,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
                               cursor: "pointer",
-                              flexShrink: 0,
                             }}
                           >
-                            View →
-                          </button>
-                        </div>
-                      )}
+                            <img
+                              src={post.products[i].image}
+                              alt=""
+                              style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover", flexShrink: 0 }}
+                            />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ fontSize: 12, color: "#1C0A00", fontWeight: 500 }}>
+                                {post.products[i].name} · {post.products[i].price}
+                              </p>
+                              <p style={{ fontSize: 10, color: "#888" }}>
+                                {post.products[i].approval}% of {skinTypeLabel(post.products[i].skinType)} skin approve
+                              </p>
+                            </div>
+                            <span style={{ marginLeft: "auto", fontSize: 11, color, flexShrink: 0 }}>View →</span>
+                          </div>
+                        ) : (
+                          <div
+                            onClick={(e) => { e.stopPropagation(); navigate({ to: "/product-detail" }); }}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                              background: "#f5f0ea",
+                              border: "0.5px solid #e0d8d0",
+                              borderRadius: 8,
+                              padding: "5px 10px",
+                              cursor: "pointer",
+                              fontSize: 11,
+                              color: "#888",
+                            }}
+                          >
+                            {step.product}
+                            <span style={{ color, fontSize: 11 }}>View →</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );

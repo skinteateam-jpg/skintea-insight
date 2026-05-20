@@ -658,7 +658,7 @@ function ComposeSheet({
     if (!text.trim()) return;
     onSubmit({
       skinType: "oily", // "shows as 🍩 — not your name"
-      tag, text: text.trim(), images, products: tagged, promptContext,
+      tag, postType: "spill", text: text.trim(), images, products: tagged, promptContext,
     });
   };
 

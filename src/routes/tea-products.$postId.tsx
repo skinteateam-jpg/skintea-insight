@@ -316,7 +316,7 @@ function PostDetailPage() {
                 </p>
               </div>
               <button
-                onClick={() => navigate({ to: "/product-detail" })}
+                onClick={() => navigate({ to: "/product-detail", search: { from: "post", postId: post.id } })}
                 style={{
                   background: "#1C0A00",
                   color: "#FFFCF8",
@@ -401,7 +401,7 @@ function PostDetailPage() {
                       <div style={{ marginTop: 8 }}>
                         {post.products[i] ? (
                           <div
-                            onClick={(e) => { e.stopPropagation(); navigate({ to: "/product-detail" }); }}
+                            onClick={(e) => { e.stopPropagation(); navigate({ to: "/product-detail", search: { from: "post", postId: post.id } }); }}
                             style={{
                               background: "#FFFCF8",
                               border: "0.5px solid #E8E0D8",
@@ -430,7 +430,7 @@ function PostDetailPage() {
                           </div>
                         ) : (
                           <div
-                            onClick={(e) => { e.stopPropagation(); navigate({ to: "/product-detail" }); }}
+                            onClick={(e) => { e.stopPropagation(); navigate({ to: "/product-detail", search: { from: "post", postId: post.id } }); }}
                             style={{
                               display: "inline-flex",
                               alignItems: "center",

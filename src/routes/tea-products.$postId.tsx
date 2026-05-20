@@ -614,49 +614,60 @@ function PostDetailPage() {
       </div>
 
       {/* Fixed bottom bar */}
-      <div
-        style={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: "#FFFCF8",
-          borderTop: "0.5px solid #E8E0D8",
-          padding: "10px 16px",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          maxWidth: 480,
-          margin: "0 auto",
-          zIndex: 30,
-        }}
-      >
-        <input
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") submitComment(); }}
-          placeholder="add your take..."
-          style={{
-            flex: 1, background: "#f5f0ea", border: "none", borderRadius: 20,
-            padding: "9px 14px", fontSize: 12, color: "#333",
-            fontFamily: "'DM Sans', sans-serif", outline: "none",
-          }}
-        />
-        <button
-          onClick={submitComment}
-          disabled={!comment.trim()}
-          style={{
-            background: comment.trim() ? "#A8001C" : "#f5f0ea",
-            color: comment.trim() ? "#fff" : "#bbb",
-            border: "none", borderRadius: 20,
-            padding: "8px 14px", fontSize: 12, fontWeight: 500,
-            cursor: comment.trim() ? "pointer" : "default",
-            transition: "all 0.15s", flexShrink: 0,
-            fontFamily: "'DM Sans', sans-serif",
-          }}
-        >
-          Post
-        </button>
+      <div style={{
+        position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
+        width: "100%", maxWidth: 480,
+        background: "#FFFCF8", borderTop: "0.5px solid #E8E0D8",
+        padding: "10px 16px 16px",
+        zIndex: 30,
+        fontFamily: "'DM Sans', sans-serif",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <input
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") submitComment(); }}
+            placeholder="add your take..."
+            style={{
+              flex: 1, background: "#f5f0ea", border: "none", borderRadius: 20,
+              padding: "9px 14px", fontSize: 12, color: "#333",
+              fontFamily: "'DM Sans', sans-serif", outline: "none",
+            }}
+          />
+          <button
+            onClick={submitComment}
+            disabled={!comment.trim()}
+            style={{
+              background: comment.trim() ? "#A8001C" : "#f0ebe3",
+              color: comment.trim() ? "#fff" : "#bbb",
+              border: "none", borderRadius: 20,
+              padding: "8px 16px", fontSize: 12, fontWeight: 500,
+              cursor: comment.trim() ? "pointer" : "default",
+              flexShrink: 0, fontFamily: "'DM Sans', sans-serif",
+            }}
+          >
+            Post
+          </button>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-around" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer" }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: "50%",
+              background: "#FFF0E8", border: "1px solid #FFD4B0",
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
+            }}>🔥</div>
+            <span style={{ fontSize: 10, color: "#D97706", fontWeight: 500 }}>{post.helped}</span>
+            <span style={{ fontSize: 9, color: "#D97706" }}>agree</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer" }}>
+            <Bookmark size={24} color="#888" />
+            <span style={{ fontSize: 9, color: "#bbb" }}>save</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer" }}>
+            <Send size={24} color="#888" />
+            <span style={{ fontSize: 9, color: "#bbb" }}>share</span>
+          </div>
+        </div>
       </div>
     </div>
   );

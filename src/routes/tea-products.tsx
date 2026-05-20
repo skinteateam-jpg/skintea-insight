@@ -1,5 +1,5 @@
 import * as React from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Outlet, useMatchRoute } from "@tanstack/react-router";
 import BottomNav from "@/components/BottomNav";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -519,6 +519,9 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
 }
 
 function TeaProductsPage() {
+  const matchRoute = useMatchRoute();
+  const isChild = matchRoute({ to: "/tea-products/$postId" });
+  if (isChild) return <Outlet />;
   return <TeaProductsContent />;
 }
 
@@ -768,7 +771,10 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
           })}
           {post.totalSteps && post.totalSteps > 1 && (
             <button
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate({ to: "/tea-products/$postId", params: { postId: post.id } });
+              }}
               className="mt-1"
               style={{
                 fontSize: 10,
@@ -777,6 +783,7 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
                 borderRadius: 8,
                 padding: "4px 9px",
                 background: "#faf8f5",
+                cursor: "pointer",
               }}
             >
               + See full breakdown ({post.totalSteps} steps)

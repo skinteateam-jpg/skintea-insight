@@ -539,15 +539,18 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
   const isSpill = post.postType === "spill";
   const heroProduct = !isSpill && post.products.length > 0 ? post.products[0] : null;
   const steps = post.steps;
+  const navigate = useNavigate();
 
   return (
     <article
+      onClick={() => navigate({ to: "/tea-products/$postId", params: { postId: post.id } })}
       style={{
         background: "#fff",
         border: "0.5px solid #E8E0D8",
         borderRadius: "14px",
         overflow: "hidden",
         padding: "10px",
+        cursor: "pointer",
       }}
     >
       {post.promptContext && (

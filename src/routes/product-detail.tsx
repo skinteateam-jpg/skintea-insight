@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -102,6 +102,9 @@ function ProductPage() {
   const [tab, setTab] = useState("tiktok");
   const [showAllIngredients, setShowAllIngredients] = useState(false);
   const navigate = useNavigate();
+  const search = useSearch({ strict: false }) as { from?: string; postId?: string } | undefined;
+  const fromPost = search?.from === "post";
+  const fromPostId = search?.postId;
   const userSkinType = typeof window !== "undefined" ? localStorage.getItem("skintea_skin_type") || null : null;
 
   function getIngredientStyle(ing: { name: string; match: Record<string, "good" | "watch" | "neutral"> }) {
@@ -116,7 +119,13 @@ function ProductPage() {
     <main className="min-h-screen" style={{ paddingBottom: "80px", background: "#FFFCF8" }}>
       <div className="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-20">
         <button
-          onClick={() => navigate({ to: "/products" })}
+          onClick={() => {
+            if (fromPost && fromPostId) {
+              navigate({ to: "/tea-products/$postId", params: { postId: fromPostId } });
+            } else {
+              navigate({ to: "/products" });
+            }
+          }}
           aria-label="Back"
           style={{
             position: "absolute",
@@ -128,9 +137,16 @@ function ProductPage() {
             cursor: "pointer",
             padding: 8,
             zIndex: 10,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: 14,
+            fontWeight: 500,
           }}
         >
-          <ArrowLeft size={22} />
+          <ArrowLeft size={20} />
+          <span>{fromPost ? "Back to post" : "Products"}</span>
         </button>
         {/* Header */}
         <header className="mb-14 grid gap-8 sm:grid-cols-[240px_1fr] sm:items-start">

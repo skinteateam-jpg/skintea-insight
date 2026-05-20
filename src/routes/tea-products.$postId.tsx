@@ -316,7 +316,7 @@ function PostDetailPage() {
                 </p>
               </div>
               <button
-                onClick={() => navigate({ to: "/product-detail" })}
+                onClick={() => navigate({ to: "/product-detail", search: { from: "post", postId: post.id } })}
                 style={{
                   background: "#1C0A00",
                   color: "#FFFCF8",
@@ -401,7 +401,7 @@ function PostDetailPage() {
                       <div style={{ marginTop: 8 }}>
                         {post.products[i] ? (
                           <div
-                            onClick={(e) => { e.stopPropagation(); navigate({ to: "/product-detail" }); }}
+                            onClick={(e) => { e.stopPropagation(); navigate({ to: "/product-detail", search: { from: "post", postId: post.id } }); }}
                             style={{
                               background: "#FFFCF8",
                               border: "0.5px solid #E8E0D8",
@@ -430,7 +430,7 @@ function PostDetailPage() {
                           </div>
                         ) : (
                           <div
-                            onClick={(e) => { e.stopPropagation(); navigate({ to: "/product-detail" }); }}
+                            onClick={(e) => { e.stopPropagation(); navigate({ to: "/product-detail", search: { from: "post", postId: post.id } }); }}
                             style={{
                               display: "inline-flex",
                               alignItems: "center",
@@ -621,7 +621,30 @@ function PostDetailPage() {
         zIndex: 30,
         fontFamily: "'DM Sans', sans-serif",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        {/* Row 1: actions */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-around", marginBottom: 10 }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer" }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: "50%",
+              background: "#FFF0E8", border: "1px solid #FFD4B0",
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
+            }}>🔥</div>
+            <span style={{ fontSize: 10, color: "#D97706", fontWeight: 500 }}>{post.helped}</span>
+            <span style={{ fontSize: 9, color: "#D97706" }}>agree</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer" }}>
+            <Bookmark size={24} color="#888" />
+            <span style={{ fontSize: 9, color: "#bbb" }}>save</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer" }}>
+            <Send size={24} color="#888" />
+            <span style={{ fontSize: 9, color: "#bbb" }}>share</span>
+          </div>
+        </div>
+        {/* Divider */}
+        <div style={{ height: "0.5px", background: "#E8E0D8", margin: "0 -16px 10px" }} />
+        {/* Row 2: comment input */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <input
             value={comment}
             onChange={(e) => setComment(e.target.value)}
@@ -647,25 +670,6 @@ function PostDetailPage() {
           >
             Post
           </button>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-around" }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer" }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: "50%",
-              background: "#FFF0E8", border: "1px solid #FFD4B0",
-              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
-            }}>🔥</div>
-            <span style={{ fontSize: 10, color: "#D97706", fontWeight: 500 }}>{post.helped}</span>
-            <span style={{ fontSize: 9, color: "#D97706" }}>agree</span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer" }}>
-            <Bookmark size={24} color="#888" />
-            <span style={{ fontSize: 9, color: "#bbb" }}>save</span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer" }}>
-            <Send size={24} color="#888" />
-            <span style={{ fontSize: 9, color: "#bbb" }}>share</span>
-          </div>
         </div>
       </div>
     </div>

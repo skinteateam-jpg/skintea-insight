@@ -24,7 +24,6 @@ const POST_TYPE_BADGE = {
 function PostDetailPage() {
   const { postId } = useParams({ from: "/tea-products/$postId" });
   const navigate = useNavigate();
-  const navAny = navigate as unknown as (opts: { to: string; params?: Record<string, string> }) => void;
   const post: Post | undefined = INITIAL_POSTS.find((p) => p.id === postId);
   const [activeImg, setActiveImg] = React.useState(0);
   const [comment, setComment] = React.useState("");
@@ -72,7 +71,7 @@ function PostDetailPage() {
         background: "#FFFCF8",
         fontFamily: "'DM Sans', system-ui, sans-serif",
         minHeight: "100vh",
-        paddingBottom: 80,
+        paddingBottom: 120,
       }}
     >
       <div style={{ maxWidth: 480, margin: "0 auto" }}>
@@ -317,8 +316,7 @@ function PostDetailPage() {
                 </p>
               </div>
               <button
-                onClick={() => navigate({ to: "/products" })}
-                // TODO: replace with correct productId once confirmed
+                onClick={() => navigate({ to: "/product-detail" })}
                 style={{
                   background: "#1C0A00",
                   color: "#FFFCF8",
@@ -400,48 +398,57 @@ function PostDetailPage() {
                       <p style={{ fontSize: 13, fontWeight: 500, color, marginTop: 2 }}>
                         {step.product}
                       </p>
-                      {post.products[i] && (
-                        <div
-                          style={{
-                            marginTop: 8,
-                            background: "#FFFCF8",
-                            border: "0.5px solid #E8E0D8",
-                            borderRadius: 10,
-                            padding: 8,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                          }}
-                        >
-                          <img
-                            src={post.products[i].image}
-                            alt=""
-                            style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover", flexShrink: 0 }}
-                          />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontSize: 12, color: "#1C0A00", fontWeight: 500 }}>
-                              {post.products[i].name} · {post.products[i].price}
-                            </p>
-                            <p style={{ fontSize: 10, color: "#888" }}>
-                              {post.products[i].approval}% of {skinTypeLabel(post.products[i].skinType)} skin approve
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => navAny({ to: "/products/$productId", params: { productId: post.products[i].id } })}
+                      <div style={{ marginTop: 8 }}>
+                        {post.products[i] ? (
+                          <div
+                            onClick={(e) => { e.stopPropagation(); navigate({ to: "/product-detail" }); }}
                             style={{
-                              marginLeft: "auto",
-                              fontSize: 11,
-                              color,
-                              background: "none",
-                              border: "none",
+                              background: "#FFFCF8",
+                              border: "0.5px solid #E8E0D8",
+                              borderRadius: 10,
+                              padding: 8,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
                               cursor: "pointer",
-                              flexShrink: 0,
                             }}
                           >
-                            View →
-                          </button>
-                        </div>
-                      )}
+                            <img
+                              src={post.products[i].image}
+                              alt=""
+                              style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover", flexShrink: 0 }}
+                            />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ fontSize: 12, color: "#1C0A00", fontWeight: 500 }}>
+                                {post.products[i].name} · {post.products[i].price}
+                              </p>
+                              <p style={{ fontSize: 10, color: "#888" }}>
+                                {post.products[i].approval}% of {skinTypeLabel(post.products[i].skinType)} skin approve
+                              </p>
+                            </div>
+                            <span style={{ marginLeft: "auto", fontSize: 11, color, flexShrink: 0 }}>View →</span>
+                          </div>
+                        ) : (
+                          <div
+                            onClick={(e) => { e.stopPropagation(); navigate({ to: "/product-detail" }); }}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                              background: "#f5f0ea",
+                              border: "0.5px solid #e0d8d0",
+                              borderRadius: 8,
+                              padding: "5px 10px",
+                              cursor: "pointer",
+                              fontSize: 11,
+                              color: "#888",
+                            }}
+                          >
+                            {step.product}
+                            <span style={{ color, fontSize: 11 }}>View →</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -606,49 +613,60 @@ function PostDetailPage() {
       </div>
 
       {/* Fixed bottom bar */}
-      <div
-        style={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: "#FFFCF8",
-          borderTop: "0.5px solid #E8E0D8",
-          padding: "10px 16px",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          maxWidth: 480,
-          margin: "0 auto",
-          zIndex: 30,
-        }}
-      >
-        <input
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") submitComment(); }}
-          placeholder="add your take..."
-          style={{
-            flex: 1, background: "#f5f0ea", border: "none", borderRadius: 20,
-            padding: "9px 14px", fontSize: 12, color: "#333",
-            fontFamily: "'DM Sans', sans-serif", outline: "none",
-          }}
-        />
-        <button
-          onClick={submitComment}
-          disabled={!comment.trim()}
-          style={{
-            background: comment.trim() ? "#A8001C" : "#f5f0ea",
-            color: comment.trim() ? "#fff" : "#bbb",
-            border: "none", borderRadius: 20,
-            padding: "8px 14px", fontSize: 12, fontWeight: 500,
-            cursor: comment.trim() ? "pointer" : "default",
-            transition: "all 0.15s", flexShrink: 0,
-            fontFamily: "'DM Sans', sans-serif",
-          }}
-        >
-          Post
-        </button>
+      <div style={{
+        position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
+        width: "100%", maxWidth: 480,
+        background: "#FFFCF8", borderTop: "0.5px solid #E8E0D8",
+        padding: "10px 16px 16px",
+        zIndex: 30,
+        fontFamily: "'DM Sans', sans-serif",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <input
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") submitComment(); }}
+            placeholder="add your take..."
+            style={{
+              flex: 1, background: "#f5f0ea", border: "none", borderRadius: 20,
+              padding: "9px 14px", fontSize: 12, color: "#333",
+              fontFamily: "'DM Sans', sans-serif", outline: "none",
+            }}
+          />
+          <button
+            onClick={submitComment}
+            disabled={!comment.trim()}
+            style={{
+              background: comment.trim() ? "#A8001C" : "#f0ebe3",
+              color: comment.trim() ? "#fff" : "#bbb",
+              border: "none", borderRadius: 20,
+              padding: "8px 16px", fontSize: 12, fontWeight: 500,
+              cursor: comment.trim() ? "pointer" : "default",
+              flexShrink: 0, fontFamily: "'DM Sans', sans-serif",
+            }}
+          >
+            Post
+          </button>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-around" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer" }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: "50%",
+              background: "#FFF0E8", border: "1px solid #FFD4B0",
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
+            }}>🔥</div>
+            <span style={{ fontSize: 10, color: "#D97706", fontWeight: 500 }}>{post.helped}</span>
+            <span style={{ fontSize: 9, color: "#D97706" }}>agree</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer" }}>
+            <Bookmark size={24} color="#888" />
+            <span style={{ fontSize: 9, color: "#bbb" }}>save</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer" }}>
+            <Send size={24} color="#888" />
+            <span style={{ fontSize: 9, color: "#bbb" }}>share</span>
+          </div>
+        </div>
       </div>
     </div>
   );

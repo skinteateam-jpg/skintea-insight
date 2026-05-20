@@ -72,7 +72,7 @@ function PostDetailPage() {
         background: "#FFFCF8",
         fontFamily: "'DM Sans', system-ui, sans-serif",
         minHeight: "100vh",
-        paddingBottom: 80,
+        paddingBottom: 120,
       }}
     >
       <div style={{ maxWidth: 480, margin: "0 auto" }}>

@@ -317,8 +317,7 @@ function PostDetailPage() {
                 </p>
               </div>
               <button
-                onClick={() => navigate({ to: "/products" })}
-                // TODO: replace with correct productId once confirmed
+                onClick={() => navigate({ to: "/product-detail" })}
                 style={{
                   background: "#1C0A00",
                   color: "#FFFCF8",

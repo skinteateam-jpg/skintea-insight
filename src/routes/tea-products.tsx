@@ -369,7 +369,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
           >
             🔥 Top Tea
           </h2>
-          <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
+          <div className="no-scrollbar flex gap-3 overflow-x-auto pb-0">
             {[
               { img: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400", label: "B5 saved my barrier", heat: 412 },
               { img: "https://images.unsplash.com/photo-1522335789203-aaa57bd14abc?w=400", label: "Sabrina's met gala skin secret", heat: 1200 },
@@ -380,8 +380,8 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
                 key={i}
                 className="relative flex-shrink-0 overflow-hidden shadow-sm"
                 style={{
-                  width: "140px",
-                  height: "175px",
+                  width: "120px",
+                  height: "150px",
                   borderRadius: "14px",
                   backgroundImage: `url(${c.img})`,
                   backgroundSize: "cover",
@@ -393,8 +393,8 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
                   style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75), rgba(0,0,0,0))" }}
                 />
                 <div className="absolute bottom-0 left-0 right-0 p-2.5">
-                  <p className="font-bold leading-tight text-white" style={{ fontSize: "12px" }}>{c.label}</p>
-                  <p className="mt-1 flex items-center gap-1 font-semibold" style={{ color: "#FFD4B0", fontSize: "11px" }}>
+                  <p className="font-bold leading-tight text-white" style={{ fontSize: "11px" }}>{c.label}</p>
+                  <p className="mt-1 flex items-center gap-1 font-semibold" style={{ color: "#FFD4B0", fontSize: "9px" }}>
                     <Flame className="h-2.5 w-2.5" /> {c.heat}
                   </p>
                 </div>

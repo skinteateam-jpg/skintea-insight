@@ -15,6 +15,46 @@ export const Route = createFileRoute("/tea-products/$postId")({
   component: PostDetailPage,
 });
 
+type SocialSource = "all" | "tiktok" | "reddit" | "reviews";
+
+type RelatedSpill = {
+  id: string;
+  initials: string;
+  bg: string;
+  color: string;
+  name: string;
+  text: string;
+  agrees: number;
+};
+
+const RELATED_SPILLS: RelatedSpill[] = [
+  {
+    id: "r1", initials: "TG", bg: "#FFF0F0", color: "#A8001C",
+    name: "tretgirl",
+    text: "week 6 was my lowest point. skin was peeling and red constantly. week 10 it completely flipped — don't quit.",
+    agrees: 412,
+  },
+  {
+    id: "r2", initials: "NR", bg: "#E8F0FF", color: "#185FA5",
+    name: "noretouch",
+    text: "my dermatologist told me nothing either. found out about the purge phase from reddit at 2am. this app needs to exist.",
+    agrees: 287,
+  },
+  {
+    id: "r3", initials: "SK", bg: "#FFF3E0", color: "#B45309",
+    name: "skinjourney_",
+    text: "three months of looking worse before looking better. the before/after at month 4 made me cry.",
+    agrees: 198,
+  },
+];
+
+const SOCIAL_DATA: Record<SocialSource, { tiktok: number; reddit: number; reviews: number; majority: string[]; minority: string[] }> = {
+  all: { tiktok: 88, reddit: 95, reviews: 79, majority: ["purge is real and expected", "worth pushing through", "results after 3 months"], minority: ["no purge at all", "didn't work long term", "too harsh for skin"] },
+  tiktok: { tiktok: 88, reddit: 0, reviews: 0, majority: ["creators say stick with it", "before/after content viral", "month 3 glow up real"], minority: ["too much hype", "only works for some", "camera filters hiding results"] },
+  reddit: { tiktok: 0, reddit: 95, reviews: 0, majority: ["purge is well documented", "low % works better", "patience is everything"], minority: ["chemical burn reports", "not worth the dryness", "over-prescribed"] },
+  reviews: { tiktok: 0, reddit: 0, reviews: 79, majority: ["visible pores reduced", "acne cleared after 90 days", "skin texture improved"], minority: ["severe peeling", "gave up after 6 weeks", "dermatologist should warn you"] },
+};
+
 const POST_TYPE_BADGE = {
   "skin-tea": { label: "Skin Tea", bg: "#FFF0F0", color: "#A8001C" },
   "look-tea": { label: "Look Tea", bg: "#F0EDF8", color: "#5B3FA6" },
@@ -27,6 +67,7 @@ function PostDetailPage() {
   const post: Post | undefined = INITIAL_POSTS.find((p) => p.id === postId);
   const [activeImg, setActiveImg] = React.useState(0);
   const [comment, setComment] = React.useState("");
+  const [socialTab, setSocialTab] = React.useState<SocialSource>("all");
   const [comments, setComments] = React.useState([
     { id: "c1", initials: "RL", bg: "#FFF0F0", color: "#A8001C", name: "rosylip", text: "this is exactly what my skin needed to hear. two weeks and i'm already seeing results", agrees: 67 },
     { id: "c2", initials: "DK", bg: "#E8F0FF", color: "#185FA5", name: "dewykim", text: "dry skin here — be careful with this one. made me flaky until i added more moisturizer", agrees: 43 },
@@ -534,6 +575,157 @@ function PostDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Majority opinion on social media (spill only) */}
+        {post.postType === "spill" && (
+          <>
+            <div style={{ height: "0.5px", background: "#E8E0D8", margin: "0 16px 16px" }} />
+            <div style={{ padding: "0 16px", marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 500, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 8 }}>
+                Majority opinion on social media
+              </div>
+              <div style={{ background: "#fff", border: "0.5px solid #E8E0D8", borderRadius: 12, overflow: "hidden" }}>
+                <div style={{ display: "flex", borderBottom: "0.5px solid #E8E0D8" }}>
+                  {(["all", "tiktok", "reddit", "reviews"] as SocialSource[]).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setSocialTab(tab)}
+                      style={{
+                        flex: 1, padding: "9px 4px", fontSize: 11, fontWeight: 500,
+                        background: "none", border: "none", cursor: "pointer",
+                        color: socialTab === tab ? "#A8001C" : "#aaa",
+                        borderBottom: `2px solid ${socialTab === tab ? "#A8001C" : "transparent"}`,
+                        textTransform: "capitalize",
+                        fontFamily: "'DM Sans', sans-serif",
+                      }}
+                    >
+                      {tab === "all" ? "All" : tab === "tiktok" ? "TikTok" : tab === "reddit" ? "Reddit" : "Reviews"}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ padding: "12px 14px" }}>
+                  {socialTab === "all" && (
+                    <div style={{ marginBottom: 12 }}>
+                      {[
+                        { icon: "🎵", label: "TikTok", pct: SOCIAL_DATA.all.tiktok },
+                        { icon: "🔶", label: "Reddit", pct: SOCIAL_DATA.all.reddit },
+                        { icon: "⭐", label: "Reviews", pct: SOCIAL_DATA.all.reviews },
+                      ].map((row) => (
+                        <div key={row.label} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                          <div style={{ width: 24, height: 24, borderRadius: 6, background: "#f5f0ea", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0 }}>
+                            {row.icon}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#888", width: 52, flexShrink: 0 }}>{row.label}</div>
+                          <div style={{ flex: 1, height: 5, background: "#f0ebe3", borderRadius: 4, overflow: "hidden" }}>
+                            <div style={{ height: "100%", width: `${row.pct}%`, background: "#A8001C", borderRadius: 4 }} />
+                          </div>
+                          <div style={{ fontSize: 11, fontWeight: 500, color: "#1C0A00", minWidth: 28, textAlign: "right" }}>{row.pct}%</div>
+                        </div>
+                      ))}
+                      <div style={{ height: "0.5px", background: "#f0ebe3", margin: "10px 0" }} />
+                    </div>
+                  )}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <div style={{ background: "#FFF0F0", border: "1px solid #f5d0d0", borderRadius: 10, padding: "10px 12px" }}>
+                      <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px", color: "#A8001C", marginBottom: 6 }}>
+                        Majority
+                      </div>
+                      {SOCIAL_DATA[socialTab].majority.map((t) => (
+                        <div key={t} style={{ fontSize: 11, color: "#555", lineHeight: 1.5, marginBottom: 3 }}>→ {t}</div>
+                      ))}
+                    </div>
+                    <div style={{ background: "#f5f0ea", border: "0.5px solid #E8E0D8", borderRadius: 10, padding: "10px 12px" }}>
+                      <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px", color: "#888", marginBottom: 6 }}>
+                        Minority
+                      </div>
+                      {SOCIAL_DATA[socialTab].minority.map((t) => (
+                        <div key={t} style={{ fontSize: 11, color: "#555", lineHeight: 1.5, marginBottom: 3 }}>→ {t}</div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Product mentioned (spill only, when products exist) */}
+        {post.postType === "spill" && post.products.length > 0 && (
+          <>
+            <div style={{ height: "0.5px", background: "#E8E0D8", margin: "0 16px 16px" }} />
+            <div style={{ padding: "0 16px", marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 500, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 8 }}>
+                Product mentioned
+              </div>
+              <div
+                onClick={() => navigate({ to: "/product-detail", search: { from: "post", postId: post.id } })}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  background: "#f5f0ea", border: "0.5px solid #e0d8d0",
+                  borderRadius: 10, padding: "10px 12px", cursor: "pointer",
+                }}
+              >
+                <img
+                  src={post.products[0].image}
+                  alt=""
+                  style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover", flexShrink: 0 }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: "#1C0A00" }}>
+                    {post.products[0].name} — {post.products[0].brand}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#999", marginTop: 1 }}>
+                    See Skintea data → approval rate, timeline
+                  </div>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Others who relate (spill only) */}
+        {post.postType === "spill" && (
+          <>
+            <div style={{ height: "0.5px", background: "#E8E0D8", margin: "0 16px 16px" }} />
+            <div style={{ padding: "0 16px", marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 500, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 8 }}>
+                Others who relate
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {RELATED_SPILLS.map((spill) => (
+                  <div
+                    key={spill.id}
+                    style={{
+                      background: "#fff", border: "0.5px solid #E8E0D8",
+                      borderRadius: 12, padding: 12, cursor: "pointer",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                      <div style={{
+                        width: 24, height: 24, borderRadius: "50%",
+                        background: spill.bg, color: spill.color,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 9, fontWeight: 500, flexShrink: 0,
+                      }}>
+                        {spill.initials}
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 500, color: "#1C0A00" }}>{spill.name}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: "#555", lineHeight: 1.5, marginBottom: 6 }}>
+                      {spill.text}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#D97706" }}>
+                      🔥 {spill.agrees} agree
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Agree meter (spill only) */}
         {post.postType === "spill" && (

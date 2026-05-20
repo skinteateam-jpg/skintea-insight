@@ -112,6 +112,38 @@ export type Post = {
   createdAt: number;
   steps?: { num: number; label: string; product: string; type: "skin" | "makeup" }[];
   totalSteps?: number;
+  skinTeaMode?: "single" | "routine";
+};
+
+type ComposeStage = "type" | "skin-tea" | "look-tea" | "spill";
+type SkinTeaMode = "single" | "routine";
+
+type ComposeStep = {
+  id: string;
+  label: string;
+  product: string;
+  type: "skin" | "makeup";
+};
+
+const SKIN_STEPS = [
+  "Cleanse", "Tone", "Serum", "Moisturize", "SPF",
+  "Eye Cream", "Spot Treatment", "Face Oil", "Exfoliate", "Mask",
+];
+
+const MAKEUP_STEPS = [
+  "Skin Prep", "Base", "Concealer", "Contour",
+  "Blush", "Highlighter", "Eyes", "Lips", "Setting",
+];
+
+const SKIN_TEA_AUTOFILL: Record<string, {
+  when: string; howMuch: string; watchOut: string; timeline: string;
+}> = {
+  "p1": { when: "AM + PM", howMuch: "2-3 drops, press gently", watchOut: "avoid direct eye area", timeline: "2-3 weeks" },
+  "p2": { when: "AM + PM", howMuch: "3-4 drops, press — don't rub", watchOut: "don't layer with Vitamin C same day", timeline: "2 weeks" },
+  "p3": { when: "PM", howMuch: "pea-sized amount, pat gently", watchOut: "patch test first", timeline: "4 weeks" },
+  "p4": { when: "AM + PM", howMuch: "1-2 pumps, pat into skin", watchOut: "refrigerate after opening", timeline: "3-4 weeks" },
+  "p5": { when: "PM only — start 2x per week", howMuch: "pea-sized for whole face", watchOut: "purge is real weeks 2-6 — don't quit", timeline: "3 months minimum" },
+  "default": { when: "follow product instructions", howMuch: "as directed", watchOut: "patch test before first use", timeline: "4-6 weeks" },
 };
 
 const PRODUCT_CATALOG: TaggedProduct[] = [

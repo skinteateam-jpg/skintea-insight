@@ -426,7 +426,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
         </section>
 
         {/* Feed */}
-        <section className="px-4 pt-2">
+        <section className="px-4 pt-4 mb-3.5">
           <p
             style={{
               fontSize: "11px",
@@ -435,6 +435,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
               textTransform: "uppercase",
               letterSpacing: "0.8px",
               marginBottom: "10px",
+              marginTop: "4px",
             }}
           >
             Fresh Tea
@@ -444,6 +445,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
               No tea in this category yet. Be the first to spill ☕
             </div>
           )}
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
           {feedItems.map((item) =>
             item.kind === "post" ? (
               <PostCard
@@ -455,7 +457,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
             ) : (
               <div
                 key={item.key}
-                className="flex items-center gap-3 rounded-2xl border p-4 mb-3.5"
+                className="flex items-center gap-3 rounded-2xl border p-4"
                 style={{ background: "#1a1a1a", borderColor: "#A8001C" }}
               >
                 <div className="flex-1 text-[#faf8f5]">
@@ -474,6 +476,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
               </div>
             )
           )}
+          </div>
         </section>
       </div>
 
@@ -543,7 +546,6 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
         background: "#fff",
         border: "0.5px solid #E8E0D8",
         borderRadius: "14px",
-        marginBottom: "12px",
         overflow: "hidden",
         padding: "10px",
       }}

@@ -23,6 +23,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ClinicsRouteImport } from './routes/clinics'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as TeaProductsPostIdRouteImport } from './routes/tea-products.$postId'
 import { Route as ProductsIdV2RouteImport } from './routes/products.$id-v2'
 import { Route as AdminTreatmentsRouteImport } from './routes/admin.treatments'
 
@@ -96,6 +97,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TeaProductsPostIdRoute = TeaProductsPostIdRouteImport.update({
+  id: '/$postId',
+  path: '/$postId',
+  getParentRoute: () => TeaProductsRoute,
+} as any)
 const ProductsIdV2Route = ProductsIdV2RouteImport.update({
   id: '/$id-v2',
   path: '/$id-v2',
@@ -119,10 +125,11 @@ export interface FileRoutesByFullPath {
   '/skin-profile': typeof SkinProfileRoute
   '/surgery-talk': typeof SurgeryTalkRoute
   '/tea': typeof TeaRoute
-  '/tea-products': typeof TeaProductsRoute
+  '/tea-products': typeof TeaProductsRouteWithChildren
   '/treatment-talk2': typeof TreatmentTalk2Route
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/products/$id-v2': typeof ProductsIdV2Route
+  '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -137,10 +144,11 @@ export interface FileRoutesByTo {
   '/skin-profile': typeof SkinProfileRoute
   '/surgery-talk': typeof SurgeryTalkRoute
   '/tea': typeof TeaRoute
-  '/tea-products': typeof TeaProductsRoute
+  '/tea-products': typeof TeaProductsRouteWithChildren
   '/treatment-talk2': typeof TreatmentTalk2Route
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/products/$id-v2': typeof ProductsIdV2Route
+  '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
@@ -156,10 +164,11 @@ export interface FileRoutesById {
   '/skin-profile': typeof SkinProfileRoute
   '/surgery-talk': typeof SurgeryTalkRoute
   '/tea': typeof TeaRoute
-  '/tea-products': typeof TeaProductsRoute
+  '/tea-products': typeof TeaProductsRouteWithChildren
   '/treatment-talk2': typeof TreatmentTalk2Route
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/products/$id-v2': typeof ProductsIdV2Route
+  '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/treatment-talk2'
     | '/admin/treatments'
     | '/products/$id-v2'
+    | '/tea-products/$postId'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -198,6 +208,7 @@ export interface FileRouteTypes {
     | '/treatment-talk2'
     | '/admin/treatments'
     | '/products/$id-v2'
+    | '/tea-products/$postId'
     | '/admin'
   id:
     | '__root__'
@@ -216,6 +227,7 @@ export interface FileRouteTypes {
     | '/treatment-talk2'
     | '/admin/treatments'
     | '/products/$id-v2'
+    | '/tea-products/$postId'
     | '/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -231,7 +243,7 @@ export interface RootRouteChildren {
   SkinProfileRoute: typeof SkinProfileRoute
   SurgeryTalkRoute: typeof SurgeryTalkRoute
   TeaRoute: typeof TeaRoute
-  TeaProductsRoute: typeof TeaProductsRoute
+  TeaProductsRoute: typeof TeaProductsRouteWithChildren
   TreatmentTalk2Route: typeof TreatmentTalk2Route
   AdminTreatmentsRoute: typeof AdminTreatmentsRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -337,6 +349,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tea-products/$postId': {
+      id: '/tea-products/$postId'
+      path: '/$postId'
+      fullPath: '/tea-products/$postId'
+      preLoaderRoute: typeof TeaProductsPostIdRouteImport
+      parentRoute: typeof TeaProductsRoute
+    }
     '/products/$id-v2': {
       id: '/products/$id-v2'
       path: '/$id-v2'
@@ -366,6 +385,18 @@ const ProductsRouteWithChildren = ProductsRoute._addFileChildren(
   ProductsRouteChildren,
 )
 
+interface TeaProductsRouteChildren {
+  TeaProductsPostIdRoute: typeof TeaProductsPostIdRoute
+}
+
+const TeaProductsRouteChildren: TeaProductsRouteChildren = {
+  TeaProductsPostIdRoute: TeaProductsPostIdRoute,
+}
+
+const TeaProductsRouteWithChildren = TeaProductsRoute._addFileChildren(
+  TeaProductsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ClinicsRoute: ClinicsRoute,
@@ -378,7 +409,7 @@ const rootRouteChildren: RootRouteChildren = {
   SkinProfileRoute: SkinProfileRoute,
   SurgeryTalkRoute: SurgeryTalkRoute,
   TeaRoute: TeaRoute,
-  TeaProductsRoute: TeaProductsRoute,
+  TeaProductsRoute: TeaProductsRouteWithChildren,
   TreatmentTalk2Route: TreatmentTalk2Route,
   AdminTreatmentsRoute: AdminTreatmentsRoute,
   AdminIndexRoute: AdminIndexRoute,

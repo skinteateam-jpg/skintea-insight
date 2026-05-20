@@ -24,7 +24,6 @@ const POST_TYPE_BADGE = {
 function PostDetailPage() {
   const { postId } = useParams({ from: "/tea-products/$postId" });
   const navigate = useNavigate();
-  const navAny = navigate as unknown as (opts: { to: string; params?: Record<string, string> }) => void;
   const post: Post | undefined = INITIAL_POSTS.find((p) => p.id === postId);
   const [activeImg, setActiveImg] = React.useState(0);
   const [comment, setComment] = React.useState("");

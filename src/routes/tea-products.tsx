@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import {
-  Coffee, Check, MessageCircle, Bookmark, Share2, X, ImagePlus, Tag, Plus, Flame, Search,
+  Coffee, Check, MessageCircle, Bookmark, Share2, Send, X, ImagePlus, Tag, Plus, Flame, Search,
 } from "lucide-react";
 
 export const Route = createFileRoute("/tea-products")({
@@ -24,7 +24,17 @@ export const Route = createFileRoute("/tea-products")({
 /* ---------- Types & constants ---------- */
 
 type SkinType = "oily" | "dry" | "combo" | "sensitive" | "normal";
-type TagKey = "night-out" | "hot-tea" | "review" | "grwm" | "question";
+type TagKey =
+  | "night-out"
+  | "hot-tea"
+  | "review"
+  | "grwm"
+  | "question"
+  | "am-routine"
+  | "makeup"
+  | "glazed-skin"
+  | "warned-you";
+type PostType = "skin-tea" | "look-tea" | "spill";
 
 const CHARACTERS: Record<SkinType, { emoji: string; name: string }> = {
   oily: { emoji: "🍩", name: "Glazed Donut" },
@@ -52,11 +62,12 @@ function formatAgo(diffSec: number) {
 
 const TAGS: { key: TagKey | "all"; label: string }[] = [
   { key: "all", label: "All" },
-  { key: "night-out", label: "💋 Night Out" },
-  { key: "hot-tea", label: "☕ Hot Tea" },
-  { key: "review", label: "✨ Review" },
-  { key: "grwm", label: "📸 GRWM" },
-  { key: "question", label: "❓ Question" },
+  { key: "night-out", label: "🌙 Night Out" },
+  { key: "am-routine", label: "☀️ AM Routine" },
+  { key: "hot-tea", label: "🔥 Hot Tea" },
+  { key: "makeup", label: "💄 Makeup" },
+  { key: "glazed-skin", label: "✨ Glazed Skin" },
+  { key: "warned-you", label: "⚠️ Warned You" },
 ];
 
 const TAG_LABEL: Record<TagKey, string> = {
@@ -65,6 +76,10 @@ const TAG_LABEL: Record<TagKey, string> = {
   review: "✨ Review",
   grwm: "📸 GRWM",
   question: "❓ Question",
+  "am-routine": "☀️ AM Routine",
+  makeup: "💄 Makeup",
+  "glazed-skin": "✨ Glazed Skin",
+  "warned-you": "⚠️ Warned You",
 };
 
 type TaggedProduct = {
@@ -81,6 +96,11 @@ type Post = {
   id: string;
   skinType: SkinType;
   tag: TagKey;
+  postType: PostType;
+  hashtags?: string[];
+  authorName?: string;
+  authorRole?: string;
+  isMUA?: boolean;
   text: string;
   images: string[];
   products: TaggedProduct[];
@@ -109,21 +129,24 @@ const PROMPTS = [
 
 const INITIAL_POSTS: Post[] = [
   {
-    id: "1", skinType: "oily", tag: "review",
+    id: "1", skinType: "oily", tag: "review", postType: "skin-tea",
+    hashtags: ["#oilyskin", "#niacinamide", "#tzone"],
     text: "Okay this niacinamide is the only thing keeping my t-zone alive in this humidity. Two weeks in and the shine is genuinely down 50%.",
     images: ["https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=600"],
     products: [PRODUCT_CATALOG[1]],
     helped: 124, helpedByMe: false, saved: false, comments: 18, createdAt: 120,
   },
   {
-    id: "2", skinType: "sensitive", tag: "hot-tea",
+    id: "2", skinType: "sensitive", tag: "hot-tea", postType: "spill",
+    hashtags: ["#tretinoin", "#realtalk", "#warnedyou"],
     text: "Hot take: retinol culture has gone too far. Not everyone needs to be peeling at 24. My barrier is finally healed after I quit cold turkey.",
     images: [],
     products: [PRODUCT_CATALOG[4]],
     helped: 287, helpedByMe: false, saved: false, comments: 64, createdAt: 540,
   },
   {
-    id: "3", skinType: "combo", tag: "grwm",
+    id: "3", skinType: "combo", tag: "grwm", postType: "look-tea",
+    hashtags: ["#glazedskin", "#softglam", "#skinfirst"],
     text: "Soft glam for tonight. Skin prep > makeup. Snail mucin under everything is non-negotiable.",
     images: [
       "https://images.unsplash.com/photo-1522335789203-aaa57bd14abc?w=600",
@@ -134,7 +157,8 @@ const INITIAL_POSTS: Post[] = [
     helped: 91, helpedByMe: false, saved: false, comments: 12, createdAt: 1800,
   },
   {
-    id: "4", skinType: "dry", tag: "question",
+    id: "4", skinType: "dry", tag: "question", postType: "spill",
+    hashtags: ["#dryskin", "#hyaluronicacid", "#barrierrepair"],
     text: "Is it normal for a hyaluronic serum to actually make my skin drier in winter? Or is my barrier cooked?",
     images: [],
     products: [],
@@ -142,7 +166,8 @@ const INITIAL_POSTS: Post[] = [
     promptContext: "What's currently sitting on your shelf collecting dust?",
   },
   {
-    id: "5", skinType: "dry", tag: "review",
+    id: "5", skinType: "dry", tag: "review", postType: "skin-tea",
+    hashtags: ["#dryskin", "#serums", "#b5"],
     text: "B5 serum saved my flaky cheeks during the move. Layered under everything, no pilling.",
     images: [
       "https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?w=600",
@@ -153,6 +178,38 @@ const INITIAL_POSTS: Post[] = [
     ],
     products: [PRODUCT_CATALOG[0]],
     helped: 156, helpedByMe: false, saved: false, comments: 22, createdAt: 21600,
+  },
+  {
+    id: "6",
+    skinType: "combo",
+    tag: "night-out",
+    postType: "look-tea",
+    hashtags: ["#metgala", "#skinsecret", "#makeup", "#nightout"],
+    text: "okay fine. here's the skin prep i did before the met gala look. one product did 80% of the work and it's $12.",
+    images: [
+      "https://images.unsplash.com/photo-1522335789203-aaa57bd14abc?w=600",
+      "https://images.unsplash.com/photo-1503236823255-94609f598e71?w=600",
+      "https://images.unsplash.com/photo-1571908598047-29e7a98c1c2c?w=600",
+    ],
+    products: [
+      {
+        id: "p6",
+        name: "Flawless Filter",
+        brand: "Charlotte Tilbury",
+        price: "$12",
+        image: "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=200",
+        approval: 89,
+        skinType: "combo",
+      },
+    ],
+    helped: 1200,
+    helpedByMe: false,
+    saved: false,
+    comments: 387,
+    createdAt: 60,
+    authorName: "sabrina.mua",
+    authorRole: "celebrity makeup artist",
+    isMUA: true,
   },
 ];
 

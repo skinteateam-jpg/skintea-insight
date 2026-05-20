@@ -201,7 +201,17 @@ export const INITIAL_POSTS: Post[] = [
       "https://images.unsplash.com/photo-1556228841-a3c527ebefe5?w=600",
       "https://images.unsplash.com/photo-1556228852-80b6e5eeff06?w=600",
     ],
-    products: [],
+    products: [
+      {
+        id: "p5",
+        name: "Tretinoin 0.025%",
+        brand: "Rx — ask your dermatologist",
+        price: "Rx only",
+        image: "https://images.unsplash.com/photo-1611080626919-7cf5a9dbab12?w=200",
+        approval: 71,
+        skinType: "oily",
+      },
+    ],
     steps: [],
     totalSteps: 0,
     helped: 891, helpedByMe: false, saved: false, comments: 203, createdAt: 540,

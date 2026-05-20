@@ -27,6 +27,29 @@ function PostDetailPage() {
   const navAny = navigate as unknown as (opts: { to: string; params?: Record<string, string> }) => void;
   const post: Post | undefined = INITIAL_POSTS.find((p) => p.id === postId);
   const [activeImg, setActiveImg] = React.useState(0);
+  const [comment, setComment] = React.useState("");
+  const [comments, setComments] = React.useState([
+    { id: "c1", initials: "RL", bg: "#FFF0F0", color: "#A8001C", name: "rosylip", text: "this is exactly what my skin needed to hear. two weeks and i'm already seeing results", agrees: 67 },
+    { id: "c2", initials: "DK", bg: "#E8F0FF", color: "#185FA5", name: "dewykim", text: "dry skin here — be careful with this one. made me flaky until i added more moisturizer", agrees: 43 },
+    { id: "c3", initials: "GS", bg: "#E8F5E0", color: "#3B6D11", name: "glowseeker", text: "the skintea data breakdown is what sold me. 65% for oily is actually pretty good", agrees: 31 },
+  ]);
+
+  const submitComment = () => {
+    if (!comment.trim()) return;
+    setComments((prev) => [
+      {
+        id: Math.random().toString(36).slice(2),
+        initials: "ME",
+        bg: "#FFF0F0",
+        color: "#A8001C",
+        name: "you",
+        text: comment.trim(),
+        agrees: 0,
+      },
+      ...prev,
+    ]);
+    setComment("");
+  };
 
   if (!post) {
     return (
@@ -71,15 +94,19 @@ function PostDetailPage() {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 4,
-              fontSize: 13,
-              color: "#1C0A00",
+              gap: 6,
               background: "none",
               border: "none",
               cursor: "pointer",
+              padding: "6px 10px 6px 4px",
             }}
           >
-            ← Tea
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C0A00" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            <span style={{ fontSize: 15, fontWeight: 500, color: "#1C0A00", fontFamily: "'DM Sans', sans-serif" }}>
+              Tea
+            </span>
           </button>
           <div style={{ display: "flex", gap: 12, color: "#1C0A00" }}>
             <Bookmark className="h-5 w-5" />
@@ -290,7 +317,8 @@ function PostDetailPage() {
                 </p>
               </div>
               <button
-                onClick={() => navAny({ to: "/products/$productId", params: { productId: post.products[0].id } })}
+                onClick={() => navigate({ to: "/products" })}
+                // TODO: replace with correct productId once confirmed
                 style={{
                   background: "#1C0A00",
                   color: "#FFFCF8",
@@ -543,12 +571,8 @@ function PostDetailPage() {
             {post.comments} comments
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {[
-              { initials: "RL", bg: "#FFF0F0", color: "#A8001C", name: "rosylip", text: "this is exactly what my skin needed to hear. two weeks and i'm already seeing results", agrees: 67 },
-              { initials: "DK", bg: "#E8F0FF", color: "#185FA5", name: "dewykim", text: "dry skin here — be careful with this one. made me flaky until i added more moisturizer", agrees: 43 },
-              { initials: "GS", bg: "#E8F5E0", color: "#3B6D11", name: "glowseeker", text: "the skintea data breakdown is what sold me. 65% for oily is actually pretty good", agrees: 31 },
-            ].map((c) => (
-              <div key={c.name} style={{ display: "flex", gap: 10 }}>
+            {comments.map((c) => (
+              <div key={c.id} style={{ display: "flex", gap: 10 }}>
                 <div
                   style={{
                     width: 32,
@@ -593,56 +617,37 @@ function PostDetailPage() {
           padding: "10px 16px",
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-around",
+          gap: 8,
           maxWidth: 480,
           margin: "0 auto",
           zIndex: 30,
         }}
       >
-        <button
+        <input
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") submitComment(); }}
+          placeholder="add your take..."
           style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 2,
-            background: "none",
-            border: "none",
-            cursor: "pointer",
+            flex: 1, background: "#f5f0ea", border: "none", borderRadius: 20,
+            padding: "9px 14px", fontSize: 12, color: "#333",
+            fontFamily: "'DM Sans', sans-serif", outline: "none",
+          }}
+        />
+        <button
+          onClick={submitComment}
+          disabled={!comment.trim()}
+          style={{
+            background: comment.trim() ? "#A8001C" : "#f5f0ea",
+            color: comment.trim() ? "#fff" : "#bbb",
+            border: "none", borderRadius: 20,
+            padding: "8px 14px", fontSize: 12, fontWeight: 500,
+            cursor: comment.trim() ? "pointer" : "default",
+            transition: "all 0.15s", flexShrink: 0,
+            fontFamily: "'DM Sans', sans-serif",
           }}
         >
-          <span style={{ fontSize: 20 }}>🔥</span>
-          <span style={{ fontSize: 11, fontWeight: 600, color: "#D97706" }}>{post.helped}</span>
-          <span style={{ fontSize: 9, color: "#888" }}>agree</span>
-        </button>
-        <button
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 2,
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: "#1C0A00",
-          }}
-        >
-          <Bookmark className="h-5 w-5" />
-          <span style={{ fontSize: 9, color: "#888" }}>save</span>
-        </button>
-        <button
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 2,
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: "#1C0A00",
-          }}
-        >
-          <Send className="h-5 w-5" />
-          <span style={{ fontSize: 9, color: "#888" }}>share</span>
+          Post
         </button>
       </div>
     </div>

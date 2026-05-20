@@ -1,5 +1,5 @@
 import * as React from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import BottomNav from "@/components/BottomNav";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ export const Route = createFileRoute("/tea-products")({
 
 /* ---------- Types & constants ---------- */
 
-type SkinType = "oily" | "dry" | "combo" | "sensitive" | "normal";
+export type SkinType = "oily" | "dry" | "combo" | "sensitive" | "normal";
 type TagKey =
   | "night-out"
   | "hot-tea"
@@ -36,7 +36,7 @@ type TagKey =
   | "warned-you";
 type PostType = "skin-tea" | "look-tea" | "spill";
 
-const CHARACTERS: Record<SkinType, { emoji: string; name: string }> = {
+export const CHARACTERS: Record<SkinType, { emoji: string; name: string }> = {
   oily: { emoji: "🍩", name: "Glazed Donut" },
   dry: { emoji: "🏜️", name: "Desert Girl" },
   combo: { emoji: "🎭", name: "Mood Board" },
@@ -44,7 +44,7 @@ const CHARACTERS: Record<SkinType, { emoji: string; name: string }> = {
   normal: { emoji: "😮‍💨", name: "Unbothered" },
 };
 
-const SKIN_BG: Record<SkinType, string> = {
+export const SKIN_BG: Record<SkinType, string> = {
   oily: "#fef3c7",
   dry: "#fce7f3",
   combo: "#ede9fe",
@@ -52,7 +52,7 @@ const SKIN_BG: Record<SkinType, string> = {
   normal: "#e0f2fe",
 };
 
-function formatAgo(diffSec: number) {
+export function formatAgo(diffSec: number) {
   const diff = Math.max(1, Math.floor(diffSec));
   if (diff < 60) return `${diff}s`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
@@ -70,7 +70,7 @@ const TAGS: { key: TagKey | "all"; label: string }[] = [
   { key: "warned-you", label: "⚠️ Warned You" },
 ];
 
-const TAG_LABEL: Record<TagKey, string> = {
+export const TAG_LABEL: Record<TagKey, string> = {
   "night-out": "💋 Night Out",
   "hot-tea": "☕ Hot Tea",
   review: "✨ Review",
@@ -92,7 +92,7 @@ type TaggedProduct = {
   skinType: SkinType;
 };
 
-type Post = {
+export type Post = {
   id: string;
   skinType: SkinType;
   tag: TagKey;
@@ -129,7 +129,7 @@ const PROMPTS = [
   "What's currently sitting on your shelf collecting dust?",
 ];
 
-const INITIAL_POSTS: Post[] = [
+export const INITIAL_POSTS: Post[] = [
   {
     id: "6",
     skinType: "combo",
@@ -268,13 +268,13 @@ const INITIAL_POSTS: Post[] = [
 
 /* ---------- Helpers ---------- */
 
-function approvalColor(pct: number) {
+export function approvalColor(pct: number) {
   if (pct >= 60) return { dot: "bg-green-500", text: "text-green-700" };
   if (pct >= 40) return { dot: "bg-amber-500", text: "text-amber-700" };
   return { dot: "bg-red-500", text: "text-red-700" };
 }
 
-function skinTypeLabel(t: SkinType) {
+export function skinTypeLabel(t: SkinType) {
   return t === "oily" ? "oily" : t === "dry" ? "dry" : t === "combo" ? "combination" : t === "sensitive" ? "sensitive" : "normal";
 }
 

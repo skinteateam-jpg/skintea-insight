@@ -110,6 +110,8 @@ type Post = {
   comments: number;
   promptContext?: string;
   createdAt: number;
+  steps?: { num: number; label: string; product: string; type: "skin" | "makeup" }[];
+  totalSteps?: number;
 };
 
 const PRODUCT_CATALOG: TaggedProduct[] = [

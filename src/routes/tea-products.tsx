@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import {
-  Coffee, Check, MessageCircle, Bookmark, Share2, X, ImagePlus, Tag, Plus, Flame, Search,
+  MessageCircle, Bookmark, Send, X, ImagePlus, Tag, Plus, Flame, Search,
 } from "lucide-react";
 
 export const Route = createFileRoute("/tea-products")({
@@ -24,7 +24,17 @@ export const Route = createFileRoute("/tea-products")({
 /* ---------- Types & constants ---------- */
 
 type SkinType = "oily" | "dry" | "combo" | "sensitive" | "normal";
-type TagKey = "night-out" | "hot-tea" | "review" | "grwm" | "question";
+type TagKey =
+  | "night-out"
+  | "hot-tea"
+  | "review"
+  | "grwm"
+  | "question"
+  | "am-routine"
+  | "makeup"
+  | "glazed-skin"
+  | "warned-you";
+type PostType = "skin-tea" | "look-tea" | "spill";
 
 const CHARACTERS: Record<SkinType, { emoji: string; name: string }> = {
   oily: { emoji: "🍩", name: "Glazed Donut" },
@@ -52,11 +62,12 @@ function formatAgo(diffSec: number) {
 
 const TAGS: { key: TagKey | "all"; label: string }[] = [
   { key: "all", label: "All" },
-  { key: "night-out", label: "💋 Night Out" },
-  { key: "hot-tea", label: "☕ Hot Tea" },
-  { key: "review", label: "✨ Review" },
-  { key: "grwm", label: "📸 GRWM" },
-  { key: "question", label: "❓ Question" },
+  { key: "night-out", label: "🌙 Night Out" },
+  { key: "am-routine", label: "☀️ AM Routine" },
+  { key: "hot-tea", label: "🔥 Hot Tea" },
+  { key: "makeup", label: "💄 Makeup" },
+  { key: "glazed-skin", label: "✨ Glazed Skin" },
+  { key: "warned-you", label: "⚠️ Warned You" },
 ];
 
 const TAG_LABEL: Record<TagKey, string> = {
@@ -65,6 +76,10 @@ const TAG_LABEL: Record<TagKey, string> = {
   review: "✨ Review",
   grwm: "📸 GRWM",
   question: "❓ Question",
+  "am-routine": "☀️ AM Routine",
+  makeup: "💄 Makeup",
+  "glazed-skin": "✨ Glazed Skin",
+  "warned-you": "⚠️ Warned You",
 };
 
 type TaggedProduct = {
@@ -81,6 +96,11 @@ type Post = {
   id: string;
   skinType: SkinType;
   tag: TagKey;
+  postType: PostType;
+  hashtags?: string[];
+  authorName?: string;
+  authorRole?: string;
+  isMUA?: boolean;
   text: string;
   images: string[];
   products: TaggedProduct[];
@@ -109,21 +129,24 @@ const PROMPTS = [
 
 const INITIAL_POSTS: Post[] = [
   {
-    id: "1", skinType: "oily", tag: "review",
+    id: "1", skinType: "oily", tag: "review", postType: "skin-tea",
+    hashtags: ["#oilyskin", "#niacinamide", "#tzone"],
     text: "Okay this niacinamide is the only thing keeping my t-zone alive in this humidity. Two weeks in and the shine is genuinely down 50%.",
     images: ["https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=600"],
     products: [PRODUCT_CATALOG[1]],
     helped: 124, helpedByMe: false, saved: false, comments: 18, createdAt: 120,
   },
   {
-    id: "2", skinType: "sensitive", tag: "hot-tea",
+    id: "2", skinType: "sensitive", tag: "hot-tea", postType: "spill",
+    hashtags: ["#tretinoin", "#realtalk", "#warnedyou"],
     text: "Hot take: retinol culture has gone too far. Not everyone needs to be peeling at 24. My barrier is finally healed after I quit cold turkey.",
     images: [],
     products: [PRODUCT_CATALOG[4]],
     helped: 287, helpedByMe: false, saved: false, comments: 64, createdAt: 540,
   },
   {
-    id: "3", skinType: "combo", tag: "grwm",
+    id: "3", skinType: "combo", tag: "grwm", postType: "look-tea",
+    hashtags: ["#glazedskin", "#softglam", "#skinfirst"],
     text: "Soft glam for tonight. Skin prep > makeup. Snail mucin under everything is non-negotiable.",
     images: [
       "https://images.unsplash.com/photo-1522335789203-aaa57bd14abc?w=600",
@@ -134,7 +157,8 @@ const INITIAL_POSTS: Post[] = [
     helped: 91, helpedByMe: false, saved: false, comments: 12, createdAt: 1800,
   },
   {
-    id: "4", skinType: "dry", tag: "question",
+    id: "4", skinType: "dry", tag: "question", postType: "spill",
+    hashtags: ["#dryskin", "#hyaluronicacid", "#barrierrepair"],
     text: "Is it normal for a hyaluronic serum to actually make my skin drier in winter? Or is my barrier cooked?",
     images: [],
     products: [],
@@ -142,7 +166,8 @@ const INITIAL_POSTS: Post[] = [
     promptContext: "What's currently sitting on your shelf collecting dust?",
   },
   {
-    id: "5", skinType: "dry", tag: "review",
+    id: "5", skinType: "dry", tag: "review", postType: "skin-tea",
+    hashtags: ["#dryskin", "#serums", "#b5"],
     text: "B5 serum saved my flaky cheeks during the move. Layered under everything, no pilling.",
     images: [
       "https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?w=600",
@@ -153,6 +178,38 @@ const INITIAL_POSTS: Post[] = [
     ],
     products: [PRODUCT_CATALOG[0]],
     helped: 156, helpedByMe: false, saved: false, comments: 22, createdAt: 21600,
+  },
+  {
+    id: "6",
+    skinType: "combo",
+    tag: "night-out",
+    postType: "look-tea",
+    hashtags: ["#metgala", "#skinsecret", "#makeup", "#nightout"],
+    text: "okay fine. here's the skin prep i did before the met gala look. one product did 80% of the work and it's $12.",
+    images: [
+      "https://images.unsplash.com/photo-1522335789203-aaa57bd14abc?w=600",
+      "https://images.unsplash.com/photo-1503236823255-94609f598e71?w=600",
+      "https://images.unsplash.com/photo-1571908598047-29e7a98c1c2c?w=600",
+    ],
+    products: [
+      {
+        id: "p6",
+        name: "Flawless Filter",
+        brand: "Charlotte Tilbury",
+        price: "$12",
+        image: "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=200",
+        approval: 89,
+        skinType: "combo",
+      },
+    ],
+    helped: 1200,
+    helpedByMe: false,
+    saved: false,
+    comments: 387,
+    createdAt: 60,
+    authorName: "sabrina.mua",
+    authorRole: "celebrity makeup artist",
+    isMUA: true,
   },
 ];
 
@@ -239,9 +296,9 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
                   onClick={() => setActiveTag(t.key)}
                   className="whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors"
                   style={{
-                    background: active ? "#1a1a1a" : "transparent",
-                    color: active ? "#ffffff" : "#1a1a1a",
-                    borderColor: active ? "#1a1a1a" : "#e5e2dc",
+                    background: active ? "#1C0A00" : "#FFFCF8",
+                    color: active ? "#FFFCF8" : "#1C0A00",
+                    borderColor: active ? "#1C0A00" : "#E8E0D8",
                   }}
                 >
                   {t.label}
@@ -253,22 +310,25 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
 
         {/* Top Tea horizontal strip */}
         <section className="px-4 pt-4">
-          <h2 className="mb-2 flex items-center gap-1.5 font-display text-base font-semibold text-[#1a1a1a]">
-            <Flame className="h-4 w-4 text-[#fbbf24]" /> Top Tea
+          <h2
+            className="mb-2 flex items-center gap-1.5"
+            style={{ fontWeight: 500, fontSize: "14px", color: "#1C0A00" }}
+          >
+            🔥 Top Tea
           </h2>
           <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
             {[
               { img: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400", label: "B5 saved my barrier", heat: 412 },
-              { img: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400", label: "Niacinamide 10% review", heat: 387 },
-              { img: "https://images.unsplash.com/photo-1571908598047-29e7a98c1c2c?w=400", label: "GRWM date night", heat: 256 },
-              { img: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=400", label: "Snail mucin holy grail", heat: 198 },
+              { img: "https://images.unsplash.com/photo-1522335789203-aaa57bd14abc?w=400", label: "Sabrina's met gala skin secret", heat: 1200 },
+              { img: "https://images.unsplash.com/photo-1571908598047-29e7a98c1c2c?w=400", label: "GRWM date night glazed look", heat: 256 },
+              { img: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=400", label: "tretinoin purge — month 3", heat: 891 },
             ].map((c, i) => (
               <div
                 key={i}
                 className="relative flex-shrink-0 overflow-hidden shadow-sm"
                 style={{
-                  width: "120px",
-                  height: "150px",
+                  width: "140px",
+                  height: "175px",
                   borderRadius: "14px",
                   backgroundImage: `url(${c.img})`,
                   backgroundSize: "cover",
@@ -280,8 +340,8 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
                   style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75), rgba(0,0,0,0))" }}
                 />
                 <div className="absolute bottom-0 left-0 right-0 p-2.5">
-                  <p className="text-[11px] font-bold leading-tight text-white">{c.label}</p>
-                  <p className="mt-1 flex items-center gap-1 text-[10px] font-semibold" style={{ color: "#fbbf24" }}>
+                  <p className="font-bold leading-tight text-white" style={{ fontSize: "12px" }}>{c.label}</p>
+                  <p className="mt-1 flex items-center gap-1 font-semibold" style={{ color: "#FFD4B0", fontSize: "11px" }}>
                     <Flame className="h-2.5 w-2.5" /> {c.heat}
                   </p>
                 </div>
@@ -291,21 +351,21 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
         </section>
 
         {/* Today's prompt banner */}
-        <section className="px-4 pt-5">
+        <section className="pt-5" style={{ margin: "0 16px 16px" }}>
           <div
-            className="flex items-center gap-3 rounded-2xl p-4"
-            style={{ background: "#1a1a1a", color: "#faf8f5" }}
+            className="flex items-center gap-3 p-4"
+            style={{ background: "#1C0A00", color: "#FFFCF8", borderRadius: "14px" }}
           >
             <div className="flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#fbbf24" }}>
+              <p style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.8px", color: "#A8001C", fontWeight: 700 }}>
                 Today's Tea
               </p>
-              <p className="mt-1 font-display text-base font-semibold leading-snug">{todaysPrompt}</p>
+              <p className="mt-1" style={{ fontSize: "13px", color: "#FFFCF8", lineHeight: 1.4 }}>{todaysPrompt}</p>
             </div>
             <button
               onClick={() => openCompose(todaysPrompt)}
-              className="flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-transform active:scale-95"
-              style={{ background: "#A8001C", color: "#FFFFFF" }}
+              className="flex-shrink-0 transition-transform active:scale-95"
+              style={{ background: "#A8001C", color: "#FFFCF8", borderRadius: "20px", fontSize: "12px", padding: "8px 16px", fontWeight: 600 }}
             >
               Spill
             </button>
@@ -313,7 +373,19 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
         </section>
 
         {/* Feed */}
-        <section className="space-y-4 px-4 pt-5">
+        <section className="px-4 pt-2">
+          <p
+            style={{
+              fontSize: "11px",
+              fontWeight: 500,
+              color: "#aaa",
+              textTransform: "uppercase",
+              letterSpacing: "0.8px",
+              marginBottom: "10px",
+            }}
+          >
+            Fresh Tea
+          </p>
           {feedItems.length === 0 && (
             <div className="rounded-2xl bg-white p-8 text-center text-sm text-neutral-500 shadow-sm">
               No tea in this category yet. Be the first to spill ☕
@@ -330,7 +402,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
             ) : (
               <div
                 key={item.key}
-                className="flex items-center gap-3 rounded-2xl border p-4"
+                className="flex items-center gap-3 rounded-2xl border p-4 mb-3.5"
                 style={{ background: "#1a1a1a", borderColor: "#A8001C" }}
               >
                 <div className="flex-1 text-[#faf8f5]">
@@ -361,10 +433,10 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
           left: "50%",
           transform: "translateX(-50%)",
           background: "#A8001C",
-          color: "#fff",
-          fontSize: 13,
+          color: "#FFFCF8",
+          fontSize: 14,
           fontWeight: 700,
-          borderRadius: 99,
+          borderRadius: 30,
           padding: "12px 28px",
           border: "none",
           zIndex: 40,
@@ -372,7 +444,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
           fontFamily: "'DM Sans', sans-serif",
         }}
       >
-        Spill the tea ☕
+        Spill the tea 🫖
       </button>
 
       {/* Compose sheet */}
@@ -396,21 +468,54 @@ function TeaProductsPage() {
 
 /* ---------- Post Card ---------- */
 
+const POST_TYPE_BADGE: Record<PostType, { label: string; bg: string; color: string }> = {
+  "skin-tea": { label: "Skin Tea", bg: "#FFF0F0", color: "#A8001C" },
+  "look-tea": { label: "Look Tea", bg: "#F0EDF8", color: "#5B3FA6" },
+  spill: { label: "Spill", bg: "#FFF7E6", color: "#B45309" },
+};
+
+type StepRow = { num: number; label: string; product: string; circle: string; nameColor: string };
+
+const POST_STEPS: Record<string, StepRow[]> = {
+  "3": [
+    { num: 1, label: "Skin Prep", product: "Snail Mucin — COSRX", circle: "#5B3FA6", nameColor: "#5B3FA6" },
+    { num: 2, label: "Base", product: "Tinted SPF", circle: "#5B3FA6", nameColor: "#5B3FA6" },
+    { num: 3, label: "Finish", product: "Soft Pinch Blush", circle: "#5B3FA6", nameColor: "#5B3FA6" },
+  ],
+  "6": [
+    { num: 1, label: "Skin Prep", product: "Flawless Filter — Charlotte Tilbury", circle: "#A8001C", nameColor: "#A8001C" },
+    { num: 2, label: "Base", product: "Armani Luminous Silk", circle: "#C4743A", nameColor: "#C4743A" },
+    { num: 3, label: "Contour", product: "Hourglass Ambient", circle: "#C4743A", nameColor: "#C4743A" },
+  ],
+};
+
 function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => void; onSaved: () => void }) {
   const char = CHARACTERS[post.skinType];
+  const [activeImg, setActiveImg] = React.useState(0);
+  const badge = POST_TYPE_BADGE[post.postType];
+  const isSpill = post.postType === "spill";
+  const heroProduct = !isSpill && post.products.length > 0 ? post.products[0] : null;
+  const steps = POST_STEPS[post.id];
+
   return (
     <article
-      className="overflow-hidden bg-white shadow-sm"
-      style={{ borderRadius: "18px", border: "1px solid #f0ede8", padding: "14px" }}
+      style={{
+        background: "#fff",
+        border: "0.5px solid #E8E0D8",
+        borderRadius: "16px",
+        marginBottom: "14px",
+        overflow: "hidden",
+        padding: "12px",
+      }}
     >
       {post.promptContext && (
         <div
-          className="-mx-3.5 -mt-3.5 mb-3 px-4 py-2.5"
+          className="-mx-3 -mt-3 mb-3 px-3 py-2"
           style={{
             background: "rgba(251,191,36,0.12)",
             borderBottom: "1px solid rgba(251,191,36,0.3)",
-            borderTopLeftRadius: "17px",
-            borderTopRightRadius: "17px",
+            borderTopLeftRadius: "15px",
+            borderTopRightRadius: "15px",
           }}
         >
           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#92500a" }}>
@@ -420,64 +525,277 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
         </div>
       )}
 
-      <div className="flex items-center gap-3">
-        <div
-          className="flex flex-shrink-0 items-center justify-center rounded-full"
-          style={{
-            width: "34px",
-            height: "34px",
-            background: SKIN_BG[post.skinType],
-            fontSize: "17px",
-            lineHeight: 1,
-          }}
-        >
-          {char.emoji}
-        </div>
+      {/* Author row */}
+      <div className="flex items-center gap-2.5">
+        {post.isMUA ? (
+          <div
+            className="flex flex-shrink-0 items-center justify-center rounded-full font-semibold"
+            style={{ width: 34, height: 34, background: "#1C0A00", color: "#FFFCF8", fontSize: 13 }}
+          >
+            {post.authorName?.[0]?.toUpperCase() ?? "S"}
+          </div>
+        ) : (
+          <div
+            className="flex flex-shrink-0 items-center justify-center rounded-full"
+            style={{ width: 34, height: 34, background: SKIN_BG[post.skinType], fontSize: 17, lineHeight: 1 }}
+          >
+            {char.emoji}
+          </div>
+        )}
         <div className="min-w-0 flex-1">
-          <p className="font-display text-sm font-semibold text-[#1a1a1a]">{char.name}</p>
-          <p className="text-[11px] text-neutral-500">{formatAgo(post.createdAt)} ago</p>
+          <div className="flex items-center gap-1.5">
+            <p className="font-semibold text-[#1C0A00]" style={{ fontSize: 13 }}>
+              {post.isMUA ? post.authorName : char.name}
+            </p>
+            {post.isMUA && (
+              <span
+                style={{
+                  background: "#1C0A00",
+                  color: "#FFFCF8",
+                  fontSize: 10,
+                  padding: "2px 6px",
+                  borderRadius: 20,
+                  fontWeight: 600,
+                  lineHeight: 1.2,
+                }}
+              >
+                MUA
+              </span>
+            )}
+          </div>
+          <p style={{ fontSize: 11, color: post.isMUA ? "#bbb" : "#8A7E76" }}>
+            {post.isMUA ? post.authorRole : `${formatAgo(post.createdAt)} ago`}
+          </p>
         </div>
         <span
-          className="flex-shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold"
-          style={{ background: "rgba(0,0,0,0.05)", color: "#1a1a1a" }}
+          className="flex-shrink-0"
+          style={{
+            background: badge.bg,
+            color: badge.color,
+            fontSize: 10,
+            padding: "3px 9px",
+            borderRadius: 20,
+            fontWeight: 500,
+          }}
         >
-          {TAG_LABEL[post.tag]}
+          {badge.label}
         </span>
       </div>
 
-      <div className="pb-3 pt-3">
-        <p className="text-[15px] leading-relaxed text-[#1a1a1a]">{post.text}</p>
+      {/* Text */}
+      <div className="pt-3">
+        <p className="text-[14px] leading-relaxed text-[#1C0A00]">{post.text}</p>
       </div>
 
-      {post.images.length > 0 && (
-        <div className="[&>div]:!px-0">
-          <ImageGrid images={post.images} />
-        </div>
-      )}
-
-      {post.products.length > 0 && (
-        <div className="space-y-2 pt-3">
-          {post.products.map((p) => (
-            <ProductCard key={p.id} product={p} />
+      {/* Hashtags */}
+      {post.hashtags && post.hashtags.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {post.hashtags.map((h) => (
+            <span
+              key={h}
+              style={{
+                background: "#FFF0F0",
+                color: "#A8001C",
+                fontSize: 11,
+                padding: "3px 9px",
+                borderRadius: 20,
+              }}
+            >
+              {h}
+            </span>
           ))}
         </div>
       )}
 
-      <div className="-mx-2 flex items-center gap-1 pt-2">
-        <ActionBtn
-          icon={<Check className={`h-4 w-4 ${post.helpedByMe ? "text-green-600" : ""}`} />}
-          label={String(post.helped)}
-          active={post.helpedByMe}
+      {/* Photos */}
+      {post.images.length > 0 && (
+        <div className="mt-3">
+          {isSpill ? (
+            <div className="flex gap-1.5">
+              {post.images.slice(0, 3).map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt=""
+                  style={{ flex: 1, height: 72, borderRadius: 8, objectFit: "cover", minWidth: 0 }}
+                />
+              ))}
+            </div>
+          ) : (
+            <>
+              <img
+                src={post.images[activeImg] ?? post.images[0]}
+                alt=""
+                style={{ width: "100%", height: 190, borderRadius: 12, objectFit: "cover", display: "block" }}
+              />
+              {post.images.length > 1 && (
+                <div className="mt-2 flex items-center justify-center gap-1.5">
+                  {post.images.map((_, i) => {
+                    const on = i === activeImg;
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => setActiveImg(i)}
+                        aria-label={`Image ${i + 1}`}
+                        style={{
+                          width: on ? 14 : 5,
+                          height: 5,
+                          borderRadius: 3,
+                          background: on ? "#1C0A00" : "#E8E0D8",
+                          border: 0,
+                          padding: 0,
+                          cursor: "pointer",
+                          transition: "width 0.2s",
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Hot Pick card */}
+      {heroProduct && (
+        <div
+          className="mt-3"
+          style={{
+            background: "#FFF0F0",
+            border: "1px solid #f5d0d0",
+            borderRadius: 10,
+            padding: "10px 12px",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+          }}
+        >
+          <img
+            src={heroProduct.image}
+            alt={heroProduct.name}
+            style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover", flexShrink: 0 }}
+          />
+          <div className="min-w-0 flex-1">
+            <p style={{ color: "#A8001C", fontSize: 10, textTransform: "uppercase", fontWeight: 600, letterSpacing: 0.4 }}>
+              Hot Pick
+            </p>
+            <p style={{ fontSize: 13, color: "#1C0A00", fontWeight: 500 }} className="truncate">
+              {heroProduct.name}
+            </p>
+            <p style={{ fontSize: 11, color: "#999" }} className="truncate">
+              {heroProduct.approval}% of {skinTypeLabel(heroProduct.skinType)} skin approve
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Steps preview */}
+      {!isSpill && steps && (
+        <div className="mt-2.5 space-y-1.5">
+          {steps.slice(0, 3).map((s) => (
+            <div key={s.num} className="flex items-center gap-2">
+              <div
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: "50%",
+                  background: s.circle,
+                  color: "#FFFCF8",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                {s.num}
+              </div>
+              <span style={{ fontSize: 10, color: "#aaa", width: 52, flexShrink: 0 }}>{s.label}</span>
+              <span style={{ fontSize: 12, fontWeight: 500, color: s.nameColor }} className="truncate">
+                {s.product}
+              </span>
+            </div>
+          ))}
+          <button
+            className="mt-1"
+            style={{
+              fontSize: 11,
+              color: "#888",
+              border: "0.5px solid #ddd",
+              borderRadius: 8,
+              padding: "5px 10px",
+              background: "#faf8f5",
+            }}
+          >
+            + See full breakdown ({steps.length} steps)
+          </button>
+        </div>
+      )}
+
+      {/* Action bar */}
+      <div
+        className="mt-3"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          padding: "8px 12px 10px",
+          borderTop: "0.5px solid #f5f0ea",
+          marginLeft: -12,
+          marginRight: -12,
+          marginBottom: -12,
+        }}
+      >
+        <button
           onClick={onHelped}
-        />
-        <ActionBtn icon={<MessageCircle className="h-4 w-4" />} label={String(post.comments)} />
-        <ActionBtn
-          icon={<Bookmark className={`h-4 w-4 ${post.saved ? "fill-[#fbbf24] text-[#fbbf24]" : ""}`} />}
-          label=""
-          active={post.saved}
+          style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, background: "none", border: 0, padding: 0, cursor: "pointer" }}
+          aria-label="Agree"
+        >
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: "50%",
+              background: "#FFF0E8",
+              border: "1px solid #FFD4B0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 16,
+              opacity: post.helpedByMe ? 1 : 0.95,
+            }}
+          >
+            🔥
+          </div>
+          <span style={{ color: "#D97706", fontSize: 9, fontWeight: 600, lineHeight: 1 }}>{post.helped}</span>
+          <span style={{ color: "#D97706", fontSize: 9, lineHeight: 1 }}>agree</span>
+        </button>
+
+        <button
+          style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: 0, padding: 0, cursor: "pointer", color: "#8A7E76" }}
+          aria-label="Comments"
+        >
+          <MessageCircle className="h-4 w-4" />
+          <span style={{ fontSize: 12 }}>{post.comments}</span>
+        </button>
+
+        <div className="flex-1" />
+
+        <button
           onClick={onSaved}
-        />
-        <ActionBtn icon={<Share2 className="h-4 w-4" />} label="" />
+          style={{ background: "none", border: 0, padding: 4, cursor: "pointer", color: post.saved ? "#1C0A00" : "#8A7E76" }}
+          aria-label="Save"
+        >
+          <Bookmark className="h-4 w-4" fill={post.saved ? "currentColor" : "none"} />
+        </button>
+        <button
+          style={{ background: "none", border: 0, padding: 4, cursor: "pointer", color: "#8A7E76" }}
+          aria-label="Share"
+        >
+          <Send className="h-4 w-4" />
+        </button>
       </div>
     </article>
   );
@@ -601,7 +919,7 @@ function ComposeSheet({
     if (!text.trim()) return;
     onSubmit({
       skinType: "oily", // "shows as 🍩 — not your name"
-      tag, text: text.trim(), images, products: tagged, promptContext,
+      tag, postType: "spill", text: text.trim(), images, products: tagged, promptContext,
     });
   };
 

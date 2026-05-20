@@ -110,6 +110,8 @@ type Post = {
   comments: number;
   promptContext?: string;
   createdAt: number;
+  steps?: { num: number; label: string; product: string; type: "skin" | "makeup" }[];
+  totalSteps?: number;
 };
 
 const PRODUCT_CATALOG: TaggedProduct[] = [
@@ -129,63 +131,15 @@ const PROMPTS = [
 
 const INITIAL_POSTS: Post[] = [
   {
-    id: "1", skinType: "oily", tag: "review", postType: "skin-tea",
-    hashtags: ["#oilyskin", "#niacinamide", "#tzone"],
-    text: "Okay this niacinamide is the only thing keeping my t-zone alive in this humidity. Two weeks in and the shine is genuinely down 50%.",
-    images: ["https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=600"],
-    products: [PRODUCT_CATALOG[1]],
-    helped: 124, helpedByMe: false, saved: false, comments: 18, createdAt: 120,
-  },
-  {
-    id: "2", skinType: "sensitive", tag: "hot-tea", postType: "spill",
-    hashtags: ["#tretinoin", "#realtalk", "#warnedyou"],
-    text: "Hot take: retinol culture has gone too far. Not everyone needs to be peeling at 24. My barrier is finally healed after I quit cold turkey.",
-    images: [],
-    products: [PRODUCT_CATALOG[4]],
-    helped: 287, helpedByMe: false, saved: false, comments: 64, createdAt: 540,
-  },
-  {
-    id: "3", skinType: "combo", tag: "grwm", postType: "look-tea",
-    hashtags: ["#glazedskin", "#softglam", "#skinfirst"],
-    text: "Soft glam for tonight. Skin prep > makeup. Snail mucin under everything is non-negotiable.",
-    images: [
-      "https://images.unsplash.com/photo-1522335789203-aaa57bd14abc?w=600",
-      "https://images.unsplash.com/photo-1503236823255-94609f598e71?w=600",
-      "https://images.unsplash.com/photo-1571908598047-29e7a98c1c2c?w=600",
-    ],
-    products: [PRODUCT_CATALOG[3]],
-    helped: 91, helpedByMe: false, saved: false, comments: 12, createdAt: 1800,
-  },
-  {
-    id: "4", skinType: "dry", tag: "question", postType: "spill",
-    hashtags: ["#dryskin", "#hyaluronicacid", "#barrierrepair"],
-    text: "Is it normal for a hyaluronic serum to actually make my skin drier in winter? Or is my barrier cooked?",
-    images: [],
-    products: [],
-    helped: 23, helpedByMe: false, saved: false, comments: 41, createdAt: 7200,
-    promptContext: "What's currently sitting on your shelf collecting dust?",
-  },
-  {
-    id: "5", skinType: "dry", tag: "review", postType: "skin-tea",
-    hashtags: ["#dryskin", "#serums", "#b5"],
-    text: "B5 serum saved my flaky cheeks during the move. Layered under everything, no pilling.",
-    images: [
-      "https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?w=600",
-      "https://images.unsplash.com/photo-1556228841-a3c527ebefe5?w=600",
-      "https://images.unsplash.com/photo-1556228852-80b6e5eeff06?w=600",
-      "https://images.unsplash.com/photo-1556228720-da4e85ee6929?w=600",
-      "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?w=600",
-    ],
-    products: [PRODUCT_CATALOG[0]],
-    helped: 156, helpedByMe: false, saved: false, comments: 22, createdAt: 21600,
-  },
-  {
     id: "6",
     skinType: "combo",
     tag: "night-out",
     postType: "look-tea",
-    hashtags: ["#metgala", "#skinsecret", "#makeup", "#nightout"],
+    authorName: "sabrina.mua",
+    authorRole: "celebrity makeup artist",
+    isMUA: true,
     text: "okay fine. here's the skin prep i did before the met gala look. one product did 80% of the work and it's $12.",
+    hashtags: ["#metgala", "#skinsecret", "#makeup", "#nightout"],
     images: [
       "https://images.unsplash.com/photo-1522335789203-aaa57bd14abc?w=600",
       "https://images.unsplash.com/photo-1503236823255-94609f598e71?w=600",
@@ -202,14 +156,113 @@ const INITIAL_POSTS: Post[] = [
         skinType: "combo",
       },
     ],
-    helped: 1200,
-    helpedByMe: false,
-    saved: false,
-    comments: 387,
-    createdAt: 60,
-    authorName: "sabrina.mua",
-    authorRole: "celebrity makeup artist",
-    isMUA: true,
+    steps: [
+      { num: 1, label: "Skin Prep", product: "Flawless Filter — Charlotte Tilbury", type: "skin" },
+      { num: 2, label: "Base", product: "Armani Luminous Silk Foundation", type: "makeup" },
+      { num: 3, label: "Contour", product: "Hourglass Ambient Lighting", type: "makeup" },
+    ],
+    totalSteps: 7,
+    helped: 1200, helpedByMe: false, saved: false, comments: 387, createdAt: 60,
+  },
+  {
+    id: "1",
+    skinType: "oily",
+    tag: "review",
+    postType: "skin-tea",
+    text: "two weeks on this niacinamide and my t-zone is actually calm. shine down 50% in humidity. not exaggerating — this is the one.",
+    hashtags: ["#oilyskin", "#niacinamide", "#tzone"],
+    images: ["https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=600"],
+    products: [
+      {
+        id: "p2",
+        name: "Niacinamide 10% + Zinc",
+        brand: "The Ordinary",
+        price: "$8",
+        image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=200",
+        approval: 65,
+        skinType: "oily",
+      },
+    ],
+    steps: [
+      { num: 3, label: "Serum", product: "Niacinamide 10% — use after toner", type: "skin" },
+    ],
+    totalSteps: 1,
+    helped: 124, helpedByMe: false, saved: false, comments: 18, createdAt: 120,
+  },
+  {
+    id: "2",
+    skinType: "sensitive",
+    tag: "hot-tea",
+    postType: "spill",
+    text: "nobody warned me that tretinoin would make me look worse for 3 full months before it got better. my dermatologist said absolutely nothing. i almost quit at week 8.",
+    hashtags: ["#tretinoin", "#nobodywarned", "#realtalk"],
+    images: [
+      "https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?w=600",
+      "https://images.unsplash.com/photo-1556228841-a3c527ebefe5?w=600",
+      "https://images.unsplash.com/photo-1556228852-80b6e5eeff06?w=600",
+    ],
+    products: [],
+    steps: [],
+    totalSteps: 0,
+    helped: 891, helpedByMe: false, saved: false, comments: 203, createdAt: 540,
+  },
+  {
+    id: "3",
+    skinType: "combo",
+    tag: "grwm",
+    postType: "look-tea",
+    text: "hailey bieber glazed skin but make it $40 total. skin prep is everything — makeup is just the finish.",
+    hashtags: ["#glazedskin", "#nightout", "#skinfirst"],
+    images: [
+      "https://images.unsplash.com/photo-1522335789203-aaa57bd14abc?w=600",
+      "https://images.unsplash.com/photo-1503236823255-94609f598e71?w=600",
+    ],
+    products: [
+      {
+        id: "p4",
+        name: "Centella Cica Cream",
+        brand: "COSRX",
+        price: "$16",
+        image: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=200",
+        approval: 83,
+        skinType: "dry",
+      },
+    ],
+    steps: [
+      { num: 1, label: "Cleanse", product: "CeraVe Foaming Cleanser", type: "skin" },
+      { num: 2, label: "Moisturize", product: "Centella Cica Cream — COSRX", type: "skin" },
+      { num: 3, label: "SPF", product: "Purito Comfy Sun · $24", type: "skin" },
+    ],
+    totalSteps: 6,
+    helped: 312, helpedByMe: false, saved: false, comments: 44, createdAt: 1800,
+  },
+  {
+    id: "5",
+    skinType: "dry",
+    tag: "review",
+    postType: "skin-tea",
+    text: "B5 serum saved my flaky cheeks after two weeks straight of travel. layered under everything, zero pilling. dry skin — this is your sign.",
+    hashtags: ["#dryskin", "#b5serum", "#barrierrepair"],
+    images: [
+      "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=600",
+      "https://images.unsplash.com/photo-1556228841-a3c527ebefe5?w=600",
+    ],
+    products: [
+      {
+        id: "p1",
+        name: "Hydra B5 Serum",
+        brand: "La Roche-Posay",
+        price: "$32",
+        image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=200",
+        approval: 78,
+        skinType: "dry",
+      },
+    ],
+    steps: [
+      { num: 2, label: "Serum", product: "Hydra B5 — apply on damp skin", type: "skin" },
+    ],
+    totalSteps: 1,
+    helped: 156, helpedByMe: false, saved: false, comments: 22, createdAt: 21600,
   },
 ];
 
@@ -316,7 +369,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
           >
             🔥 Top Tea
           </h2>
-          <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
+          <div className="no-scrollbar flex gap-3 overflow-x-auto pb-0">
             {[
               { img: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400", label: "B5 saved my barrier", heat: 412 },
               { img: "https://images.unsplash.com/photo-1522335789203-aaa57bd14abc?w=400", label: "Sabrina's met gala skin secret", heat: 1200 },
@@ -327,8 +380,8 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
                 key={i}
                 className="relative flex-shrink-0 overflow-hidden shadow-sm"
                 style={{
-                  width: "140px",
-                  height: "175px",
+                  width: "120px",
+                  height: "150px",
                   borderRadius: "14px",
                   backgroundImage: `url(${c.img})`,
                   backgroundSize: "cover",
@@ -340,8 +393,8 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
                   style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75), rgba(0,0,0,0))" }}
                 />
                 <div className="absolute bottom-0 left-0 right-0 p-2.5">
-                  <p className="font-bold leading-tight text-white" style={{ fontSize: "12px" }}>{c.label}</p>
-                  <p className="mt-1 flex items-center gap-1 font-semibold" style={{ color: "#FFD4B0", fontSize: "11px" }}>
+                  <p className="font-bold leading-tight text-white" style={{ fontSize: "11px" }}>{c.label}</p>
+                  <p className="mt-1 flex items-center gap-1 font-semibold" style={{ color: "#FFD4B0", fontSize: "9px" }}>
                     <Flame className="h-2.5 w-2.5" /> {c.heat}
                   </p>
                 </div>
@@ -353,7 +406,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
         {/* Today's prompt banner */}
         <section className="pt-5" style={{ margin: "0 16px 16px" }}>
           <div
-            className="flex items-center gap-3 p-4"
+            className="flex items-center gap-3 p-3"
             style={{ background: "#1C0A00", color: "#FFFCF8", borderRadius: "14px" }}
           >
             <div className="flex-1">
@@ -474,20 +527,7 @@ const POST_TYPE_BADGE: Record<PostType, { label: string; bg: string; color: stri
   spill: { label: "Spill", bg: "#FFF7E6", color: "#B45309" },
 };
 
-type StepRow = { num: number; label: string; product: string; circle: string; nameColor: string };
-
-const POST_STEPS: Record<string, StepRow[]> = {
-  "3": [
-    { num: 1, label: "Skin Prep", product: "Snail Mucin — COSRX", circle: "#5B3FA6", nameColor: "#5B3FA6" },
-    { num: 2, label: "Base", product: "Tinted SPF", circle: "#5B3FA6", nameColor: "#5B3FA6" },
-    { num: 3, label: "Finish", product: "Soft Pinch Blush", circle: "#5B3FA6", nameColor: "#5B3FA6" },
-  ],
-  "6": [
-    { num: 1, label: "Skin Prep", product: "Flawless Filter — Charlotte Tilbury", circle: "#A8001C", nameColor: "#A8001C" },
-    { num: 2, label: "Base", product: "Armani Luminous Silk", circle: "#C4743A", nameColor: "#C4743A" },
-    { num: 3, label: "Contour", product: "Hourglass Ambient", circle: "#C4743A", nameColor: "#C4743A" },
-  ],
-};
+const STEP_COLOR = { skin: "#A8001C", makeup: "#C4743A" } as const;
 
 function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => void; onSaved: () => void }) {
   const char = CHARACTERS[post.skinType];
@@ -495,27 +535,27 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
   const badge = POST_TYPE_BADGE[post.postType];
   const isSpill = post.postType === "spill";
   const heroProduct = !isSpill && post.products.length > 0 ? post.products[0] : null;
-  const steps = POST_STEPS[post.id];
+  const steps = post.steps;
 
   return (
     <article
       style={{
         background: "#fff",
         border: "0.5px solid #E8E0D8",
-        borderRadius: "16px",
-        marginBottom: "14px",
+        borderRadius: "14px",
+        marginBottom: "12px",
         overflow: "hidden",
-        padding: "12px",
+        padding: "10px",
       }}
     >
       {post.promptContext && (
         <div
-          className="-mx-3 -mt-3 mb-3 px-3 py-2"
+          className="-mx-2.5 -mt-2.5 mb-2.5 px-2.5 py-2"
           style={{
             background: "rgba(251,191,36,0.12)",
             borderBottom: "1px solid rgba(251,191,36,0.3)",
-            borderTopLeftRadius: "15px",
-            borderTopRightRadius: "15px",
+            borderTopLeftRadius: "13px",
+            borderTopRightRadius: "13px",
           }}
         >
           <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#92500a" }}>
@@ -526,18 +566,18 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
       )}
 
       {/* Author row */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2">
         {post.isMUA ? (
           <div
             className="flex flex-shrink-0 items-center justify-center rounded-full font-semibold"
-            style={{ width: 34, height: 34, background: "#1C0A00", color: "#FFFCF8", fontSize: 13 }}
+            style={{ width: 28, height: 28, background: "#1C0A00", color: "#FFFCF8", fontSize: 12 }}
           >
             {post.authorName?.[0]?.toUpperCase() ?? "S"}
           </div>
         ) : (
           <div
             className="flex flex-shrink-0 items-center justify-center rounded-full"
-            style={{ width: 34, height: 34, background: SKIN_BG[post.skinType], fontSize: 17, lineHeight: 1 }}
+            style={{ width: 28, height: 28, background: SKIN_BG[post.skinType], fontSize: 13, lineHeight: 1 }}
           >
             {char.emoji}
           </div>
@@ -552,8 +592,8 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
                 style={{
                   background: "#1C0A00",
                   color: "#FFFCF8",
-                  fontSize: 10,
-                  padding: "2px 6px",
+                  fontSize: 9,
+                  padding: "1px 5px",
                   borderRadius: 20,
                   fontWeight: 600,
                   lineHeight: 1.2,
@@ -563,7 +603,7 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
               </span>
             )}
           </div>
-          <p style={{ fontSize: 11, color: post.isMUA ? "#bbb" : "#8A7E76" }}>
+          <p style={{ fontSize: 10, color: post.isMUA ? "#bbb" : "#8A7E76" }}>
             {post.isMUA ? post.authorRole : `${formatAgo(post.createdAt)} ago`}
           </p>
         </div>
@@ -572,8 +612,8 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
           style={{
             background: badge.bg,
             color: badge.color,
-            fontSize: 10,
-            padding: "3px 9px",
+            fontSize: 9,
+            padding: "2px 7px",
             borderRadius: 20,
             fontWeight: 500,
           }}
@@ -583,21 +623,21 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
       </div>
 
       {/* Text */}
-      <div className="pt-3">
-        <p className="text-[14px] leading-relaxed text-[#1C0A00]">{post.text}</p>
+      <div className="pt-2.5">
+        <p className="leading-snug text-[#1C0A00]" style={{ fontSize: 13 }}>{post.text}</p>
       </div>
 
       {/* Hashtags */}
       {post.hashtags && post.hashtags.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <div className="mt-2 flex flex-wrap gap-1">
           {post.hashtags.map((h) => (
             <span
               key={h}
               style={{
                 background: "#FFF0F0",
                 color: "#A8001C",
-                fontSize: 11,
-                padding: "3px 9px",
+                fontSize: 10,
+                padding: "2px 7px",
                 borderRadius: 20,
               }}
             >
@@ -609,7 +649,7 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
 
       {/* Photos */}
       {post.images.length > 0 && (
-        <div className="mt-3">
+        <div className="mt-2.5">
           {isSpill ? (
             <div className="flex gap-1.5">
               {post.images.slice(0, 3).map((src, i) => (
@@ -617,7 +657,7 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
                   key={i}
                   src={src}
                   alt=""
-                  style={{ flex: 1, height: 72, borderRadius: 8, objectFit: "cover", minWidth: 0 }}
+                  style={{ flex: 1, height: 60, borderRadius: 8, objectFit: "cover", minWidth: 0 }}
                 />
               ))}
             </div>
@@ -626,10 +666,10 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
               <img
                 src={post.images[activeImg] ?? post.images[0]}
                 alt=""
-                style={{ width: "100%", height: 190, borderRadius: 12, objectFit: "cover", display: "block" }}
+                style={{ width: "100%", height: 160, borderRadius: 12, objectFit: "cover", display: "block" }}
               />
               {post.images.length > 1 && (
-                <div className="mt-2 flex items-center justify-center gap-1.5">
+                <div className="mt-2 flex items-center justify-center gap-1">
                   {post.images.map((_, i) => {
                     const on = i === activeImg;
                     return (
@@ -638,9 +678,9 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
                         onClick={() => setActiveImg(i)}
                         aria-label={`Image ${i + 1}`}
                         style={{
-                          width: on ? 14 : 5,
-                          height: 5,
-                          borderRadius: 3,
+                          width: on ? 12 : 4,
+                          height: 4,
+                          borderRadius: 2,
                           background: on ? "#1C0A00" : "#E8E0D8",
                           border: 0,
                           padding: 0,
@@ -660,30 +700,30 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
       {/* Hot Pick card */}
       {heroProduct && (
         <div
-          className="mt-3"
+          className="mt-2.5"
           style={{
             background: "#FFF0F0",
             border: "1px solid #f5d0d0",
             borderRadius: 10,
-            padding: "10px 12px",
+            padding: "8px 10px",
             display: "flex",
             alignItems: "center",
-            gap: 10,
+            gap: 8,
           }}
         >
           <img
             src={heroProduct.image}
             alt={heroProduct.name}
-            style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover", flexShrink: 0 }}
+            style={{ width: 30, height: 30, borderRadius: 8, objectFit: "cover", flexShrink: 0 }}
           />
           <div className="min-w-0 flex-1">
-            <p style={{ color: "#A8001C", fontSize: 10, textTransform: "uppercase", fontWeight: 600, letterSpacing: 0.4 }}>
+            <p style={{ color: "#A8001C", fontSize: 9, textTransform: "uppercase", fontWeight: 600, letterSpacing: 0.4 }}>
               Hot Pick
             </p>
-            <p style={{ fontSize: 13, color: "#1C0A00", fontWeight: 500 }} className="truncate">
+            <p style={{ fontSize: 12, color: "#1C0A00", fontWeight: 500 }} className="truncate">
               {heroProduct.name}
             </p>
-            <p style={{ fontSize: 11, color: "#999" }} className="truncate">
+            <p style={{ fontSize: 10, color: "#999" }} className="truncate">
               {heroProduct.approval}% of {skinTypeLabel(heroProduct.skinType)} skin approve
             </p>
           </div>
@@ -691,61 +731,66 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
       )}
 
       {/* Steps preview */}
-      {!isSpill && steps && (
-        <div className="mt-2.5 space-y-1.5">
-          {steps.slice(0, 3).map((s) => (
-            <div key={s.num} className="flex items-center gap-2">
-              <div
-                style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: "50%",
-                  background: s.circle,
-                  color: "#FFFCF8",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                {s.num}
+      {!isSpill && steps && steps.length > 0 && (
+        <div className="mt-2 space-y-1">
+          {steps.slice(0, 3).map((s) => {
+            const color = STEP_COLOR[s.type];
+            return (
+              <div key={s.num} className="flex items-center gap-2">
+                <div
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: "50%",
+                    background: color,
+                    color: "#FFFCF8",
+                    fontSize: 9,
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  {s.num}
+                </div>
+                <span style={{ fontSize: 9, color: "#aaa", width: 44, flexShrink: 0 }}>{s.label}</span>
+                <span style={{ fontSize: 11, fontWeight: 500, color }} className="truncate">
+                  {s.product}
+                </span>
               </div>
-              <span style={{ fontSize: 10, color: "#aaa", width: 52, flexShrink: 0 }}>{s.label}</span>
-              <span style={{ fontSize: 12, fontWeight: 500, color: s.nameColor }} className="truncate">
-                {s.product}
-              </span>
-            </div>
-          ))}
-          <button
-            className="mt-1"
-            style={{
-              fontSize: 11,
-              color: "#888",
-              border: "0.5px solid #ddd",
-              borderRadius: 8,
-              padding: "5px 10px",
-              background: "#faf8f5",
-            }}
-          >
-            + See full breakdown ({steps.length} steps)
-          </button>
+            );
+          })}
+          {post.totalSteps && post.totalSteps > 1 && (
+            <button
+              className="mt-1"
+              style={{
+                fontSize: 10,
+                color: "#888",
+                border: "0.5px solid #ddd",
+                borderRadius: 8,
+                padding: "4px 9px",
+                background: "#faf8f5",
+              }}
+            >
+              + See full breakdown ({post.totalSteps} steps)
+            </button>
+          )}
         </div>
       )}
 
       {/* Action bar */}
       <div
-        className="mt-3"
+        className="mt-2.5"
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 14,
-          padding: "8px 12px 10px",
+          gap: 10,
+          padding: "6px 10px 8px",
           borderTop: "0.5px solid #f5f0ea",
-          marginLeft: -12,
-          marginRight: -12,
-          marginBottom: -12,
+          marginLeft: -10,
+          marginRight: -10,
+          marginBottom: -10,
         }}
       >
         <button
@@ -755,22 +800,22 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
         >
           <div
             style={{
-              width: 28,
-              height: 28,
+              width: 24,
+              height: 24,
               borderRadius: "50%",
               background: "#FFF0E8",
               border: "1px solid #FFD4B0",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 16,
+              fontSize: 13,
               opacity: post.helpedByMe ? 1 : 0.95,
             }}
           >
             🔥
           </div>
-          <span style={{ color: "#D97706", fontSize: 9, fontWeight: 600, lineHeight: 1 }}>{post.helped}</span>
-          <span style={{ color: "#D97706", fontSize: 9, lineHeight: 1 }}>agree</span>
+          <span style={{ color: "#D97706", fontSize: 8, fontWeight: 600, lineHeight: 1 }}>{post.helped}</span>
+          <span style={{ color: "#D97706", fontSize: 8, lineHeight: 1 }}>agree</span>
         </button>
 
         <button
@@ -778,7 +823,7 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
           aria-label="Comments"
         >
           <MessageCircle className="h-4 w-4" />
-          <span style={{ fontSize: 12 }}>{post.comments}</span>
+          <span style={{ fontSize: 11 }}>{post.comments}</span>
         </button>
 
         <div className="flex-1" />

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import {
-  Coffee, Check, MessageCircle, Bookmark, Share2, Send, X, ImagePlus, Tag, Plus, Flame, Search,
+  MessageCircle, Bookmark, Send, X, ImagePlus, Tag, Plus, Flame, Search,
 } from "lucide-react";
 
 export const Route = createFileRoute("/tea-products")({

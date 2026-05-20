@@ -406,7 +406,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
         {/* Today's prompt banner */}
         <section className="pt-5" style={{ margin: "0 16px 16px" }}>
           <div
-            className="flex items-center gap-3 p-4"
+            className="flex items-center gap-3 p-3"
             style={{ background: "#1C0A00", color: "#FFFCF8", borderRadius: "14px" }}
           >
             <div className="flex-1">

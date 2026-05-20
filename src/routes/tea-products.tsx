@@ -296,9 +296,9 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
                   onClick={() => setActiveTag(t.key)}
                   className="whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors"
                   style={{
-                    background: active ? "#1a1a1a" : "transparent",
-                    color: active ? "#ffffff" : "#1a1a1a",
-                    borderColor: active ? "#1a1a1a" : "#e5e2dc",
+                    background: active ? "#1C0A00" : "#FFFCF8",
+                    color: active ? "#FFFCF8" : "#1C0A00",
+                    borderColor: active ? "#1C0A00" : "#E8E0D8",
                   }}
                 >
                   {t.label}
@@ -310,22 +310,25 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
 
         {/* Top Tea horizontal strip */}
         <section className="px-4 pt-4">
-          <h2 className="mb-2 flex items-center gap-1.5 font-display text-base font-semibold text-[#1a1a1a]">
-            <Flame className="h-4 w-4 text-[#fbbf24]" /> Top Tea
+          <h2
+            className="mb-2 flex items-center gap-1.5"
+            style={{ fontWeight: 500, fontSize: "14px", color: "#1C0A00" }}
+          >
+            🔥 Top Tea
           </h2>
           <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
             {[
               { img: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400", label: "B5 saved my barrier", heat: 412 },
-              { img: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400", label: "Niacinamide 10% review", heat: 387 },
-              { img: "https://images.unsplash.com/photo-1571908598047-29e7a98c1c2c?w=400", label: "GRWM date night", heat: 256 },
-              { img: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=400", label: "Snail mucin holy grail", heat: 198 },
+              { img: "https://images.unsplash.com/photo-1522335789203-aaa57bd14abc?w=400", label: "Sabrina's met gala skin secret", heat: 1200 },
+              { img: "https://images.unsplash.com/photo-1571908598047-29e7a98c1c2c?w=400", label: "GRWM date night glazed look", heat: 256 },
+              { img: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=400", label: "tretinoin purge — month 3", heat: 891 },
             ].map((c, i) => (
               <div
                 key={i}
                 className="relative flex-shrink-0 overflow-hidden shadow-sm"
                 style={{
-                  width: "120px",
-                  height: "150px",
+                  width: "140px",
+                  height: "175px",
                   borderRadius: "14px",
                   backgroundImage: `url(${c.img})`,
                   backgroundSize: "cover",
@@ -337,8 +340,8 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
                   style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75), rgba(0,0,0,0))" }}
                 />
                 <div className="absolute bottom-0 left-0 right-0 p-2.5">
-                  <p className="text-[11px] font-bold leading-tight text-white">{c.label}</p>
-                  <p className="mt-1 flex items-center gap-1 text-[10px] font-semibold" style={{ color: "#fbbf24" }}>
+                  <p className="font-bold leading-tight text-white" style={{ fontSize: "12px" }}>{c.label}</p>
+                  <p className="mt-1 flex items-center gap-1 font-semibold" style={{ color: "#FFD4B0", fontSize: "11px" }}>
                     <Flame className="h-2.5 w-2.5" /> {c.heat}
                   </p>
                 </div>
@@ -348,21 +351,21 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
         </section>
 
         {/* Today's prompt banner */}
-        <section className="px-4 pt-5">
+        <section className="pt-5" style={{ margin: "0 16px 16px" }}>
           <div
-            className="flex items-center gap-3 rounded-2xl p-4"
-            style={{ background: "#1a1a1a", color: "#faf8f5" }}
+            className="flex items-center gap-3 p-4"
+            style={{ background: "#1C0A00", color: "#FFFCF8", borderRadius: "14px" }}
           >
             <div className="flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#fbbf24" }}>
+              <p style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.8px", color: "#A8001C", fontWeight: 700 }}>
                 Today's Tea
               </p>
-              <p className="mt-1 font-display text-base font-semibold leading-snug">{todaysPrompt}</p>
+              <p className="mt-1" style={{ fontSize: "13px", color: "#FFFCF8", lineHeight: 1.4 }}>{todaysPrompt}</p>
             </div>
             <button
               onClick={() => openCompose(todaysPrompt)}
-              className="flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-transform active:scale-95"
-              style={{ background: "#A8001C", color: "#FFFFFF" }}
+              className="flex-shrink-0 transition-transform active:scale-95"
+              style={{ background: "#A8001C", color: "#FFFCF8", borderRadius: "20px", fontSize: "12px", padding: "8px 16px", fontWeight: 600 }}
             >
               Spill
             </button>
@@ -370,7 +373,19 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
         </section>
 
         {/* Feed */}
-        <section className="space-y-4 px-4 pt-5">
+        <section className="px-4 pt-2">
+          <p
+            style={{
+              fontSize: "11px",
+              fontWeight: 500,
+              color: "#aaa",
+              textTransform: "uppercase",
+              letterSpacing: "0.8px",
+              marginBottom: "10px",
+            }}
+          >
+            Fresh Tea
+          </p>
           {feedItems.length === 0 && (
             <div className="rounded-2xl bg-white p-8 text-center text-sm text-neutral-500 shadow-sm">
               No tea in this category yet. Be the first to spill ☕
@@ -387,7 +402,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
             ) : (
               <div
                 key={item.key}
-                className="flex items-center gap-3 rounded-2xl border p-4"
+                className="flex items-center gap-3 rounded-2xl border p-4 mb-3.5"
                 style={{ background: "#1a1a1a", borderColor: "#A8001C" }}
               >
                 <div className="flex-1 text-[#faf8f5]">
@@ -418,10 +433,10 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
           left: "50%",
           transform: "translateX(-50%)",
           background: "#A8001C",
-          color: "#fff",
-          fontSize: 13,
+          color: "#FFFCF8",
+          fontSize: 14,
           fontWeight: 700,
-          borderRadius: 99,
+          borderRadius: 30,
           padding: "12px 28px",
           border: "none",
           zIndex: 40,
@@ -429,7 +444,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
           fontFamily: "'DM Sans', sans-serif",
         }}
       >
-        Spill the tea ☕
+        Spill the tea 🫖
       </button>
 
       {/* Compose sheet */}

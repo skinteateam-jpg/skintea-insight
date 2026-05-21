@@ -1467,6 +1467,10 @@ function ComposeSheet({
     </div>
   );
 
+  const textBlockProps = { text, setText, hashtags, setHashtags, hashtagInput, setHashtagInput };
+  const hotPickPropsBase = { hotPick, setHotPick, search, setSearch, searchResults, onSelect: selectHotPick };
+  const stepBuilderPropsBase = { steps, setSteps, showStepPicker, setShowStepPicker };
+
   const TypeStage = (
     <div style={{ display: "flex", flexDirection: "column" as const, height: "100%" }}>
       <SheetHeader title="What are you spilling?" />
@@ -1491,14 +1495,10 @@ function ComposeSheet({
             <div style={{ fontSize: 12, color: "#555", lineHeight: 1.5, marginBottom: 5 }}>{opt.desc}</div>
             <div style={{ fontSize: 11, color: "#aaa", fontStyle: "italic" }}>{opt.example}</div>
           </button>
-        ))}
-      </div>
-    </div>
-  );
-
-  const textBlockProps = { text, setText, hashtags, setHashtags, hashtagInput, setHashtagInput };
-  const hotPickPropsBase = { hotPick, setHotPick, search, setSearch, searchResults, onSelect: selectHotPick };
-  const stepBuilderPropsBase = { steps, setSteps, showStepPicker, setShowStepPicker };
+         ))}
+       </div>
+     </div>
+   );
 
   const SkinTeaStage = (
     <div style={{ display: "flex", flexDirection: "column" as const, height: "100%" }}>
@@ -1522,13 +1522,13 @@ function ComposeSheet({
           ))}
         </div>
 
-        <PhotoOptional fileRef={fileRef} />
-        <TextHashtagBlock placeholder="what did this actually do for your skin?" />
+        <PhotoOptional images={images} setImages={setImages} fileRef={fileRef} />
+        <TextHashtagBlock {...textBlockProps} placeholder="what did this actually do for your skin?" />
 
         {skinTeaMode === "single" ? (
           <>
             <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Hot Pick — the product</div>
-            <HotPickSelected bgColor="#FFF0F0" borderColor="#f5d0d0" />
+            <HotPickSelected {...hotPickPropsBase} bgColor="#FFF0F0" borderColor="#f5d0d0" />
 
             {hotPick && (
               <>
@@ -1620,9 +1620,9 @@ function ComposeSheet({
         ) : (
           <>
             <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Routine steps — skin only</div>
-            <StepBuilder allowMakeup={false} />
+            <StepBuilder {...stepBuilderPropsBase} allowMakeup={false} />
             <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Hot Pick — standout product of this routine</div>
-            <HotPickSelected bgColor="#FFF0F0" borderColor="#f5d0d0" />
+            <HotPickSelected {...hotPickPropsBase} bgColor="#FFF0F0" borderColor="#f5d0d0" />
           </>
         )}
       </div>
@@ -1642,12 +1642,12 @@ function ComposeSheet({
     <div style={{ display: "flex", flexDirection: "column" as const, height: "100%" }}>
       <SheetHeader title="Look Tea" badge="Look Tea" badgeBg="#F0EDF8" badgeColor="#5B3FA6" backTo="type" />
       <div style={{ flex: 1, overflowY: "auto" as const, padding: "16px" }}>
-        <PhotoMandatory />
-        <TextHashtagBlock placeholder="what's the story behind this look?" />
+        <PhotoMandatory images={images} setImages={setImages} lookFileRef={lookFileRef} />
+        <TextHashtagBlock {...textBlockProps} placeholder="what's the story behind this look?" />
         <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Hot Pick — hero product of this look</div>
-        <HotPickSelected bgColor="#F0EDF8" borderColor="#e0d8f5" />
+        <HotPickSelected {...hotPickPropsBase} bgColor="#F0EDF8" borderColor="#e0d8f5" />
         <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Breakdown steps</div>
-        <StepBuilder allowMakeup={true} />
+        <StepBuilder {...stepBuilderPropsBase} allowMakeup={true} />
       </div>
       <div style={{ padding: "10px 16px 16px", borderTop: "0.5px solid #E8E0D8", background: "#FFFCF8" }}>
         <button

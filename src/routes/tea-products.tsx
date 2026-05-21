@@ -1496,6 +1496,10 @@ function ComposeSheet({
     </div>
   );
 
+  const textBlockProps = { text, setText, hashtags, setHashtags, hashtagInput, setHashtagInput };
+  const hotPickPropsBase = { hotPick, setHotPick, search, setSearch, searchResults, onSelect: selectHotPick };
+  const stepBuilderPropsBase = { steps, setSteps, showStepPicker, setShowStepPicker };
+
   const SkinTeaStage = (
     <div style={{ display: "flex", flexDirection: "column" as const, height: "100%" }}>
       <SheetHeader title="Skin Tea" badge="Skin Tea" badgeBg="#FFF0F0" badgeColor="#A8001C" backTo="type" />

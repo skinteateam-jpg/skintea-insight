@@ -1203,7 +1203,7 @@ function PhotoOptional({
 }: {
   images: string[];
   setImages: React.Dispatch<React.SetStateAction<string[]>>;
-  fileRef: React.RefObject<HTMLInputElement>;
+  fileRef: React.RefObject<HTMLInputElement | null>;
 }) {
   const onFiles = (files: FileList | null) => {
     if (!files) return;
@@ -1251,7 +1251,7 @@ function PhotoMandatory({
 }: {
   images: string[];
   setImages: React.Dispatch<React.SetStateAction<string[]>>;
-  lookFileRef: React.RefObject<HTMLInputElement>;
+  lookFileRef: React.RefObject<HTMLInputElement | null>;
 }) {
   const onFiles = (files: FileList | null) => {
     if (!files) return;

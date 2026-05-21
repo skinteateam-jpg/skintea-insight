@@ -157,17 +157,19 @@ function PostDetailPage() {
         {/* Hero */}
         {post.images.length > 0 && (
           <div style={{ position: "relative", padding: "0 16px" }}>
-            <img
-              src={post.images[activeImg]}
-              alt=""
-              style={{
-                width: "100%",
-                height: 360,
-                objectFit: "cover",
-                borderRadius: 16,
-                display: "block",
-              }}
-            />
+            <div style={{ width: "100%", aspectRatio: "4/5", maxHeight: 420, borderRadius: 16, overflow: "hidden", background: "#e8e4dc" }}>
+              <img
+                src={post.images[activeImg]}
+                alt=""
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "top center",
+                  display: "block",
+                }}
+              />
+            </div>
             <span
               style={{
                 position: "absolute",

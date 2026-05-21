@@ -349,6 +349,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
       createdAt: 1,
     };
     setPosts((prev) => [post, ...prev]);
+    setActiveTag("all");
   };
 
   const openCompose = (prompt?: string) => {
@@ -713,11 +714,13 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
             </div>
           ) : (
             <>
-              <img
-                src={post.images[activeImg] ?? post.images[0]}
-                alt=""
-                style={{ width: "100%", height: 160, borderRadius: 12, objectFit: "cover", display: "block" }}
-              />
+              <div style={{ width: "100%", aspectRatio: "4/5", borderRadius: 12, overflow: "hidden", marginBottom: 8 }}>
+                <img
+                  src={post.images[activeImg] ?? post.images[0]}
+                  alt=""
+                  style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block" }}
+                />
+              </div>
               {post.images.length > 1 && (
                 <div className="mt-2 flex items-center justify-center gap-1">
                   {post.images.map((_, i) => {
@@ -981,6 +984,315 @@ function ProductCard({ product }: { product: TaggedProduct }) {
 
 /* ---------- Compose sheet ---------- */
 
+/* Top-level helper components for ComposeSheet.
+   Extracted out so React doesn't recreate them on every render,
+   which would unmount inputs on every keystroke. */
+
+function TextHashtagBlock({
+  text, setText, hashtags, setHashtags, hashtagInput, setHashtagInput, placeholder,
+}: {
+  text: string;
+  setText: React.Dispatch<React.SetStateAction<string>>;
+  hashtags: string[];
+  setHashtags: React.Dispatch<React.SetStateAction<string[]>>;
+  hashtagInput: string;
+  setHashtagInput: React.Dispatch<React.SetStateAction<string>>;
+  placeholder: string;
+}) {
+  const addHashtag = () => {
+    const tag = hashtagInput.trim().replace(/^#/, "");
+    if (tag && !hashtags.includes(`#${tag}`)) {
+      setHashtags(prev => [...prev, `#${tag}`]);
+    }
+    setHashtagInput("");
+  };
+  return (
+    <>
+      <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 8 }}>Your take</div>
+      <textarea
+        value={text}
+        onChange={e => setText(e.target.value)}
+        placeholder={placeholder}
+        style={{
+          width: "100%", minHeight: 80, resize: "none",
+          background: "#fff", border: "0.5px solid #E8E0D8", borderRadius: 12,
+          padding: "11px 13px", fontSize: 13, color: "#1C0A00", lineHeight: 1.6,
+          fontFamily: "'DM Sans', sans-serif", outline: "none", boxSizing: "border-box",
+          marginBottom: 8,
+        }}
+      />
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+        {hashtags.map(tag => (
+          <div key={tag} style={{ display: "flex", alignItems: "center", gap: 4, background: "#FFF0F0", border: "1px solid #f5d0d0", borderRadius: 20, padding: "3px 9px" }}>
+            <span style={{ fontSize: 11, color: "#A8001C" }}>{tag}</span>
+            <button onClick={() => setHashtags(prev => prev.filter(t => t !== tag))} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: 0 }}>
+              <X size={10} color="#A8001C" />
+            </button>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+        <input
+          value={hashtagInput}
+          onChange={e => setHashtagInput(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); addHashtag(); } }}
+          placeholder="add hashtag..."
+          style={{ flex: 1, background: "#f5f0ea", border: "none", borderRadius: 20, padding: "7px 13px", fontSize: 12, color: "#333", outline: "none", fontFamily: "'DM Sans', sans-serif" }}
+        />
+        <button onClick={addHashtag} style={{ background: "#f5f0ea", border: "none", borderRadius: 20, padding: "7px 13px", fontSize: 12, color: "#888", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+          Add
+        </button>
+      </div>
+    </>
+  );
+}
+
+function ProductSearch({
+  search, setSearch, searchResults, onSelect,
+}: {
+  search: string;
+  setSearch: React.Dispatch<React.SetStateAction<string>>;
+  searchResults: TaggedProduct[];
+  onSelect: (p: TaggedProduct) => void;
+}) {
+  return (
+    <div>
+      <div style={{ position: "relative" }}>
+        <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#aaa" }} />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="search products..."
+          style={{ width: "100%", background: "#f5f0ea", border: "none", borderRadius: 20, padding: "9px 14px 9px 34px", fontSize: 12, color: "#333", outline: "none", fontFamily: "'DM Sans', sans-serif", boxSizing: "border-box" }}
+        />
+      </div>
+      {searchResults.length > 0 && (
+        <div style={{ marginTop: 6, background: "#fff", border: "0.5px solid #E8E0D8", borderRadius: 12, overflow: "hidden" }}>
+          {searchResults.map(p => (
+            <button key={p.id} onClick={() => onSelect(p)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "none", border: "none", borderBottom: "0.5px solid #f5f0ea", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+              <img src={p.image} style={{ width: 32, height: 32, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />
+              <div style={{ flex: 1, textAlign: "left" }}>
+                <div style={{ fontSize: 12, fontWeight: 500, color: "#1C0A00" }}>{p.name}</div>
+                <div style={{ fontSize: 11, color: "#999" }}>{p.brand} · {p.price}</div>
+              </div>
+              <Plus size={14} color="#aaa" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HotPickSelected({
+  hotPick, setHotPick, search, setSearch, searchResults, bgColor, borderColor, onSelect,
+}: {
+  hotPick: TaggedProduct | null;
+  setHotPick: React.Dispatch<React.SetStateAction<TaggedProduct | null>>;
+  search: string;
+  setSearch: React.Dispatch<React.SetStateAction<string>>;
+  searchResults: TaggedProduct[];
+  bgColor: string;
+  borderColor: string;
+  onSelect: (p: TaggedProduct) => void;
+}) {
+  return hotPick ? (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, background: bgColor, border: `1px solid ${borderColor}`, borderRadius: 10, padding: "10px 12px", marginBottom: 14 }}>
+      <img src={hotPick.image} style={{ width: 38, height: 38, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 12, fontWeight: 500, color: "#1C0A00" }}>{hotPick.name}</div>
+        <div style={{ fontSize: 11, color: "#999" }}>{hotPick.brand} · {hotPick.price}</div>
+      </div>
+      <button onClick={() => setHotPick(null)} style={{ background: "none", border: "none", cursor: "pointer" }}>
+        <X size={15} color="#aaa" />
+      </button>
+    </div>
+  ) : (
+    <div style={{ marginBottom: 14 }}>
+      <ProductSearch search={search} setSearch={setSearch} searchResults={searchResults} onSelect={onSelect} />
+    </div>
+  );
+}
+
+function StepBuilder({
+  steps, setSteps, showStepPicker, setShowStepPicker, allowMakeup,
+}: {
+  steps: ComposeStep[];
+  setSteps: React.Dispatch<React.SetStateAction<ComposeStep[]>>;
+  showStepPicker: boolean;
+  setShowStepPicker: React.Dispatch<React.SetStateAction<boolean>>;
+  allowMakeup: boolean;
+}) {
+  const addStep = (label: string, type: "skin" | "makeup") => {
+    setSteps(prev => [...prev, { id: Math.random().toString(36).slice(2), label, product: "", type }]);
+    setShowStepPicker(false);
+  };
+  const updateStepProduct = (id: string, value: string) => {
+    setSteps(prev => prev.map(s => s.id === id ? { ...s, product: value } : s));
+  };
+  const removeStep = (id: string) => {
+    setSteps(prev => prev.filter(s => s.id !== id));
+  };
+  const availableSkin = SKIN_STEPS.filter(s => !steps.find(st => st.label === s));
+  const availableMakeup = allowMakeup ? MAKEUP_STEPS.filter(s => !steps.find(st => st.label === s)) : [];
+  return (
+    <div style={{ marginBottom: 14 }}>
+      {steps.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 10 }}>
+          {steps.map((step, i) => {
+            const color = step.type === "skin" ? "#A8001C" : "#C4743A";
+            return (
+              <div key={step.id} style={{ display: "flex", alignItems: "center", gap: 9, background: "#fff", border: "0.5px solid #E8E0D8", borderRadius: 10, padding: "9px 11px" }}>
+                <div style={{ width: 22, height: 22, borderRadius: "50%", background: color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 500, color: "#fff", flexShrink: 0 }}>{i + 1}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 10, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2 }}>{step.label}</div>
+                  <input
+                    value={step.product}
+                    onChange={e => updateStepProduct(step.id, e.target.value)}
+                    placeholder="product name..."
+                    style={{ fontSize: 12, color: "#333", background: "none", border: "none", width: "100%", outline: "none", fontFamily: "'DM Sans', sans-serif" }}
+                  />
+                </div>
+                <button onClick={() => removeStep(step.id)} style={{ background: "none", border: "none", cursor: "pointer" }}>
+                  <X size={13} color="#ccc" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {!showStepPicker ? (
+        <button
+          onClick={() => setShowStepPicker(true)}
+          style={{ display: "flex", alignItems: "center", gap: 6, background: "#f5f0ea", border: "none", borderRadius: 20, padding: "8px 16px", fontSize: 12, color: "#888", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
+        >
+          <Plus size={13} color="#888" /> Add step
+        </button>
+      ) : (
+        <div style={{ background: "#fff", border: "0.5px solid #E8E0D8", borderRadius: 12, overflow: "hidden" }}>
+          {availableSkin.length > 0 && (
+            <>
+              <div style={{ padding: "7px 12px", fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.6px", borderBottom: "0.5px solid #f5f0ea" }}>Skin</div>
+              {availableSkin.map(s => (
+                <button key={s} onClick={() => addStep(s, "skin")} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "none", border: "none", borderBottom: "0.5px solid #f5f0ea", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+                  <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#A8001C", flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, color: "#333" }}>{s}</span>
+                </button>
+              ))}
+            </>
+          )}
+          {allowMakeup && availableMakeup.length > 0 && (
+            <>
+              <div style={{ padding: "7px 12px", fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.6px", borderBottom: "0.5px solid #f5f0ea" }}>Makeup</div>
+              {availableMakeup.map(s => (
+                <button key={s} onClick={() => addStep(s, "makeup")} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "none", border: "none", borderBottom: "0.5px solid #f5f0ea", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+                  <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#C4743A", flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, color: "#333" }}>{s}</span>
+                </button>
+              ))}
+            </>
+          )}
+          <button onClick={() => setShowStepPicker(false)} style={{ width: "100%", padding: "8px", fontSize: 12, color: "#aaa", background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+            Cancel
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PhotoOptional({
+  images, setImages, fileRef,
+}: {
+  images: string[];
+  setImages: React.Dispatch<React.SetStateAction<string[]>>;
+  fileRef: React.RefObject<HTMLInputElement | null>;
+}) {
+  const onFiles = (files: FileList | null) => {
+    if (!files) return;
+    const urls = Array.from(files).map(f => URL.createObjectURL(f));
+    setImages(prev => [...prev, ...urls]);
+  };
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 8 }}>Photo — show your skin or the product</div>
+      {images.length > 0 ? (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+          {images.map((src, i) => (
+            <div key={i} style={{ position: "relative", width: 72, height: 72, borderRadius: 10, overflow: "hidden" }}>
+              <img src={src} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <button onClick={() => setImages(prev => prev.filter((_, idx) => idx !== i))} style={{ position: "absolute", top: 3, right: 3, width: 18, height: 18, borderRadius: "50%", background: "rgba(0,0,0,0.6)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <X size={10} color="#fff" />
+              </button>
+            </div>
+          ))}
+          <button onClick={() => fileRef.current?.click()} style={{ width: 72, height: 72, borderRadius: 10, border: "1.5px dashed #ddd", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Plus size={18} color="#ccc" />
+          </button>
+        </div>
+      ) : (
+        <>
+          <div
+            onClick={() => fileRef.current?.click()}
+            style={{ width: "100%", height: 90, borderRadius: 12, border: "1.5px dashed #f5d0d0", background: "#FFF8F8", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5, cursor: "pointer", marginBottom: 4 }}
+          >
+            <ImagePlus size={24} color="#f5d0d0" />
+            <span style={{ fontSize: 12, color: "#f5b0b0" }}>before/after · product shot · skin close-up</span>
+          </div>
+          <span style={{ fontSize: 11, color: "#bbb", display: "block", textAlign: "center", marginBottom: 0, cursor: "pointer" }}>
+            skip for now
+          </span>
+        </>
+      )}
+      <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={e => onFiles(e.target.files)} />
+    </div>
+  );
+}
+
+function PhotoMandatory({
+  images, setImages, lookFileRef,
+}: {
+  images: string[];
+  setImages: React.Dispatch<React.SetStateAction<string[]>>;
+  lookFileRef: React.RefObject<HTMLInputElement | null>;
+}) {
+  const onFiles = (files: FileList | null) => {
+    if (!files) return;
+    const urls = Array.from(files).map(f => URL.createObjectURL(f));
+    setImages(prev => [...urls, ...prev]);
+  };
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 8 }}>
+        Your look photo <span style={{ color: "#A8001C" }}>required</span>
+      </div>
+      {images.length > 0 ? (
+        <div style={{ position: "relative", width: "100%", height: 180, borderRadius: 14, overflow: "hidden", marginBottom: 8 }}>
+          <img src={images[0]} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          <button onClick={() => setImages([])} style={{ position: "absolute", top: 8, right: 8, width: 24, height: 24, borderRadius: "50%", background: "rgba(0,0,0,0.6)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <X size={12} color="#fff" />
+          </button>
+          <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
+            <button onClick={() => lookFileRef.current?.click()} style={{ background: "rgba(0,0,0,0.5)", color: "#fff", border: "none", borderRadius: 20, padding: "5px 12px", fontSize: 11, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+              + add more
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div
+          onClick={() => lookFileRef.current?.click()}
+          style={{ width: "100%", height: 160, borderRadius: 14, background: "#1C0A00", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer" }}
+        >
+          <ImagePlus size={32} color="rgba(255,255,255,0.4)" />
+          <span style={{ fontSize: 13, fontWeight: 500, color: "#FFFCF8" }}>Upload your look photo</span>
+          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>the face is the whole point — required to post</span>
+        </div>
+      )}
+      <input ref={lookFileRef} type="file" accept="image/*" multiple hidden onChange={e => onFiles(e.target.files)} />
+    </div>
+  );
+}
+
 function ComposeSheet({
   open, onOpenChange, promptContext, onSubmit,
 }: {
@@ -1158,229 +1470,9 @@ function ComposeSheet({
     </div>
   );
 
-  const TextHashtagBlock = ({ placeholder }: { placeholder: string }) => (
-    <>
-      <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Your take</div>
-      <textarea
-        value={text}
-        onChange={e => setText(e.target.value)}
-        placeholder={placeholder}
-        style={{
-          width: "100%", minHeight: 80, resize: "none" as const,
-          background: "#fff", border: "0.5px solid #E8E0D8", borderRadius: 12,
-          padding: "11px 13px", fontSize: 13, color: "#1C0A00", lineHeight: 1.6,
-          fontFamily: "'DM Sans', sans-serif", outline: "none", boxSizing: "border-box" as const,
-          marginBottom: 8,
-        }}
-      />
-      <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginBottom: 6 }}>
-        {hashtags.map(tag => (
-          <div key={tag} style={{ display: "flex", alignItems: "center", gap: 4, background: "#FFF0F0", border: "1px solid #f5d0d0", borderRadius: 20, padding: "3px 9px" }}>
-            <span style={{ fontSize: 11, color: "#A8001C" }}>{tag}</span>
-            <button onClick={() => setHashtags(prev => prev.filter(t => t !== tag))} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: 0 }}>
-              <X size={10} color="#A8001C" />
-            </button>
-          </div>
-        ))}
-      </div>
-      <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-        <input
-          value={hashtagInput}
-          onChange={e => setHashtagInput(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); addHashtag(); } }}
-          placeholder="add hashtag..."
-          style={{ flex: 1, background: "#f5f0ea", border: "none", borderRadius: 20, padding: "7px 13px", fontSize: 12, color: "#333", outline: "none", fontFamily: "'DM Sans', sans-serif" }}
-        />
-        <button onClick={addHashtag} style={{ background: "#f5f0ea", border: "none", borderRadius: 20, padding: "7px 13px", fontSize: 12, color: "#888", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
-          Add
-        </button>
-      </div>
-    </>
-  );
-
-  const ProductSearch = ({ onSelect }: { onSelect: (p: TaggedProduct) => void }) => (
-    <div>
-      <div style={{ position: "relative" }}>
-        <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#aaa" }} />
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="search products..."
-          style={{ width: "100%", background: "#f5f0ea", border: "none", borderRadius: 20, padding: "9px 14px 9px 34px", fontSize: 12, color: "#333", outline: "none", fontFamily: "'DM Sans', sans-serif", boxSizing: "border-box" as const }}
-        />
-      </div>
-      {searchResults.length > 0 && (
-        <div style={{ marginTop: 6, background: "#fff", border: "0.5px solid #E8E0D8", borderRadius: 12, overflow: "hidden" }}>
-          {searchResults.map(p => (
-            <button key={p.id} onClick={() => onSelect(p)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "none", border: "none", borderBottom: "0.5px solid #f5f0ea", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
-              <img src={p.image} style={{ width: 32, height: 32, borderRadius: 6, objectFit: "cover" as const, flexShrink: 0 }} />
-              <div style={{ flex: 1, textAlign: "left" as const }}>
-                <div style={{ fontSize: 12, fontWeight: 500, color: "#1C0A00" }}>{p.name}</div>
-                <div style={{ fontSize: 11, color: "#999" }}>{p.brand} · {p.price}</div>
-              </div>
-              <Plus size={14} color="#aaa" />
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-
-  const HotPickSelected = ({ bgColor, borderColor }: { bgColor: string; borderColor: string }) => (
-    hotPick ? (
-      <div style={{ display: "flex", alignItems: "center", gap: 10, background: bgColor, border: `1px solid ${borderColor}`, borderRadius: 10, padding: "10px 12px", marginBottom: 14 }}>
-        <img src={hotPick.image} style={{ width: 38, height: 38, borderRadius: 8, objectFit: "cover" as const, flexShrink: 0 }} />
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 12, fontWeight: 500, color: "#1C0A00" }}>{hotPick.name}</div>
-          <div style={{ fontSize: 11, color: "#999" }}>{hotPick.brand} · {hotPick.price}</div>
-        </div>
-        <button onClick={() => setHotPick(null)} style={{ background: "none", border: "none", cursor: "pointer" }}>
-          <X size={15} color="#aaa" />
-        </button>
-      </div>
-    ) : (
-      <div style={{ marginBottom: 14 }}>
-        <ProductSearch onSelect={selectHotPick} />
-      </div>
-    )
-  );
-
-  const StepBuilder = ({ allowMakeup }: { allowMakeup: boolean }) => {
-    const availableSkin = SKIN_STEPS.filter(s => !steps.find(st => st.label === s));
-    const availableMakeup = allowMakeup ? MAKEUP_STEPS.filter(s => !steps.find(st => st.label === s)) : [];
-    return (
-      <div style={{ marginBottom: 14 }}>
-        {steps.length > 0 && (
-          <div style={{ display: "flex", flexDirection: "column" as const, gap: 7, marginBottom: 10 }}>
-            {steps.map((step, i) => {
-              const color = step.type === "skin" ? "#A8001C" : "#C4743A";
-              return (
-                <div key={step.id} style={{ display: "flex", alignItems: "center", gap: 9, background: "#fff", border: "0.5px solid #E8E0D8", borderRadius: 10, padding: "9px 11px" }}>
-                  <div style={{ width: 22, height: 22, borderRadius: "50%", background: color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 500, color: "#fff", flexShrink: 0 }}>{i + 1}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 10, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.5px", marginBottom: 2 }}>{step.label}</div>
-                    <input
-                      value={step.product}
-                      onChange={e => updateStepProduct(step.id, e.target.value)}
-                      placeholder="product name..."
-                      style={{ fontSize: 12, color: "#333", background: "none", border: "none", width: "100%", outline: "none", fontFamily: "'DM Sans', sans-serif" }}
-                    />
-                  </div>
-                  <button onClick={() => removeStep(step.id)} style={{ background: "none", border: "none", cursor: "pointer" }}>
-                    <X size={13} color="#ccc" />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        {!showStepPicker ? (
-          <button
-            onClick={() => setShowStepPicker(true)}
-            style={{ display: "flex", alignItems: "center", gap: 6, background: "#f5f0ea", border: "none", borderRadius: 20, padding: "8px 16px", fontSize: 12, color: "#888", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
-          >
-            <Plus size={13} color="#888" /> Add step
-          </button>
-        ) : (
-          <div style={{ background: "#fff", border: "0.5px solid #E8E0D8", borderRadius: 12, overflow: "hidden" }}>
-            {availableSkin.length > 0 && (
-              <>
-                <div style={{ padding: "7px 12px", fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.6px", borderBottom: "0.5px solid #f5f0ea" }}>Skin</div>
-                {availableSkin.map(s => (
-                  <button key={s} onClick={() => addStep(s, "skin")} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "none", border: "none", borderBottom: "0.5px solid #f5f0ea", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
-                    <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#A8001C", flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, color: "#333" }}>{s}</span>
-                  </button>
-                ))}
-              </>
-            )}
-            {allowMakeup && availableMakeup.length > 0 && (
-              <>
-                <div style={{ padding: "7px 12px", fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.6px", borderBottom: "0.5px solid #f5f0ea" }}>Makeup</div>
-                {availableMakeup.map(s => (
-                  <button key={s} onClick={() => addStep(s, "makeup")} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "none", border: "none", borderBottom: "0.5px solid #f5f0ea", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
-                    <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#C4743A", flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, color: "#333" }}>{s}</span>
-                  </button>
-                ))}
-              </>
-            )}
-            <button onClick={() => setShowStepPicker(false)} style={{ width: "100%", padding: "8px", fontSize: 12, color: "#aaa", background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
-              Cancel
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const PhotoOptional = ({ fileRef }: { fileRef: React.RefObject<HTMLInputElement> }) => (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Photo — show your skin or the product</div>
-      {images.length > 0 ? (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const, marginBottom: 6 }}>
-          {images.map((src, i) => (
-            <div key={i} style={{ position: "relative", width: 72, height: 72, borderRadius: 10, overflow: "hidden" }}>
-              <img src={src} style={{ width: "100%", height: "100%", objectFit: "cover" as const }} />
-              <button onClick={() => setImages(prev => prev.filter((_, idx) => idx !== i))} style={{ position: "absolute", top: 3, right: 3, width: 18, height: 18, borderRadius: "50%", background: "rgba(0,0,0,0.6)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <X size={10} color="#fff" />
-              </button>
-            </div>
-          ))}
-          <button onClick={() => fileRef.current?.click()} style={{ width: 72, height: 72, borderRadius: 10, border: "1.5px dashed #ddd", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Plus size={18} color="#ccc" />
-          </button>
-        </div>
-      ) : (
-        <>
-          <div
-            onClick={() => fileRef.current?.click()}
-            style={{ width: "100%", height: 90, borderRadius: 12, border: "1.5px dashed #f5d0d0", background: "#FFF8F8", display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", gap: 5, cursor: "pointer", marginBottom: 4 }}
-          >
-            <ImagePlus size={24} color="#f5d0d0" />
-            <span style={{ fontSize: 12, color: "#f5b0b0" }}>before/after · product shot · skin close-up</span>
-          </div>
-          <span
-            style={{ fontSize: 11, color: "#bbb", display: "block", textAlign: "center" as const, marginBottom: 0, cursor: "pointer" }}
-          >
-            skip for now
-          </span>
-        </>
-      )}
-      <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={e => onFiles(e.target.files)} />
-    </div>
-  );
-
-  const PhotoMandatory = () => (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>
-        Your look photo <span style={{ color: "#A8001C" }}>required</span>
-      </div>
-      {images.length > 0 ? (
-        <div style={{ position: "relative", width: "100%", height: 180, borderRadius: 14, overflow: "hidden", marginBottom: 8 }}>
-          <img src={images[0]} style={{ width: "100%", height: "100%", objectFit: "cover" as const }} />
-          <button onClick={() => setImages([])} style={{ position: "absolute", top: 8, right: 8, width: 24, height: 24, borderRadius: "50%", background: "rgba(0,0,0,0.6)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <X size={12} color="#fff" />
-          </button>
-          <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
-            <button onClick={() => lookFileRef.current?.click()} style={{ background: "rgba(0,0,0,0.5)", color: "#fff", border: "none", borderRadius: 20, padding: "5px 12px", fontSize: 11, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
-              + add more
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div
-          onClick={() => lookFileRef.current?.click()}
-          style={{ width: "100%", height: 160, borderRadius: 14, background: "#1C0A00", display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer" }}
-        >
-          <ImagePlus size={32} color="rgba(255,255,255,0.4)" />
-          <span style={{ fontSize: 13, fontWeight: 500, color: "#FFFCF8" }}>Upload your look photo</span>
-          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>the face is the whole point — required to post</span>
-        </div>
-      )}
-      <input ref={lookFileRef} type="file" accept="image/*" multiple hidden onChange={e => onFiles(e.target.files, true)} />
-    </div>
-  );
+  const textBlockProps = { text, setText, hashtags, setHashtags, hashtagInput, setHashtagInput };
+  const hotPickPropsBase = { hotPick, setHotPick, search, setSearch, searchResults, onSelect: selectHotPick };
+  const stepBuilderPropsBase = { steps, setSteps, showStepPicker, setShowStepPicker };
 
   const TypeStage = (
     <div style={{ display: "flex", flexDirection: "column" as const, height: "100%" }}>
@@ -1406,10 +1498,10 @@ function ComposeSheet({
             <div style={{ fontSize: 12, color: "#555", lineHeight: 1.5, marginBottom: 5 }}>{opt.desc}</div>
             <div style={{ fontSize: 11, color: "#aaa", fontStyle: "italic" }}>{opt.example}</div>
           </button>
-        ))}
-      </div>
-    </div>
-  );
+         ))}
+       </div>
+     </div>
+   );
 
   const SkinTeaStage = (
     <div style={{ display: "flex", flexDirection: "column" as const, height: "100%" }}>
@@ -1433,13 +1525,13 @@ function ComposeSheet({
           ))}
         </div>
 
-        <PhotoOptional fileRef={fileRef} />
-        <TextHashtagBlock placeholder="what did this actually do for your skin?" />
+        <PhotoOptional images={images} setImages={setImages} fileRef={fileRef} />
+        <TextHashtagBlock {...textBlockProps} placeholder="what did this actually do for your skin?" />
 
         {skinTeaMode === "single" ? (
           <>
             <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Hot Pick — the product</div>
-            <HotPickSelected bgColor="#FFF0F0" borderColor="#f5d0d0" />
+            <HotPickSelected {...hotPickPropsBase} bgColor="#FFF0F0" borderColor="#f5d0d0" />
 
             {hotPick && (
               <>
@@ -1531,9 +1623,9 @@ function ComposeSheet({
         ) : (
           <>
             <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Routine steps — skin only</div>
-            <StepBuilder allowMakeup={false} />
+            <StepBuilder {...stepBuilderPropsBase} allowMakeup={false} />
             <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Hot Pick — standout product of this routine</div>
-            <HotPickSelected bgColor="#FFF0F0" borderColor="#f5d0d0" />
+            <HotPickSelected {...hotPickPropsBase} bgColor="#FFF0F0" borderColor="#f5d0d0" />
           </>
         )}
       </div>
@@ -1553,12 +1645,12 @@ function ComposeSheet({
     <div style={{ display: "flex", flexDirection: "column" as const, height: "100%" }}>
       <SheetHeader title="Look Tea" badge="Look Tea" badgeBg="#F0EDF8" badgeColor="#5B3FA6" backTo="type" />
       <div style={{ flex: 1, overflowY: "auto" as const, padding: "16px" }}>
-        <PhotoMandatory />
-        <TextHashtagBlock placeholder="what's the story behind this look?" />
+        <PhotoMandatory images={images} setImages={setImages} lookFileRef={lookFileRef} />
+        <TextHashtagBlock {...textBlockProps} placeholder="what's the story behind this look?" />
         <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Hot Pick — hero product of this look</div>
-        <HotPickSelected bgColor="#F0EDF8" borderColor="#e0d8f5" />
+        <HotPickSelected {...hotPickPropsBase} bgColor="#F0EDF8" borderColor="#e0d8f5" />
         <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Breakdown steps</div>
-        <StepBuilder allowMakeup={true} />
+        <StepBuilder {...stepBuilderPropsBase} allowMakeup={true} />
       </div>
       <div style={{ padding: "10px 16px 16px", borderTop: "0.5px solid #E8E0D8", background: "#FFFCF8" }}>
         <button

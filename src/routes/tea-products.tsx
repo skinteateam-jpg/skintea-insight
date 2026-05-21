@@ -349,6 +349,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
       createdAt: 1,
     };
     setPosts((prev) => [post, ...prev]);
+    setActiveTag("all");
   };
 
   const openCompose = (prompt?: string) => {
@@ -713,11 +714,13 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
             </div>
           ) : (
             <>
-              <img
-                src={post.images[activeImg] ?? post.images[0]}
-                alt=""
-                style={{ width: "100%", height: 160, borderRadius: 12, objectFit: "cover", display: "block" }}
-              />
+              <div style={{ width: "100%", aspectRatio: "4/5", borderRadius: 12, overflow: "hidden", marginBottom: 8 }}>
+                <img
+                  src={post.images[activeImg] ?? post.images[0]}
+                  alt=""
+                  style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block" }}
+                />
+              </div>
               {post.images.length > 1 && (
                 <div className="mt-2 flex items-center justify-center gap-1">
                   {post.images.map((_, i) => {

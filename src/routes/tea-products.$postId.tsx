@@ -3,6 +3,7 @@ import { createFileRoute, useParams, useNavigate } from "@tanstack/react-router"
 import { Bookmark, Send } from "lucide-react";
 import {
   usePostsStore,
+  setPostsStore,
   CHARACTERS,
   SKIN_BG,
   approvalColor,

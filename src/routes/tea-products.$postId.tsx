@@ -3,6 +3,7 @@ import { createFileRoute, useParams, useNavigate } from "@tanstack/react-router"
 import { Bookmark, Send } from "lucide-react";
 import {
   usePostsStore,
+  setPostsStore,
   CHARACTERS,
   SKIN_BG,
   approvalColor,
@@ -818,20 +819,42 @@ function PostDetailPage() {
       }}>
         {/* Row 1: actions */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-around", marginBottom: 10 }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer" }}>
+          <div
+            onClick={() => setPostsStore((prev) => prev.map((p) => p.id === post.id
+              ? { ...p, helpedByMe: !p.helpedByMe, helped: p.helped + (p.helpedByMe ? -1 : 1) }
+              : p))}
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer", userSelect: "none" }}
+          >
             <div style={{
               width: 36, height: 36, borderRadius: "50%",
-              background: "#FFF0E8", border: "1px solid #FFD4B0",
+              background: post.helpedByMe ? "#FFD4B0" : "#FFF0E8",
+              border: "1px solid #FFD4B0",
               display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
             }}>🔥</div>
             <span style={{ fontSize: 10, color: "#D97706", fontWeight: 500 }}>{post.helped}</span>
             <span style={{ fontSize: 9, color: "#D97706" }}>agree</span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer" }}>
-            <Bookmark size={24} color="#888" />
-            <span style={{ fontSize: 9, color: "#bbb" }}>save</span>
+          <div
+            onClick={() => setPostsStore((prev) => prev.map((p) => p.id === post.id ? { ...p, saved: !p.saved } : p))}
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer", userSelect: "none" }}
+          >
+            <Bookmark size={24} color={post.saved ? "#A8001C" : "#888"} fill={post.saved ? "#A8001C" : "none"} />
+            <span style={{ fontSize: 9, color: post.saved ? "#A8001C" : "#bbb" }}>{post.saved ? "saved" : "save"}</span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer" }}>
+          <div
+            onClick={async () => {
+              const url = typeof window !== "undefined" ? window.location.href : "";
+              try {
+                if (navigator.share) {
+                  await navigator.share({ title: "Skintea", text: post.text, url });
+                } else if (navigator.clipboard) {
+                  await navigator.clipboard.writeText(url);
+                  alert("Link copied");
+                }
+              } catch {}
+            }}
+            style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer", userSelect: "none" }}
+          >
             <Send size={24} color="#888" />
             <span style={{ fontSize: 9, color: "#bbb" }}>share</span>
           </div>

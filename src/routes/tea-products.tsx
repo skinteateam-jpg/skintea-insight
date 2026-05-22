@@ -322,9 +322,25 @@ export function skinTypeLabel(t: SkinType) {
 
 /* ---------- Posts store (module-level, shared across routes) ---------- */
 
-let _posts: Post[] = INITIAL_POSTS;
+const _STORAGE_KEY = "skintea.posts.v1";
+function _loadInitial(): Post[] {
+  if (typeof window === "undefined") return INITIAL_POSTS;
+  try {
+    const raw = window.localStorage.getItem(_STORAGE_KEY);
+    if (!raw) return INITIAL_POSTS;
+    const parsed = JSON.parse(raw) as Post[];
+    return Array.isArray(parsed) && parsed.length ? parsed : INITIAL_POSTS;
+  } catch {
+    return INITIAL_POSTS;
+  }
+}
+let _posts: Post[] = _loadInitial();
 const _listeners = new Set<() => void>();
-function _emit() { _listeners.forEach((l) => l()); }
+function _persist() {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.setItem(_STORAGE_KEY, JSON.stringify(_posts)); } catch {}
+}
+function _emit() { _persist(); _listeners.forEach((l) => l()); }
 
 export function setPostsStore(updater: (prev: Post[]) => Post[]) {
   _posts = updater(_posts);

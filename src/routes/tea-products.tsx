@@ -320,11 +320,34 @@ export function skinTypeLabel(t: SkinType) {
   return t === "oily" ? "oily" : t === "dry" ? "dry" : t === "combo" ? "combination" : t === "sensitive" ? "sensitive" : "normal";
 }
 
+/* ---------- Posts store (module-level, shared across routes) ---------- */
+
+let _posts: Post[] = INITIAL_POSTS;
+const _listeners = new Set<() => void>();
+function _emit() { _listeners.forEach((l) => l()); }
+
+export function setPostsStore(updater: (prev: Post[]) => Post[]) {
+  _posts = updater(_posts);
+  _emit();
+}
+
+export function getPostsStore() { return _posts; }
+
+function _subscribe(cb: () => void) {
+  _listeners.add(cb);
+  return () => { _listeners.delete(cb); };
+}
+
+export function usePostsStore(): [Post[], (u: (prev: Post[]) => Post[]) => void] {
+  const snap = React.useSyncExternalStore(_subscribe, getPostsStore, getPostsStore);
+  return [snap, setPostsStore];
+}
+
 /* ---------- Page ---------- */
 
 export function TeaProductsContent({ embedded = false }: { embedded?: boolean } = {}) {
   const [activeTag, setActiveTag] = React.useState<TagKey | "all">("all");
-  const [posts, setPosts] = React.useState<Post[]>(INITIAL_POSTS);
+  const [posts, setPosts] = usePostsStore();
   const [composeOpen, setComposeOpen] = React.useState(false);
   const [composePrompt, setComposePrompt] = React.useState<string | undefined>();
 

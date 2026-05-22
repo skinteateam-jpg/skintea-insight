@@ -2,7 +2,7 @@ import * as React from "react";
 import { createFileRoute, useParams, useNavigate } from "@tanstack/react-router";
 import { Bookmark, Send } from "lucide-react";
 import {
-  INITIAL_POSTS,
+  usePostsStore,
   CHARACTERS,
   SKIN_BG,
   approvalColor,
@@ -64,7 +64,8 @@ const POST_TYPE_BADGE = {
 function PostDetailPage() {
   const { postId } = useParams({ from: "/tea-products/$postId" });
   const navigate = useNavigate();
-  const post: Post | undefined = INITIAL_POSTS.find((p) => p.id === postId);
+  const [posts] = usePostsStore();
+  const post: Post | undefined = posts.find((p) => p.id === postId);
   const [activeImg, setActiveImg] = React.useState(0);
   const [comment, setComment] = React.useState("");
   const [socialTab, setSocialTab] = React.useState<SocialSource>("all");

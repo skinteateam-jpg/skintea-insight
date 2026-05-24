@@ -843,15 +843,27 @@ function PostDetailPage() {
           </div>
           <div
             onClick={async () => {
-              const url = typeof window !== "undefined" ? window.location.href : "";
+              const shareUrl = window.location.href
+              const shareData = {
+                title: "Skintea",
+                text: post.text.slice(0, 100),
+                url: shareUrl,
+              }
               try {
-                if (navigator.share) {
-                  await navigator.share({ title: "Skintea", text: post.text, url });
-                } else if (navigator.clipboard) {
-                  await navigator.clipboard.writeText(url);
-                  alert("Link copied");
+                if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+                  await navigator.share(shareData)
+                } else {
+                  await navigator.clipboard.writeText(shareUrl)
+                  alert("Link copied to clipboard!")
                 }
-              } catch {}
+              } catch (err) {
+                try {
+                  await navigator.clipboard.writeText(shareUrl)
+                  alert("Link copied to clipboard!")
+                } catch {
+                  alert("Copy this link: " + shareUrl)
+                }
+              }
             }}
             style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer", userSelect: "none" }}
           >

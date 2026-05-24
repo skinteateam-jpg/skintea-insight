@@ -59,13 +59,18 @@ export function ProductChat() {
                 <div
                   className={
                     m.role === "user"
-                      ? "max-w-[85%] rounded-2xl rounded-br-sm bg-tea-leaf px-3.5 py-2 text-sm text-primary-foreground"
+                      ? "max-w-[85%] rounded-2xl rounded-br-sm px-3.5 py-2 text-sm"
                       : "flex max-w-[85%] gap-2"
+                  }
+                  style={
+                    m.role === "user"
+                      ? { background: "#FDF8F5", color: "#1C0A00", border: "0.5px solid #E8DDD4" }
+                      : undefined
                   }
                 >
                   {m.role === "assistant" && (
-                    <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-tea-sage/40">
-                      <Sparkles className="h-3 w-3 text-tea-leaf" />
+                    <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "#FDF8F5", border: "0.5px solid #E8DDD4" }}>
+                      <Sparkles className="h-3 w-3" style={{ color: "#1C0A00" }} />
                     </div>
                   )}
                   {m.role === "assistant" ? (
@@ -110,7 +115,8 @@ export function ProductChat() {
             <Button
               type="submit"
               size="icon"
-              className="h-10 w-10 shrink-0 rounded-full bg-tea-leaf text-primary-foreground hover:bg-tea-leaf/90"
+              className="h-10 w-10 shrink-0 rounded-full"
+              style={{ background: "#1C0A00", color: "#FFFCF8" }}
               aria-label="Send"
             >
               <Send className="h-4 w-4" />

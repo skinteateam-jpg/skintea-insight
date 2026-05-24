@@ -74,7 +74,7 @@ export function ProductChat() {
                     </div>
                   )}
                   {m.role === "assistant" ? (
-                    <div className="rounded-2xl rounded-tl-sm bg-secondary px-3.5 py-2 text-sm text-foreground">
+                    <div className="rounded-2xl rounded-tl-sm px-3.5 py-2 text-sm" style={{ background: "#FDF8F5", color: "#1C0A00", border: "0.5px solid #E8DDD4" }}>
                       {m.content}
                     </div>
                   ) : (

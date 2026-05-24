@@ -112,11 +112,11 @@ function ProductPage() {
   }, []);
 
   function getIngredientStyle(ing: { name: string; match: Record<string, "good" | "watch" | "neutral"> }) {
-    if (!userSkinType) return { background: "#FFFCF8", color: "#1C0A00", border: "none" };
+    if (!userSkinType) return { background: "#FFFCF8", color: "#999", border: "none" };
     const status = ing.match[userSkinType] || "neutral";
     if (status === "good") return { background: "#F0FAF1", color: "#2D7A3A", border: "0.5px solid #2D7A3A", fontWeight: 600 };
-    if (status === "watch") return { background: "#FFFCF8", color: "#1C0A00", border: "0.5px solid #E8DDD4", fontWeight: 500 };
-    return { background: "#FFFCF8", color: "#999999", border: "none" };
+    if (status === "watch") return { background: "#FFF5F5", color: "#A8001C", border: "0.5px solid #A8001C", fontWeight: 500 };
+    return { background: "#FFFCF8", color: "#999", border: "none" };
   }
 
   return (
@@ -371,7 +371,7 @@ function ProductPage() {
               Key Ingredients
             </h2>
             {userSkinType && (
-              <span style={{ fontSize: "11px", background: "#FEF2F2", border: "0.5px solid #A8001C", color: "#A8001C", borderRadius: "20px", padding: "3px 10px", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+              <span style={{ fontSize: "11px", background: "#FFFCF8", border: "0.5px solid #A8001C", color: "#A8001C", borderRadius: "20px", padding: "3px 10px", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em" }}>
                 {userSkinType} skin active
               </span>
             )}
@@ -389,9 +389,9 @@ function ProductPage() {
             ))}
           </div>
           {userSkinType && (
-            <div style={{ marginTop: "12px", background: "#F0FAF1", border: "0.5px solid #2D7A3A", borderRadius: "10px", padding: "10px 14px" }}>
+            <div style={{ marginTop: "12px", background: "#FDF8F5", border: "0.5px solid #E8DDD4", borderRadius: "10px", padding: "10px 14px" }}>
               <p style={{ margin: 0, fontSize: "12px", color: "#1C0A00" }}>
-                <span style={{ color: "#2D7A3A", fontWeight: 600 }}>Green = great for your skin.</span> <span style={{ color: "#999999" }}>Neutral = worth knowing about.</span>
+                <span style={{ color: "#2D7A3A", fontWeight: 600 }}>Green = great for your skin type.</span> <span style={{ color: "#A8001C", fontWeight: 600 }}>Red = use with caution.</span>
               </p>
             </div>
           )}

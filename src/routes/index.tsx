@@ -45,7 +45,13 @@ function HomePage() {
           zIndex: 40,
         }}
       >
-        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: C.espresso }}>skintea</div>
+        <div>
+          <div style={{ lineHeight: 1 }}>
+            <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 22, color: "#1C0A00" }}>Skin</span>
+            <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 22, color: "#A8001C" }}>tea</span>
+          </div>
+          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "#999999", marginTop: 2 }}>Got Skintea? Spill it.</div>
+        </div>
         <div style={{ display: "flex", gap: 16, color: C.espresso }}>
           <Bell size={20} />
           <Search size={20} />
@@ -168,12 +174,12 @@ function HomePage() {
 
       {/* TREATMENT SPOTLIGHT */}
       <SectionHeader title="💉 Treatment Spotlight" />
-      <div style={{ margin: "0 16px", background: C.espresso, borderRadius: 16, padding: 18 }}>
-        <div style={{ color: C.crimson, fontSize: 9, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+      <div style={{ margin: "0 16px", background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 16, padding: 18 }}>
+        <div style={{ color: "#A8001C", fontSize: 9, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase" }}>
           This week · Botox
         </div>
-        <div style={{ color: "#fff", fontSize: 20, fontWeight: 700, marginTop: 4 }}>Forehead + 11s</div>
-        <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 2 }}>
+        <div style={{ color: "#1C0A00", fontSize: 20, fontWeight: 700, marginTop: 4 }}>Forehead + 11s</div>
+        <div style={{ color: "#999999", fontSize: 12, marginTop: 2 }}>
           412 real experiences · no clinic bias
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
@@ -186,13 +192,14 @@ function HomePage() {
               key={s.l}
               style={{
                 flex: 1,
-                background: "rgba(255,255,255,0.08)",
+                background: "#FFFCF8",
+                border: "0.5px solid #E8DDD4",
                 borderRadius: 10,
                 padding: "10px 14px",
               }}
             >
-              <div style={{ color: "#fff", fontSize: 18, fontWeight: 700 }}>{s.v}</div>
-              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 10 }}>{s.l}</div>
+              <div style={{ color: "#1C0A00", fontSize: 18, fontWeight: 700 }}>{s.v}</div>
+              <div style={{ color: "#999999", fontSize: 10 }}>{s.l}</div>
             </div>
           ))}
         </div>
@@ -315,26 +322,14 @@ function SectionHeader({ title, linkTo }: { title: string; linkTo?: string }) {
   );
 }
 
-function TrendingCard({
-  tag,
-  pct,
-  sub,
-  name,
-  spills,
-}: {
-  tag: string;
-  pct: string;
-  sub: string;
-  name: string;
-  spills: string;
-}) {
+function TrendingCard({ tag, pct, sub, name, spills }: { tag: string; pct: string; sub: string; name: string; spills: string }) {
   return (
-    <div style={{ minWidth: 160, background: C.espresso, borderRadius: 14, padding: 14 }}>
-      <div style={{ color: C.crimson, fontSize: 9, fontWeight: 800, letterSpacing: "0.1em" }}>{tag}</div>
-      <div style={{ color: "#fff", fontSize: 22, fontWeight: 800, marginTop: 8 }}>{pct}</div>
-      <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, marginTop: 2 }}>{sub}</div>
-      <div style={{ color: "#fff", fontSize: 13, fontWeight: 700, marginTop: 10, lineHeight: 1.3 }}>{name}</div>
-      <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 10, marginTop: 6 }}>{spills}</div>
+    <div style={{ minWidth: 160, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 14, padding: 14 }}>
+      <div style={{ color: "#A8001C", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" }}>{tag}</div>
+      <div style={{ color: "#1C0A00", fontSize: 22, fontWeight: 800, marginTop: 8 }}>{pct}</div>
+      <div style={{ color: "#999999", fontSize: 10, marginTop: 2 }}>{sub}</div>
+      <div style={{ color: "#1C0A00", fontSize: 13, fontWeight: 700, marginTop: 10, lineHeight: 1.3 }}>{name}</div>
+      <div style={{ color: "#999999", fontSize: 10, marginTop: 6 }}>{spills}</div>
     </div>
   );
 }

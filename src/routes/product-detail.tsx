@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Heart, MessageCircle, Play, Share2, ArrowUpCircle, ExternalLink, ChevronDown, Pencil, Bookmark, ArrowLeft } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { ProductChat } from "@/components/ProductChat";
 import BottomNav from "@/components/BottomNav";
 
@@ -113,7 +114,7 @@ function ProductPage() {
   function getIngredientStyle(ing: { name: string; match: Record<string, "good" | "watch" | "neutral"> }) {
     if (!userSkinType) return { background: "#FFFCF8", color: "#1C0A00", border: "none" };
     const status = ing.match[userSkinType] || "neutral";
-    if (status === "good") return { background: "#FDF8F5", color: "#A8001C", border: "1px solid #A8001C", fontWeight: 600 };
+    if (status === "good") return { background: "#F0FAF1", color: "#2D7A3A", border: "0.5px solid #2D7A3A", fontWeight: 600 };
     if (status === "watch") return { background: "#FFFCF8", color: "#1C0A00", border: "0.5px solid #E8DDD4", fontWeight: 500 };
     return { background: "#FFFCF8", color: "#999999", border: "none" };
   }
@@ -121,36 +122,31 @@ function ProductPage() {
   return (
     <main className="min-h-screen" style={{ paddingBottom: "80px", background: "#FFFCF8" }}>
       <div className="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-20">
-        <button
-          onClick={() => {
-            if (fromPost && fromPostId) {
-              navigate({ to: "/tea-products/$postId", params: { postId: fromPostId } });
-            } else {
-              navigate({ to: "/products" });
-            }
-          }}
-          aria-label="Back"
-          style={{
-            position: "absolute",
-            top: 16,
-            left: 16,
-            background: "transparent",
-            border: "none",
-            color: "#1C0A00",
-            cursor: "pointer",
-            padding: 8,
-            zIndex: 10,
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: 14,
-            fontWeight: 500,
-          }}
-        >
-          <ArrowLeft size={20} />
-          <span>{fromPost ? "Back to post" : "Products"}</span>
-        </button>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+          <button
+            onClick={() => {
+              if (fromPost && fromPostId) {
+                navigate({ to: "/tea-products/$postId", params: { postId: fromPostId } });
+              } else {
+                navigate({ to: "/products" });
+              }
+            }}
+            aria-label="Back"
+            style={{ background: "transparent", border: "none", color: "#1C0A00", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, padding: 0 }}
+          >
+            <ArrowLeft size={16} />
+            <span>{fromPost ? "Back to post" : "Products"}</span>
+          </button>
+          <div style={{ textAlign: "right" }}>
+            <Link to="/" style={{ textDecoration: "none", display: "block", lineHeight: 1 }}>
+              <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 22, color: "#1C0A00" }}>Skin</span>
+              <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 22, color: "#A8001C" }}>tea</span>
+            </Link>
+            <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "#999999", marginTop: 3 }}>
+              Got Skintea? Spill it.
+            </div>
+          </div>
+        </div>
         {/* Header */}
         <header className="mb-14 grid gap-8 sm:grid-cols-[240px_1fr] sm:items-start">
           <div className="aspect-square w-full overflow-hidden rounded-2xl shadow-sm" style={{ background: "#FFFCF8" }}>
@@ -172,21 +168,27 @@ function ProductPage() {
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
               {affiliates.map((a, i) => (
-                <Button
+                <a
                   key={a.name}
-                  asChild
-                  variant={i === 0 ? "default" : "outline"}
-                  className="rounded-full px-5"
-                  style={
-                    i === 0
-                      ? { background: "#1C0A00", color: "#FFFFFF", border: "none" }
-                      : { background: "transparent", color: "#1C0A00", border: "1px solid #E8DDD4" }
-                  }
+                  href={a.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "6px 13px",
+                    borderRadius: 99,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textDecoration: "none",
+                    background: i === 0 ? "#1C0A00" : "transparent",
+                    color: i === 0 ? "#FFFCF8" : "#1C0A00",
+                    border: i === 0 ? "none" : "0.5px solid #E8DDD4",
+                  }}
                 >
-                  <a href={a.url} target="_blank" rel="noopener noreferrer">
-                    {a.name} <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                </Button>
+                  {a.name} <ExternalLink className="h-3 w-3" />
+                </a>
               ))}
             </div>
           </div>
@@ -194,7 +196,7 @@ function ProductPage() {
 
         {/* Content Aggregation */}
         <section className="mb-16">
-          <h2 className="mb-5 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+          <h2 style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#999", marginBottom: 14 }}>
             What people are saying
           </h2>
           <Tabs value={tab} onValueChange={setTab}>
@@ -271,7 +273,7 @@ function ProductPage() {
 
         {/* AI Summary */}
         <section className="mb-16">
-          <h2 className="mb-5 text-base font-semibold tracking-tight text-foreground">
+          <h2 style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#999", marginBottom: 14 }}>
             Summary
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -298,7 +300,7 @@ function ProductPage() {
 
         {/* Fit Summary */}
         <section className="mb-16">
-          <h2 className="mb-5 text-base font-semibold tracking-tight text-foreground">
+          <h2 style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#999", marginBottom: 14 }}>
             Is it for you?
           </h2>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
@@ -334,7 +336,7 @@ function ProductPage() {
 
         {/* Ratings by Age */}
         <section className="mb-16">
-          <h2 className="mb-5 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+          <h2 style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#999", marginBottom: 14 }}>
             Ratings by Age
           </h2>
           <Card className="p-6 shadow-sm">
@@ -358,7 +360,7 @@ function ProductPage() {
         {/* Key Ingredients */}
         <section className="mb-16">
           <div className="mb-5 flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+            <h2 style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#999", margin: 0 }}>
               Key Ingredients
             </h2>
             {userSkinType && (
@@ -380,9 +382,9 @@ function ProductPage() {
             ))}
           </div>
           {userSkinType && (
-            <div style={{ marginTop: "12px", background: "#FDF8F5", border: "0.5px solid #E8DDD4", borderRadius: "10px", padding: "10px 14px" }}>
+            <div style={{ marginTop: "12px", background: "#F0FAF1", border: "0.5px solid #2D7A3A", borderRadius: "10px", padding: "10px 14px" }}>
               <p style={{ margin: 0, fontSize: "12px", color: "#1C0A00" }}>
-                <span style={{ color: "#A8001C", fontWeight: 600 }}>Crimson = great for your skin.</span> <span style={{ color: "#999999" }}>Neutral = worth knowing about.</span>
+                <span style={{ color: "#2D7A3A", fontWeight: 600 }}>Green = great for your skin.</span> <span style={{ color: "#999999" }}>Neutral = worth knowing about.</span>
               </p>
             </div>
           )}
@@ -410,7 +412,7 @@ function ProductPage() {
 
         {/* Confidence */}
         <section className="border-t border-border pt-10">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+          <h2 style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#999", marginBottom: 14 }}>
             Confidence Level
           </h2>
           <div className="flex flex-col items-start gap-2">
@@ -512,7 +514,7 @@ function Dots({
   strength: number;
   color: "yes" | "skip" | "grey";
 }) {
-  const fill = color === "yes" ? "#1C0A00" : color === "skip" ? "#A8001C" : "#999999";
+  const fill = color === "yes" ? "#2D7A3A" : color === "skip" ? "#A8001C" : "#E8DDD4";
   return (
     <div style={{ display: "flex", gap: "3px", alignItems: "center" }}>
       {[1, 2, 3].map((i) => (
@@ -541,7 +543,7 @@ function FitCard({
   title: string;
   items: { label: string; strength: number }[];
 }) {
-  const labelColor = variant === "yes" ? "#1C0A00" : "#A8001C";
+  const labelColor = variant === "yes" ? "#2D7A3A" : "#A8001C";
   return (
     <div
       style={{

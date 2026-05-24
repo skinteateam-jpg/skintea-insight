@@ -194,10 +194,28 @@ function ProductPage() {
             What people are saying
           </h2>
           <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className="mb-6 grid w-full grid-cols-3 rounded-full bg-secondary p-1">
-              <TabsTrigger value="tiktok" className="rounded-full">TikTok</TabsTrigger>
-              <TabsTrigger value="instagram" className="rounded-full">Instagram</TabsTrigger>
-              <TabsTrigger value="reddit" className="rounded-full">Reddit</TabsTrigger>
+            <TabsList className="mb-6 grid grid-cols-3" style={{ background: "transparent", padding: 0, borderBottom: "0.5px solid #E8DDD4", gap: 0, width: "100%", height: "auto", borderRadius: 0 }}>
+              {(["tiktok", "instagram", "reddit"] as const).map((v) => {
+                const active = tab === v;
+                return (
+                  <TabsTrigger
+                    key={v}
+                    value={v}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      borderBottom: active ? "2px solid #A8001C" : "2px solid transparent",
+                      borderRadius: 0,
+                      boxShadow: "none",
+                      padding: "8px 4px",
+                      color: active ? "#1C0A00" : "#999",
+                      fontWeight: active ? 700 : 400,
+                    }}
+                  >
+                    {v === "tiktok" ? "TikTok" : v === "instagram" ? "Instagram" : "Reddit"}
+                  </TabsTrigger>
+                );
+              })}
             </TabsList>
 
             <TabsContent value="tiktok">

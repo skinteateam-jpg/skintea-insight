@@ -47,22 +47,12 @@ function TeaPage() {
         }}
       >
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "14px 16px 0" }}>
-          <Link
-            to="/"
-            style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: 22,
-              color: ESPRESSO,
-              textDecoration: "none",
-              fontWeight: 400,
-              lineHeight: 1,
-              display: "block",
-            }}
-          >
-            skintea
+          <Link to="/" style={{ textDecoration: "none", display: "block", lineHeight: 1 }}>
+            <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 22, color: "#1C0A00" }}>Skin</span>
+            <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 22, color: "#A8001C" }}>tea</span>
           </Link>
-          <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>
-            Got the skintea? Spill it.
+          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "#999999", marginTop: 3 }}>
+            Got Skintea? Spill it.
           </div>
           <div style={{ display: "flex", marginTop: 10 }}>
             {TABS.map((t) => {

@@ -113,9 +113,9 @@ function ProductPage() {
   function getIngredientStyle(ing: { name: string; match: Record<string, "good" | "watch" | "neutral"> }) {
     if (!userSkinType) return { background: "#FFFCF8", color: "#1C0A00", border: "none" };
     const status = ing.match[userSkinType] || "neutral";
-    if (status === "good") return { background: "#FEF2F2", color: "#A8001C", border: "1px solid #A8001C", fontWeight: 600 };
-    if (status === "watch") return { background: "#FFFBEB", color: "#92400E", border: "1px solid #D97706", fontWeight: 500 };
-    return { background: "#FFFCF8", color: "#1C0A00", border: "none" };
+    if (status === "good") return { background: "#FDF8F5", color: "#A8001C", border: "1px solid #A8001C", fontWeight: 600 };
+    if (status === "watch") return { background: "#FFFCF8", color: "#1C0A00", border: "0.5px solid #E8DDD4", fontWeight: 500 };
+    return { background: "#FFFCF8", color: "#999999", border: "none" };
   }
 
   return (
@@ -380,9 +380,9 @@ function ProductPage() {
             ))}
           </div>
           {userSkinType && (
-            <div style={{ marginTop: "12px", background: "#FEF2F2", border: "0.5px solid #FCA5A5", borderRadius: "10px", padding: "10px 14px" }}>
-              <p style={{ margin: 0, fontSize: "12px", color: "#7F1D1D" }}>
-                <span style={{ color: "#A8001C", fontWeight: 600 }}>Crimson = great for your skin.</span> Amber = worth knowing about.
+            <div style={{ marginTop: "12px", background: "#FDF8F5", border: "0.5px solid #E8DDD4", borderRadius: "10px", padding: "10px 14px" }}>
+              <p style={{ margin: 0, fontSize: "12px", color: "#1C0A00" }}>
+                <span style={{ color: "#A8001C", fontWeight: 600 }}>Crimson = great for your skin.</span> <span style={{ color: "#999999" }}>Neutral = worth knowing about.</span>
               </p>
             </div>
           )}
@@ -512,7 +512,7 @@ function Dots({
   strength: number;
   color: "yes" | "skip" | "grey";
 }) {
-  const fill = color === "yes" ? "#2D7A3A" : color === "skip" ? "#A8001C" : "#999999";
+  const fill = color === "yes" ? "#1C0A00" : color === "skip" ? "#A8001C" : "#999999";
   return (
     <div style={{ display: "flex", gap: "3px", alignItems: "center" }}>
       {[1, 2, 3].map((i) => (
@@ -541,12 +541,12 @@ function FitCard({
   title: string;
   items: { label: string; strength: number }[];
 }) {
-  const labelColor = variant === "yes" ? "#2D7A3A" : "#A8001C";
+  const labelColor = variant === "yes" ? "#1C0A00" : "#A8001C";
   return (
     <div
       style={{
         background: "white",
-        border: "0.5px solid #e5e5e5",
+        border: "0.5px solid #E8DDD4",
         borderRadius: "12px",
         padding: "16px 20px",
       }}

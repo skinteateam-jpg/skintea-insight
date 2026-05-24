@@ -26,14 +26,14 @@ export const Route = createFileRoute("/products")({
 const C = {
   espresso: "#1C0A00",
   crimson: "#A8001C",
-  bg: "#FAFAF8",
+  bg: "#FFFCF8",
   surface: "#FFFFFF",
-  border: "#EDEBE8",
-  borderStrong: "#D4CFC8",
-  textMid: "#5C4033",
-  textLight: "#9E8070",
-  imageBg: "#F5F0EB",
-  hoverTint: "#FFF0F2",
+  border: "#E8DDD4",
+  borderStrong: "#E8DDD4",
+  textMid: "#1C0A00",
+  textLight: "#999999",
+  imageBg: "#FFFCF8",
+  hoverTint: "#FDF8F5",
 };
 
 // ---------- Data ----------
@@ -135,21 +135,15 @@ function ProductsPage() {
             gap: 12,
             padding: "14px 16px",
             background: C.surface,
-            borderBottom: `2px solid ${C.espresso}`,
+            borderBottom: `0.5px solid ${C.border}`,
           }}
         >
-          <Link to="/products" style={{ textDecoration: "none" }}>
-            <div
-              style={{
-                fontWeight: 900,
-                fontSize: 22,
-                letterSpacing: "-0.04em",
-                lineHeight: 1,
-              }}
-            >
-              <span style={{ color: C.espresso }}>skin</span>
-              <span style={{ color: C.crimson }}>tea</span>
+          <Link to="/products" style={{ textDecoration: "none", display: "block" }}>
+            <div style={{ lineHeight: 1 }}>
+              <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 22, color: "#1C0A00" }}>Skin</span>
+              <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 22, color: "#A8001C" }}>tea</span>
             </div>
+            <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "#999999", marginTop: 2 }}>Got Skintea? Spill it.</div>
           </Link>
           <div
             style={{
@@ -187,7 +181,7 @@ function ProductsPage() {
             gap: 0,
             overflowX: "auto",
             background: C.surface,
-            borderBottom: `1.5px solid ${C.espresso}`,
+            borderBottom: `0.5px solid ${C.border}`,
             scrollbarWidth: "none",
           }}
         >
@@ -234,8 +228,8 @@ function ProductsPage() {
               style={{
                 flexShrink: 0,
                 padding: "6px 12px",
-                border: `1.5px solid ${C.espresso}`,
-                borderRadius: 4,
+                border: `0.5px solid ${C.border}`,
+                borderRadius: 99,
                 background: "transparent",
                 color: C.espresso,
                 fontSize: 10,
@@ -292,8 +286,8 @@ function ProductsPage() {
               </div>
               <div
                 style={{
-                  border: `1.5px solid ${C.espresso}`,
-                  borderRadius: 6,
+                  border: `0.5px solid ${C.border}`,
+                  borderRadius: 12,
                   overflow: "hidden",
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr",
@@ -649,8 +643,8 @@ function SubCategoryCell({
         padding: "12px 12px",
         background: hover ? C.hoverTint : C.surface,
         border: "none",
-        borderRight: hasRightBorder ? `1.5px solid ${C.espresso}` : "none",
-        borderBottom: hasBottomBorder ? `1.5px solid ${C.espresso}` : "none",
+        borderRight: hasRightBorder ? `0.5px solid ${C.border}` : "none",
+        borderBottom: hasBottomBorder ? `0.5px solid ${C.border}` : "none",
         cursor: "pointer",
         textAlign: "left",
         transition: "background 0.15s",

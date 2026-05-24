@@ -159,7 +159,7 @@ function PostDetailPage() {
         {/* Hero */}
         {post.images.length > 0 && (
           <div style={{ position: "relative", padding: "0 16px" }}>
-            <div style={{ width: "100%", aspectRatio: "4/5", maxHeight: 420, borderRadius: 16, overflow: "hidden", background: "#e8e4dc" }}>
+            <div style={{ width: "100%", aspectRatio: "4/5", maxHeight: 420, borderRadius: 16, overflow: "hidden", background: "#E8DDD4" }}>
               <img
                 src={post.images[activeImg]}
                 alt=""
@@ -205,7 +205,7 @@ function PostDetailPage() {
                       width: i === activeImg ? 14 : 5,
                       height: 5,
                       borderRadius: 3,
-                      background: i === activeImg ? "#1C0A00" : "#E8E0D8",
+                      background: i === activeImg ? "#1C0A00" : "#E8DDD4",
                       border: 0,
                       padding: 0,
                       cursor: "pointer",
@@ -264,7 +264,7 @@ function PostDetailPage() {
                 </span>
               )}
             </div>
-            <p style={{ fontSize: 11, color: "#8A7E76" }}>
+            <p style={{ fontSize: 11, color: "#999999" }}>
               {post.isMUA ? post.authorRole : `${formatAgo(post.createdAt)} ago`}
             </p>
           </div>
@@ -425,7 +425,7 @@ function PostDetailPage() {
                         {step.num}
                       </div>
                       {!isLast && (
-                        <div style={{ width: 1, flex: 1, background: "#E8E0D8", marginTop: 4 }} />
+                        <div style={{ width: 1, flex: 1, background: "#E8DDD4", marginTop: 4 }} />
                       )}
                     </div>
                     <div style={{ flex: 1, paddingBottom: isLast ? 0 : 16 }}>
@@ -449,7 +449,7 @@ function PostDetailPage() {
                             onClick={(e) => { e.stopPropagation(); navigate({ to: "/product-detail", search: { from: "post", postId: post.id } }); }}
                             style={{
                               background: "#FFFCF8",
-                              border: "0.5px solid #E8E0D8",
+                              border: "0.5px solid #E8DDD4",
                               borderRadius: 10,
                               padding: 8,
                               display: "flex",
@@ -519,7 +519,7 @@ function PostDetailPage() {
           <div
             style={{
               background: "#fff",
-              border: "0.5px solid #E8E0D8",
+              border: "0.5px solid #E8DDD4",
               borderRadius: 14,
               padding: 12,
               display: "flex",
@@ -583,13 +583,13 @@ function PostDetailPage() {
         {/* Majority opinion on social media (spill only) */}
         {post.postType === "spill" && (
           <>
-            <div style={{ height: "0.5px", background: "#E8E0D8", margin: "0 16px 16px" }} />
+            <div style={{ height: "0.5px", background: "#E8DDD4", margin: "0 16px 16px" }} />
             <div style={{ padding: "0 16px", marginBottom: 16 }}>
               <div style={{ fontSize: 11, fontWeight: 500, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 8 }}>
                 Majority opinion on social media
               </div>
-              <div style={{ background: "#fff", border: "0.5px solid #E8E0D8", borderRadius: 12, overflow: "hidden" }}>
-                <div style={{ display: "flex", borderBottom: "0.5px solid #E8E0D8" }}>
+              <div style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, overflow: "hidden" }}>
+                <div style={{ display: "flex", borderBottom: "0.5px solid #E8DDD4" }}>
                   {(["all", "tiktok", "reddit", "reviews"] as SocialSource[]).map((tab) => (
                     <button
                       key={tab}
@@ -638,7 +638,7 @@ function PostDetailPage() {
                         <div key={t} style={{ fontSize: 11, color: "#555", lineHeight: 1.5, marginBottom: 3 }}>→ {t}</div>
                       ))}
                     </div>
-                    <div style={{ background: "#f5f0ea", border: "0.5px solid #E8E0D8", borderRadius: 10, padding: "10px 12px" }}>
+                    <div style={{ background: "#f5f0ea", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: "10px 12px" }}>
                       <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px", color: "#888", marginBottom: 6 }}>
                         Minority
                       </div>
@@ -656,7 +656,7 @@ function PostDetailPage() {
         {/* Product mentioned (spill only, when products exist) */}
         {post.postType === "spill" && post.products.length > 0 && (
           <>
-            <div style={{ height: "0.5px", background: "#E8E0D8", margin: "0 16px 16px" }} />
+            <div style={{ height: "0.5px", background: "#E8DDD4", margin: "0 16px 16px" }} />
             <div style={{ padding: "0 16px", marginBottom: 16 }}>
               <div style={{ fontSize: 11, fontWeight: 500, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 8 }}>
                 Product mentioned
@@ -693,7 +693,7 @@ function PostDetailPage() {
         {/* Others who relate (spill only) */}
         {post.postType === "spill" && (
           <>
-            <div style={{ height: "0.5px", background: "#E8E0D8", margin: "0 16px 16px" }} />
+            <div style={{ height: "0.5px", background: "#E8DDD4", margin: "0 16px 16px" }} />
             <div style={{ padding: "0 16px", marginBottom: 16 }}>
               <div style={{ fontSize: 11, fontWeight: 500, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 8 }}>
                 Others who relate
@@ -703,7 +703,7 @@ function PostDetailPage() {
                   <div
                     key={spill.id}
                     style={{
-                      background: "#fff", border: "0.5px solid #E8E0D8",
+                      background: "#fff", border: "0.5px solid #E8DDD4",
                       borderRadius: 12, padding: 12, cursor: "pointer",
                     }}
                   >
@@ -794,7 +794,7 @@ function PostDetailPage() {
                   {c.initials}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ background: "#fff", border: "0.5px solid #E8E0D8", borderRadius: 12, padding: 10 }}>
+                  <div style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, padding: 10 }}>
                     <p style={{ fontSize: 12, fontWeight: 600, color: "#1C0A00" }}>{c.name}</p>
                     <p style={{ fontSize: 12, color: "#1C0A00", marginTop: 3, lineHeight: 1.4 }}>{c.text}</p>
                   </div>
@@ -812,7 +812,7 @@ function PostDetailPage() {
       <div style={{
         position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
         width: "100%", maxWidth: 480,
-        background: "#FFFCF8", borderTop: "0.5px solid #E8E0D8",
+        background: "#FFFCF8", borderTop: "0.5px solid #E8DDD4",
         padding: "10px 16px 16px",
         zIndex: 30,
         fontFamily: "'DM Sans', sans-serif",
@@ -872,7 +872,7 @@ function PostDetailPage() {
           </div>
         </div>
         {/* Divider */}
-        <div style={{ height: "0.5px", background: "#E8E0D8", margin: "0 -16px 10px" }} />
+        <div style={{ height: "0.5px", background: "#E8DDD4", margin: "0 -16px 10px" }} />
         {/* Row 2: comment input */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <input

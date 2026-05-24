@@ -10,9 +10,9 @@ export const Route = createFileRoute("/admin/")({
 });
 
 const ESPRESSO = "#1C0A00";
-const CREAM = "#FAF7F2";
-const BORDER = "#E8E0D8";
-const MUTED = "#8A7E76";
+const CREAM = "#FFFCF8";
+const BORDER = "#E8DDD4";
+const MUTED = "#999999";
 
 function AdminDashboard() {
   const navigate = useNavigate();

@@ -108,11 +108,11 @@ function ProductPage() {
   const userSkinType = typeof window !== "undefined" ? localStorage.getItem("skintea_skin_type") || null : null;
 
   function getIngredientStyle(ing: { name: string; match: Record<string, "good" | "watch" | "neutral"> }) {
-    if (!userSkinType) return { background: "#FAF7F2", color: "#1C0A00", border: "none" };
+    if (!userSkinType) return { background: "#FFFCF8", color: "#1C0A00", border: "none" };
     const status = ing.match[userSkinType] || "neutral";
     if (status === "good") return { background: "#FEF2F2", color: "#A8001C", border: "1px solid #A8001C", fontWeight: 600 };
     if (status === "watch") return { background: "#FFFBEB", color: "#92400E", border: "1px solid #D97706", fontWeight: 500 };
-    return { background: "#FAF7F2", color: "#1C0A00", border: "none" };
+    return { background: "#FFFCF8", color: "#1C0A00", border: "none" };
   }
 
   return (
@@ -150,7 +150,7 @@ function ProductPage() {
         </button>
         {/* Header */}
         <header className="mb-14 grid gap-8 sm:grid-cols-[240px_1fr] sm:items-start">
-          <div className="aspect-square w-full overflow-hidden rounded-2xl shadow-sm" style={{ background: "#FAF7F2" }}>
+          <div className="aspect-square w-full overflow-hidden rounded-2xl shadow-sm" style={{ background: "#FFFCF8" }}>
             <div className="flex h-full w-full items-center justify-center">
               <div className="h-32 w-20 rounded-md bg-background/70 shadow-inner sm:h-40 sm:w-24" />
             </div>
@@ -177,7 +177,7 @@ function ProductPage() {
                   style={
                     i === 0
                       ? { background: "#1C0A00", color: "#FFFFFF", border: "none" }
-                      : { background: "transparent", color: "#1C0A00", border: "1px solid #E8E0D8" }
+                      : { background: "transparent", color: "#1C0A00", border: "1px solid #E8DDD4" }
                   }
                 >
                   <a href={a.url} target="_blank" rel="noopener noreferrer">
@@ -230,7 +230,7 @@ function ProductPage() {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 {instagrams.map((p) => (
                   <Card key={p.user} className="overflow-hidden p-0 shadow-sm">
-                    <div className="aspect-square" style={{ background: "#FAF7F2" }} />
+                    <div className="aspect-square" style={{ background: "#FFFCF8" }} />
                     <div className="space-y-2 p-3">
                       <p className="text-xs font-semibold text-foreground">@{p.user}</p>
                       <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">{p.caption}</p>
@@ -285,7 +285,7 @@ function ProductPage() {
               sentence="Feels heavy and may pill under sunscreen."
             />
           </div>
-          <div className="mt-3 rounded-xl px-4 py-3" style={{ background: "#FAF7F2" }}>
+          <div className="mt-3 rounded-xl px-4 py-3" style={{ background: "#FFFCF8" }}>
             <p className="text-xs font-medium text-muted-foreground">Why opinions differ</p>
             <p className="mt-1 text-sm text-foreground">
               Skin type and climate shape the experience more than the formula itself.
@@ -345,7 +345,7 @@ function ProductPage() {
                     </div>
                     <span className="text-sm font-medium" style={{ color: "#A8001C" }}>{a.value}%</span>
                   </div>
-                  <Progress value={a.value} className="h-2 [&>div]:bg-[#1C0A00]" style={{ background: "#FAF7F2" }} />
+                  <Progress value={a.value} className="h-2 [&>div]:bg-[#1C0A00]" style={{ background: "#FFFCF8" }} />
                 </div>
               ))}
             </div>
@@ -428,7 +428,7 @@ function ProductPage() {
           left: 0,
           right: 0,
           background: "#FFFCF8",
-          borderTop: "1px solid #E8E0D8",
+          borderTop: "1px solid #E8DDD4",
           padding: "12px 20px",
           display: "flex",
           gap: "12px",
@@ -460,7 +460,7 @@ function ProductPage() {
             width: "46px",
             height: "46px",
             background: "#fff",
-            border: "1px solid #E8E0D8",
+            border: "1px solid #E8DDD4",
             borderRadius: "10px",
             display: "flex",
             alignItems: "center",
@@ -509,7 +509,7 @@ function Dots({
   strength: number;
   color: "yes" | "skip" | "grey";
 }) {
-  const fill = color === "yes" ? "#2D7A3A" : color === "skip" ? "#A8001C" : "#8A7E76";
+  const fill = color === "yes" ? "#2D7A3A" : color === "skip" ? "#A8001C" : "#999999";
   return (
     <div style={{ display: "flex", gap: "3px", alignItems: "center" }}>
       {[1, 2, 3].map((i) => (
@@ -520,7 +520,7 @@ function Dots({
             height: "8px",
             borderRadius: "50%",
             display: "inline-block",
-            background: i <= strength ? fill : "#E8E0D8",
+            background: i <= strength ? fill : "#E8DDD4",
             border: "none",
           }}
         />

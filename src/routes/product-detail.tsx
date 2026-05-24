@@ -148,49 +148,43 @@ function ProductPage() {
           </div>
         </div>
         {/* Header */}
-        <header className="mb-14 grid gap-8 sm:grid-cols-[240px_1fr] sm:items-start">
-          <div className="aspect-square w-full overflow-hidden rounded-2xl shadow-sm" style={{ background: "#FFFCF8" }}>
-            <div className="flex h-full w-full items-center justify-center">
-              <div className="h-32 w-20 rounded-md bg-background/70 shadow-inner sm:h-40 sm:w-24" />
-            </div>
+        <header style={{ marginBottom: 0, paddingBottom: 20, borderBottom: "0.5px solid #E8DDD4" }}>
+          <div style={{ width: "100%", height: 180, background: "#FFFCF8", border: "0.5px solid #E8DDD4", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
+            <div style={{ width: 56, height: 76, background: "#E8DDD4", borderRadius: 8 }} />
           </div>
-          <div>
-            <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <span className="font-medium tracking-wide" style={{ color: "#A8001C" }}>{product.brand}</span>
-              <span>·</span>
-              <span>{product.category}</span>
-            </div>
-            <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-              {product.name}
-            </h1>
-            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-              {product.tagline}
-            </p>
-            <div className="mt-6 flex flex-wrap gap-2">
-              {affiliates.map((a, i) => (
-                <a
-                  key={a.name}
-                  href={a.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    padding: "6px 13px",
-                    borderRadius: 99,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    textDecoration: "none",
-                    background: i === 0 ? "#1C0A00" : "transparent",
-                    color: i === 0 ? "#FFFCF8" : "#1C0A00",
-                    border: i === 0 ? "none" : "0.5px solid #E8DDD4",
-                  }}
-                >
-                  {a.name} <ExternalLink className="h-3 w-3" />
-                </a>
-              ))}
-            </div>
+          <div style={{ fontSize: 10, color: "#A8001C", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>
+            <span style={{ color: "#A8001C" }}>{product.brand} · {product.category}</span>
+          </div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1C0A00", lineHeight: 1.1, marginBottom: 6, marginTop: 4 }}>
+            {product.name}
+          </h1>
+          <p style={{ fontSize: 12, color: "#999", lineHeight: 1.6, marginBottom: 14 }}>
+            {product.tagline}
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+            {affiliates.map((a, i) => (
+              <a
+                key={a.name}
+                href={a.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "6px 13px",
+                  borderRadius: 99,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  textDecoration: "none",
+                  background: i === 0 ? "#1C0A00" : "transparent",
+                  color: i === 0 ? "#FFFCF8" : "#1C0A00",
+                  border: i === 0 ? "none" : "0.5px solid #E8DDD4",
+                }}
+              >
+                {a.name} <ExternalLink width={10} height={10} />
+              </a>
+            ))}
           </div>
         </header>
 
@@ -207,64 +201,59 @@ function ProductPage() {
             </TabsList>
 
             <TabsContent value="tiktok">
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 {tiktoks.map((t) => (
-                  <Card
-                    key={t.user}
-                    className="group relative aspect-[9/14] overflow-hidden border-0 bg-gradient-to-br from-foreground to-foreground/70 p-0 shadow-sm"
-                  >
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-background/20 backdrop-blur transition group-hover:scale-110">
-                        <Play className="h-5 w-5 fill-background text-background" />
+                  <div key={t.user} style={{ background: "#1a2620", borderRadius: 12, overflow: "hidden", aspectRatio: "9/14", position: "relative", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+                    <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%, -50%)", width: 36, height: 36, background: "rgba(255,255,255,0.2)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Play width={14} height={14} color="#fff" fill="#fff" />
+                    </div>
+                    <div style={{ padding: "8px 10px 10px", background: "linear-gradient(to top, rgba(0,0,0,0.8), transparent)" }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#fff", marginBottom: 2 }}>{t.user}</div>
+                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.75)", lineHeight: 1.35, marginBottom: 5, overflow: "hidden", WebkitLineClamp: 2, display: "-webkit-box", WebkitBoxOrient: "vertical" }}>{t.caption}</div>
+                      <div style={{ display: "flex", gap: 10, fontSize: 9, color: "rgba(255,255,255,0.6)" }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Play width={9} height={9} /> {t.views}</span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Heart width={9} height={9} /> {t.likes}</span>
                       </div>
                     </div>
-                    <div className="absolute inset-x-0 bottom-0 space-y-1 bg-gradient-to-t from-black/80 to-transparent p-3">
-                      <p className="text-xs font-medium text-white">{t.user}</p>
-                      <p className="line-clamp-2 text-[11px] leading-snug text-white/80">{t.caption}</p>
-                      <div className="flex items-center gap-3 pt-1 text-[10px] text-white/70">
-                        <span className="flex items-center gap-1"><Play className="h-3 w-3" /> {t.views}</span>
-                        <span className="flex items-center gap-1"><Heart className="h-3 w-3" /> {t.likes}</span>
-                      </div>
-                    </div>
-                  </Card>
+                  </div>
                 ))}
               </div>
             </TabsContent>
 
             <TabsContent value="instagram">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {instagrams.map((p) => (
-                  <Card key={p.user} className="overflow-hidden p-0 shadow-sm">
-                    <div className="aspect-square" style={{ background: "#FFFCF8" }} />
-                    <div className="space-y-2 p-3">
-                      <p className="text-xs font-semibold text-foreground">@{p.user}</p>
-                      <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">{p.caption}</p>
-                      <div className="flex items-center gap-3 pt-1 text-[11px] text-muted-foreground">
-                        <span className="flex items-center gap-1"><Heart className="h-3 w-3" /> {p.likes}</span>
-                        <span className="flex items-center gap-1"><Share2 className="h-3 w-3" /></span>
+                  <div key={p.user} style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: "10px 12px" }}>
+                    <div style={{ width: 44, height: 44, background: "#FFFCF8", border: "0.5px solid #E8DDD4", borderRadius: 8, flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#1C0A00", marginBottom: 2 }}>@{p.user}</div>
+                      <div style={{ fontSize: 11, color: "#999", lineHeight: 1.4, marginBottom: 4, WebkitLineClamp: 2, display: "-webkit-box", WebkitBoxOrient: "vertical", overflow: "hidden" }}>{p.caption}</div>
+                      <div style={{ display: "flex", gap: 12, fontSize: 10, color: "#bbb", alignItems: "center" }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Heart width={10} height={10} /> {p.likes}</span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Share2 width={10} height={10} /></span>
                       </div>
                     </div>
-                  </Card>
+                  </div>
                 ))}
               </div>
             </TabsContent>
 
             <TabsContent value="reddit">
-              <div className="space-y-3">
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {reddits.map((r) => (
-                  <Card key={r.title} className="flex items-start gap-3 p-4 shadow-sm">
-                    <div className="flex flex-col items-center text-muted-foreground">
-                      <ArrowUpCircle className="h-4 w-4" style={{ color: "#1C0A00" }} />
-                      <span className="text-xs font-semibold text-foreground">{r.up}</span>
+                  <div key={r.title} style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: "10px 12px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0 }}>
+                      <ArrowUpCircle width={14} height={14} color="#A8001C" />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#1C0A00" }}>{r.up}</span>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium" style={{ color: "#A8001C" }}>{r.sub}</p>
-                      <p className="mt-1 text-sm font-medium leading-snug text-foreground">{r.title}</p>
-                      <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-                        <MessageCircle className="h-3 w-3" /> {r.comments} comments
-                      </p>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "#A8001C", marginBottom: 2, textTransform: "uppercase", letterSpacing: "0.06em" }}>{r.sub}</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "#1C0A00", lineHeight: 1.4, marginBottom: 4 }}>{r.title}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "#bbb" }}>
+                        <MessageCircle width={10} height={10} /> {r.comments} comments
+                      </div>
                     </div>
-                  </Card>
+                  </div>
                 ))}
               </div>
             </TabsContent>

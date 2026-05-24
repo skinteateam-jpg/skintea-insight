@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -105,7 +105,10 @@ function ProductPage() {
   const search = useSearch({ strict: false }) as { from?: string; postId?: string } | undefined;
   const fromPost = search?.from === "post";
   const fromPostId = search?.postId;
-  const userSkinType = typeof window !== "undefined" ? localStorage.getItem("skintea_skin_type") || null : null;
+  const [userSkinType, setUserSkinType] = useState<string | null>(null);
+  useEffect(() => {
+    setUserSkinType(localStorage.getItem("skintea_skin_type") || null);
+  }, []);
 
   function getIngredientStyle(ing: { name: string; match: Record<string, "good" | "watch" | "neutral"> }) {
     if (!userSkinType) return { background: "#FFFCF8", color: "#1C0A00", border: "none" };

@@ -17,10 +17,10 @@ export const Route = createFileRoute("/tea")({
 
 const ESPRESSO = "#1C0A00";
 const CRIMSON = "#A8001C";
-const CREAM = "#FAF7F2";
+const CREAM = "#FFFCF8";
 const WARM_WHITE = "#FFFCF8";
-const BORDER = "#E8E0D8";
-const MUTED = "#8A7E76";
+const BORDER = "#E8DDD4";
+const MUTED = "#999999";
 
 type Tab = "product" | "treatment" | "surgery";
 const TABS: { id: Tab; label: string }[] = [

@@ -16,9 +16,9 @@ const C = {
   espresso: "#1C0A00",
   crimson: "#A8001C",
   cream: "#FFFCF8",
-  warm: "#FAF7F2",
-  border: "#E8E0D8",
-  muted: "#8A7E76",
+  warm: "#FFFCF8",
+  border: "#E8DDD4",
+  muted: "#999999",
 };
 
 const CATEGORIES = ["All", "Products", "Treatments", "Surgery", "Clinics", "Ranking"];

@@ -433,7 +433,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
                   style={{
                     background: active ? "#1C0A00" : "#FFFCF8",
                     color: active ? "#FFFCF8" : "#1C0A00",
-                    borderColor: active ? "#1C0A00" : "#E8E0D8",
+                    borderColor: active ? "#1C0A00" : "#E8DDD4",
                   }}
                 >
                   {t.label}
@@ -631,7 +631,7 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
       onClick={() => navigate({ to: "/tea-products/$postId", params: { postId: post.id } })}
       style={{
         background: "#fff",
-        border: "0.5px solid #E8E0D8",
+        border: "0.5px solid #E8DDD4",
         borderRadius: "14px",
         overflow: "hidden",
         padding: "10px",
@@ -693,7 +693,7 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
               </span>
             )}
           </div>
-          <p style={{ fontSize: 10, color: post.isMUA ? "#bbb" : "#8A7E76" }}>
+          <p style={{ fontSize: 10, color: post.isMUA ? "#bbb" : "#999999" }}>
             {post.isMUA ? post.authorRole : `${formatAgo(post.createdAt)} ago`}
           </p>
         </div>
@@ -773,7 +773,7 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
                           width: on ? 12 : 4,
                           height: 4,
                           borderRadius: 2,
-                          background: on ? "#1C0A00" : "#E8E0D8",
+                          background: on ? "#1C0A00" : "#E8DDD4",
                           border: 0,
                           padding: 0,
                           cursor: "pointer",
@@ -917,7 +917,7 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
 
         <button
           onClick={(e) => e.stopPropagation()}
-          style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: 0, padding: 0, cursor: "pointer", color: "#8A7E76" }}
+          style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: 0, padding: 0, cursor: "pointer", color: "#999999" }}
           aria-label="Comments"
         >
           <MessageCircle className="h-4 w-4" />
@@ -928,14 +928,14 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
 
         <button
           onClick={(e) => { e.stopPropagation(); onSaved(); }}
-          style={{ background: "none", border: 0, padding: 4, cursor: "pointer", color: post.saved ? "#1C0A00" : "#8A7E76" }}
+          style={{ background: "none", border: 0, padding: 4, cursor: "pointer", color: post.saved ? "#1C0A00" : "#999999" }}
           aria-label="Save"
         >
           <Bookmark className="h-4 w-4" fill={post.saved ? "currentColor" : "none"} />
         </button>
         <button
           onClick={(e) => e.stopPropagation()}
-          style={{ background: "none", border: 0, padding: 4, cursor: "pointer", color: "#8A7E76" }}
+          style={{ background: "none", border: 0, padding: 4, cursor: "pointer", color: "#999999" }}
           aria-label="Share"
         >
           <Send className="h-4 w-4" />
@@ -1054,7 +1054,7 @@ function TextHashtagBlock({
         placeholder={placeholder}
         style={{
           width: "100%", minHeight: 80, resize: "none",
-          background: "#fff", border: "0.5px solid #E8E0D8", borderRadius: 12,
+          background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12,
           padding: "11px 13px", fontSize: 13, color: "#1C0A00", lineHeight: 1.6,
           fontFamily: "'DM Sans', sans-serif", outline: "none", boxSizing: "border-box",
           marginBottom: 8,
@@ -1106,7 +1106,7 @@ function ProductSearch({
         />
       </div>
       {searchResults.length > 0 && (
-        <div style={{ marginTop: 6, background: "#fff", border: "0.5px solid #E8E0D8", borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ marginTop: 6, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, overflow: "hidden" }}>
           {searchResults.map(p => (
             <button key={p.id} onClick={() => onSelect(p)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "none", border: "none", borderBottom: "0.5px solid #f5f0ea", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
               <img src={p.image} style={{ width: 32, height: 32, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />
@@ -1181,7 +1181,7 @@ function StepBuilder({
           {steps.map((step, i) => {
             const color = step.type === "skin" ? "#A8001C" : "#C4743A";
             return (
-              <div key={step.id} style={{ display: "flex", alignItems: "center", gap: 9, background: "#fff", border: "0.5px solid #E8E0D8", borderRadius: 10, padding: "9px 11px" }}>
+              <div key={step.id} style={{ display: "flex", alignItems: "center", gap: 9, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: "9px 11px" }}>
                 <div style={{ width: 22, height: 22, borderRadius: "50%", background: color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 500, color: "#fff", flexShrink: 0 }}>{i + 1}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 10, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2 }}>{step.label}</div>
@@ -1208,7 +1208,7 @@ function StepBuilder({
           <Plus size={13} color="#888" /> Add step
         </button>
       ) : (
-        <div style={{ background: "#fff", border: "0.5px solid #E8E0D8", borderRadius: 12, overflow: "hidden" }}>
+        <div style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, overflow: "hidden" }}>
           {availableSkin.length > 0 && (
             <>
               <div style={{ padding: "7px 12px", fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.6px", borderBottom: "0.5px solid #f5f0ea" }}>Skin</div>
@@ -1493,7 +1493,7 @@ function ComposeSheet({
   const SheetHeader = ({ title, badge, badgeBg, badgeColor, backTo }: {
     title: string; badge?: string; badgeBg?: string; badgeColor?: string; backTo?: ComposeStage;
   }) => (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", borderBottom: "0.5px solid #E8E0D8", flexShrink: 0 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", borderBottom: "0.5px solid #E8DDD4", flexShrink: 0 }}>
       {backTo && <BackBtn to={backTo} />}
       <span style={{ fontSize: 16, fontWeight: 500, color: "#1C0A00", flex: 1, fontFamily: "'DM Sans', sans-serif" }}>{title}</span>
       {badge && (
@@ -1575,7 +1575,7 @@ function ComposeSheet({
             {hotPick && (
               <>
                 <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Details — toggle what applies</div>
-                <div style={{ background: "#fff", border: "0.5px solid #E8E0D8", borderRadius: 12, overflow: "hidden", marginBottom: 14 }}>
+                <div style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, overflow: "hidden", marginBottom: 14 }}>
 
                   <div style={{ padding: "10px 13px", borderBottom: "0.5px solid #f5f0ea" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: skinTeaDetails.includeWhen ? 6 : 0 }}>
@@ -1596,7 +1596,7 @@ function ComposeSheet({
                           <button
                             key={opt}
                             onClick={() => setSkinTeaDetails(prev => ({ ...prev, whenChoice: opt }))}
-                            style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, border: "1px solid", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", background: skinTeaDetails.whenChoice === opt ? "#A8001C" : "#fff", color: skinTeaDetails.whenChoice === opt ? "#fff" : "#888", borderColor: skinTeaDetails.whenChoice === opt ? "#A8001C" : "#E8E0D8" }}
+                            style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, border: "1px solid", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", background: skinTeaDetails.whenChoice === opt ? "#A8001C" : "#fff", color: skinTeaDetails.whenChoice === opt ? "#fff" : "#888", borderColor: skinTeaDetails.whenChoice === opt ? "#A8001C" : "#E8DDD4" }}
                           >{opt}</button>
                         ))}
                       </div>
@@ -1649,7 +1649,7 @@ function ComposeSheet({
                           <button
                             key={opt}
                             onClick={() => setSkinTeaDetails(prev => ({ ...prev, timelineChoice: opt }))}
-                            style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, border: "1px solid", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", background: skinTeaDetails.timelineChoice === opt ? "#A8001C" : "#fff", color: skinTeaDetails.timelineChoice === opt ? "#fff" : "#888", borderColor: skinTeaDetails.timelineChoice === opt ? "#A8001C" : "#E8E0D8" }}
+                            style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, border: "1px solid", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", background: skinTeaDetails.timelineChoice === opt ? "#A8001C" : "#fff", color: skinTeaDetails.timelineChoice === opt ? "#fff" : "#888", borderColor: skinTeaDetails.timelineChoice === opt ? "#A8001C" : "#E8DDD4" }}
                           >{opt}</button>
                         ))}
                       </div>
@@ -1668,7 +1668,7 @@ function ComposeSheet({
           </>
         )}
       </div>
-      <div style={{ padding: "10px 16px 16px", borderTop: "0.5px solid #E8E0D8", background: "#FFFCF8" }}>
+      <div style={{ padding: "10px 16px 16px", borderTop: "0.5px solid #E8DDD4", background: "#FFFCF8" }}>
         <button
           disabled={!text.trim() || !hotPick}
           onClick={submitSkinTea}
@@ -1691,7 +1691,7 @@ function ComposeSheet({
         <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Breakdown steps</div>
         <StepBuilder {...stepBuilderPropsBase} allowMakeup={true} />
       </div>
-      <div style={{ padding: "10px 16px 16px", borderTop: "0.5px solid #E8E0D8", background: "#FFFCF8" }}>
+      <div style={{ padding: "10px 16px 16px", borderTop: "0.5px solid #E8DDD4", background: "#FFFCF8" }}>
         <button
           disabled={!text.trim() || !hotPick || images.length === 0}
           onClick={submitLookTea}
@@ -1715,7 +1715,7 @@ function ComposeSheet({
           onChange={e => setText(e.target.value)}
           placeholder="nobody warned me... / hot take: ... / don't do this..."
           autoFocus
-          style={{ width: "100%", minHeight: 120, resize: "none" as const, background: "#fff", border: "0.5px solid #E8E0D8", borderRadius: 12, padding: "11px 13px", fontSize: 13, color: "#1C0A00", lineHeight: 1.6, fontFamily: "'DM Sans', sans-serif", outline: "none", boxSizing: "border-box" as const, marginBottom: 8 }}
+          style={{ width: "100%", minHeight: 120, resize: "none" as const, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, padding: "11px 13px", fontSize: 13, color: "#1C0A00", lineHeight: 1.6, fontFamily: "'DM Sans', sans-serif", outline: "none", boxSizing: "border-box" as const, marginBottom: 8 }}
         />
         <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginBottom: 6 }}>
           {hashtags.map(tag => (
@@ -1747,7 +1747,7 @@ function ComposeSheet({
         </div>
         <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={e => onFiles(e.target.files)} />
       </div>
-      <div style={{ padding: "10px 16px 16px", borderTop: "0.5px solid #E8E0D8", background: "#FFFCF8" }}>
+      <div style={{ padding: "10px 16px 16px", borderTop: "0.5px solid #E8DDD4", background: "#FFFCF8" }}>
         <button
           disabled={!text.trim()}
           onClick={submitSpill}

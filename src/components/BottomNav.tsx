@@ -2,9 +2,9 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { House, Search, Coffee, Trophy, User } from "lucide-react";
 
 const ACTIVE = "#A8001C";
-const INACTIVE = "#8A7E76";
+const INACTIVE = "#999999";
 const BG = "#FFFCF8";
-const BORDER = "#E8E0D8";
+const BORDER = "#E8DDD4";
 
 const TABS = [
   { to: "/", label: "Home", Icon: House },

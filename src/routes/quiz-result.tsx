@@ -161,7 +161,7 @@ function QuizResultPage() {
   const result = {
     ...defaultResult,
     skinType: stored?.skinTypeLabel ?? defaultResult.skinType,
-    persona: stored?.persona ?? defaultResult.persona,
+    persona: stored?.character ? CHARACTER_META[stored.character as CharacterKey] : (stored?.persona ?? defaultResult.persona),
     concerns: stored?.concerns?.length ? stored.concerns : defaultResult.concerns,
     ingredients: stored?.ingredients ?? defaultResult.ingredients,
     character: ((stored as any)?.character ?? "glazed-donut") as CharacterKey,

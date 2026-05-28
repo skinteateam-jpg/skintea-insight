@@ -149,11 +149,11 @@ function deriveCharacter(skinType: SkinTypeKey, sensitivity: boolean): Character
 }
 
 const CHARACTER_META: Record<CharacterKey, { name: string; emoji: string; tagline: string }> = {
-  "glazed-donut":   { name: "The Glazed Donut",   emoji: "🍩",   tagline: "Shiny by 2pm, glowing by accident. We work with it, not against it." },
-  "desert-girl":    { name: "The Desert Girl",    emoji: "🏜️",  tagline: "Thirsty skin, big personality. Hydration is your love language." },
-  "mood-board":     { name: "The Mood Board",     emoji: "🎭",   tagline: "Oily here, dry there. Your skin contains multitudes." },
-  "unbothered":     { name: "The Unbothered",     emoji: "😮‍💨", tagline: "Balanced, calm, low maintenance. Don't break what isn't broken." },
-  "main-character": { name: "The Main Character", emoji: "🌸",   tagline: "Reactive, expressive, never boring. Gentle wins every time." },
+  "glazed-donut":   { name: "The Butter Girl",      emoji: "🧈", tagline: "Rich, glossy, and a little too much. Your skin never misses a beat." },
+  "desert-girl":    { name: "The Cracker",          emoji: "🫙", tagline: "Thirsty by 9am. Moisturizer is your love language." },
+  "mood-board":     { name: "The Everything Bagel", emoji: "🥯", tagline: "Oily here, dry there. Your skin contains multitudes." },
+  "unbothered":     { name: "The Glass of Milk",    emoji: "🥛", tagline: "Balanced. Calm. Unbothered. Don't break what isn't broken." },
+  "main-character": { name: "The Peach",            emoji: "🍑", tagline: "Soft, delicate, and reacts to everything. Gentle is the only way." },
 };
 
 function deriveIngredients(skinType: SkinTypeKey, sensitivity: boolean, concern: string) {

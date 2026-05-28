@@ -15,17 +15,7 @@ export const Route = createFileRoute("/quiz")({
 });
 
 // ---------- Brand tokens ----------
-const C = {
-  espresso: "#1C0A00",
-  crimson: "#A8001C",
-  bg: "#FAFAF8",
-  surface: "#FFFFFF",
-  border: "#EDEBE8",
-  borderStrong: "#D4CFC8",
-  textMid: "#5C4033",
-  textLight: "#9E8070",
-  imageBg: "#F5F0EB",
-};
+const C = { espresso: "#1C0A00", crimson: "#A8001C", bg: "#FFFCF8", surface: "#FFFFFF", border: "#E8DDD4", borderStrong: "#E8DDD4", textMid: "#1C0A00", textLight: "#999999", imageBg: "#FFFCF8" };
 
 // ---------- Question definitions ----------
 type OptionDef = { value: string; emoji?: string; label: string };
@@ -304,14 +294,18 @@ function QuizPage() {
       <header style={{ padding: "16px 20px 8px", background: C.bg, position: "sticky", top: 0, zIndex: 5 }}>
         <div style={{ maxWidth: 560, margin: "0 auto" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-            <Link to="/product-detail" style={{ color: C.espresso, textDecoration: "none", fontWeight: 800, fontSize: 14, letterSpacing: "0.02em" }}>
-              SKIN<span style={{ color: C.crimson }}>TEA</span>
-            </Link>
+            <div>
+              <Link to="/product-detail" style={{ textDecoration: "none", display: "block", lineHeight: 1 }}>
+                <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 18, color: "#1C0A00" }}>Skin</span>
+                <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 18, color: "#A8001C" }}>tea</span>
+              </Link>
+              <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#999", marginTop: 2 }}>GOT SKINTEA? SPILL IT</div>
+            </div>
             <div style={{ fontSize: 11, fontWeight: 700, color: C.textLight, letterSpacing: "0.14em" }}>
               {step + 1} / {total}
             </div>
           </div>
-          <div style={{ height: 6, background: C.imageBg, borderRadius: 999, overflow: "hidden" }}>
+          <div style={{ height: 4, background: "#F0E8E0", borderRadius: 999, overflow: "hidden" }}>
             <div
               style={{
                 height: "100%",
@@ -362,15 +356,14 @@ function QuizPage() {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 12,
-                    padding: "14px 14px",
-                    minHeight: 60,
-                    borderRadius: 14,
+                    gap: 10,
+                    padding: "10px 12px",
+                    borderRadius: 10,
                     background: selected ? C.espresso : C.surface,
                     color: selected ? "#fff" : C.espresso,
-                    border: `1.5px solid ${selected ? C.espresso : C.border}`,
+                    border: `0.5px solid ${selected ? C.espresso : C.border}`,
                     textAlign: "left",
-                    fontSize: 15,
+                    fontSize: 13,
                     fontWeight: 600,
                     lineHeight: 1.35,
                     cursor: "pointer",
@@ -382,10 +375,10 @@ function QuizPage() {
                     <span
                       aria-hidden
                       style={{
-                        width: 36, height: 36, borderRadius: 10,
+                        width: 28, height: 28, borderRadius: 10,
                         background: selected ? "rgba(255,255,255,0.12)" : C.imageBg,
                         display: "grid", placeItems: "center",
-                        fontSize: 20, flexShrink: 0,
+                        fontSize: 16, flexShrink: 0,
                       }}
                     >
                       {opt.emoji}
@@ -406,7 +399,8 @@ function QuizPage() {
       <footer
         style={{
           position: "sticky", bottom: 0,
-          background: `linear-gradient(to top, ${C.bg} 70%, rgba(250,250,248,0))`,
+          background: "#FFFCF8",
+          borderTop: "0.5px solid #E8DDD4",
           padding: "12px 16px 20px",
         }}
       >
@@ -417,13 +411,13 @@ function QuizPage() {
             disabled={!currentValue || submitting}
             style={{
               width: "100%",
-              padding: "16px 18px",
-              borderRadius: 14,
+              padding: "13px",
+              borderRadius: 10,
               border: "none",
-              background: currentValue ? C.crimson : C.borderStrong,
-              color: "#fff",
+              background: currentValue ? C.crimson : "#E8DDD4",
+              color: currentValue ? "#fff" : "#999",
               fontWeight: 800,
-              fontSize: 15,
+              fontSize: 13,
               letterSpacing: "0.02em",
               cursor: currentValue && !submitting ? "pointer" : "not-allowed",
               display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,

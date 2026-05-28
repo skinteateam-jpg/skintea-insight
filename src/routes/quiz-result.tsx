@@ -21,24 +21,18 @@ export const Route = createFileRoute("/quiz-result")({
   }),
 });
 
-// ---------- Brand tokens (match /products + /products/$id-v2) ----------
-const C = {
-  espresso: "#1C0A00",
-  crimson: "#A8001C",
-  bg: "#FAFAF8",
-  surface: "#FFFFFF",
-  border: "#EDEBE8",
-  borderStrong: "#D4CFC8",
-  textMid: "#5C4033",
-  textLight: "#9E8070",
-  imageBg: "#F5F0EB",
-  good: "#0F7A4A",
-  goodBg: "#E8F5EE",
-  warn: "#A87400",
-  warnBg: "#FBF1DC",
-  bad: "#A8001C",
-  badBg: "#FCE8EC",
+// ---------- Brand tokens ----------
+const C = { espresso: "#1C0A00", crimson: "#A8001C", bg: "#FFFCF8", surface: "#FFFFFF", border: "#E8DDD4", borderStrong: "#E8DDD4", textMid: "#1C0A00", textLight: "#999999", imageBg: "#FFFCF8", good: "#2D7A3A", goodBg: "#F0FAF1", warn: "#A87400", warnBg: "#FFFBEB", bad: "#A8001C", badBg: "#FFF5F5" };
+
+const HASHTAGS_BY_SKIN: Record<string, string[]> = {
+  oily: ["#butterface", "#glossynotgreasy", "#oilygirlswin", "#blotterqueen", "#myskinismoisturized"],
+  dry: ["#perpetuallythirsty", "#dryskingang", "#moisturizeordie", "#creameverything", "#flakingbutmakingit"],
+  combination: ["#skintypecontradiction", "#tzonechaos", "#itsgivingbothsides", "#combogirlproblems", "#skinmoodswings"],
+  normal: ["#lowmaintenance", "#skinjustworks", "#cleangirlaesthetic", "#normalbutmakeittrendy", "#dontfixwhatsnotbroken"],
+  sensitive: ["#sensitivequeeen", "#gentleornothanks", "#myskinhasopinions", "#fragrancefreelife", "#everythingbreaksmeout"],
 };
+
+const PRODUCT_TABS = ["Cleanser", "Toner", "Serum", "Moisturizer", "SPF", "Mask"];
 
 // ---------- Placeholder result data ----------
 const defaultResult = {
@@ -172,6 +166,9 @@ function QuizResultPage() {
     ingredients: stored?.ingredients ?? defaultResult.ingredients,
   };
 
+  const [activeTab, setActiveTab] = useState(1);
+  const hashtags = HASHTAGS_BY_SKIN[result.skinType.toLowerCase()] ?? HASHTAGS_BY_SKIN.oily;
+
   return (
     <div style={{ background: C.bg, color: C.espresso, minHeight: "100vh" }}>
       {/* Top nav */}
@@ -183,9 +180,15 @@ function QuizResultPage() {
         }}
       >
         <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Link to="/product-detail" style={{ color: "#fff", textDecoration: "none", fontWeight: 800, letterSpacing: "0.02em" }}>
-            SKIN<span style={{ color: C.crimson }}>TEA</span>
-          </Link>
+          <div>
+            <Link to="/" style={{ textDecoration: "none" }}>
+              <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 20, color: "#FFFCF8" }}>Skin</span>
+              <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 20, color: "#A8001C" }}>tea</span>
+            </Link>
+            <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(255,252,248,0.4)", marginTop: 2 }}>
+              GOT SKINTEA? SPILL IT
+            </div>
+          </div>
           <nav style={{ display: "flex", gap: 18, fontSize: 13 }}>
             <Link to="/products" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Products</Link>
             <Link to="/quiz" style={{ color: "#fff", textDecoration: "none", opacity: 0.85 }}>Quiz</Link>
@@ -196,27 +199,67 @@ function QuizResultPage() {
         </div>
       </header>
 
-      {/* Hero */}
-      <section style={{ background: C.espresso, color: "#fff", padding: "20px 20px 36px" }}>
-        <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          <div style={{ color: C.crimson, fontSize: 11, fontWeight: 800, letterSpacing: "0.14em", marginBottom: 10 }}>
-            YOUR RESULTS
-          </div>
-          <h1 style={{ fontSize: 28, lineHeight: 1.15, fontWeight: 800, margin: 0, maxWidth: 520 }}>
-            Your skin profile, decoded.
-          </h1>
-          <p style={{ color: "#D9CFC8", fontSize: 14, marginTop: 10, maxWidth: 520 }}>
-            Built from your answers and 14,200+ real user reviews.
-          </p>
+      {/* Character hero */}
+      <div style={{ background: "#1C0A00", padding: "22px 18px 0", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.18em", color: "#A8001C", textTransform: "uppercase", marginBottom: 18, textAlign: "center" }}>
+          HERE'S YOUR TEA
         </div>
-      </section>
+        <div style={{ position: "relative", marginBottom: 16 }}>
+          <div style={{ position: "absolute", inset: -10, borderRadius: 32, background: "radial-gradient(ellipse at center, rgba(168,0,28,0.2), transparent 70%)", pointerEvents: "none" }} />
+          <div style={{ width: 120, height: 120, borderRadius: 28, background: "linear-gradient(145deg, #2a1200, #3d1a00)", border: "1.5px solid rgba(168,0,28,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 62 }}>
+            {result.persona.emoji}
+          </div>
+        </div>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 28, color: "#FFFCF8", textAlign: "center", lineHeight: 1.1, marginBottom: 4 }}>
+          {result.persona.name}
+        </div>
+        <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,252,248,0.45)", textAlign: "center", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 14 }}>
+          {result.skinType} Skin
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", padding: "0 12px 22px" }}>
+          {hashtags.map((tag, i) => {
+            const accent = i % 2 === 0;
+            return (
+              <span
+                key={tag}
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  borderRadius: 99,
+                  padding: "5px 11px",
+                  color: accent ? "#A8001C" : "rgba(255,252,248,0.65)",
+                  background: accent ? "rgba(168,0,28,0.1)" : "rgba(255,252,248,0.06)",
+                  border: accent ? "0.5px solid rgba(168,0,28,0.25)" : "0.5px solid rgba(255,252,248,0.1)",
+                }}
+              >
+                {tag}
+              </span>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Tagline strip */}
+      <div style={{ background: "#FFFCF8", borderRadius: "16px 16px 0 0", padding: "18px 18px 0" }}>
+        <div style={{ fontSize: 13, color: "#1C0A00", lineHeight: 1.65, fontStyle: "italic", textAlign: "center", paddingBottom: 16, borderBottom: "0.5px solid #E8DDD4" }}>
+          "{result.persona.tagline}"
+        </div>
+      </div>
+
+      {/* Profile sync banner */}
+      <div style={{ margin: "14px 16px 0", background: "#F0FAF1", border: "0.5px solid #2D7A3A", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ width: 8, height: 8, background: "#2D7A3A", borderRadius: "50%", flexShrink: 0 }} />
+        <div style={{ fontSize: 11, color: "#2D7A3A", fontWeight: 600, lineHeight: 1.4 }}>
+          <strong>Saved to your profile.</strong> Your skin type, concerns, and recommendations are now on your Skintea page.
+        </div>
+      </div>
 
       {/* Content */}
       <main
         style={{
           background: C.bg,
-          borderRadius: "20px 20px 0 0",
-          marginTop: -16,
+          borderRadius: 0,
+          marginTop: 0,
           padding: "24px 16px 60px",
         }}
       >
@@ -339,11 +382,75 @@ function QuizResultPage() {
           </Card>
 
           {/* 4. PRODUCTS */}
-          <SectionLabel>RECOMMENDED FOR YOU</SectionLabel>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {result.categories.map((c) => (
-              <CategoryCard key={c.category} item={c} />
-            ))}
+          <div>
+            <SectionLabel>RECOMMENDED FOR YOU</SectionLabel>
+            <div style={{ overflowX: "auto", scrollbarWidth: "none", margin: "0 -16px", padding: "0 16px" }}>
+              <div style={{ display: "flex", gap: 6, width: "max-content", paddingBottom: 10 }}>
+                {PRODUCT_TABS.map((label, idx) => {
+                  const id = idx + 1;
+                  const isActive = activeTab === id;
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => setActiveTab(id)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 5,
+                        padding: "6px 12px",
+                        borderRadius: 99,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        whiteSpace: "nowrap",
+                        cursor: "pointer",
+                        background: isActive ? "#1C0A00" : "#fff",
+                        color: isActive ? "#FFFCF8" : "#999",
+                        border: isActive ? "0.5px solid #1C0A00" : "0.5px solid #E8DDD4",
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {(() => {
+                const activeLabel = PRODUCT_TABS[activeTab - 1];
+                const matched = result.categories.filter(
+                  (c) => c.category.toLowerCase() === activeLabel.toLowerCase()
+                );
+                const items = (matched.length ? matched : result.categories).slice(0, 2);
+                while (items.length < 2 && result.categories.length) {
+                  items.push(result.categories[items.length % result.categories.length]);
+                }
+                return items.map((item, idx) => (
+                  <div key={`${item.category}-${idx}`} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, overflow: "hidden" }}>
+                    <div style={{ height: 90, background: "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
+                      <div style={{ position: "absolute", top: 6, left: 6, width: 18, height: 18, background: "#1C0A00", color: "#FFFCF8", borderRadius: 99, fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        {idx + 1}
+                      </div>
+                      {item.emoji}
+                    </div>
+                    <div style={{ padding: "8px 10px 10px" }}>
+                      <div style={{ fontSize: 9, color: "#999", fontWeight: 600 }}>{item.brand}</div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#1C0A00", lineHeight: 1.3, marginBottom: 5 }}>{item.name}</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 5 }}>
+                        {item.good.map((g) => (
+                          <span key={g} style={{ fontSize: 9, padding: "2px 6px", borderRadius: 99, background: "#F0FAF1", color: "#2D7A3A", fontWeight: 700 }}>
+                            ✓ {g}
+                          </span>
+                        ))}
+                      </div>
+                      <div style={{ fontSize: 10, color: "#A8001C", fontWeight: 700 }}>
+                        {68 + ((idx * 7) % 25)}% match
+                      </div>
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
           </div>
 
           {/* 4b. SKIN TWIN */}
@@ -361,6 +468,39 @@ function QuizResultPage() {
           <p style={{ margin: "-4px 0 0", fontSize: 11, color: C.textLight, fontStyle: "italic" }}>
             Matched by skin type and background — not sponsored.
           </p>
+
+          {/* SHARE AND GIFT */}
+          <SectionLabel>SHARE AND GIFT</SectionLabel>
+          <div style={{ background: "#1C0A00", borderRadius: 12, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <div style={{ fontSize: 11, color: "rgba(255,252,248,0.6)", marginBottom: 2 }}>Your public profile</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#FFFCF8" }}>skintea.com/u/username</div>
+            </div>
+            <span style={{ fontSize: 10, fontWeight: 700, color: "#A8001C", background: "rgba(168,0,28,0.12)", border: "0.5px solid rgba(168,0,28,0.3)", borderRadius: 99, padding: "5px 12px" }}>
+              Copy link
+            </span>
+          </div>
+          <div style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, padding: 14 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 10, background: "#FFF5F5", border: "0.5px solid #A8001C", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
+                🎁
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#1C0A00", marginBottom: 3 }}>Send as a gift</div>
+                <div style={{ fontSize: 11, color: "#999", lineHeight: 1.5 }}>
+                  Share your skin profile so friends and family can pick the perfect products for you — matched to your actual skin type.
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 7 }}>
+              <button type="button" style={{ flex: 1, background: "#A8001C", color: "#FFFCF8", border: "none", borderRadius: 99, padding: 10, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                Share my profile
+              </button>
+              <button type="button" style={{ flex: 1, background: "transparent", color: "#1C0A00", border: "0.5px solid #E8DDD4", borderRadius: 99, padding: 10, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                Add to wishlist
+              </button>
+            </div>
+          </div>
 
           {/* 5. SAMPLE KIT */}
           <SectionLabel>TRY BEFORE YOU COMMIT</SectionLabel>
@@ -484,11 +624,13 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-        fontSize: 11,
+        fontSize: 9,
         fontWeight: 800,
         letterSpacing: "0.14em",
-        color: C.crimson,
-        marginTop: 8,
+        color: "#A8001C",
+        textTransform: "uppercase",
+        marginTop: 18,
+        marginBottom: 10,
       }}
     >
       {children}
@@ -500,9 +642,9 @@ function Card({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
-        background: C.surface,
-        border: `1px solid ${C.border}`,
-        borderRadius: 16,
+        background: "#FFFFFF",
+        border: "0.5px solid #E8DDD4",
+        borderRadius: 12,
         padding: 20,
       }}
     >

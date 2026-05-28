@@ -389,72 +389,60 @@ function QuizResultPage() {
           {/* 4. PRODUCTS */}
           <div>
             <SectionLabel>RECOMMENDED FOR YOU</SectionLabel>
-            <div style={{ overflowX: "auto", scrollbarWidth: "none", margin: "0 -16px", padding: "0 16px" }}>
-              <div style={{ display: "flex", gap: 6, width: "max-content", paddingBottom: 10 }}>
-                {PRODUCT_TABS.map((label, idx) => {
-                  const id = idx + 1;
-                  const isActive = activeTab === id;
+            <div style={{ overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", margin: "0 -16px", padding: "0 16px", display: "flex" }}>
+              <div style={{ display: "flex", gap: 8, width: "max-content", paddingBottom: 12 }}>
+                {REC_TABS.map((tab) => {
+                  const isActive = activeRecTab === tab.key;
                   return (
                     <button
-                      key={label}
+                      key={tab.key}
                       type="button"
-                      onClick={() => setActiveTab(id)}
+                      onClick={() => setActiveRecTab(tab.key)}
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 5,
-                        padding: "6px 12px",
-                        borderRadius: 99,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        whiteSpace: "nowrap",
-                        cursor: "pointer",
                         background: isActive ? "#1C0A00" : "#fff",
                         color: isActive ? "#FFFCF8" : "#999",
-                        border: isActive ? "0.5px solid #1C0A00" : "0.5px solid #E8DDD4",
+                        border: isActive ? "none" : "0.5px solid #E8DDD4",
+                        borderRadius: 99,
+                        padding: "7px 14px",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        cursor: "pointer",
                       }}
                     >
-                      {label}
+                      <span style={{ fontSize: 9, fontWeight: 800, marginRight: 2 }}>{tab.num}</span>
+                      {tab.label}
                     </button>
                   );
                 })}
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {(() => {
-                const activeLabel = PRODUCT_TABS[activeTab - 1];
-                const matched = result.categories.filter(
-                  (c) => c.category.toLowerCase() === activeLabel.toLowerCase()
-                );
-                const items = (matched.length ? matched : result.categories).slice(0, 2);
-                while (items.length < 2 && result.categories.length) {
-                  items.push(result.categories[items.length % result.categories.length]);
-                }
-                return items.map((item, idx) => (
-                  <div key={`${item.category}-${idx}`} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, overflow: "hidden" }}>
-                    <div style={{ height: 90, background: "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
-                      <div style={{ position: "absolute", top: 6, left: 6, width: 18, height: 18, background: "#1C0A00", color: "#FFFCF8", borderRadius: 99, fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        {idx + 1}
-                      </div>
-                      {item.emoji}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 4 }}>
+              {(currentRecs[activeRecTab] ?? []).map((item) => (
+                <div key={`${activeRecTab}-${item.rank}`} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, overflow: "hidden" }}>
+                  <div style={{ height: 100, background: "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
+                    <div style={{ position: "absolute", top: 7, left: 7, width: 20, height: 20, background: "#1C0A00", color: "#FFFCF8", borderRadius: 99, fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {item.rank}
                     </div>
-                    <div style={{ padding: "8px 10px 10px" }}>
-                      <div style={{ fontSize: 9, color: "#999", fontWeight: 600 }}>{item.brand}</div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#1C0A00", lineHeight: 1.3, marginBottom: 5 }}>{item.name}</div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 5 }}>
-                        {item.good.map((g) => (
-                          <span key={g} style={{ fontSize: 9, padding: "2px 6px", borderRadius: 99, background: "#F0FAF1", color: "#2D7A3A", fontWeight: 700 }}>
-                            ✓ {g}
-                          </span>
-                        ))}
-                      </div>
-                      <div style={{ fontSize: 10, color: "#A8001C", fontWeight: 700 }}>
-                        {68 + ((idx * 7) % 25)}% match
-                      </div>
-                    </div>
+                    {item.emoji}
                   </div>
-                ));
-              })()}
+                  <div style={{ padding: "8px 10px 12px" }}>
+                    <div style={{ fontSize: 10, color: "#999", fontWeight: 600, marginBottom: 2 }}>{item.brand}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#1C0A00", lineHeight: 1.35, marginBottom: 6 }}>{item.name}</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                      {item.good.map((g) => (
+                        <span key={g} style={{ fontSize: 9, padding: "2px 7px", borderRadius: 99, background: "#F0FAF1", color: "#2D7A3A", fontWeight: 700 }}>{g}</span>
+                      ))}
+                      {item.watch && (
+                        <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 99, background: "#FFFBEB", color: "#A87400", fontWeight: 700 }}>{item.watch}</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#A8001C", fontWeight: 700, marginTop: 5 }}>{item.pct}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 

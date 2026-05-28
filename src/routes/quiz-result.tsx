@@ -24,13 +24,11 @@ export const Route = createFileRoute("/quiz-result")({
 // ---------- Brand tokens ----------
 const C = { espresso: "#1C0A00", crimson: "#A8001C", bg: "#FFFCF8", surface: "#FFFFFF", border: "#E8DDD4", borderStrong: "#E8DDD4", textMid: "#1C0A00", textLight: "#999999", imageBg: "#FFFCF8", good: "#2D7A3A", goodBg: "#F0FAF1", warn: "#A87400", warnBg: "#FFFBEB", bad: "#A8001C", badBg: "#FFF5F5" };
 
-const HASHTAGS_BY_SKIN: Record<string, string[]> = {
-  oily: ["#butterface", "#glossynotgreasy", "#oilygirlswin", "#blotterqueen", "#myskinismoisturized"],
-  dry: ["#perpetuallythirsty", "#dryskingang", "#moisturizeordie", "#creameverything", "#flakingbutmakingit"],
-  combination: ["#skintypecontradiction", "#tzonechaos", "#itsgivingbothsides", "#combogirlproblems", "#skinmoodswings"],
-  normal: ["#lowmaintenance", "#skinjustworks", "#cleangirlaesthetic", "#normalbutmakeittrendy", "#dontfixwhatsnotbroken"],
-  sensitive: ["#sensitivequeeen", "#gentleornothanks", "#myskinhasopinions", "#fragrancefreelife", "#everythingbreaksmeout"],
-};
+type CharacterKey = "glazed-donut" | "desert-girl" | "mood-board" | "unbothered" | "main-character";
+
+const CHARACTER_META: Record<CharacterKey, { name: string; emoji: string; tagline: string }> = { "glazed-donut": { name: "The Butter Girl", emoji: "🧈", tagline: "Rich, glossy, and a little too much. Your skin never misses a beat." }, "desert-girl": { name: "The Cracker", emoji: "🫙", tagline: "Thirsty by 9am. Moisturizer is your love language." }, "mood-board": { name: "The Everything Bagel", emoji: "🥯", tagline: "Oily here, dry there. Your skin contains multitudes." }, "unbothered": { name: "The Glass of Milk", emoji: "🥛", tagline: "Balanced. Calm. Unbothered. Don't break what isn't broken." }, "main-character": { name: "The Peach", emoji: "🍑", tagline: "Soft, delicate, and reacts to everything. Gentle is the only way." } };
+
+const CHARACTER_HASHTAGS: Record<CharacterKey, string[]> = { "glazed-donut": ["#butterface", "#glossynotgreasy", "#oilygirlswin", "#blotterqueen", "#myskinismoisturized"], "desert-girl": ["#perpetuallythirsty", "#dryskingang", "#moisturizeordie", "#creameverything", "#flakingbutmakingit"], "mood-board": ["#skintypecontradiction", "#tzonechaos", "#itsgivingbothsides", "#combogirlproblems", "#skinmoodswings"], "unbothered": ["#lowmaintenance", "#skinjustworks", "#cleangirlaesthetic", "#normalbutmakeittrendy", "#dontfixwhatsnotbroken"], "main-character": ["#sensitivequeeen", "#gentleornothanks", "#myskinhasopinions", "#fragrancefreelife", "#everythingbreaksmeout"] };
 
 const PRODUCT_TABS = ["Cleanser", "Toner", "Serum", "Moisturizer", "SPF", "Mask"];
 
@@ -38,9 +36,9 @@ const PRODUCT_TABS = ["Cleanser", "Toner", "Serum", "Moisturizer", "SPF", "Mask"
 const defaultResult = {
   skinType: "Oily",
   persona: {
-    name: "The Glazed Donut",
-    emoji: "🍩",
-    tagline: "Shiny by 2pm, glowing by accident. We work with it, not against it.",
+    name: "The Butter Girl",
+    emoji: "🧈",
+    tagline: "Rich, glossy, and a little too much. Your skin never misses a beat.",
   },
   ethnicity: "East Asian", // from quiz; null if not provided
   concerns: ["Enlarged pores", "Occasional breakouts", "Sensitivity on cheeks"],
@@ -164,10 +162,11 @@ function QuizResultPage() {
     persona: stored?.persona ?? defaultResult.persona,
     concerns: stored?.concerns?.length ? stored.concerns : defaultResult.concerns,
     ingredients: stored?.ingredients ?? defaultResult.ingredients,
+    character: ((stored as any)?.character ?? "glazed-donut") as CharacterKey,
   };
 
   const [activeTab, setActiveTab] = useState(1);
-  const hashtags = HASHTAGS_BY_SKIN[result.skinType.toLowerCase()] ?? HASHTAGS_BY_SKIN.oily;
+  const hashtags = CHARACTER_HASHTAGS[result.character] ?? CHARACTER_HASHTAGS["glazed-donut"];
 
   return (
     <div style={{ background: C.bg, color: C.espresso, minHeight: "100vh" }}>

@@ -32,6 +32,8 @@ const CHARACTER_HASHTAGS: Record<CharacterKey, string[]> = { "glazed-donut": ["#
 
 const PRODUCT_TABS = ["Cleanser", "Toner", "Serum", "Moisturizer", "SPF", "Mask"];
 
+const SKIN_RECOMMENDATIONS: Record<string, Record<string, { rank: number; brand: string; name: string; emoji: string; good: string[]; watch?: string; pct: string }[]>> = { oily: { cleanser: [ { rank: 1, brand: "CeraVe", name: "Foaming Facial Cleanser", emoji: "🧼", good: ["Niacinamide", "Ceramides"], pct: "84% rec" }, { rank: 2, brand: "La Roche-Posay", name: "Effaclar Gel Cleanser", emoji: "🫧", good: ["Salicylic acid"], pct: "79% rec" } ], toner: [ { rank: 1, brand: "COSRX", name: "AHA/BHA Clarifying Toner", emoji: "💧", good: ["Salicylic acid", "Willow bark"], watch: "Go slow if sensitive", pct: "75% rec" }, { rank: 2, brand: "Paula's Choice", name: "BHA Liquid Exfoliant", emoji: "🧴", good: ["Salicylic acid"], pct: "88% rec" } ], serum: [ { rank: 1, brand: "The Ordinary", name: "Niacinamide 10% + Zinc 1%", emoji: "🧪", good: ["Niacinamide", "Zinc PCA"], watch: "Can pill under SPF", pct: "91% rec" }, { rank: 2, brand: "Minimalist", name: "Niacinamide 10% Serum", emoji: "💊", good: ["Niacinamide"], pct: "82% rec" } ], moisturizer: [ { rank: 1, brand: "Neutrogena", name: "Hydro Boost Water Gel", emoji: "🫙", good: ["Hyaluronic acid"], pct: "86% rec" }, { rank: 2, brand: "Belif", name: "Aqua Bomb Cream", emoji: "💙", good: ["Lady's mantle"], pct: "78% rec" } ], spf: [ { rank: 1, brand: "EltaMD", name: "UV Clear Broad-Spectrum SPF 46", emoji: "☀️", good: ["Niacinamide", "Zinc oxide"], pct: "93% rec" }, { rank: 2, brand: "Skin1004", name: "Madagascar SPF 50+ PA++++", emoji: "🌤️", good: ["Centella"], pct: "81% rec" } ], mask: [ { rank: 1, brand: "Innisfree", name: "Super Volcanic Pore Clay Mask", emoji: "🌋", good: ["Volcanic clay", "Green tea"], watch: "Max 10 min", pct: "77% rec" }, { rank: 2, brand: "Origins", name: "Clear Improvement Charcoal Mask", emoji: "🖤", good: ["Charcoal", "White China clay"], pct: "72% rec" } ] }, dry: { cleanser: [ { rank: 1, brand: "CeraVe", name: "Hydrating Facial Cleanser", emoji: "🧼", good: ["Ceramides", "Hyaluronic acid"], pct: "91% rec" }, { rank: 2, brand: "Vanicream", name: "Gentle Facial Cleanser", emoji: "🫧", good: ["No fragrance", "No dye"], pct: "85% rec" } ], toner: [ { rank: 1, brand: "Klairs", name: "Supple Preparation Toner", emoji: "💧", good: ["Hyaluronic acid", "Beta-glucan"], pct: "83% rec" }, { rank: 2, brand: "Pyunkang Yul", name: "Essence Toner", emoji: "🌿", good: ["Astragalus extract"], pct: "79% rec" } ], serum: [ { rank: 1, brand: "The Inkey List", name: "Hyaluronic Acid Serum", emoji: "🧪", good: ["Hyaluronic acid"], pct: "87% rec" }, { rank: 2, brand: "SkinCeuticals", name: "Hydrating B5 Gel", emoji: "💧", good: ["Hyaluronic acid", "Vitamin B5"], pct: "89% rec" } ], moisturizer: [ { rank: 1, brand: "CeraVe", name: "Moisturizing Cream", emoji: "🫙", good: ["Ceramides", "Hyaluronic acid"], pct: "94% rec" }, { rank: 2, brand: "First Aid Beauty", name: "Ultra Repair Cream", emoji: "🌾", good: ["Colloidal oatmeal", "Ceramides"], pct: "88% rec" } ], spf: [ { rank: 1, brand: "Altruist", name: "Dermatologist SPF 50", emoji: "☀️", good: ["Hyaluronic acid"], pct: "82% rec" }, { rank: 2, brand: "Isntree", name: "Hyaluronic Acid Watery Sun Gel SPF 50+", emoji: "🌤️", good: ["Hyaluronic acid"], pct: "80% rec" } ], mask: [ { rank: 1, brand: "Laneige", name: "Water Sleeping Mask", emoji: "💤", good: ["Hyaluronic acid", "Sleep-tox"], pct: "89% rec" }, { rank: 2, brand: "Glow Recipe", name: "Watermelon Sleeping Mask", emoji: "🍉", good: ["Watermelon extract", "AHA"], pct: "76% rec" } ] }, combination: { cleanser: [ { rank: 1, brand: "Cetaphil", name: "Gentle Skin Cleanser", emoji: "🧼", good: ["No fragrance", "Niacinamide"], pct: "82% rec" }, { rank: 2, brand: "Bioderma", name: "Sensibio Gel Moussant", emoji: "🫧", good: ["Cucumber extract"], pct: "78% rec" } ], toner: [ { rank: 1, brand: "Some By Mi", name: "AHA BHA PHA 30 Days Toner", emoji: "💧", good: ["AHA", "BHA", "PHA"], watch: "Start 2x weekly", pct: "81% rec" }, { rank: 2, brand: "Torriden", name: "Dive-In Low Molecule Toner", emoji: "🌊", good: ["Hyaluronic acid"], pct: "77% rec" } ], serum: [ { rank: 1, brand: "The Ordinary", name: "Niacinamide 10% + Zinc 1%", emoji: "🧪", good: ["Niacinamide", "Zinc PCA"], pct: "88% rec" }, { rank: 2, brand: "Good Molecules", name: "Niacinamide Brightening Toner", emoji: "💊", good: ["Niacinamide"], pct: "74% rec" } ], moisturizer: [ { rank: 1, brand: "Tatcha", name: "Water Cream", emoji: "🫙", good: ["Japanese wild rose", "Hyaluronic acid"], pct: "83% rec" }, { rank: 2, brand: "Clinique", name: "Dramatically Different Moisturizing Gel", emoji: "💚", good: ["Cucumber extract"], pct: "79% rec" } ], spf: [ { rank: 1, brand: "Beauty of Joseon", name: "Relief Sun Rice + Probiotics SPF 50+", emoji: "☀️", good: ["Rice extract", "Probiotics"], pct: "90% rec" }, { rank: 2, brand: "Round Lab", name: "Birch Juice Moisturizing Sun Cream SPF 50+", emoji: "🌤️", good: ["Birch juice"], pct: "84% rec" } ], mask: [ { rank: 1, brand: "Dr. Jart+", name: "Dermask Micro Jet Clearing Solution", emoji: "🎭", good: ["BHA", "Centella"], pct: "73% rec" }, { rank: 2, brand: "Benton", name: "Goodbye Redness Centella Mask", emoji: "🌿", good: ["Centella"], pct: "76% rec" } ] }, normal: { cleanser: [ { rank: 1, brand: "Fresh", name: "Soy Face Cleanser", emoji: "🧼", good: ["Soy proteins", "Rosewater"], pct: "86% rec" }, { rank: 2, brand: "Tatcha", name: "The Rice Wash", emoji: "🌾", good: ["Japanese rice bran"], pct: "81% rec" } ], toner: [ { rank: 1, brand: "Kiehl's", name: "Calendula Herbal Extract Toner", emoji: "🌼", good: ["Calendula", "No alcohol"], pct: "84% rec" }, { rank: 2, brand: "Caudalie", name: "Moisturizing Toner", emoji: "💧", good: ["Grape water"], pct: "79% rec" } ], serum: [ { rank: 1, brand: "SkinCeuticals", name: "C E Ferulic Serum", emoji: "🧪", good: ["Vitamin C", "Ferulic acid"], pct: "91% rec" }, { rank: 2, brand: "Drunk Elephant", name: "C-Firma Fresh Day Serum", emoji: "🍊", good: ["Vitamin C", "Pumpkin enzyme"], pct: "82% rec" } ], moisturizer: [ { rank: 1, brand: "Tatcha", name: "The Water Cream", emoji: "🫙", good: ["Japanese wild rose", "Algae"], pct: "87% rec" }, { rank: 2, brand: "Kiehl's", name: "Ultra Facial Cream SPF 30", emoji: "🌿", good: ["Squalane", "Glacier glycoprotein"], pct: "83% rec" } ], spf: [ { rank: 1, brand: "Supergoop", name: "Unseen Sunscreen SPF 40", emoji: "☀️", good: ["Red algae", "Meadowfoam seed"], pct: "89% rec" }, { rank: 2, brand: "Coola", name: "Mineral Face SPF 30", emoji: "🌤️", good: ["Zinc oxide", "Aloe vera"], pct: "81% rec" } ], mask: [ { rank: 1, brand: "Glow Recipe", name: "Watermelon Glow Sleeping Mask", emoji: "🍉", good: ["Watermelon extract", "AHA"], pct: "80% rec" }, { rank: 2, brand: "Youth To The People", name: "Superberry Hydrate + Glow Dream Mask", emoji: "🫐", good: ["Peptides", "Maqui berry"], pct: "76% rec" } ] }, sensitive: { cleanser: [ { rank: 1, brand: "Vanicream", name: "Gentle Facial Cleanser", emoji: "🧼", good: ["No fragrance", "No dye", "No parabens"], pct: "92% rec" }, { rank: 2, brand: "Avène", name: "Extremely Gentle Cleanser Lotion", emoji: "🫧", good: ["Avène thermal spring water"], pct: "86% rec" } ], toner: [ { rank: 1, brand: "Klairs", name: "Supple Preparation Unscented Toner", emoji: "💧", good: ["Hyaluronic acid", "No fragrance"], pct: "88% rec" }, { rank: 2, brand: "Pyunkang Yul", name: "Essence Toner", emoji: "🌿", good: ["Astragalus extract"], pct: "83% rec" } ], serum: [ { rank: 1, brand: "Dr. Jart+", name: "Cicapair Tiger Grass Serum", emoji: "🧪", good: ["Centella", "No fragrance"], pct: "85% rec" }, { rank: 2, brand: "Purito", name: "Centella Unscented Serum", emoji: "🌿", good: ["Centella asiatica"], pct: "81% rec" } ], moisturizer: [ { rank: 1, brand: "La Roche-Posay", name: "Toleriane Double Repair Face Moisturizer", emoji: "🫙", good: ["Ceramides", "Niacinamide", "No fragrance"], pct: "90% rec" }, { rank: 2, brand: "Avène", name: "Cicalfate+ Restorative Protective Cream", emoji: "🌸", good: ["Avène spring water", "Sucralfate"], pct: "84% rec" } ], spf: [ { rank: 1, brand: "EltaMD", name: "UV Physical Broad-Spectrum SPF 41", emoji: "☀️", good: ["Zinc oxide", "No fragrance"], pct: "87% rec" }, { rank: 2, brand: "Altruist", name: "Sensitive SPF 50", emoji: "🌤️", good: ["No fragrance", "Mineral filters"], pct: "82% rec" } ], mask: [ { rank: 1, brand: "Avène", name: "Soothing Sheet Mask", emoji: "🌸", good: ["Avène spring water", "No fragrance"], pct: "83% rec" }, { rank: 2, brand: "Benton", name: "Goodbye Redness Centella Mask", emoji: "🌿", good: ["Centella", "No fragrance"], pct: "79% rec" } ] } };
+
 // ---------- Placeholder result data ----------
 const defaultResult = {
   skinType: "Oily",
@@ -167,6 +169,10 @@ function QuizResultPage() {
 
   const [activeTab, setActiveTab] = useState(1);
   const hashtags = CHARACTER_HASHTAGS[result.character] ?? CHARACTER_HASHTAGS["glazed-donut"];
+  const [activeRecTab, setActiveRecTab] = useState("cleanser");
+  const REC_TABS = [ { num: 1, key: "cleanser", label: "Cleanser" }, { num: 2, key: "toner", label: "Toner" }, { num: 3, key: "serum", label: "Serum" }, { num: 4, key: "moisturizer", label: "Moisturizer" }, { num: 5, key: "spf", label: "SPF" }, { num: 6, key: "mask", label: "Mask" } ];
+  const skinTypeKey = (result.skinType || "oily").toLowerCase().replace("combination", "combination") as string;
+  const currentRecs = SKIN_RECOMMENDATIONS[skinTypeKey] ?? SKIN_RECOMMENDATIONS["oily"];
 
   return (
     <div style={{ background: C.bg, color: C.espresso, minHeight: "100vh" }}>
@@ -383,72 +389,60 @@ function QuizResultPage() {
           {/* 4. PRODUCTS */}
           <div>
             <SectionLabel>RECOMMENDED FOR YOU</SectionLabel>
-            <div style={{ overflowX: "auto", scrollbarWidth: "none", margin: "0 -16px", padding: "0 16px" }}>
-              <div style={{ display: "flex", gap: 6, width: "max-content", paddingBottom: 10 }}>
-                {PRODUCT_TABS.map((label, idx) => {
-                  const id = idx + 1;
-                  const isActive = activeTab === id;
+            <div style={{ overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", margin: "0 -16px", padding: "0 16px", display: "flex" }}>
+              <div style={{ display: "flex", gap: 8, width: "max-content", paddingBottom: 12 }}>
+                {REC_TABS.map((tab) => {
+                  const isActive = activeRecTab === tab.key;
                   return (
                     <button
-                      key={label}
+                      key={tab.key}
                       type="button"
-                      onClick={() => setActiveTab(id)}
+                      onClick={() => setActiveRecTab(tab.key)}
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 5,
-                        padding: "6px 12px",
-                        borderRadius: 99,
-                        fontSize: 11,
-                        fontWeight: 700,
-                        whiteSpace: "nowrap",
-                        cursor: "pointer",
                         background: isActive ? "#1C0A00" : "#fff",
                         color: isActive ? "#FFFCF8" : "#999",
-                        border: isActive ? "0.5px solid #1C0A00" : "0.5px solid #E8DDD4",
+                        border: isActive ? "none" : "0.5px solid #E8DDD4",
+                        borderRadius: 99,
+                        padding: "7px 14px",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        cursor: "pointer",
                       }}
                     >
-                      {label}
+                      <span style={{ fontSize: 9, fontWeight: 800, marginRight: 2 }}>{tab.num}</span>
+                      {tab.label}
                     </button>
                   );
                 })}
               </div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {(() => {
-                const activeLabel = PRODUCT_TABS[activeTab - 1];
-                const matched = result.categories.filter(
-                  (c) => c.category.toLowerCase() === activeLabel.toLowerCase()
-                );
-                const items = (matched.length ? matched : result.categories).slice(0, 2);
-                while (items.length < 2 && result.categories.length) {
-                  items.push(result.categories[items.length % result.categories.length]);
-                }
-                return items.map((item, idx) => (
-                  <div key={`${item.category}-${idx}`} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, overflow: "hidden" }}>
-                    <div style={{ height: 90, background: "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
-                      <div style={{ position: "absolute", top: 6, left: 6, width: 18, height: 18, background: "#1C0A00", color: "#FFFCF8", borderRadius: 99, fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        {idx + 1}
-                      </div>
-                      {item.emoji}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 4 }}>
+              {(currentRecs[activeRecTab] ?? []).map((item) => (
+                <div key={`${activeRecTab}-${item.rank}`} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, overflow: "hidden" }}>
+                  <div style={{ height: 100, background: "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
+                    <div style={{ position: "absolute", top: 7, left: 7, width: 20, height: 20, background: "#1C0A00", color: "#FFFCF8", borderRadius: 99, fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {item.rank}
                     </div>
-                    <div style={{ padding: "8px 10px 10px" }}>
-                      <div style={{ fontSize: 9, color: "#999", fontWeight: 600 }}>{item.brand}</div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#1C0A00", lineHeight: 1.3, marginBottom: 5 }}>{item.name}</div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 5 }}>
-                        {item.good.map((g) => (
-                          <span key={g} style={{ fontSize: 9, padding: "2px 6px", borderRadius: 99, background: "#F0FAF1", color: "#2D7A3A", fontWeight: 700 }}>
-                            ✓ {g}
-                          </span>
-                        ))}
-                      </div>
-                      <div style={{ fontSize: 10, color: "#A8001C", fontWeight: 700 }}>
-                        {68 + ((idx * 7) % 25)}% match
-                      </div>
-                    </div>
+                    {item.emoji}
                   </div>
-                ));
-              })()}
+                  <div style={{ padding: "8px 10px 12px" }}>
+                    <div style={{ fontSize: 10, color: "#999", fontWeight: 600, marginBottom: 2 }}>{item.brand}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#1C0A00", lineHeight: 1.35, marginBottom: 6 }}>{item.name}</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                      {item.good.map((g) => (
+                        <span key={g} style={{ fontSize: 9, padding: "2px 7px", borderRadius: 99, background: "#F0FAF1", color: "#2D7A3A", fontWeight: 700 }}>{g}</span>
+                      ))}
+                      {item.watch && (
+                        <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 99, background: "#FFFBEB", color: "#A87400", fontWeight: 700 }}>{item.watch}</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#A8001C", fontWeight: 700, marginTop: 5 }}>{item.pct}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 

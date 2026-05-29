@@ -610,65 +610,42 @@ function QuizResultPage() {
           </Card>
 
           {/* 6. TREATMENTS LOCKED */}
-          <SectionLabel>TREATMENTS</SectionLabel>
-          <div
-            style={{
-              position: "relative",
-              background: C.surface,
-              border: `1px solid ${C.border}`,
-              borderRadius: 16,
-              padding: 20,
-              overflow: "hidden",
-            }}
-          >
-            {/* Blurred preview content */}
-            <div style={{ filter: "blur(6px)", opacity: 0.6, userSelect: "none", pointerEvents: "none" }}>
-              <div style={{ fontSize: 11, color: C.textLight, fontWeight: 700, letterSpacing: "0.1em" }}>FOR OILY SKIN</div>
-              <div style={{ fontSize: 18, fontWeight: 700, marginTop: 6 }}>Botox, peels & in-office treatments</div>
-              <p style={{ marginTop: 8, fontSize: 13, color: C.textMid }}>
-                Real outcomes from 1,400 verified members. Honest costs. Honest downtime.
-              </p>
-              <div style={{ marginTop: 14, height: 70, background: C.imageBg, borderRadius: 10 }} />
+          <div>
+            <SectionLabel>RECOMMENDED TREATMENTS</SectionLabel>
+            <div style={{ fontSize: 11, color: "#999", marginBottom: 12, lineHeight: 1.4 }}>
+              Open to everyone. Real reviews are members-only.
             </div>
-
-            {/* Lock overlay */}
-            <div
-              style={{
-                position: "absolute", inset: 0,
-                display: "flex", flexDirection: "column",
-                alignItems: "center", justifyContent: "center",
-                gap: 8, padding: 20, textAlign: "center",
-                background: "rgba(250,250,248,0.55)",
-              }}
-            >
-              <div
-                style={{
-                  width: 40, height: 40, borderRadius: 999,
-                  background: C.espresso, color: "#fff",
-                  display: "grid", placeItems: "center",
-                }}
-              >
-                <Lock size={18} />
-              </div>
-              <div style={{ fontSize: 11, color: C.crimson, fontWeight: 800, letterSpacing: "0.14em" }}>
-                MEMBERS ONLY
-              </div>
-              <p style={{ margin: 0, fontSize: 13, color: C.espresso, maxWidth: 320 }}>
-                Real experiences with Botox, peels, and treatments — for your skin type.
-              </p>
-              <button
-                type="button"
-                style={{
-                  marginTop: 6,
-                  background: C.crimson, color: "#fff",
-                  border: "none", borderRadius: 12,
-                  padding: "10px 16px", fontWeight: 700, fontSize: 13,
-                  cursor: "pointer",
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                }}
-              >
-                <Sparkles size={14} /> Unlock with Skintea membership
-              </button>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {(TREATMENT_DATA[skinTypeKey] ?? TREATMENT_DATA["oily"]).slice(0, 4).map((t) => (
+                <div
+                  key={t.name}
+                  onClick={() => setSelectedTreatment(t.name)}
+                  style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 14, overflow: "hidden", cursor: "pointer" }}
+                >
+                  <div style={{ background: "#1C0A00", padding: "10px 10px 8px" }}>
+                    <div style={{ fontSize: 22, marginBottom: 6 }}>{t.emoji}</div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: "#FFFCF8", lineHeight: 1.2, marginBottom: 2 }}>{t.name}</div>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: "#A8001C" }}>{t.pct}</div>
+                  </div>
+                  <div style={{ padding: "8px 10px 10px" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00", lineHeight: 1.35, marginBottom: 6 }}>{t.hook}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, background: "#FFF5F5", borderRadius: 6, padding: "5px 7px", marginBottom: 6 }}>
+                      <div style={{ width: 6, height: 6, background: "#A8001C", borderRadius: "50%", flexShrink: 0 }} />
+                      <div style={{ fontSize: 9, color: "#A8001C", fontWeight: 700, lineHeight: 1.3 }}>{t.celeb}</div>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00" }}>{t.cost}</div>
+                      <div style={{ width: 22, height: 22, background: "#1C0A00", borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#FFFCF8", fontWeight: 800 }}>→</div>
+                    </div>
+                  </div>
+                  <div style={{ borderTop: "0.5px solid #F0E8E0", padding: "5px 10px", display: "flex", alignItems: "center", gap: 5 }}>
+                    <span style={{ fontSize: 9 }}>🔒</span>
+                    <div style={{ fontSize: 8, color: "#bbb", fontWeight: 600 }}>
+                      <span style={{ color: "#A8001C" }}>{t.reviewCount}</span> reviews · members only
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 

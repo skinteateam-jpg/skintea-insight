@@ -351,59 +351,26 @@ function QuizResultPage() {
       >
         <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
 
-          {/* 1. SKIN PROFILE */}
-          <SectionLabel>SKIN PROFILE</SectionLabel>
-          <Card>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-              <div>
-                <div style={{ fontSize: 11, color: C.textLight, fontWeight: 700, letterSpacing: "0.1em" }}>
-                  YOU'RE GIVING — {result.skinType.toUpperCase()}
-                </div>
-                <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4, lineHeight: 1.1 }}>
-                  {result.persona.name}
-                </div>
-                <div style={{ fontSize: 13, color: C.textMid, marginTop: 6, maxWidth: 360, lineHeight: 1.45 }}>
-                  {result.persona.tagline}
-                </div>
-              </div>
-              <div
+          {/* 1. TOP CONCERNS */}
+          <SectionLabel>TOP CONCERNS</SectionLabel>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {result.concerns.map((c) => (
+              <span
+                key={c}
                 style={{
-                  width: 56, height: 56, borderRadius: 14, background: C.imageBg,
-                  display: "grid", placeItems: "center", fontSize: 26,
+                  fontSize: 12,
+                  padding: "6px 10px",
+                  borderRadius: 999,
+                  background: C.imageBg,
+                  color: C.espresso,
+                  fontWeight: 600,
+                  border: `0.5px solid ${C.border}`,
                 }}
-                aria-hidden
               >
-                {result.persona.emoji}
-              </div>
-            </div>
-
-            <div style={{ marginTop: 16 }}>
-              <div style={{ fontSize: 11, color: C.textLight, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 8 }}>
-                TOP CONCERNS
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {result.concerns.map((c) => (
-                  <span
-                    key={c}
-                    style={{
-                      fontSize: 12,
-                      padding: "6px 10px",
-                      borderRadius: 999,
-                      background: C.imageBg,
-                      color: C.espresso,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {c}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <p style={{ marginTop: 16, marginBottom: 0, fontSize: 14, color: C.textMid, lineHeight: 1.5 }}>
-              {result.summary}
-            </p>
-          </Card>
+                {c}
+              </span>
+            ))}
+          </div>
 
           {/* 2. INGREDIENT LIST */}
           <SectionLabel>YOUR INGREDIENT LIST</SectionLabel>
@@ -467,9 +434,82 @@ function QuizResultPage() {
             </div>
           </Card>
 
-          {/* 4. PRODUCTS */}
+          {/* 4. PERFECT FOR YOUR SKIN (must-get 4) */}
+          <SectionLabel>PERFECT FOR YOUR SKIN</SectionLabel>
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ background: "#1C0A00", borderRadius: "14px 14px 0 0", padding: "14px 16px 12px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#FFFCF8", lineHeight: 1.25 }}>
+                  The 4 <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", color: "#A8001C" }}>{result.persona.name}</span> skin actually needs
+                </div>
+                <div style={{ fontSize: 10, color: "rgba(255,252,248,0.5)", marginTop: 5, lineHeight: 1.45 }}>
+                  No routine knowledge needed. Just start here.
+                </div>
+              </div>
+              <span style={{ background: "#A8001C", color: "#FFFCF8", fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", padding: "4px 10px", borderRadius: 99, whiteSpace: "nowrap", flexShrink: 0 }}>Must get</span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: "#E8DDD4", border: "1px solid #E8DDD4", borderTop: "none", borderRadius: "0 0 14px 14px", overflow: "hidden" }}>
+              {(MUST_GET_PRODUCTS[skinTypeKey] ?? MUST_GET_PRODUCTS["oily"]).map((p) => (
+                <div key={p.name} style={{ background: "#FFFFFF", padding: "12px 10px 14px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{ width: 64, height: 64, background: "#FFFCF8", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, marginBottom: 7 }}>{p.emoji}</div>
+                  <div style={{ fontSize: 8, fontWeight: 700, color: "#A8001C", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2, textAlign: "center" }}>{p.type}</div>
+                  <div style={{ fontSize: 9, color: "#999", fontWeight: 600, textAlign: "center", marginBottom: 1 }}>{p.brand}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#1C0A00", lineHeight: 1.3, textAlign: "center", marginBottom: 5 }}>{p.name}</div>
+                  <div style={{ fontSize: 9, color: "#999", textAlign: "center", lineHeight: 1.4, marginBottom: 5, fontStyle: "italic" }}>{p.why}</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#A8001C", marginBottom: 6 }}>{p.pct}</div>
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
+                    {p.affiliates.map((a) => (
+                      <span key={a} style={{ fontSize: 9, fontWeight: 700, color: "#1C0A00", border: "0.5px solid #E8DDD4", borderRadius: 99, padding: "3px 8px", background: "#FFFCF8" }}>{a}</span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 5. TREATMENTS */}
           <div>
-            <SectionLabel>RECOMMENDED FOR YOU</SectionLabel>
+            <SectionLabel>RECOMMENDED TREATMENTS</SectionLabel>
+            <div style={{ fontSize: 11, color: "#999", marginBottom: 12, lineHeight: 1.4 }}>
+              Open to everyone. Real reviews are members-only.
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {(TREATMENT_DATA[skinTypeKey] ?? TREATMENT_DATA["oily"]).slice(0, 4).map((t) => (
+                <div
+                  key={t.name}
+                  onClick={() => setSelectedTreatment(t.name)}
+                  style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 14, overflow: "hidden", cursor: "pointer" }}
+                >
+                  <div style={{ background: "#1C0A00", padding: "10px 10px 8px" }}>
+                    <div style={{ fontSize: 22, marginBottom: 6 }}>{t.emoji}</div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: "#FFFCF8", lineHeight: 1.2, marginBottom: 2 }}>{t.name}</div>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: "#A8001C" }}>{t.pct}</div>
+                  </div>
+                  <div style={{ padding: "8px 10px 10px" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00", lineHeight: 1.35, marginBottom: 6 }}>{t.hook}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, background: "#FFF5F5", borderRadius: 6, padding: "5px 7px", marginBottom: 6 }}>
+                      <div style={{ width: 6, height: 6, background: "#A8001C", borderRadius: "50%", flexShrink: 0 }} />
+                      <div style={{ fontSize: 9, color: "#A8001C", fontWeight: 700, lineHeight: 1.3 }}>{t.celeb}</div>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00" }}>{t.cost}</div>
+                      <div style={{ width: 22, height: 22, background: "#1C0A00", borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#FFFCF8", fontWeight: 800 }}>→</div>
+                    </div>
+                  </div>
+                  <div style={{ borderTop: "0.5px solid #F0E8E0", padding: "5px 10px", display: "flex", alignItems: "center", gap: 5 }}>
+                    <span style={{ fontSize: 9 }}>🔒</span>
+                    <div style={{ fontSize: 8, color: "#bbb", fontWeight: 600 }}>
+                      <span style={{ color: "#A8001C" }}>{t.reviewCount}</span> reviews · members only
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 6. YOUR FULL ROUTINE */}
+          <div>
+            <SectionLabel>YOUR FULL ROUTINE</SectionLabel>
             <div style={{ overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", margin: "0 -16px", padding: "0 16px", display: "flex" }}>
               <div style={{ display: "flex", gap: 8, width: "max-content", paddingBottom: 12 }}>
                 {REC_TABS.map((tab) => {
@@ -527,7 +567,7 @@ function QuizResultPage() {
             </div>
           </div>
 
-          {/* 4b. SKIN TWIN */}
+          {/* 7. SKIN TWIN */}
           <SectionLabel>YOUR SKIN TWIN</SectionLabel>
           <p style={{ margin: "-8px 0 0", fontSize: 14, color: C.textMid }}>
             Same skin type. Same vibe. See what's working for them.
@@ -543,7 +583,7 @@ function QuizResultPage() {
             Matched by skin type and background — not sponsored.
           </p>
 
-          {/* SHARE AND GIFT */}
+          {/* 8. SHARE AND GIFT */}
           <SectionLabel>SHARE AND GIFT</SectionLabel>
           <div style={{ background: "#1C0A00", borderRadius: 12, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
@@ -576,7 +616,7 @@ function QuizResultPage() {
             </div>
           </div>
 
-          {/* 5. SAMPLE KIT */}
+          {/* 9. SAMPLE KIT */}
           <SectionLabel>TRY BEFORE YOU COMMIT</SectionLabel>
           <Card>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
@@ -610,46 +650,6 @@ function QuizResultPage() {
               See Your Kit
             </button>
           </Card>
-
-          {/* 6. TREATMENTS LOCKED */}
-          <div>
-            <SectionLabel>RECOMMENDED TREATMENTS</SectionLabel>
-            <div style={{ fontSize: 11, color: "#999", marginBottom: 12, lineHeight: 1.4 }}>
-              Open to everyone. Real reviews are members-only.
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {(TREATMENT_DATA[skinTypeKey] ?? TREATMENT_DATA["oily"]).slice(0, 4).map((t) => (
-                <div
-                  key={t.name}
-                  onClick={() => setSelectedTreatment(t.name)}
-                  style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 14, overflow: "hidden", cursor: "pointer" }}
-                >
-                  <div style={{ background: "#1C0A00", padding: "10px 10px 8px" }}>
-                    <div style={{ fontSize: 22, marginBottom: 6 }}>{t.emoji}</div>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: "#FFFCF8", lineHeight: 1.2, marginBottom: 2 }}>{t.name}</div>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: "#A8001C" }}>{t.pct}</div>
-                  </div>
-                  <div style={{ padding: "8px 10px 10px" }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00", lineHeight: 1.35, marginBottom: 6 }}>{t.hook}</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 5, background: "#FFF5F5", borderRadius: 6, padding: "5px 7px", marginBottom: 6 }}>
-                      <div style={{ width: 6, height: 6, background: "#A8001C", borderRadius: "50%", flexShrink: 0 }} />
-                      <div style={{ fontSize: 9, color: "#A8001C", fontWeight: 700, lineHeight: 1.3 }}>{t.celeb}</div>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00" }}>{t.cost}</div>
-                      <div style={{ width: 22, height: 22, background: "#1C0A00", borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#FFFCF8", fontWeight: 800 }}>→</div>
-                    </div>
-                  </div>
-                  <div style={{ borderTop: "0.5px solid #F0E8E0", padding: "5px 10px", display: "flex", alignItems: "center", gap: 5 }}>
-                    <span style={{ fontSize: 9 }}>🔒</span>
-                    <div style={{ fontSize: 8, color: "#bbb", fontWeight: 600 }}>
-                      <span style={{ color: "#A8001C" }}>{t.reviewCount}</span> reviews · members only
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* Retake */}
           <div style={{ textAlign: "center", marginTop: 12 }}>

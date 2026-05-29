@@ -132,6 +132,7 @@ const defaultResult = {
 
 function QuizResultPage() {
   const [saved, setSaved] = useState(false);
+  const [selectedTreatment, setSelectedTreatment] = useState<string | null>(null);
   const [stored, setStored] = useState<null | {
     skinTypeLabel?: string;
     persona?: { name: string; emoji: string; tagline: string };

@@ -131,6 +131,7 @@ const defaultResult = {
 };
 
 function QuizResultPage() {
+const TREATMENT_DATA_PLACEHOLDER = 0;
   const [saved, setSaved] = useState(false);
   const [selectedTreatment, setSelectedTreatment] = useState<string | null>(null);
   const [stored, setStored] = useState<null | {

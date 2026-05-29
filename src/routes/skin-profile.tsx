@@ -558,6 +558,24 @@ function GiftMeTab({ quizResult }: { quizResult: any }) {
               </div>
             ))}
           </div>
+
+          <div style={{ marginTop: 24, marginBottom: 10, fontSize: 11, fontWeight: 800, color: "#1C0A00", textTransform: "uppercase", letterSpacing: "0.06em" }}>Skincare Wishlist</div>
+          {renderWishlist(
+            skincareWishlist,
+            setSkincareWishlist,
+            ["All", "Serum", "Moisturizer", "SPF", "Mask"],
+            { bg: "#F0FAF1", color: "#2D7A3A", border: "#2D7A3A", text: "Skin" },
+            "+ Add skincare to wishlist",
+          )}
+
+          <div style={{ marginTop: 24, marginBottom: 10, fontSize: 11, fontWeight: 800, color: "#1C0A00", textTransform: "uppercase", letterSpacing: "0.06em" }}>Makeup Wishlist</div>
+          {renderWishlist(
+            makeupWishlist,
+            setMakeupWishlist,
+            ["All", "Lip", "Eye", "Base", "Blush"],
+            { bg: "#FFF0F5", color: "#C2185B", border: "#C2185B", text: "Makeup" },
+            "+ Add makeup to wishlist",
+          )}
         </>
       )}
 

@@ -130,8 +130,11 @@ const defaultResult = {
   ],
 };
 
+const TREATMENT_DATA: Record<string, { name: string; emoji: string; pct: string; hook: string; celeb: string; cost: string; reviewCount: string; downtime: string; sessions: string; desc: string; videos: { platform: string; title: string }[]; forSkinTypes: string[] }[]> = { oily: [ { name: "Chemical Peel", emoji: "⚗️", pct: "71% rec", hook: "Clears congestion and shrinks pores in one session", celeb: "Kim Kardashian has done this", cost: "$150–400", reviewCount: "943", downtime: "3–5 days", sessions: "3–6x/year", desc: "A chemical solution removes the top layer of skin, clearing pores, evening tone, and reducing oiliness. Kim Kardashian publicly documented her chemical peel on social media.", videos: [ { platform: "TK", title: "What a chemical peel actually looks like — real procedure" }, { platform: "IG", title: "Chemical peel before & after: oily skin results" } ], forSkinTypes: ["oily", "combination"] }, { name: "Laser Pore Treatment", emoji: "🔬", pct: "68% rec", hook: "Permanently reduces enlarged pores and controls shine", celeb: "Victoria Beckham has done this", cost: "$300–800", reviewCount: "612", downtime: "2–4 days", sessions: "3x series", desc: "Laser energy targets overactive sebaceous glands to reduce pore size and oil production long-term. Victoria Beckham has referenced laser treatments in beauty interviews.", videos: [ { platform: "TK", title: "Laser pore treatment — derm explains what happens" }, { platform: "IG", title: "My oily skin after 3 laser sessions" } ], forSkinTypes: ["oily"] }, { name: "Microneedling", emoji: "🪡", pct: "69% rec", hook: "Rebuilds collagen and tightens pores over time", celeb: "Gwyneth Paltrow has done this", cost: "$200–700", reviewCount: "832", downtime: "2–3 days", sessions: "3–4x/year", desc: "Tiny needles create micro-injuries that trigger collagen production, tightening pores and improving texture. Gwyneth Paltrow has discussed microneedling on her Goop platform.", videos: [ { platform: "TK", title: "Microneedling — what it feels like and the results" }, { platform: "IG", title: "Before & after microneedling: 4 session results" } ], forSkinTypes: ["oily", "combination", "normal"] }, { name: "LED Therapy", emoji: "💡", pct: "77% rec", hook: "Kills acne bacteria and reduces inflammation with zero pain", celeb: "Jessica Alba has done this", cost: "$100–250", reviewCount: "621", downtime: "None", sessions: "Monthly", desc: "Blue LED light targets acne-causing bacteria while red light reduces inflammation. Completely painless with no downtime. Jessica Alba has referenced LED therapy in skincare interviews.", videos: [ { platform: "TK", title: "LED light therapy — is it actually worth it?" }, { platform: "IG", title: "LED therapy results after 6 sessions" } ], forSkinTypes: ["oily", "sensitive", "combination"] } ], dry: [ { name: "PRF Injection", emoji: "💉", pct: "74% rec", hook: "Deep hydration from your own blood's growth factors", celeb: "Hailey Bieber has done this", cost: "$600–900", reviewCount: "487", downtime: "1–2 days", sessions: "3x series", desc: "PRF uses your own blood's platelet-rich fibrin to stimulate collagen and deeply hydrate skin. A natural alternative to fillers. Hailey Bieber has openly discussed PRF injections for skin glow in Harper's Bazaar.", videos: [ { platform: "TK", title: "What PRF actually looks like — real procedure filmed" }, { platform: "IG", title: "PRF before & after: 3 month results" } ], forSkinTypes: ["dry", "normal"] }, { name: "Hydrafacial", emoji: "✨", pct: "81% rec", hook: "Instant glow, zero downtime — most popular worldwide", celeb: "Jennifer Aniston has done this", cost: "$150–300", reviewCount: "1204", downtime: "None", sessions: "Monthly", desc: "Deep cleanse, exfoliation, and hydration in one 30-minute treatment. Immediate visible results with no downtime. Jennifer Aniston has cited Hydrafacial as part of her regular skincare routine in InStyle.", videos: [ { platform: "TK", title: "I got a Hydrafacial — here's exactly what happened" }, { platform: "IG", title: "Hydrafacial results after 4 sessions" } ], forSkinTypes: ["dry", "normal", "sensitive"] }, { name: "Microneedling", emoji: "🪡", pct: "69% rec", hook: "Boosts collagen and restores skin's moisture barrier", celeb: "Gwyneth Paltrow has done this", cost: "$200–700", reviewCount: "832", downtime: "2–3 days", sessions: "3–4x/year", desc: "Triggers collagen production to restore barrier function and improve skin texture. Gwyneth Paltrow has discussed microneedling on her Goop platform.", videos: [ { platform: "TK", title: "Microneedling for dry skin — what actually changed" }, { platform: "IG", title: "Collagen boosting results: before & after" } ], forSkinTypes: ["dry", "oily", "combination", "normal"] }, { name: "LED Therapy", emoji: "💡", pct: "77% rec", hook: "Calms and repairs dry skin barrier with zero irritation", celeb: "Jessica Alba has done this", cost: "$100–250", reviewCount: "621", downtime: "None", sessions: "Monthly", desc: "Red LED light stimulates collagen and repairs the skin barrier. Completely gentle — perfect for dry and sensitive skin. Jessica Alba has referenced LED therapy in skincare interviews.", videos: [ { platform: "TK", title: "LED therapy for dry skin — is it worth it?" }, { platform: "IG", title: "My skin barrier after 6 LED sessions" } ], forSkinTypes: ["dry", "sensitive", "combination"] } ], combination: [ { name: "Chemical Peel", emoji: "⚗️", pct: "71% rec", hook: "Balances oily zones while smoothing dry patches", celeb: "Kim Kardashian has done this", cost: "$150–400", reviewCount: "943", downtime: "3–5 days", sessions: "3–6x/year", desc: "Targets oily T-zone congestion while evening out dry areas. Kim Kardashian publicly documented her chemical peel experience on social media.", videos: [ { platform: "TK", title: "Chemical peel for combo skin — what to expect" }, { platform: "IG", title: "Before & after: combination skin chemical peel" } ], forSkinTypes: ["oily", "combination"] }, { name: "Microneedling", emoji: "🪡", pct: "69% rec", hook: "Evens out texture across oily and dry zones", celeb: "Gwyneth Paltrow has done this", cost: "$200–700", reviewCount: "832", downtime: "2–3 days", sessions: "3–4x/year", desc: "Creates uniform collagen stimulation across the face, balancing combination skin texture over time. Gwyneth Paltrow has discussed microneedling on her Goop platform.", videos: [ { platform: "TK", title: "Microneedling combo skin — 3 session results" }, { platform: "IG", title: "How microneedling fixed my uneven texture" } ], forSkinTypes: ["oily", "combination", "normal"] }, { name: "Hydrafacial", emoji: "✨", pct: "81% rec", hook: "Clears oily zones and hydrates dry areas in one go", celeb: "Jennifer Aniston has done this", cost: "$150–300", reviewCount: "1204", downtime: "None", sessions: "Monthly", desc: "The multi-step treatment adapts to different skin zones — extracting congestion in oily areas while infusing hydration where it's dry. Jennifer Aniston has cited Hydrafacial in InStyle.", videos: [ { platform: "TK", title: "Hydrafacial for combo skin — worth it?" }, { platform: "IG", title: "Monthly Hydrafacial: 6 month results" } ], forSkinTypes: ["dry", "normal", "sensitive", "combination"] }, { name: "LED Therapy", emoji: "💡", pct: "77% rec", hook: "Targets both breakouts and dry patches simultaneously", celeb: "Jessica Alba has done this", cost: "$100–250", reviewCount: "621", downtime: "None", sessions: "Monthly", desc: "Combines blue and red light to address both oily and dry concerns at once. No downtime, safe for all skin zones. Jessica Alba has referenced LED therapy in skincare interviews.", videos: [ { platform: "TK", title: "LED for combination skin — blue vs red light" }, { platform: "IG", title: "LED therapy: 3 month skin diary" } ], forSkinTypes: ["oily", "sensitive", "combination"] } ], normal: [ { name: "PRF Injection", emoji: "💉", pct: "74% rec", hook: "Maintains your great skin and adds a natural glow boost", celeb: "Hailey Bieber has done this", cost: "$600–900", reviewCount: "487", downtime: "1–2 days", sessions: "3x series", desc: "Uses your own growth factors to keep skin at its best and add subtle volume and glow. Prevention-focused. Hailey Bieber has openly discussed PRF injections in Harper's Bazaar.", videos: [ { platform: "TK", title: "PRF for normal skin — preventative treatment explained" }, { platform: "IG", title: "PRF glow results: 3 months later" } ], forSkinTypes: ["dry", "normal"] }, { name: "Hydrafacial", emoji: "✨", pct: "81% rec", hook: "Monthly reset to keep balanced skin at its best", celeb: "Jennifer Aniston has done this", cost: "$150–300", reviewCount: "1204", downtime: "None", sessions: "Monthly", desc: "A maintenance treatment that keeps normal skin glowing and clear. Jennifer Aniston has cited Hydrafacial as part of her regular skincare routine in InStyle.", videos: [ { platform: "TK", title: "Why I get a Hydrafacial every month" }, { platform: "IG", title: "Normal skin Hydrafacial monthly routine" } ], forSkinTypes: ["dry", "normal", "sensitive"] }, { name: "Microneedling", emoji: "🪡", pct: "69% rec", hook: "Preventative collagen boost before signs of aging appear", celeb: "Gwyneth Paltrow has done this", cost: "$200–700", reviewCount: "832", downtime: "2–3 days", sessions: "3–4x/year", desc: "Building collagen reserves now slows future aging. Gwyneth Paltrow has discussed microneedling on her Goop platform.", videos: [ { platform: "TK", title: "Preventative microneedling in your 20s — worth it?" }, { platform: "IG", title: "Collagen banking: what it is and why it works" } ], forSkinTypes: ["oily", "combination", "normal"] }, { name: "LED Therapy", emoji: "💡", pct: "77% rec", hook: "Easy maintenance treatment — no downtime, big glow", celeb: "Jessica Alba has done this", cost: "$100–250", reviewCount: "621", downtime: "None", sessions: "Monthly", desc: "Low-effort, high-reward maintenance for normal skin. Keeps collagen levels up and skin glowing. Jessica Alba has referenced LED therapy in skincare interviews.", videos: [ { platform: "TK", title: "LED therapy monthly routine — before & after" }, { platform: "IG", title: "6 months of LED: is it worth the hype?" } ], forSkinTypes: ["dry", "sensitive", "combination"] } ], sensitive: [ { name: "LED Therapy", emoji: "💡", pct: "77% rec", hook: "The only treatment gentle enough for reactive skin", celeb: "Jessica Alba has done this", cost: "$100–250", reviewCount: "621", downtime: "None", sessions: "Monthly", desc: "Red LED light calms inflammation, reduces redness, and repairs the barrier — completely pain-free. The safest in-office treatment for sensitive skin. Jessica Alba has referenced LED therapy in skincare interviews.", videos: [ { platform: "TK", title: "LED therapy for sensitive skin — safe and effective" }, { platform: "IG", title: "My redness after 6 LED sessions" } ], forSkinTypes: ["dry", "sensitive", "combination"] }, { name: "Hydrafacial", emoji: "✨", pct: "81% rec", hook: "Deep cleanse with zero irritation — no redness after", celeb: "Jennifer Aniston has done this", cost: "$150–300", reviewCount: "1204", downtime: "None", sessions: "Monthly", desc: "A customizable treatment that can be adjusted for reactive skin. No harsh extractions, no irritation. Jennifer Aniston has cited Hydrafacial in InStyle.", videos: [ { platform: "TK", title: "Hydrafacial for sensitive skin — what to tell your provider" }, { platform: "IG", title: "Sensitive skin Hydrafacial: my honest review" } ], forSkinTypes: ["dry", "normal", "sensitive"] }, { name: "PRF Injection", emoji: "💉", pct: "74% rec", hook: "Your own biology — zero foreign substances, zero reactions", celeb: "Hailey Bieber has done this", cost: "$600–900", reviewCount: "487", downtime: "1–2 days", sessions: "3x series", desc: "Because PRF uses your own blood, the risk of reaction is minimal — making it one of the safest injectable options for sensitive skin. Hailey Bieber has openly discussed PRF in Harper's Bazaar.", videos: [ { platform: "TK", title: "PRF for sensitive skin — why it's different from fillers" }, { platform: "IG", title: "PRF: natural glow with no foreign substances" } ], forSkinTypes: ["dry", "normal"] }, { name: "Calming Facial", emoji: "🌸", pct: "83% rec", hook: "In-office barrier repair with zero risk of flare-up", celeb: "No celebrity reference — data-backed only", cost: "$80–200", reviewCount: "394", downtime: "None", sessions: "Monthly", desc: "A professional calming facial uses medical-grade centella, barrier repair actives, and soothing masks to reset reactive skin. Safe for even the most sensitive skin types.", videos: [ { platform: "TK", title: "Calming facial for reactive skin — what happens" }, { platform: "IG", title: "Before & after: sensitive skin calming facial" } ], forSkinTypes: ["sensitive"] } ] };
+
 function QuizResultPage() {
   const [saved, setSaved] = useState(false);
+  const [selectedTreatment, setSelectedTreatment] = useState<string | null>(null);
   const [stored, setStored] = useState<null | {
     skinTypeLabel?: string;
     persona?: { name: string; emoji: string; tagline: string };
@@ -173,6 +176,82 @@ function QuizResultPage() {
   const REC_TABS = [ { num: 1, key: "cleanser", label: "Cleanser" }, { num: 2, key: "toner", label: "Toner" }, { num: 3, key: "serum", label: "Serum" }, { num: 4, key: "moisturizer", label: "Moisturizer" }, { num: 5, key: "spf", label: "SPF" }, { num: 6, key: "mask", label: "Mask" } ];
   const skinTypeKey = (result.skinType || "oily").toLowerCase().replace("combination", "combination") as string;
   const currentRecs = SKIN_RECOMMENDATIONS[skinTypeKey] ?? SKIN_RECOMMENDATIONS["oily"];
+
+  if (selectedTreatment) {
+    const skinKey = (result.skinType || "oily").toLowerCase();
+    const allTreatments = TREATMENT_DATA[skinKey] ?? TREATMENT_DATA["oily"];
+    const treatment = allTreatments.find(t => t.name === selectedTreatment);
+    if (treatment) {
+      const sectionLabelStyle: React.CSSProperties = { fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", color: "#999", textTransform: "uppercase", margin: "4px 0 8px" };
+      const costFrom = treatment.cost.split("–")[0];
+      const clinics = [
+        { name: "Glow Clinic LA", location: "West Hollywood · 0.8mi", emoji: "🏥", price: `From ${costFrom}` },
+        { name: "SkinBar Beverly", location: "Beverly Hills · 1.2mi", emoji: "💆", price: `From ${costFrom}` },
+      ];
+      return (
+        <div style={{ minHeight: "100vh", background: "#FFFCF8", paddingBottom: 80 }}>
+          <div style={{ background: "#1C0A00", padding: "16px 18px 20px" }}>
+            <button
+              onClick={() => setSelectedTreatment(null)}
+              style={{ background: "transparent", border: "none", color: "rgba(255,252,248,0.6)", fontSize: 12, fontWeight: 600, marginBottom: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}
+            >
+              ← Treatments
+            </button>
+            <div style={{ fontSize: 44, marginBottom: 10 }}>{treatment.emoji}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#FFFCF8", lineHeight: 1.1, marginBottom: 4 }}>{treatment.name}</div>
+            <div style={{ fontSize: 10, color: "rgba(255,252,248,0.5)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>{treatment.hook}</div>
+            <div style={{ display: "inline-block", background: "#A8001C", color: "#fff", fontSize: 11, fontWeight: 800, padding: "4px 12px", borderRadius: 99 }}>{treatment.pct}</div>
+          </div>
+          <div style={{ padding: "16px 14px 24px" }}>
+            <div style={{ fontSize: 13, color: "#1C0A00", lineHeight: 1.65, marginBottom: 14 }}>{treatment.desc}</div>
+            <div style={{ display: "flex", gap: 7, marginBottom: 14 }}>
+              {[{ label: "Avg cost", value: treatment.cost }, { label: "Downtime", value: treatment.downtime }, { label: "Sessions", value: treatment.sessions }].map((s, i) => (
+                <div key={i} style={{ flex: 1, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: "8px 6px", textAlign: "center" }}>
+                  <div style={{ fontSize: 8, color: "#999", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>{s.label}</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#1C0A00" }}>{s.value}</div>
+                </div>
+              ))}
+            </div>
+            <div style={sectionLabelStyle}>WHO'S DONE IT</div>
+            <div style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: "10px 12px", display: "flex", gap: 10, marginBottom: 14 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 99, background: "#1C0A00", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>👤</div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1C0A00", marginBottom: 2 }}>{treatment.celeb}</div>
+                <div style={{ fontSize: 11, color: "#999", lineHeight: 1.4, fontStyle: "italic", marginBottom: 4 }}>{treatment.hook}</div>
+                <div style={{ fontSize: 9, color: "#A8001C", fontWeight: 700 }}>Verified</div>
+              </div>
+            </div>
+            <div style={sectionLabelStyle}>SEE HOW IT LOOKS</div>
+            {treatment.videos.map((v, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: "10px 12px", marginBottom: 6, cursor: "pointer" }}>
+                <div style={{ width: 28, height: 28, borderRadius: 7, background: v.platform === "TK" ? "#000" : "linear-gradient(135deg, #A8001C, #E0407C)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 800, flexShrink: 0 }}>{v.platform}</div>
+                <div style={{ flex: 1, fontSize: 11, fontWeight: 600, color: "#1C0A00", lineHeight: 1.35 }}>{v.title}</div>
+                <span style={{ fontSize: 12, color: "#bbb" }}>→</span>
+              </div>
+            ))}
+            <div style={{ ...sectionLabelStyle, marginTop: 14 }}>CLINICS NEAR YOU</div>
+            {clinics.map((c, i) => (
+              <div key={i} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: "10px 12px", display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 8 }}>
+                <div style={{ width: 44, height: 44, background: "#FFFCF8", border: "0.5px solid #E8DDD4", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{c.emoji}</div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#1C0A00", marginBottom: 2 }}>{c.name}</div>
+                  <div style={{ fontSize: 10, color: "#999", marginBottom: 4 }}>{c.location}</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#A8001C" }}>{c.price}</div>
+                </div>
+              </div>
+            ))}
+            <div style={{ ...sectionLabelStyle, marginTop: 14 }}>REAL REVIEWS</div>
+            <div style={{ background: "#1C0A00", borderRadius: 10, padding: "12px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+              <div style={{ fontSize: 11, color: "rgba(255,252,248,0.7)", lineHeight: 1.4 }}>
+                <strong style={{ color: "#FFFCF8" }}>{treatment.reviewCount}</strong> real reviews from members — costs, results, who it worked for.
+              </div>
+              <button style={{ background: "#A8001C", color: "#fff", border: "none", borderRadius: 99, padding: "8px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", flexShrink: 0 }}>Unlock</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }
 
   return (
     <div style={{ background: C.bg, color: C.espresso, minHeight: "100vh" }}>
@@ -531,65 +610,42 @@ function QuizResultPage() {
           </Card>
 
           {/* 6. TREATMENTS LOCKED */}
-          <SectionLabel>TREATMENTS</SectionLabel>
-          <div
-            style={{
-              position: "relative",
-              background: C.surface,
-              border: `1px solid ${C.border}`,
-              borderRadius: 16,
-              padding: 20,
-              overflow: "hidden",
-            }}
-          >
-            {/* Blurred preview content */}
-            <div style={{ filter: "blur(6px)", opacity: 0.6, userSelect: "none", pointerEvents: "none" }}>
-              <div style={{ fontSize: 11, color: C.textLight, fontWeight: 700, letterSpacing: "0.1em" }}>FOR OILY SKIN</div>
-              <div style={{ fontSize: 18, fontWeight: 700, marginTop: 6 }}>Botox, peels & in-office treatments</div>
-              <p style={{ marginTop: 8, fontSize: 13, color: C.textMid }}>
-                Real outcomes from 1,400 verified members. Honest costs. Honest downtime.
-              </p>
-              <div style={{ marginTop: 14, height: 70, background: C.imageBg, borderRadius: 10 }} />
+          <div>
+            <SectionLabel>RECOMMENDED TREATMENTS</SectionLabel>
+            <div style={{ fontSize: 11, color: "#999", marginBottom: 12, lineHeight: 1.4 }}>
+              Open to everyone. Real reviews are members-only.
             </div>
-
-            {/* Lock overlay */}
-            <div
-              style={{
-                position: "absolute", inset: 0,
-                display: "flex", flexDirection: "column",
-                alignItems: "center", justifyContent: "center",
-                gap: 8, padding: 20, textAlign: "center",
-                background: "rgba(250,250,248,0.55)",
-              }}
-            >
-              <div
-                style={{
-                  width: 40, height: 40, borderRadius: 999,
-                  background: C.espresso, color: "#fff",
-                  display: "grid", placeItems: "center",
-                }}
-              >
-                <Lock size={18} />
-              </div>
-              <div style={{ fontSize: 11, color: C.crimson, fontWeight: 800, letterSpacing: "0.14em" }}>
-                MEMBERS ONLY
-              </div>
-              <p style={{ margin: 0, fontSize: 13, color: C.espresso, maxWidth: 320 }}>
-                Real experiences with Botox, peels, and treatments — for your skin type.
-              </p>
-              <button
-                type="button"
-                style={{
-                  marginTop: 6,
-                  background: C.crimson, color: "#fff",
-                  border: "none", borderRadius: 12,
-                  padding: "10px 16px", fontWeight: 700, fontSize: 13,
-                  cursor: "pointer",
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                }}
-              >
-                <Sparkles size={14} /> Unlock with Skintea membership
-              </button>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {(TREATMENT_DATA[skinTypeKey] ?? TREATMENT_DATA["oily"]).slice(0, 4).map((t) => (
+                <div
+                  key={t.name}
+                  onClick={() => setSelectedTreatment(t.name)}
+                  style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 14, overflow: "hidden", cursor: "pointer" }}
+                >
+                  <div style={{ background: "#1C0A00", padding: "10px 10px 8px" }}>
+                    <div style={{ fontSize: 22, marginBottom: 6 }}>{t.emoji}</div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: "#FFFCF8", lineHeight: 1.2, marginBottom: 2 }}>{t.name}</div>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: "#A8001C" }}>{t.pct}</div>
+                  </div>
+                  <div style={{ padding: "8px 10px 10px" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00", lineHeight: 1.35, marginBottom: 6 }}>{t.hook}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, background: "#FFF5F5", borderRadius: 6, padding: "5px 7px", marginBottom: 6 }}>
+                      <div style={{ width: 6, height: 6, background: "#A8001C", borderRadius: "50%", flexShrink: 0 }} />
+                      <div style={{ fontSize: 9, color: "#A8001C", fontWeight: 700, lineHeight: 1.3 }}>{t.celeb}</div>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00" }}>{t.cost}</div>
+                      <div style={{ width: 22, height: 22, background: "#1C0A00", borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#FFFCF8", fontWeight: 800 }}>→</div>
+                    </div>
+                  </div>
+                  <div style={{ borderTop: "0.5px solid #F0E8E0", padding: "5px 10px", display: "flex", alignItems: "center", gap: 5 }}>
+                    <span style={{ fontSize: 9 }}>🔒</span>
+                    <div style={{ fontSize: 8, color: "#bbb", fontWeight: 600 }}>
+                      <span style={{ color: "#A8001C" }}>{t.reviewCount}</span> reviews · members only
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 

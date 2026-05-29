@@ -135,6 +135,7 @@ const MUST_GET_PRODUCTS: Record<string, { type: string; brand: string; name: str
 
 function QuizResultPage() {
   const [saved, setSaved] = useState(false);
+  const navigate = useNavigate();
   const [stored, setStored] = useState<null | {
     skinTypeLabel?: string;
     persona?: { name: string; emoji: string; tagline: string };

@@ -132,6 +132,8 @@ const defaultResult = {
 
 const TREATMENT_DATA: Record<string, { name: string; emoji: string; pct: string; hook: string; celeb: string; cost: string; reviewCount: string; downtime: string; sessions: string; desc: string; videos: { platform: string; title: string }[]; forSkinTypes: string[] }[]> = { oily: [ { name: "Chemical Peel", emoji: "⚗️", pct: "71% rec", hook: "Clears congestion and shrinks pores in one session", celeb: "Kim Kardashian has done this", cost: "$150–400", reviewCount: "943", downtime: "3–5 days", sessions: "3–6x/year", desc: "A chemical solution removes the top layer of skin, clearing pores, evening tone, and reducing oiliness. Kim Kardashian publicly documented her chemical peel on social media.", videos: [ { platform: "TK", title: "What a chemical peel actually looks like — real procedure" }, { platform: "IG", title: "Chemical peel before & after: oily skin results" } ], forSkinTypes: ["oily", "combination"] }, { name: "Laser Pore Treatment", emoji: "🔬", pct: "68% rec", hook: "Permanently reduces enlarged pores and controls shine", celeb: "Victoria Beckham has done this", cost: "$300–800", reviewCount: "612", downtime: "2–4 days", sessions: "3x series", desc: "Laser energy targets overactive sebaceous glands to reduce pore size and oil production long-term. Victoria Beckham has referenced laser treatments in beauty interviews.", videos: [ { platform: "TK", title: "Laser pore treatment — derm explains what happens" }, { platform: "IG", title: "My oily skin after 3 laser sessions" } ], forSkinTypes: ["oily"] }, { name: "Microneedling", emoji: "🪡", pct: "69% rec", hook: "Rebuilds collagen and tightens pores over time", celeb: "Gwyneth Paltrow has done this", cost: "$200–700", reviewCount: "832", downtime: "2–3 days", sessions: "3–4x/year", desc: "Tiny needles create micro-injuries that trigger collagen production, tightening pores and improving texture. Gwyneth Paltrow has discussed microneedling on her Goop platform.", videos: [ { platform: "TK", title: "Microneedling — what it feels like and the results" }, { platform: "IG", title: "Before & after microneedling: 4 session results" } ], forSkinTypes: ["oily", "combination", "normal"] }, { name: "LED Therapy", emoji: "💡", pct: "77% rec", hook: "Kills acne bacteria and reduces inflammation with zero pain", celeb: "Jessica Alba has done this", cost: "$100–250", reviewCount: "621", downtime: "None", sessions: "Monthly", desc: "Blue LED light targets acne-causing bacteria while red light reduces inflammation. Completely painless with no downtime. Jessica Alba has referenced LED therapy in skincare interviews.", videos: [ { platform: "TK", title: "LED light therapy — is it actually worth it?" }, { platform: "IG", title: "LED therapy results after 6 sessions" } ], forSkinTypes: ["oily", "sensitive", "combination"] } ], dry: [ { name: "PRF Injection", emoji: "💉", pct: "74% rec", hook: "Deep hydration from your own blood's growth factors", celeb: "Hailey Bieber has done this", cost: "$600–900", reviewCount: "487", downtime: "1–2 days", sessions: "3x series", desc: "PRF uses your own blood's platelet-rich fibrin to stimulate collagen and deeply hydrate skin. A natural alternative to fillers. Hailey Bieber has openly discussed PRF injections for skin glow in Harper's Bazaar.", videos: [ { platform: "TK", title: "What PRF actually looks like — real procedure filmed" }, { platform: "IG", title: "PRF before & after: 3 month results" } ], forSkinTypes: ["dry", "normal"] }, { name: "Hydrafacial", emoji: "✨", pct: "81% rec", hook: "Instant glow, zero downtime — most popular worldwide", celeb: "Jennifer Aniston has done this", cost: "$150–300", reviewCount: "1204", downtime: "None", sessions: "Monthly", desc: "Deep cleanse, exfoliation, and hydration in one 30-minute treatment. Immediate visible results with no downtime. Jennifer Aniston has cited Hydrafacial as part of her regular skincare routine in InStyle.", videos: [ { platform: "TK", title: "I got a Hydrafacial — here's exactly what happened" }, { platform: "IG", title: "Hydrafacial results after 4 sessions" } ], forSkinTypes: ["dry", "normal", "sensitive"] }, { name: "Microneedling", emoji: "🪡", pct: "69% rec", hook: "Boosts collagen and restores skin's moisture barrier", celeb: "Gwyneth Paltrow has done this", cost: "$200–700", reviewCount: "832", downtime: "2–3 days", sessions: "3–4x/year", desc: "Triggers collagen production to restore barrier function and improve skin texture. Gwyneth Paltrow has discussed microneedling on her Goop platform.", videos: [ { platform: "TK", title: "Microneedling for dry skin — what actually changed" }, { platform: "IG", title: "Collagen boosting results: before & after" } ], forSkinTypes: ["dry", "oily", "combination", "normal"] }, { name: "LED Therapy", emoji: "💡", pct: "77% rec", hook: "Calms and repairs dry skin barrier with zero irritation", celeb: "Jessica Alba has done this", cost: "$100–250", reviewCount: "621", downtime: "None", sessions: "Monthly", desc: "Red LED light stimulates collagen and repairs the skin barrier. Completely gentle — perfect for dry and sensitive skin. Jessica Alba has referenced LED therapy in skincare interviews.", videos: [ { platform: "TK", title: "LED therapy for dry skin — is it worth it?" }, { platform: "IG", title: "My skin barrier after 6 LED sessions" } ], forSkinTypes: ["dry", "sensitive", "combination"] } ], combination: [ { name: "Chemical Peel", emoji: "⚗️", pct: "71% rec", hook: "Balances oily zones while smoothing dry patches", celeb: "Kim Kardashian has done this", cost: "$150–400", reviewCount: "943", downtime: "3–5 days", sessions: "3–6x/year", desc: "Targets oily T-zone congestion while evening out dry areas. Kim Kardashian publicly documented her chemical peel experience on social media.", videos: [ { platform: "TK", title: "Chemical peel for combo skin — what to expect" }, { platform: "IG", title: "Before & after: combination skin chemical peel" } ], forSkinTypes: ["oily", "combination"] }, { name: "Microneedling", emoji: "🪡", pct: "69% rec", hook: "Evens out texture across oily and dry zones", celeb: "Gwyneth Paltrow has done this", cost: "$200–700", reviewCount: "832", downtime: "2–3 days", sessions: "3–4x/year", desc: "Creates uniform collagen stimulation across the face, balancing combination skin texture over time. Gwyneth Paltrow has discussed microneedling on her Goop platform.", videos: [ { platform: "TK", title: "Microneedling combo skin — 3 session results" }, { platform: "IG", title: "How microneedling fixed my uneven texture" } ], forSkinTypes: ["oily", "combination", "normal"] }, { name: "Hydrafacial", emoji: "✨", pct: "81% rec", hook: "Clears oily zones and hydrates dry areas in one go", celeb: "Jennifer Aniston has done this", cost: "$150–300", reviewCount: "1204", downtime: "None", sessions: "Monthly", desc: "The multi-step treatment adapts to different skin zones — extracting congestion in oily areas while infusing hydration where it's dry. Jennifer Aniston has cited Hydrafacial in InStyle.", videos: [ { platform: "TK", title: "Hydrafacial for combo skin — worth it?" }, { platform: "IG", title: "Monthly Hydrafacial: 6 month results" } ], forSkinTypes: ["dry", "normal", "sensitive", "combination"] }, { name: "LED Therapy", emoji: "💡", pct: "77% rec", hook: "Targets both breakouts and dry patches simultaneously", celeb: "Jessica Alba has done this", cost: "$100–250", reviewCount: "621", downtime: "None", sessions: "Monthly", desc: "Combines blue and red light to address both oily and dry concerns at once. No downtime, safe for all skin zones. Jessica Alba has referenced LED therapy in skincare interviews.", videos: [ { platform: "TK", title: "LED for combination skin — blue vs red light" }, { platform: "IG", title: "LED therapy: 3 month skin diary" } ], forSkinTypes: ["oily", "sensitive", "combination"] } ], normal: [ { name: "PRF Injection", emoji: "💉", pct: "74% rec", hook: "Maintains your great skin and adds a natural glow boost", celeb: "Hailey Bieber has done this", cost: "$600–900", reviewCount: "487", downtime: "1–2 days", sessions: "3x series", desc: "Uses your own growth factors to keep skin at its best and add subtle volume and glow. Prevention-focused. Hailey Bieber has openly discussed PRF injections in Harper's Bazaar.", videos: [ { platform: "TK", title: "PRF for normal skin — preventative treatment explained" }, { platform: "IG", title: "PRF glow results: 3 months later" } ], forSkinTypes: ["dry", "normal"] }, { name: "Hydrafacial", emoji: "✨", pct: "81% rec", hook: "Monthly reset to keep balanced skin at its best", celeb: "Jennifer Aniston has done this", cost: "$150–300", reviewCount: "1204", downtime: "None", sessions: "Monthly", desc: "A maintenance treatment that keeps normal skin glowing and clear. Jennifer Aniston has cited Hydrafacial as part of her regular skincare routine in InStyle.", videos: [ { platform: "TK", title: "Why I get a Hydrafacial every month" }, { platform: "IG", title: "Normal skin Hydrafacial monthly routine" } ], forSkinTypes: ["dry", "normal", "sensitive"] }, { name: "Microneedling", emoji: "🪡", pct: "69% rec", hook: "Preventative collagen boost before signs of aging appear", celeb: "Gwyneth Paltrow has done this", cost: "$200–700", reviewCount: "832", downtime: "2–3 days", sessions: "3–4x/year", desc: "Building collagen reserves now slows future aging. Gwyneth Paltrow has discussed microneedling on her Goop platform.", videos: [ { platform: "TK", title: "Preventative microneedling in your 20s — worth it?" }, { platform: "IG", title: "Collagen banking: what it is and why it works" } ], forSkinTypes: ["oily", "combination", "normal"] }, { name: "LED Therapy", emoji: "💡", pct: "77% rec", hook: "Easy maintenance treatment — no downtime, big glow", celeb: "Jessica Alba has done this", cost: "$100–250", reviewCount: "621", downtime: "None", sessions: "Monthly", desc: "Low-effort, high-reward maintenance for normal skin. Keeps collagen levels up and skin glowing. Jessica Alba has referenced LED therapy in skincare interviews.", videos: [ { platform: "TK", title: "LED therapy monthly routine — before & after" }, { platform: "IG", title: "6 months of LED: is it worth the hype?" } ], forSkinTypes: ["dry", "sensitive", "combination"] } ], sensitive: [ { name: "LED Therapy", emoji: "💡", pct: "77% rec", hook: "The only treatment gentle enough for reactive skin", celeb: "Jessica Alba has done this", cost: "$100–250", reviewCount: "621", downtime: "None", sessions: "Monthly", desc: "Red LED light calms inflammation, reduces redness, and repairs the barrier — completely pain-free. The safest in-office treatment for sensitive skin. Jessica Alba has referenced LED therapy in skincare interviews.", videos: [ { platform: "TK", title: "LED therapy for sensitive skin — safe and effective" }, { platform: "IG", title: "My redness after 6 LED sessions" } ], forSkinTypes: ["dry", "sensitive", "combination"] }, { name: "Hydrafacial", emoji: "✨", pct: "81% rec", hook: "Deep cleanse with zero irritation — no redness after", celeb: "Jennifer Aniston has done this", cost: "$150–300", reviewCount: "1204", downtime: "None", sessions: "Monthly", desc: "A customizable treatment that can be adjusted for reactive skin. No harsh extractions, no irritation. Jennifer Aniston has cited Hydrafacial in InStyle.", videos: [ { platform: "TK", title: "Hydrafacial for sensitive skin — what to tell your provider" }, { platform: "IG", title: "Sensitive skin Hydrafacial: my honest review" } ], forSkinTypes: ["dry", "normal", "sensitive"] }, { name: "PRF Injection", emoji: "💉", pct: "74% rec", hook: "Your own biology — zero foreign substances, zero reactions", celeb: "Hailey Bieber has done this", cost: "$600–900", reviewCount: "487", downtime: "1–2 days", sessions: "3x series", desc: "Because PRF uses your own blood, the risk of reaction is minimal — making it one of the safest injectable options for sensitive skin. Hailey Bieber has openly discussed PRF in Harper's Bazaar.", videos: [ { platform: "TK", title: "PRF for sensitive skin — why it's different from fillers" }, { platform: "IG", title: "PRF: natural glow with no foreign substances" } ], forSkinTypes: ["dry", "normal"] }, { name: "Calming Facial", emoji: "🌸", pct: "83% rec", hook: "In-office barrier repair with zero risk of flare-up", celeb: "No celebrity reference — data-backed only", cost: "$80–200", reviewCount: "394", downtime: "None", sessions: "Monthly", desc: "A professional calming facial uses medical-grade centella, barrier repair actives, and soothing masks to reset reactive skin. Safe for even the most sensitive skin types.", videos: [ { platform: "TK", title: "Calming facial for reactive skin — what happens" }, { platform: "IG", title: "Before & after: sensitive skin calming facial" } ], forSkinTypes: ["sensitive"] } ] };
 
+const MUST_GET_PRODUCTS: Record<string, { type: string; brand: string; name: string; emoji: string; why: string; pct: string; affiliates: string[] }[]> = { oily: [ { type: "Cleanser", brand: "CeraVe", name: "Foaming Facial Cleanser", emoji: "🧼", why: "Cuts oil without stripping your barrier", pct: "84% rec", affiliates: ["Amazon", "Ulta"] }, { type: "Serum", brand: "The Ordinary", name: "Niacinamide 10% + Zinc 1%", emoji: "🧪", why: "Shrinks pores and controls shine all day", pct: "91% rec", affiliates: ["Amazon", "Sephora"] }, { type: "SPF", brand: "EltaMD", name: "UV Clear SPF 46", emoji: "☀️", why: "Lightweight, matte finish — no white cast", pct: "93% rec", affiliates: ["Amazon", "Sephora"] }, { type: "Face Mask", brand: "Innisfree", name: "Super Volcanic Pore Clay Mask", emoji: "🌋", why: "Weekly pore reset for oily zones", pct: "77% rec", affiliates: ["Amazon", "Ulta"] } ], dry: [ { type: "Toner", brand: "Gokujyun", name: "Super Hyaluronic Acid Lotion", emoji: "💧", why: "Floods dry skin with layers of hydration", pct: "91% rec", affiliates: ["Amazon", "Sephora"] }, { type: "Serum", brand: "Medicube", name: "Collagen Niacinamide Serum", emoji: "🧪", why: "Repairs barrier while you sleep", pct: "87% rec", affiliates: ["Amazon"] }, { type: "Moisturizer", brand: "Sekisei", name: "Labo Labo Super Gel Moisturizer", emoji: "🫙", why: "Rich but non-sticky — dry skin best friend", pct: "85% rec", affiliates: ["Amazon"] }, { type: "Face Mask", brand: "Medicube", name: "Red Erasing Cream Mask", emoji: "🎭", why: "Weekly reset for parched flaky skin", pct: "83% rec", affiliates: ["Amazon", "Ulta"] } ], combination: [ { type: "Toner", brand: "Some By Mi", name: "AHA BHA PHA 30 Days Toner", emoji: "💧", why: "Balances oily zones while hydrating dry patches", pct: "81% rec", affiliates: ["Amazon", "Ulta"] }, { type: "Serum", brand: "The Ordinary", name: "Niacinamide 10% + Zinc 1%", emoji: "🧪", why: "Controls T-zone without drying cheeks", pct: "88% rec", affiliates: ["Amazon", "Sephora"] }, { type: "Moisturizer", brand: "Tatcha", name: "The Water Cream", emoji: "🫙", why: "Lightweight hydration for combo skin", pct: "83% rec", affiliates: ["Sephora"] }, { type: "Face Mask", brand: "Dr. Jart+", name: "Dermask Micro Jet Clearing Solution", emoji: "🎭", why: "Targets both oily and dry zones at once", pct: "73% rec", affiliates: ["Sephora", "Ulta"] } ], normal: [ { type: "Serum", brand: "SkinCeuticals", name: "C E Ferulic Serum", emoji: "🧪", why: "The gold standard for prevention and glow", pct: "91% rec", affiliates: ["Sephora"] }, { type: "Moisturizer", brand: "Tatcha", name: "The Water Cream", emoji: "🫙", why: "Effortless hydration for balanced skin", pct: "87% rec", affiliates: ["Sephora"] }, { type: "SPF", brand: "Supergoop", name: "Unseen Sunscreen SPF 40", emoji: "☀️", why: "Invisible finish — wear it every single day", pct: "89% rec", affiliates: ["Sephora", "Ulta"] }, { type: "Face Mask", brand: "Glow Recipe", name: "Watermelon Glow Sleeping Mask", emoji: "🍉", why: "Weekly glow boost for maintenance skin", pct: "80% rec", affiliates: ["Sephora", "Amazon"] } ], sensitive: [ { type: "Cleanser", brand: "Vanicream", name: "Gentle Facial Cleanser", emoji: "🧼", why: "Zero fragrance zero reaction every time", pct: "92% rec", affiliates: ["Amazon", "Ulta"] }, { type: "Serum", brand: "Dr. Jart+", name: "Cicapair Tiger Grass Serum", emoji: "🧪", why: "Calms redness and repairs barrier fast", pct: "85% rec", affiliates: ["Sephora"] }, { type: "Moisturizer", brand: "La Roche-Posay", name: "Toleriane Double Repair Moisturizer", emoji: "🫙", why: "Fragrance-free barrier repair for reactive skin", pct: "90% rec", affiliates: ["Amazon", "Ulta"] }, { type: "Face Mask", brand: "Benton", name: "Goodbye Redness Centella Mask", emoji: "🌿", why: "Calms flare-ups and redness in 20 minutes", pct: "79% rec", affiliates: ["Amazon"] } ] };
+
 function QuizResultPage() {
   const [saved, setSaved] = useState(false);
   const [selectedTreatment, setSelectedTreatment] = useState<string | null>(null);
@@ -349,59 +351,26 @@ function QuizResultPage() {
       >
         <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
 
-          {/* 1. SKIN PROFILE */}
-          <SectionLabel>SKIN PROFILE</SectionLabel>
-          <Card>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-              <div>
-                <div style={{ fontSize: 11, color: C.textLight, fontWeight: 700, letterSpacing: "0.1em" }}>
-                  YOU'RE GIVING — {result.skinType.toUpperCase()}
-                </div>
-                <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4, lineHeight: 1.1 }}>
-                  {result.persona.name}
-                </div>
-                <div style={{ fontSize: 13, color: C.textMid, marginTop: 6, maxWidth: 360, lineHeight: 1.45 }}>
-                  {result.persona.tagline}
-                </div>
-              </div>
-              <div
+          {/* 1. TOP CONCERNS */}
+          <SectionLabel>TOP CONCERNS</SectionLabel>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {result.concerns.map((c) => (
+              <span
+                key={c}
                 style={{
-                  width: 56, height: 56, borderRadius: 14, background: C.imageBg,
-                  display: "grid", placeItems: "center", fontSize: 26,
+                  fontSize: 12,
+                  padding: "6px 10px",
+                  borderRadius: 999,
+                  background: C.imageBg,
+                  color: C.espresso,
+                  fontWeight: 600,
+                  border: `0.5px solid ${C.border}`,
                 }}
-                aria-hidden
               >
-                {result.persona.emoji}
-              </div>
-            </div>
-
-            <div style={{ marginTop: 16 }}>
-              <div style={{ fontSize: 11, color: C.textLight, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 8 }}>
-                TOP CONCERNS
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {result.concerns.map((c) => (
-                  <span
-                    key={c}
-                    style={{
-                      fontSize: 12,
-                      padding: "6px 10px",
-                      borderRadius: 999,
-                      background: C.imageBg,
-                      color: C.espresso,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {c}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <p style={{ marginTop: 16, marginBottom: 0, fontSize: 14, color: C.textMid, lineHeight: 1.5 }}>
-              {result.summary}
-            </p>
-          </Card>
+                {c}
+              </span>
+            ))}
+          </div>
 
           {/* 2. INGREDIENT LIST */}
           <SectionLabel>YOUR INGREDIENT LIST</SectionLabel>
@@ -465,9 +434,82 @@ function QuizResultPage() {
             </div>
           </Card>
 
-          {/* 4. PRODUCTS */}
+          {/* 4. PERFECT FOR YOUR SKIN (must-get 4) */}
+          <SectionLabel>PERFECT FOR YOUR SKIN</SectionLabel>
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ background: "#1C0A00", borderRadius: "14px 14px 0 0", padding: "14px 16px 12px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#FFFCF8", lineHeight: 1.25 }}>
+                  The 4 <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", color: "#A8001C" }}>{result.persona.name}</span> skin actually needs
+                </div>
+                <div style={{ fontSize: 10, color: "rgba(255,252,248,0.5)", marginTop: 5, lineHeight: 1.45 }}>
+                  No routine knowledge needed. Just start here.
+                </div>
+              </div>
+              <span style={{ background: "#A8001C", color: "#FFFCF8", fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", padding: "4px 10px", borderRadius: 99, whiteSpace: "nowrap", flexShrink: 0 }}>Must get</span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: "#E8DDD4", border: "1px solid #E8DDD4", borderTop: "none", borderRadius: "0 0 14px 14px", overflow: "hidden" }}>
+              {(MUST_GET_PRODUCTS[skinTypeKey] ?? MUST_GET_PRODUCTS["oily"]).map((p) => (
+                <div key={p.name} style={{ background: "#FFFFFF", padding: "12px 10px 14px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{ width: 64, height: 64, background: "#FFFCF8", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, marginBottom: 7 }}>{p.emoji}</div>
+                  <div style={{ fontSize: 8, fontWeight: 700, color: "#A8001C", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2, textAlign: "center" }}>{p.type}</div>
+                  <div style={{ fontSize: 9, color: "#999", fontWeight: 600, textAlign: "center", marginBottom: 1 }}>{p.brand}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#1C0A00", lineHeight: 1.3, textAlign: "center", marginBottom: 5 }}>{p.name}</div>
+                  <div style={{ fontSize: 9, color: "#999", textAlign: "center", lineHeight: 1.4, marginBottom: 5, fontStyle: "italic" }}>{p.why}</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#A8001C", marginBottom: 6 }}>{p.pct}</div>
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
+                    {p.affiliates.map((a) => (
+                      <span key={a} style={{ fontSize: 9, fontWeight: 700, color: "#1C0A00", border: "0.5px solid #E8DDD4", borderRadius: 99, padding: "3px 8px", background: "#FFFCF8" }}>{a}</span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 5. TREATMENTS */}
           <div>
-            <SectionLabel>RECOMMENDED FOR YOU</SectionLabel>
+            <SectionLabel>RECOMMENDED TREATMENTS</SectionLabel>
+            <div style={{ fontSize: 11, color: "#999", marginBottom: 12, lineHeight: 1.4 }}>
+              Open to everyone. Real reviews are members-only.
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {(TREATMENT_DATA[skinTypeKey] ?? TREATMENT_DATA["oily"]).slice(0, 4).map((t) => (
+                <div
+                  key={t.name}
+                  onClick={() => setSelectedTreatment(t.name)}
+                  style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 14, overflow: "hidden", cursor: "pointer" }}
+                >
+                  <div style={{ background: "#1C0A00", padding: "10px 10px 8px" }}>
+                    <div style={{ fontSize: 22, marginBottom: 6 }}>{t.emoji}</div>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: "#FFFCF8", lineHeight: 1.2, marginBottom: 2 }}>{t.name}</div>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: "#A8001C" }}>{t.pct}</div>
+                  </div>
+                  <div style={{ padding: "8px 10px 10px" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00", lineHeight: 1.35, marginBottom: 6 }}>{t.hook}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, background: "#FFF5F5", borderRadius: 6, padding: "5px 7px", marginBottom: 6 }}>
+                      <div style={{ width: 6, height: 6, background: "#A8001C", borderRadius: "50%", flexShrink: 0 }} />
+                      <div style={{ fontSize: 9, color: "#A8001C", fontWeight: 700, lineHeight: 1.3 }}>{t.celeb}</div>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00" }}>{t.cost}</div>
+                      <div style={{ width: 22, height: 22, background: "#1C0A00", borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#FFFCF8", fontWeight: 800 }}>→</div>
+                    </div>
+                  </div>
+                  <div style={{ borderTop: "0.5px solid #F0E8E0", padding: "5px 10px", display: "flex", alignItems: "center", gap: 5 }}>
+                    <span style={{ fontSize: 9 }}>🔒</span>
+                    <div style={{ fontSize: 8, color: "#bbb", fontWeight: 600 }}>
+                      <span style={{ color: "#A8001C" }}>{t.reviewCount}</span> reviews · members only
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 6. YOUR FULL ROUTINE */}
+          <div>
+            <SectionLabel>YOUR FULL ROUTINE</SectionLabel>
             <div style={{ overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", margin: "0 -16px", padding: "0 16px", display: "flex" }}>
               <div style={{ display: "flex", gap: 8, width: "max-content", paddingBottom: 12 }}>
                 {REC_TABS.map((tab) => {
@@ -525,7 +567,7 @@ function QuizResultPage() {
             </div>
           </div>
 
-          {/* 4b. SKIN TWIN */}
+          {/* 7. SKIN TWIN */}
           <SectionLabel>YOUR SKIN TWIN</SectionLabel>
           <p style={{ margin: "-8px 0 0", fontSize: 14, color: C.textMid }}>
             Same skin type. Same vibe. See what's working for them.
@@ -541,7 +583,7 @@ function QuizResultPage() {
             Matched by skin type and background — not sponsored.
           </p>
 
-          {/* SHARE AND GIFT */}
+          {/* 8. SHARE AND GIFT */}
           <SectionLabel>SHARE AND GIFT</SectionLabel>
           <div style={{ background: "#1C0A00", borderRadius: 12, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
@@ -574,7 +616,7 @@ function QuizResultPage() {
             </div>
           </div>
 
-          {/* 5. SAMPLE KIT */}
+          {/* 9. SAMPLE KIT */}
           <SectionLabel>TRY BEFORE YOU COMMIT</SectionLabel>
           <Card>
             <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
@@ -608,46 +650,6 @@ function QuizResultPage() {
               See Your Kit
             </button>
           </Card>
-
-          {/* 6. TREATMENTS LOCKED */}
-          <div>
-            <SectionLabel>RECOMMENDED TREATMENTS</SectionLabel>
-            <div style={{ fontSize: 11, color: "#999", marginBottom: 12, lineHeight: 1.4 }}>
-              Open to everyone. Real reviews are members-only.
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {(TREATMENT_DATA[skinTypeKey] ?? TREATMENT_DATA["oily"]).slice(0, 4).map((t) => (
-                <div
-                  key={t.name}
-                  onClick={() => setSelectedTreatment(t.name)}
-                  style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 14, overflow: "hidden", cursor: "pointer" }}
-                >
-                  <div style={{ background: "#1C0A00", padding: "10px 10px 8px" }}>
-                    <div style={{ fontSize: 22, marginBottom: 6 }}>{t.emoji}</div>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: "#FFFCF8", lineHeight: 1.2, marginBottom: 2 }}>{t.name}</div>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: "#A8001C" }}>{t.pct}</div>
-                  </div>
-                  <div style={{ padding: "8px 10px 10px" }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00", lineHeight: 1.35, marginBottom: 6 }}>{t.hook}</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 5, background: "#FFF5F5", borderRadius: 6, padding: "5px 7px", marginBottom: 6 }}>
-                      <div style={{ width: 6, height: 6, background: "#A8001C", borderRadius: "50%", flexShrink: 0 }} />
-                      <div style={{ fontSize: 9, color: "#A8001C", fontWeight: 700, lineHeight: 1.3 }}>{t.celeb}</div>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00" }}>{t.cost}</div>
-                      <div style={{ width: 22, height: 22, background: "#1C0A00", borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#FFFCF8", fontWeight: 800 }}>→</div>
-                    </div>
-                  </div>
-                  <div style={{ borderTop: "0.5px solid #F0E8E0", padding: "5px 10px", display: "flex", alignItems: "center", gap: 5 }}>
-                    <span style={{ fontSize: 9 }}>🔒</span>
-                    <div style={{ fontSize: 8, color: "#bbb", fontWeight: 600 }}>
-                      <span style={{ color: "#A8001C" }}>{t.reviewCount}</span> reviews · members only
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* Retake */}
           <div style={{ textAlign: "center", marginTop: 12 }}>

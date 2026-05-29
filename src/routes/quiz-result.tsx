@@ -616,6 +616,66 @@ function QuizResultPage() {
             </div>
           </div>
 
+          {/* 8b. YOUR FULL ROUTINE (repeat to drive purchase) */}
+          <div>
+            <SectionLabel>YOUR FULL ROUTINE</SectionLabel>
+            <div style={{ overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", margin: "0 -16px", padding: "0 16px", display: "flex" }}>
+              <div style={{ display: "flex", gap: 8, width: "max-content", paddingBottom: 12 }}>
+                {REC_TABS.map((tab) => {
+                  const isActive = activeRecTab === tab.key;
+                  return (
+                    <button
+                      key={`repeat-${tab.key}`}
+                      type="button"
+                      onClick={() => setActiveRecTab(tab.key)}
+                      style={{
+                        background: isActive ? "#1C0A00" : "#fff",
+                        color: isActive ? "#FFFCF8" : "#999",
+                        border: isActive ? "none" : "0.5px solid #E8DDD4",
+                        borderRadius: 99,
+                        padding: "7px 14px",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <span style={{ fontSize: 9, fontWeight: 800, marginRight: 2 }}>{tab.num}</span>
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 4 }}>
+              {(currentRecs[activeRecTab] ?? []).map((item) => (
+                <div key={`repeat-${activeRecTab}-${item.rank}`} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, overflow: "hidden" }}>
+                  <div style={{ height: 100, background: "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
+                    <div style={{ position: "absolute", top: 7, left: 7, width: 20, height: 20, background: "#1C0A00", color: "#FFFCF8", borderRadius: 99, fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {item.rank}
+                    </div>
+                    {item.emoji}
+                  </div>
+                  <div style={{ padding: "8px 10px 12px" }}>
+                    <div style={{ fontSize: 10, color: "#999", fontWeight: 600, marginBottom: 2 }}>{item.brand}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#1C0A00", lineHeight: 1.35, marginBottom: 6 }}>{item.name}</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                      {item.good.map((g) => (
+                        <span key={g} style={{ fontSize: 9, padding: "2px 7px", borderRadius: 99, background: "#F0FAF1", color: "#2D7A3A", fontWeight: 700 }}>{g}</span>
+                      ))}
+                      {item.watch && (
+                        <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 99, background: "#FFFBEB", color: "#A87400", fontWeight: 700 }}>{item.watch}</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#A8001C", fontWeight: 700, marginTop: 5 }}>{item.pct}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* 9. SAMPLE KIT */}
           <SectionLabel>TRY BEFORE YOU COMMIT</SectionLabel>
           <Card>

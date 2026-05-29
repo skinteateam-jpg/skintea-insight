@@ -401,9 +401,10 @@ function SavedTab() {
               <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{p.name}</div>
               <div style={{ fontSize: 10, color: C.textLight, marginTop: 2 }}>{p.category}</div>
               <div style={{ marginTop: 6 }}><MatchPill match={p.match} /></div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 10 }}>
-                <button style={{ padding: "7px 0", fontSize: 11, fontWeight: 600, borderRadius: 6, border: "none", background: C.ink, color: "#fff", cursor: "pointer" }}>Add to Shelf</button>
-                <button style={{ padding: "7px 0", fontSize: 11, fontWeight: 600, borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.textMid, cursor: "pointer" }}>Remove</button>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: "auto" }}>
+                <button style={{ width: "100%", background: "#1C0A00", color: "#FFFCF8", border: "none", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, textAlign: "center", cursor: "pointer" }}>Add to My Shelf</button>
+                <button style={{ width: "100%", background: "#FFF5F5", color: "#A8001C", border: "0.5px solid #A8001C", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, textAlign: "center", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>🎁 Add to Gift Me</button>
+                <button style={{ width: "100%", background: "transparent", color: "#bbb", border: "0.5px solid #E8DDD4", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 600, textAlign: "center", cursor: "pointer" }}>Remove</button>
               </div>
             </div>
           </div>

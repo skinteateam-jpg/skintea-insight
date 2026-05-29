@@ -23,6 +23,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ClinicsRouteImport } from './routes/clinics'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as TreatmentIdRouteImport } from './routes/treatment.$id'
 import { Route as TeaProductsPostIdRouteImport } from './routes/tea-products.$postId'
 import { Route as ProductsIdV2RouteImport } from './routes/products.$id-v2'
 import { Route as AdminTreatmentsRouteImport } from './routes/admin.treatments'
@@ -97,6 +98,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TreatmentIdRoute = TreatmentIdRouteImport.update({
+  id: '/treatment/$id',
+  path: '/treatment/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TeaProductsPostIdRoute = TeaProductsPostIdRouteImport.update({
   id: '/$postId',
   path: '/$postId',
@@ -130,6 +136,7 @@ export interface FileRoutesByFullPath {
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/products/$id-v2': typeof ProductsIdV2Route
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
+  '/treatment/$id': typeof TreatmentIdRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/products/$id-v2': typeof ProductsIdV2Route
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
+  '/treatment/$id': typeof TreatmentIdRoute
   '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
@@ -169,6 +177,7 @@ export interface FileRoutesById {
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/products/$id-v2': typeof ProductsIdV2Route
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
+  '/treatment/$id': typeof TreatmentIdRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -190,6 +199,7 @@ export interface FileRouteTypes {
     | '/admin/treatments'
     | '/products/$id-v2'
     | '/tea-products/$postId'
+    | '/treatment/$id'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -209,6 +219,7 @@ export interface FileRouteTypes {
     | '/admin/treatments'
     | '/products/$id-v2'
     | '/tea-products/$postId'
+    | '/treatment/$id'
     | '/admin'
   id:
     | '__root__'
@@ -228,6 +239,7 @@ export interface FileRouteTypes {
     | '/admin/treatments'
     | '/products/$id-v2'
     | '/tea-products/$postId'
+    | '/treatment/$id'
     | '/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -246,6 +258,7 @@ export interface RootRouteChildren {
   TeaProductsRoute: typeof TeaProductsRouteWithChildren
   TreatmentTalk2Route: typeof TreatmentTalk2Route
   AdminTreatmentsRoute: typeof AdminTreatmentsRoute
+  TreatmentIdRoute: typeof TreatmentIdRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -349,6 +362,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/treatment/$id': {
+      id: '/treatment/$id'
+      path: '/treatment/$id'
+      fullPath: '/treatment/$id'
+      preLoaderRoute: typeof TreatmentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tea-products/$postId': {
       id: '/tea-products/$postId'
       path: '/$postId'
@@ -412,6 +432,7 @@ const rootRouteChildren: RootRouteChildren = {
   TeaProductsRoute: TeaProductsRouteWithChildren,
   TreatmentTalk2Route: TreatmentTalk2Route,
   AdminTreatmentsRoute: AdminTreatmentsRoute,
+  TreatmentIdRoute: TreatmentIdRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 export const routeTree = rootRouteImport

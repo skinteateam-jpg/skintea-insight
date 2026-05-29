@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Pencil, Plus, Lock, Star, X, Bookmark, Link2, Download, ArrowUp, ArrowDown } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 
@@ -35,11 +35,11 @@ const C = {
 
 type SkinType = "Oily" | "Dry" | "Combination" | "Sensitive" | "Normal";
 const PERSONAS: Record<SkinType, { name: string; emoji: string; color: string; bg: string }> = {
-  Oily:        { name: "The Glazed Donut",   emoji: "🍩", color: "#A8001C", bg: "#FCE8EC" },
-  Dry:         { name: "The Desert Girl",    emoji: "🏜️", color: "#B5651D", bg: "#FBEDDC" },
-  Combination: { name: "The Mood Board",     emoji: "🎭", color: "#6B3FA0", bg: "#EFE5F7" },
-  Sensitive:   { name: "The Main Character", emoji: "🌸", color: "#C2185B", bg: "#FCE4EC" },
-  Normal:      { name: "The Unbothered",     emoji: "😮‍💨", color: "#2E7D32", bg: "#E6F4EA" },
+  Oily:        { name: "The Butter Girl",        emoji: "🧈", color: "#A8001C", bg: "#FFF5F5" },
+  Dry:         { name: "The Cracker",            emoji: "🫙", color: "#B5651D", bg: "#FBEDDC" },
+  Combination: { name: "The Everything Bagel",   emoji: "🥯", color: "#6B3FA0", bg: "#EFE5F7" },
+  Sensitive:   { name: "The Peach",              emoji: "🍑", color: "#C2185B", bg: "#FCE4EC" },
+  Normal:      { name: "The Glass of Milk",      emoji: "🥛", color: "#2E7D32", bg: "#E6F4EA" },
 };
 
 // ---------- Mock user ----------
@@ -139,11 +139,22 @@ const NEXT_STEPS = [
 ];
 
 // ---------- Page ----------
-type Tab = "tea" | "shelf" | "saved" | "chart";
+type Tab = "tea" | "shelf" | "gift" | "saved" | "chart";
 
 function SkinProfilePage() {
   const [tab, setTab] = useState<Tab>("tea");
-  const persona = PERSONAS[USER.skinType];
+  const [quizResult, setQuizResult] = useState<any>(null);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("skintea.quizResult");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setQuizResult(parsed);
+      }
+    } catch {}
+  }, []);
+  const activeSkinType = (quizResult?.skinTypeLabel as SkinType) || USER.skinType;
+  const persona = PERSONAS[activeSkinType] || PERSONAS[USER.skinType];
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.ink, fontFamily: "'DM Sans', system-ui, sans-serif" }}>
@@ -151,6 +162,7 @@ function SkinProfilePage() {
       <main style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px 80px" }}>
         {tab === "tea" && <TeaTab />}
         {tab === "shelf" && <ShelfTab />}
+        {tab === "gift" && <GiftMeTab quizResult={quizResult} />}
         {tab === "saved" && <SavedTab />}
         {tab === "chart" && <ChartTab persona={persona} />}
       </main>
@@ -164,6 +176,7 @@ function Header({ persona, tab, setTab }: { persona: typeof PERSONAS[SkinType]; 
   const tabs: Array<{ id: Tab; icon: string; label: string; private?: boolean }> = [
     { id: "tea", icon: "☕", label: "The Tea" },
     { id: "shelf", icon: "🧴", label: "My Shelf" },
+    { id: "gift", icon: "🎁", label: "Gift Me" },
     { id: "saved", icon: "🔖", label: "Saved", private: true },
     { id: "chart", icon: "📋", label: "Skin Chart", private: true },
   ];
@@ -176,7 +189,7 @@ function Header({ persona, tab, setTab }: { persona: typeof PERSONAS[SkinType]; 
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <span style={{ fontWeight: 700, fontSize: 16 }}>@{USER.username}</span>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 999, background: persona.bg, color: persona.color, fontWeight: 700, fontSize: 12 }}>
-                {persona.name} {persona.emoji}
+                <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700 }}>{persona.name}</span> {persona.emoji}
               </span>
             </div>
             <div style={{ fontSize: 12, color: C.textLight, marginTop: 2 }}>{USER.concerns.join(" · ")}</div>
@@ -185,26 +198,35 @@ function Header({ persona, tab, setTab }: { persona: typeof PERSONAS[SkinType]; 
               <span><b>{USER.following}</b> <span style={{ color: C.textLight }}>following</span></span>
               <span><b>{USER.followers.toLocaleString()}</b> <span style={{ color: C.textLight }}>followers</span></span>
             </div>
+            <div style={{ background: "#1C0A00", borderRadius: 8, padding: "7px 11px", display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
+              <div>
+                <div style={{ fontSize: 9, color: "rgba(255,252,248,0.55)" }}>Your public profile</div>
+                <div style={{ color: "#FFFCF8", fontWeight: 700, fontSize: 10 }}>skintea.com/u/{USER.username}</div>
+              </div>
+              <span style={{ fontSize: 9, fontWeight: 800, color: "#A8001C", background: "rgba(168,0,28,0.12)", border: "0.5px solid rgba(168,0,28,0.3)", borderRadius: 99, padding: "3px 9px" }}>Copy link</span>
+            </div>
           </div>
           <button style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, background: C.ink, color: "#fff", fontSize: 12, fontWeight: 600, border: "none", cursor: "pointer", flexShrink: 0 }}>
             <Pencil size={12} /> Edit
           </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", marginTop: 16 }}>
-          {tabs.map(t => {
-            const active = tab === t.id;
-            return (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                style={{ background: "transparent", border: "none", cursor: "pointer", padding: "10px 4px 12px",
-                  borderBottom: active ? `2px solid ${C.ink}` : "2px solid transparent",
-                  color: active ? C.ink : C.textLight }}>
-                <div style={{ fontSize: 22, lineHeight: 1 }}>{t.icon}</div>
-                <div style={{ fontSize: 11, marginTop: 4, fontWeight: active ? 700 : 500 }}>{t.label}</div>
-                {t.private && <div style={{ fontSize: 8, marginTop: 2, color: C.textLight, letterSpacing: 0.5, fontWeight: 700 }}>PRIVATE</div>}
-              </button>
-            );
-          })}
+        <div style={{ overflowX: "auto", scrollbarWidth: "none", margin: "16px -16px 0", padding: "0 16px" }}>
+          <div style={{ display: "flex", width: "max-content" }}>
+            {tabs.map(t => {
+              const active = tab === t.id;
+              return (
+                <button key={t.id} onClick={() => setTab(t.id)}
+                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: "8px 14px 10px",
+                    borderBottom: active ? "2px solid #1C0A00" : "2px solid transparent",
+                    color: active ? "#1C0A00" : "#999", whiteSpace: "nowrap", textAlign: "center" }}>
+                  <div style={{ fontSize: 16, lineHeight: 1, marginBottom: 2 }}>{t.icon}</div>
+                  <div style={{ fontSize: 10, marginTop: 2, fontWeight: active ? 700 : 500 }}>{t.label}</div>
+                  {t.private && <div style={{ fontSize: 7, marginTop: 1, color: "#bbb", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>PRIVATE</div>}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </header>

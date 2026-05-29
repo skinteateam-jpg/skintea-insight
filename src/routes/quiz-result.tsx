@@ -1,6 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Lock, Check, AlertTriangle, X, Sparkles, RotateCcw, ArrowRight } from "lucide-react";
+import { TREATMENT_DATA } from "../data/treatments";
 
 export const Route = createFileRoute("/quiz-result")({
   component: QuizResultPage,

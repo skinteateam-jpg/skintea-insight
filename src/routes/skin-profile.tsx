@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Pencil, Plus, Lock, Star, X, Bookmark, Link2, Download, ArrowUp, ArrowDown } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 
@@ -35,11 +35,11 @@ const C = {
 
 type SkinType = "Oily" | "Dry" | "Combination" | "Sensitive" | "Normal";
 const PERSONAS: Record<SkinType, { name: string; emoji: string; color: string; bg: string }> = {
-  Oily:        { name: "The Glazed Donut",   emoji: "🍩", color: "#A8001C", bg: "#FCE8EC" },
-  Dry:         { name: "The Desert Girl",    emoji: "🏜️", color: "#B5651D", bg: "#FBEDDC" },
-  Combination: { name: "The Mood Board",     emoji: "🎭", color: "#6B3FA0", bg: "#EFE5F7" },
-  Sensitive:   { name: "The Main Character", emoji: "🌸", color: "#C2185B", bg: "#FCE4EC" },
-  Normal:      { name: "The Unbothered",     emoji: "😮‍💨", color: "#2E7D32", bg: "#E6F4EA" },
+  Oily:        { name: "The Butter Girl",        emoji: "🧈", color: "#A8001C", bg: "#FFF5F5" },
+  Dry:         { name: "The Cracker",            emoji: "🫙", color: "#B5651D", bg: "#FBEDDC" },
+  Combination: { name: "The Everything Bagel",   emoji: "🥯", color: "#6B3FA0", bg: "#EFE5F7" },
+  Sensitive:   { name: "The Peach",              emoji: "🍑", color: "#C2185B", bg: "#FCE4EC" },
+  Normal:      { name: "The Glass of Milk",      emoji: "🥛", color: "#2E7D32", bg: "#E6F4EA" },
 };
 
 // ---------- Mock user ----------
@@ -139,11 +139,22 @@ const NEXT_STEPS = [
 ];
 
 // ---------- Page ----------
-type Tab = "tea" | "shelf" | "saved" | "chart";
+type Tab = "tea" | "shelf" | "gift" | "saved" | "chart";
 
 function SkinProfilePage() {
   const [tab, setTab] = useState<Tab>("tea");
-  const persona = PERSONAS[USER.skinType];
+  const [quizResult, setQuizResult] = useState<any>(null);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("skintea.quizResult");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        setQuizResult(parsed);
+      }
+    } catch {}
+  }, []);
+  const activeSkinType = (quizResult?.skinTypeLabel as SkinType) || USER.skinType;
+  const persona = PERSONAS[activeSkinType] || PERSONAS[USER.skinType];
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.ink, fontFamily: "'DM Sans', system-ui, sans-serif" }}>
@@ -151,6 +162,7 @@ function SkinProfilePage() {
       <main style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px 80px" }}>
         {tab === "tea" && <TeaTab />}
         {tab === "shelf" && <ShelfTab />}
+        {tab === "gift" && <GiftMeTab quizResult={quizResult} />}
         {tab === "saved" && <SavedTab />}
         {tab === "chart" && <ChartTab persona={persona} />}
       </main>
@@ -164,6 +176,7 @@ function Header({ persona, tab, setTab }: { persona: typeof PERSONAS[SkinType]; 
   const tabs: Array<{ id: Tab; icon: string; label: string; private?: boolean }> = [
     { id: "tea", icon: "☕", label: "The Tea" },
     { id: "shelf", icon: "🧴", label: "My Shelf" },
+    { id: "gift", icon: "🎁", label: "Gift Me" },
     { id: "saved", icon: "🔖", label: "Saved", private: true },
     { id: "chart", icon: "📋", label: "Skin Chart", private: true },
   ];
@@ -176,7 +189,7 @@ function Header({ persona, tab, setTab }: { persona: typeof PERSONAS[SkinType]; 
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <span style={{ fontWeight: 700, fontSize: 16 }}>@{USER.username}</span>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 999, background: persona.bg, color: persona.color, fontWeight: 700, fontSize: 12 }}>
-                {persona.name} {persona.emoji}
+                <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700 }}>{persona.name}</span> {persona.emoji}
               </span>
             </div>
             <div style={{ fontSize: 12, color: C.textLight, marginTop: 2 }}>{USER.concerns.join(" · ")}</div>
@@ -185,26 +198,35 @@ function Header({ persona, tab, setTab }: { persona: typeof PERSONAS[SkinType]; 
               <span><b>{USER.following}</b> <span style={{ color: C.textLight }}>following</span></span>
               <span><b>{USER.followers.toLocaleString()}</b> <span style={{ color: C.textLight }}>followers</span></span>
             </div>
+            <div style={{ background: "#1C0A00", borderRadius: 8, padding: "7px 11px", display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
+              <div>
+                <div style={{ fontSize: 9, color: "rgba(255,252,248,0.55)" }}>Your public profile</div>
+                <div style={{ color: "#FFFCF8", fontWeight: 700, fontSize: 10 }}>skintea.com/u/{USER.username}</div>
+              </div>
+              <span style={{ fontSize: 9, fontWeight: 800, color: "#A8001C", background: "rgba(168,0,28,0.12)", border: "0.5px solid rgba(168,0,28,0.3)", borderRadius: 99, padding: "3px 9px" }}>Copy link</span>
+            </div>
           </div>
           <button style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, background: C.ink, color: "#fff", fontSize: 12, fontWeight: 600, border: "none", cursor: "pointer", flexShrink: 0 }}>
             <Pencil size={12} /> Edit
           </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", marginTop: 16 }}>
-          {tabs.map(t => {
-            const active = tab === t.id;
-            return (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                style={{ background: "transparent", border: "none", cursor: "pointer", padding: "10px 4px 12px",
-                  borderBottom: active ? `2px solid ${C.ink}` : "2px solid transparent",
-                  color: active ? C.ink : C.textLight }}>
-                <div style={{ fontSize: 22, lineHeight: 1 }}>{t.icon}</div>
-                <div style={{ fontSize: 11, marginTop: 4, fontWeight: active ? 700 : 500 }}>{t.label}</div>
-                {t.private && <div style={{ fontSize: 8, marginTop: 2, color: C.textLight, letterSpacing: 0.5, fontWeight: 700 }}>PRIVATE</div>}
-              </button>
-            );
-          })}
+        <div style={{ overflowX: "auto", scrollbarWidth: "none", margin: "16px -16px 0", padding: "0 16px" }}>
+          <div style={{ display: "flex", width: "max-content" }}>
+            {tabs.map(t => {
+              const active = tab === t.id;
+              return (
+                <button key={t.id} onClick={() => setTab(t.id)}
+                  style={{ background: "transparent", border: "none", cursor: "pointer", padding: "8px 14px 10px",
+                    borderBottom: active ? "2px solid #1C0A00" : "2px solid transparent",
+                    color: active ? "#1C0A00" : "#999", whiteSpace: "nowrap", textAlign: "center" }}>
+                  <div style={{ fontSize: 16, lineHeight: 1, marginBottom: 2 }}>{t.icon}</div>
+                  <div style={{ fontSize: 10, marginTop: 2, fontWeight: active ? 700 : 500 }}>{t.label}</div>
+                  {t.private && <div style={{ fontSize: 7, marginTop: 1, color: "#bbb", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>PRIVATE</div>}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </header>
@@ -379,15 +401,182 @@ function SavedTab() {
               <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{p.name}</div>
               <div style={{ fontSize: 10, color: C.textLight, marginTop: 2 }}>{p.category}</div>
               <div style={{ marginTop: 6 }}><MatchPill match={p.match} /></div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 10 }}>
-                <button style={{ padding: "7px 0", fontSize: 11, fontWeight: 600, borderRadius: 6, border: "none", background: C.ink, color: "#fff", cursor: "pointer" }}>Add to Shelf</button>
-                <button style={{ padding: "7px 0", fontSize: 11, fontWeight: 600, borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.textMid, cursor: "pointer" }}>Remove</button>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: "auto" }}>
+                <button style={{ width: "100%", background: "#1C0A00", color: "#FFFCF8", border: "none", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, textAlign: "center", cursor: "pointer" }}>Add to My Shelf</button>
+                <button style={{ width: "100%", background: "#FFF5F5", color: "#A8001C", border: "0.5px solid #A8001C", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, textAlign: "center", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>🎁 Add to Gift Me</button>
+                <button style={{ width: "100%", background: "transparent", color: "#bbb", border: "0.5px solid #E8DDD4", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 600, textAlign: "center", cursor: "pointer" }}>Remove</button>
               </div>
             </div>
           </div>
         ))}
       </div>
     </>
+  );
+}
+
+// ---------- Tab: Gift Me ----------
+function GiftMeTab({ quizResult }: { quizResult: any }) {
+  const [giftSubTab, setGiftSubTab] = useState<"needs" | "skincare" | "makeup">("needs");
+  const [activeRoutineTab, setActiveRoutineTab] = useState("cleanser");
+  const [skincareWishlist, setSkincareWishlist] = useState([
+    { emoji: "🌿", name: "Centella Unscented Serum", brand: "Purito", category: "Serum", affiliate: "Amazon" },
+    { emoji: "☀️", name: "UV Clear SPF 46", brand: "EltaMD", category: "SPF", affiliate: "Amazon" },
+    { emoji: "🫙", name: "The Water Cream", brand: "Tatcha", category: "Moisturizer", affiliate: "Sephora" },
+    { emoji: "🍉", name: "Watermelon Sleeping Mask", brand: "Glow Recipe", category: "Mask", affiliate: "Sephora" },
+  ]);
+  const [makeupWishlist, setMakeupWishlist] = useState([
+    { emoji: "💄", name: "Peptide Lip Tint", brand: "Rhode", category: "Lip", affiliate: "Sephora" },
+    { emoji: "🌟", name: "Glowgasm Face Palette", brand: "Charlotte Tilbury", category: "Highlighter", affiliate: "Sephora" },
+    { emoji: "🫦", name: "Lip Cheat Liner", brand: "Charlotte Tilbury", category: "Lip Liner", affiliate: "Sephora" },
+    { emoji: "🌸", name: "Orgasm Blush", brand: "NARS", category: "Blush", affiliate: "Sephora" },
+  ]);
+
+  const ROUTINE_TABS = [
+    { num: 1, key: "cleanser", label: "Cleanser" },
+    { num: 2, key: "toner", label: "Toner" },
+    { num: 3, key: "serum", label: "Serum" },
+    { num: 4, key: "moisturizer", label: "Moisturizer" },
+    { num: 5, key: "spf", label: "SPF" },
+    { num: 6, key: "mask", label: "Mask" },
+  ];
+
+  const characterName = quizResult?.persona?.name || "The Butter Girl";
+
+  const subTabs: Array<{ id: "needs" | "skincare" | "makeup"; label: string }> = [
+    { id: "needs", label: "My Needs" },
+    { id: "skincare", label: "Skincare Wishlist" },
+    { id: "makeup", label: "Makeup Wishlist" },
+  ];
+
+  const pillStyle = (on: boolean) => ({
+    background: on ? "#1C0A00" : "#fff",
+    color: on ? "#FFFCF8" : "#999",
+    border: on ? "none" : "0.5px solid #E8DDD4",
+    borderRadius: 99,
+    padding: "6px 14px",
+    fontSize: 10,
+    fontWeight: 700,
+    whiteSpace: "nowrap" as const,
+    cursor: "pointer",
+  });
+
+  const placeholderPicks = [
+    { rank: 1, emoji: "🧴", brand: "CeraVe", name: "Foaming Cleanser", pct: "94%" },
+    { rank: 2, emoji: "💧", brand: "Paula's Choice", name: "BHA Liquid", pct: "91%" },
+    { rank: 3, emoji: "☀️", brand: "Beauty of Joseon", name: "Relief Sun", pct: "89%" },
+    { rank: 4, emoji: "🥛", brand: "CeraVe", name: "Moisturizing Cream", pct: "87%" },
+  ];
+
+  const renderWishlist = (
+    list: typeof skincareWishlist,
+    setList: (l: typeof skincareWishlist) => void,
+    filters: string[],
+    badge: { bg: string; color: string; border: string; text: string },
+    addText: string,
+  ) => {
+    const [activeFilter, _setActiveFilter] = [filters[0], (_: string) => {}];
+    return (
+      <>
+        <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 12 }}>
+          {filters.map(f => (
+            <button key={f} style={pillStyle(f === activeFilter)}>{f}</button>
+          ))}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          {list.map((item) => (
+            <div key={item.name} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, overflow: "hidden" }}>
+              <div style={{ height: 75, background: "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
+                {item.emoji}
+                <span style={{ position: "absolute", top: 5, right: 5, fontSize: 7, fontWeight: 800, padding: "2px 5px", borderRadius: 99, background: badge.bg, color: badge.color, border: `0.5px solid ${badge.border}` }}>{badge.text}</span>
+              </div>
+              <div style={{ padding: "7px 8px 8px" }}>
+                <div style={{ fontSize: 7, color: "#A8001C", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{item.category}</div>
+                <div style={{ fontSize: 8, color: "#999" }}>{item.brand}</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00", marginBottom: 5 }}>{item.name}</div>
+                <div style={{ display: "flex", gap: 4 }}>
+                  <div style={{ flex: 1, background: "#1C0A00", color: "#FFFCF8", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 700, textAlign: "center" }}>Buy → {item.affiliate}</div>
+                  <div onClick={() => setList(list.filter(x => x.name !== item.name))} style={{ width: 22, background: "#FFFCF8", border: "0.5px solid #E8DDD4", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: "#bbb", cursor: "pointer" }}>×</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <button style={{ width: "100%", border: "1.5px dashed #E8DDD4", borderRadius: 10, background: "transparent", padding: 12, fontSize: 11, fontWeight: 600, color: "#999", marginTop: 8, cursor: "pointer" }}>{addText}</button>
+      </>
+    );
+  };
+
+  return (
+    <div style={{ paddingBottom: 80 }}>
+      <div style={{ background: "#1C0A00", borderRadius: 12, padding: "12px 14px", margin: "14px 0", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#FFFCF8", marginBottom: 3 }}>🎁 Share your list</div>
+          <div style={{ fontSize: 10, color: "rgba(255,252,248,0.55)", lineHeight: 1.4 }}>Friends and family can see your needs and buy the perfect gift.</div>
+        </div>
+        <button style={{ background: "#A8001C", color: "#FFFCF8", border: "none", borderRadius: 99, padding: "8px 14px", fontSize: 10, fontWeight: 800, whiteSpace: "nowrap", cursor: "pointer" }}>Share link</button>
+      </div>
+
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 14, paddingBottom: 2 }}>
+        {subTabs.map(t => (
+          <button key={t.id} onClick={() => setGiftSubTab(t.id)} style={pillStyle(giftSubTab === t.id)}>{t.label}</button>
+        ))}
+      </div>
+
+      {giftSubTab === "needs" && (
+        <>
+          <div style={{ background: "#F0FAF1", border: "0.5px solid #2D7A3A", borderRadius: 8, padding: "8px 12px", display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
+            <div style={{ width: 7, height: 7, background: "#2D7A3A", borderRadius: "50%", flexShrink: 0 }} />
+            <div style={{ fontSize: 10, color: "#2D7A3A", fontWeight: 600, lineHeight: 1.35 }}>
+              Routine built for <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700 }}>{characterName}</span> skin — from your quiz.
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 12 }}>
+            {ROUTINE_TABS.map(t => {
+              const on = activeRoutineTab === t.key;
+              return (
+                <button key={t.key} onClick={() => setActiveRoutineTab(t.key)} style={{ background: on ? "#1C0A00" : "#fff", color: on ? "#FFFCF8" : "#999", borderRadius: 99, border: on ? "none" : "0.5px solid #E8DDD4", padding: "6px 12px", fontSize: 10, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap", cursor: "pointer" }}>
+                  <span style={{ fontSize: 8, fontWeight: 800 }}>{t.num}</span> {t.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {placeholderPicks.map(p => (
+              <div key={p.rank} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, overflow: "hidden" }}>
+                <div style={{ height: 70, background: "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
+                  <div style={{ position: "absolute", top: 5, left: 5, width: 16, height: 16, background: "#1C0A00", color: "#FFFCF8", borderRadius: 99, fontSize: 8, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{p.rank}</div>
+                  {p.emoji}
+                </div>
+                <div style={{ padding: "7px 8px 10px" }}>
+                  <div style={{ fontSize: 8, color: "#999" }}>{p.brand}</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00" }}>{p.name}</div>
+                  <div style={{ fontSize: 10, color: "#A8001C", fontWeight: 800 }}>{p.pct}</div>
+                  <button style={{ background: "#FFF5F5", color: "#A8001C", border: "0.5px solid #A8001C", borderRadius: 6, padding: "4px 8px", fontSize: 8, fontWeight: 700, width: "100%", marginTop: 4, cursor: "pointer" }}>+ Add to wishlist</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {giftSubTab === "skincare" && renderWishlist(
+        skincareWishlist,
+        setSkincareWishlist,
+        ["All", "Serum", "Moisturizer", "SPF", "Mask"],
+        { bg: "#F0FAF1", color: "#2D7A3A", border: "#2D7A3A", text: "Skin" },
+        "+ Add skincare to wishlist",
+      )}
+
+      {giftSubTab === "makeup" && renderWishlist(
+        makeupWishlist,
+        setMakeupWishlist,
+        ["All", "Lip", "Eye", "Base", "Blush"],
+        { bg: "#FFF0F5", color: "#C2185B", border: "#C2185B", text: "Makeup" },
+        "+ Add makeup to wishlist",
+      )}
+    </div>
   );
 }
 

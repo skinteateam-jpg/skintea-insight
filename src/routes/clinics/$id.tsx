@@ -353,7 +353,7 @@ function ClinicDetailPage() {
                       padding: "4px 8px", display: "flex", alignItems: "center", gap: 5,
                       cursor: "pointer",
                     }}>
-                      <AvatarImg src={inf.profile_photo_url} name={inf.display_name} size={18} />
+                      <AvatarImg src={inf.handle ? `https://unavatar.io/instagram/${inf.handle}` : inf.profile_photo_url} name={inf.display_name} size={18} />
                       <span style={{ fontSize: 11, fontWeight: 700, color: ESPRESSO }}>{inf.display_name}</span>
                       <span style={{ fontSize: 10, color: MUTED }}>did this</span>
                     </button>

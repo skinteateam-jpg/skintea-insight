@@ -14,68 +14,331 @@ export type Database = {
   }
   public: {
     Tables: {
+      clinic_practitioners: {
+        Row: {
+          clinic_id: string | null
+          created_at: string
+          id: string
+          name: string | null
+          role: string | null
+          specialty: string | null
+          years_experience: number | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string
+          id?: string
+          name?: string | null
+          role?: string | null
+          specialty?: string | null
+          years_experience?: number | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string
+          id?: string
+          name?: string | null
+          role?: string | null
+          specialty?: string | null
+          years_experience?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_practitioners_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_reviews: {
+        Row: {
+          agree_count: number | null
+          body: string | null
+          clinic_id: string | null
+          created_at: string
+          id: string
+          skin_type: string | null
+          treatment_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          agree_count?: number | null
+          body?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          id?: string
+          skin_type?: string | null
+          treatment_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          agree_count?: number | null
+          body?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          id?: string
+          skin_type?: string | null
+          treatment_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_reviews_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_reviews_treatment_id_fkey"
+            columns: ["treatment_id"]
+            isOneToOne: false
+            referencedRelation: "treatments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_skin_scores: {
+        Row: {
+          clinic_id: string | null
+          created_at: string
+          id: string
+          recommend_pct: number | null
+          skin_type: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string
+          id?: string
+          recommend_pct?: number | null
+          skin_type?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string
+          id?: string
+          recommend_pct?: number | null
+          skin_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_skin_scores_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_treatments: {
+        Row: {
+          clinic_id: string | null
+          created_at: string
+          id: string
+          price_from: number | null
+          price_unit: string | null
+          treatment_id: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string
+          id?: string
+          price_from?: number | null
+          price_unit?: string | null
+          treatment_id?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string
+          id?: string
+          price_from?: number | null
+          price_unit?: string | null
+          treatment_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_treatments_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_treatments_treatment_id_fkey"
+            columns: ["treatment_id"]
+            isOneToOne: false
+            referencedRelation: "treatments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinic_who_visited: {
+        Row: {
+          clinic_id: string | null
+          id: string
+          user_id: string | null
+          visited_at: string
+        }
+        Insert: {
+          clinic_id?: string | null
+          id?: string
+          user_id?: string | null
+          visited_at?: string
+        }
+        Update: {
+          clinic_id?: string | null
+          id?: string
+          user_id?: string | null
+          visited_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_who_visited_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinics: {
         Row: {
           address: string | null
+          avg_score: number | null
           badges: string[] | null
           best_for: string[] | null
           booking_url: string | null
+          closes_at: string | null
           created_at: string
+          distance_miles: number | null
+          hours: Json | null
           id: string
           image_url: string | null
+          is_featured: boolean | null
+          is_open_now: boolean | null
           is_verified: boolean
           name: string
           neighborhood: string | null
+          parking_available: boolean | null
+          parking_is_free: boolean | null
+          parking_notes: string | null
+          phone: string | null
+          photos: Json | null
           price_from: number | null
           price_tier: string | null
+          review_count: number | null
+          skintea_score: number | null
           tea_quote: string | null
           tea_skin_type: string | null
+          travel_minutes: number | null
           trust_score: number | null
           updated_at: string
+          website_url: string | null
           yelp_rating: number | null
           yelp_review_count: number | null
         }
         Insert: {
           address?: string | null
+          avg_score?: number | null
           badges?: string[] | null
           best_for?: string[] | null
           booking_url?: string | null
+          closes_at?: string | null
           created_at?: string
+          distance_miles?: number | null
+          hours?: Json | null
           id?: string
           image_url?: string | null
+          is_featured?: boolean | null
+          is_open_now?: boolean | null
           is_verified?: boolean
           name: string
           neighborhood?: string | null
+          parking_available?: boolean | null
+          parking_is_free?: boolean | null
+          parking_notes?: string | null
+          phone?: string | null
+          photos?: Json | null
           price_from?: number | null
           price_tier?: string | null
+          review_count?: number | null
+          skintea_score?: number | null
           tea_quote?: string | null
           tea_skin_type?: string | null
+          travel_minutes?: number | null
           trust_score?: number | null
           updated_at?: string
+          website_url?: string | null
           yelp_rating?: number | null
           yelp_review_count?: number | null
         }
         Update: {
           address?: string | null
+          avg_score?: number | null
           badges?: string[] | null
           best_for?: string[] | null
           booking_url?: string | null
+          closes_at?: string | null
           created_at?: string
+          distance_miles?: number | null
+          hours?: Json | null
           id?: string
           image_url?: string | null
+          is_featured?: boolean | null
+          is_open_now?: boolean | null
           is_verified?: boolean
           name?: string
           neighborhood?: string | null
+          parking_available?: boolean | null
+          parking_is_free?: boolean | null
+          parking_notes?: string | null
+          phone?: string | null
+          photos?: Json | null
           price_from?: number | null
           price_tier?: string | null
+          review_count?: number | null
+          skintea_score?: number | null
           tea_quote?: string | null
           tea_skin_type?: string | null
+          travel_minutes?: number | null
           trust_score?: number | null
           updated_at?: string
+          website_url?: string | null
           yelp_rating?: number | null
           yelp_review_count?: number | null
         }
         Relationships: []
+      }
+      consultation_clicks: {
+        Row: {
+          clicked_at: string
+          clinic_id: string | null
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          clicked_at?: string
+          clinic_id?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          clicked_at?: string
+          clinic_id?: string | null
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultation_clicks_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       members: {
         Row: {
@@ -413,6 +676,56 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "surgery_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_influencers: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          follower_count: number | null
+          handle: string | null
+          id: string
+          platform: string | null
+          post_url: string | null
+          profile_photo_url: string | null
+          profile_url: string | null
+          sentiment: string | null
+          treatment_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          follower_count?: number | null
+          handle?: string | null
+          id?: string
+          platform?: string | null
+          post_url?: string | null
+          profile_photo_url?: string | null
+          profile_url?: string | null
+          sentiment?: string | null
+          treatment_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          follower_count?: number | null
+          handle?: string | null
+          id?: string
+          platform?: string | null
+          post_url?: string | null
+          profile_photo_url?: string | null
+          profile_url?: string | null
+          sentiment?: string | null
+          treatment_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_influencers_treatment_id_fkey"
+            columns: ["treatment_id"]
+            isOneToOne: false
+            referencedRelation: "treatments"
             referencedColumns: ["id"]
           },
         ]

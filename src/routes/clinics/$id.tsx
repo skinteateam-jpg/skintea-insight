@@ -98,7 +98,8 @@ function ClinicDetailPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [photoTab, setPhotoTab] = useState<"interior" | "results" | "staff" | "outside">("interior");
+  const [activePhotoTab, setActivePhotoTab] = useState<"interior" | "results" | "staff" | "outside">("interior");
+  const [activeThumbIndex, setActiveThumbIndex] = useState(0);
   const [saved, setSaved] = useState(false);
   const [inquireFor, setInquireFor] = useState<CTreatment | null>(null);
   const [userSkin, setUserSkin] = useState<string | null>(null);

@@ -594,15 +594,6 @@ function ClinicCard({
             <div style={{ fontSize: 9, color: "rgba(255,252,248,0.75)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2 }}>Recommend</div>
           </div>
         )}
-        <button
-          type="button"
-          aria-label={isSaved ? "Unsave clinic" : "Save clinic"}
-          onClick={(e) => { e.stopPropagation(); onToggleSave(); }}
-          style={{ position: "absolute", top: 10, right: 10, zIndex: 3, width: 32, height: 32, borderRadius: 999, background: "rgba(255,252,248,0.9)", border: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}
-        >
-          <Heart size={16} color={CRIMSON} fill={isSaved ? CRIMSON : "none"} strokeWidth={2} />
-        </button>
-      </div>
 
       <div className="no-scrollbar" style={{ display: "flex", gap: 4, padding: "6px 10px", background: WARM_WHITE, borderBottom: `0.5px solid ${BORDER}`, overflowX: "auto", ...noScrollbar }}>
         {hasPhotos

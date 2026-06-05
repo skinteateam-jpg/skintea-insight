@@ -382,7 +382,7 @@ function ClinicDetailPage() {
                   {tInf.length > 3 && (
                     <span style={{ fontSize: 10, color: MUTED }}>+{tInf.length - 3} more</span>
                   )}
-                  <button onClick={() => navigate({ to: "/treatment/$id" as any, params: { id: t.treatment_id } as any }).catch(() => {})} style={{
+                  <button onClick={() => { const slug = tName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''); navigate({ to: "/treatment/$id" as any, params: { id: slug } as any }).catch(() => {}); }} style={{
                     background: "none", border: "none", color: CRIMSON,
                     fontSize: 10, fontWeight: 700, cursor: "pointer",
                     display: "inline-flex", alignItems: "center", gap: 4, padding: 0,

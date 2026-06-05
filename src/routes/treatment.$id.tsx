@@ -1,35 +1,45 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { TREATMENT_DATA } from "../data/treatments";
 
 export const Route = createFileRoute("/treatment/$id")({
   component: TreatmentDetailPage,
-  head: ({ params }) => {
-    const allTreatments = Object.values(TREATMENT_DATA).flat();
-    const treatment = allTreatments.find(
-      (t) => t.name.toLowerCase().replace(/\s+/g, "-") === params.id,
-    );
-    return {
-      meta: [
-        { title: treatment ? `${treatment.name} — Skintea` : "Treatment — Skintea" },
-        {
-          name: "description",
-          content: treatment ? treatment.desc : "Real treatment reviews on Skintea.",
-        },
-        {
-          property: "og:title",
-          content: treatment ? `${treatment.name} — Skintea` : "Treatment — Skintea",
-        },
-      ],
-    };
-  },
+  head: ({ params }) => ({
+    meta: [
+      { title: `${params.id} — Skintea` },
+      { name: "description", content: "Real treatment reviews on Skintea." },
+    ],
+  }),
 });
 
 function TreatmentDetailPage() {
   const { id } = Route.useParams();
+  const [dbTreatment, setDbTreatment] = useState<any>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const { data } = await supabase.from("treatments").select("*").eq("slug", id).maybeSingle();
+      if (!alive) return;
+      setDbTreatment(data);
+      setLoaded(true);
+    })();
+    return () => { alive = false; };
+  }, [id]);
+
   const allTreatments = Object.values(TREATMENT_DATA).flat();
-  const treatment = allTreatments.find(
+  const fallback = allTreatments.find(
     (t) => t.name.toLowerCase().replace(/\s+/g, "-") === id,
   );
+  const treatment = dbTreatment
+    ? { ...(fallback ?? allTreatments[0]), name: dbTreatment.name, desc: dbTreatment.description ?? fallback?.desc ?? "" }
+    : fallback;
+
+  if (!loaded && !treatment) {
+    return <div style={{ padding: 40, textAlign: "center", color: "#999" }}>Loading…</div>;
+  }
 
   if (!treatment) {
     return (

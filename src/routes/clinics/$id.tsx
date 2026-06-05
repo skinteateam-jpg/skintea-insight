@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Heart, Share2, MapPin, Sparkles, FileText, Lock,
-  Phone, Car, Map as MapIcon, Building2, Plus, Flame,
+  Phone, Car, Map as MapIcon, Building2, Plus, Flame, Camera,
 } from "lucide-react";
 
 export const Route = createFileRoute("/clinics/$id")({

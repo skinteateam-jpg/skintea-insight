@@ -537,13 +537,15 @@ function Pill({ label, active, onClick }: { label: string; active: boolean; onCl
 }
 
 function ClinicCard({
-  clinic, skinType, activeThumb, onThumbChange, onOpen,
+  clinic, skinType, activeThumb, onThumbChange, onOpen, isSaved, onToggleSave,
 }: {
   clinic: Clinic;
   skinType: string;
   activeThumb: number;
   onThumbChange: (i: number) => void;
   onOpen: () => void;
+  isSaved: boolean;
+  onToggleSave: () => void;
 }) {
   const photos = Array.isArray(clinic.photos) ? clinic.photos : [];
   const isFeatured = (clinic.badges ?? []).some((b) => /featured/i.test(b));
@@ -559,6 +561,8 @@ function ClinicCard({
   const MAX_THUMBS = 4;
   const visibleThumbs = photos.slice(0, MAX_THUMBS);
   const remainingPhotos = Math.max(0, photos.length - visibleThumbs.length);
+  const PLACEHOLDERS = ["#C9A98A", "#B8967A", "#A07860"];
+  const hasPhotos = photos.length > 0;
 
   return (
     <div
@@ -583,26 +587,40 @@ function ClinicCard({
             <div style={{ fontSize: 9, color: "rgba(255,252,248,0.75)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2 }}>Recommend</div>
           </div>
         )}
+        <button
+          type="button"
+          aria-label={isSaved ? "Unsave clinic" : "Save clinic"}
+          onClick={(e) => { e.stopPropagation(); onToggleSave(); }}
+          style={{ position: "absolute", top: 10, right: 10, zIndex: 3, width: 32, height: 32, borderRadius: 999, background: "rgba(255,252,248,0.9)", border: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}
+        >
+          <Heart size={16} color={CRIMSON} fill={isSaved ? CRIMSON : "none"} strokeWidth={2} />
+        </button>
       </div>
 
-      {photos.length > 0 && (
-        <div className="no-scrollbar" style={{ display: "flex", gap: 4, padding: "6px 10px", background: WARM_WHITE, borderBottom: `0.5px solid ${BORDER}`, overflowX: "auto", ...noScrollbar }}>
-          {visibleThumbs.map((p, i) => (
-            <div
-              key={i}
-              onClick={(e) => { e.stopPropagation(); onThumbChange(i); }}
-              style={{ width: 56, height: 44, borderRadius: 6, flexShrink: 0, background: `url(${p}) center/cover no-repeat`, border: `1.5px solid ${i === activeThumb ? CRIMSON : "transparent"}`, cursor: "pointer" }}
-            />
-          ))}
-          <div
-            onClick={(e) => { e.stopPropagation(); onOpen(); }}
-            style={{ width: 56, height: 44, borderRadius: 6, background: TAG_BG, border: `0.5px solid ${BORDER}`, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-          >
-            <div style={{ fontSize: 12, fontWeight: 800, color: ESPRESSO, lineHeight: 1 }}>+{remainingPhotos}</div>
-            <div style={{ fontSize: 8, color: MUTED, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2 }}>Photos</div>
-          </div>
+      <div className="no-scrollbar" style={{ display: "flex", gap: 4, padding: "6px 10px", background: WARM_WHITE, borderBottom: `0.5px solid ${BORDER}`, overflowX: "auto", ...noScrollbar }}>
+        {hasPhotos
+          ? visibleThumbs.map((p, i) => (
+              <div
+                key={i}
+                onClick={(e) => { e.stopPropagation(); onThumbChange(i); }}
+                style={{ width: 56, height: 44, borderRadius: 6, flexShrink: 0, background: `url(${p}) center/cover no-repeat`, border: `1.5px solid ${i === activeThumb ? CRIMSON : "transparent"}`, cursor: "pointer" }}
+              />
+            ))
+          : PLACEHOLDERS.map((bg, i) => (
+              <div
+                key={i}
+                onClick={(e) => { e.stopPropagation(); onThumbChange(i); }}
+                style={{ width: 56, height: 44, borderRadius: 6, flexShrink: 0, background: bg, border: `1.5px solid ${i === activeThumb ? CRIMSON : "transparent"}`, cursor: "pointer" }}
+              />
+            ))}
+        <div
+          onClick={(e) => { e.stopPropagation(); onOpen(); }}
+          style={{ width: 56, height: 44, borderRadius: 6, background: TAG_BG, border: `0.5px solid ${BORDER}`, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+        >
+          <div style={{ fontSize: 12, fontWeight: 800, color: ESPRESSO, lineHeight: 1 }}>+{hasPhotos ? remainingPhotos : 0}</div>
+          <div style={{ fontSize: 8, color: MUTED, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2 }}>Photos</div>
         </div>
-      )}
+      </div>
 
       <div style={{ padding: "12px 14px" }}>
         <div style={{ fontSize: 15, fontWeight: 800, color: ESPRESSO, marginBottom: 3 }}>{clinic.name}</div>

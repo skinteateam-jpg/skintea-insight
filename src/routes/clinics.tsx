@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
-import { Search, SlidersHorizontal, Map, Bell, MapPin, Sparkles, X } from "lucide-react";
+import { Search, SlidersHorizontal, Map, Bell, MapPin, Sparkles, X, Heart } from "lucide-react";
 
 export const Route = createFileRoute("/clinics")({
   head: () => ({
@@ -92,6 +92,15 @@ const KEYWORD_OPTIONS = ["Pore Care", "Herb Peeling", "Potenza", "Indiba", "Glas
 const PREF_OPTIONS = ["Walk-in Friendly", "Same-day OK", "Groups (2+)", "Women-Only Staff", "Private Room", "First-Time Discount", "Card Payment OK", "Free Parking", "Near Transit", "2nd Visit Perks"];
 const FACILITY_OPTIONS = ["Makeup Room", "Changing Room", "Drink Service", "Kids Space", "Small Salon (under 3 beds)", "Large Salon (10+ beds)", "Korean Aesthetics", "Membership Available", "In Shopping Mall", "Amex Friendly"];
 const TREATMENT_OPTIONS = ["Facial", "Laser", "IPL", "Botox", "Filler", "PRF", "Microneedling", "Hydrafacial", "LED Therapy", "Chemical Peel", "Hair Removal", "Body"];
+
+const TREATMENT_CATEGORIES: { title: string; items: string[] }[] = [
+  { title: "Facial & Skin", items: ["Pore Care", "Glass Skin", "Lifting", "Brightening", "Hydrafacial", "Chemical Peel", "Herb Peeling", "Aqua Peel", "Deep Cleansing"] },
+  { title: "Injectables & Medical", items: ["Botox", "Filler", "PRF", "PRP", "Potenza", "Indiba", "Skinbooster"] },
+  { title: "Laser & Energy", items: ["Laser", "IPL", "LED Therapy", "Microneedling", "RF Therapy", "HIFU"] },
+  { title: "Face Surgery & Contouring", items: ["Chin Line", "Jaw Slimming", "Nose", "Eyes", "Face Lifting Surgery", "Thread Lift"] },
+  { title: "Body", items: ["Body Contouring", "Slimming", "Waist", "Bust", "Back", "Hip Lift"] },
+  { title: "Hair Removal", items: ["Underarm", "Arms", "Legs", "Full Body", "VIO", "Face"] },
+];
 
 function ClinicsPage() {
   const navigate = useNavigate();

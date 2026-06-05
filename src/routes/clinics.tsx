@@ -688,7 +688,12 @@ function ClinicCard({
               onClick={handleFooterSave}
               style={{ background: "transparent", border: "none", padding: 0, marginLeft: 4, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", transform: pop ? "scale(1.2)" : "scale(1)", transition: "transform 180ms ease" }}
             >
-              <Heart size={20} color={isSaved ? CRIMSON : MUTED} fill={isSaved ? CRIMSON : "none"} strokeWidth={2} />
+              <IconBookmark
+                size={20}
+                color={isSaved ? '#A8001C' : '#999'}
+                fill={isSaved ? '#A8001C' : 'none'}
+                style={isSaved ? { color: '#A8001C', fontWeight: 900 } : undefined}
+              />
             </button>
           </div>
         </div>

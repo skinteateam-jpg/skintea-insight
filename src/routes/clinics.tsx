@@ -119,7 +119,7 @@ function ClinicsPage() {
     (async () => {
       const { data } = await supabase.from("clinics").select("*").order("trust_score", { ascending: false });
       if (!alive) return;
-      setClinics((data as Clinic[]) ?? []);
+      setClinics((data as unknown as Clinic[]) ?? []);
       setLoading(false);
     })();
     return () => { alive = false; };

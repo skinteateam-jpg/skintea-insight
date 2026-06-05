@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Pencil, Plus, Lock, Star, X, Bookmark, Link2, Download, ArrowUp, ArrowDown } from "lucide-react";
+import { Pencil, Plus, Lock, Star, X, Bookmark, Link2, Download, ArrowUp, ArrowDown, Heart } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/skin-profile")({
   component: SkinProfilePage,
@@ -389,9 +391,87 @@ function ShelfTab() {
 function SavedTab() {
   const [active, setActive] = useState("Recently Saved");
   const items = active === "Recently Saved" ? SAVED : SAVED.filter(s => s.category === active);
+  const navigate = useNavigate();
+  const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [savedClinics, setSavedClinics] = useState<Array<{ id: string; name: string; neighborhood: string | null; image_url: string | null; best_for: string[] | null; trust_score: number | null; }>>([]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("skintea.savedClinics");
+      const arr = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(arr)) setSavedIds(arr);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    if (savedIds.length === 0) { setSavedClinics([]); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("clinics")
+        .select("id,name,neighborhood,image_url,best_for,trust_score")
+        .in("id", savedIds);
+      if (alive) setSavedClinics((data as any[]) ?? []);
+    })();
+    return () => { alive = false; };
+  }, [savedIds]);
+
+  const unsaveClinic = (id: string) => {
+    const next = savedIds.filter(x => x !== id);
+    setSavedIds(next);
+    try { localStorage.setItem("skintea.savedClinics", JSON.stringify(next)); } catch {}
+  };
+
   return (
     <>
       <PrivateLabel />
+
+      <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#A8001C", marginBottom: 10 }}>
+        Saved Clinics
+      </div>
+      {savedClinics.length === 0 ? (
+        <div style={{ fontSize: 12, color: C.textLight, textAlign: "center", padding: "16px 8px", border: `0.5px solid ${C.border}`, borderRadius: 10, background: C.surface }}>
+          No saved clinics yet. Tap ♥ on any clinic to save it.
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {savedClinics.map(cl => {
+            const tags = (cl.best_for ?? []).slice(0, 2);
+            return (
+              <div
+                key={cl.id}
+                onClick={() => navigate({ to: "/clinics/$id", params: { id: cl.id } }).catch(() => {})}
+                style={{ background: "#FFFFFF", border: `0.5px solid #E8DDD4`, borderRadius: 10, padding: 12, display: "flex", gap: 12, cursor: "pointer", alignItems: "center" }}
+              >
+                <div style={{ width: 52, height: 52, borderRadius: 8, flexShrink: 0, background: cl.image_url ? `url(${cl.image_url}) center/cover no-repeat` : "#C9A98A" }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#1C0A00", lineHeight: 1.2 }}>{cl.name}</div>
+                  {cl.neighborhood && <div style={{ fontSize: 11, color: C.textLight, marginTop: 2 }}>{cl.neighborhood}</div>}
+                  {tags.length > 0 && (
+                    <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
+                      {tags.map((t, i) => (
+                        <span key={i} style={{ background: "#F5EFEC", color: "#1C0A00", fontSize: 9, fontWeight: 600, padding: "2px 6px", borderRadius: 3 }}>{t}</span>
+                      ))}
+                    </div>
+                  )}
+                  {cl.trust_score != null && (
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#A8001C", marginTop: 4 }}>{cl.trust_score}% recommend</div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  aria-label="Unsave clinic"
+                  onClick={(e) => { e.stopPropagation(); unsaveClinic(cl.id); }}
+                  style={{ background: "transparent", border: "none", padding: 6, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                >
+                  <Heart size={18} color="#A8001C" fill="#A8001C" strokeWidth={2} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <FilterRow items={SAVED_FILTERS} active={active} onChange={setActive} />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginTop: 16 }}>
         {items.map((p, i) => (

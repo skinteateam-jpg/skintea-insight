@@ -20,8 +20,8 @@ import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as ProductDetailRouteImport } from './routes/product-detail'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as ClinicsRouteImport } from './routes/clinics'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ClinicsIndexRouteImport } from './routes/clinics.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TreatmentIdRouteImport } from './routes/treatment.$id'
 import { Route as TeaProductsPostIdRouteImport } from './routes/tea-products.$postId'
@@ -84,14 +84,14 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ClinicsRoute = ClinicsRouteImport.update({
-  id: '/clinics',
-  path: '/clinics',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClinicsIndexRoute = ClinicsIndexRouteImport.update({
+  id: '/clinics/',
+  path: '/clinics/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -115,9 +115,9 @@ const ProductsIdV2Route = ProductsIdV2RouteImport.update({
   getParentRoute: () => ProductsRoute,
 } as any)
 const ClinicsIdRoute = ClinicsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ClinicsRoute,
+  id: '/clinics/$id',
+  path: '/clinics/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminTreatmentsRoute = AdminTreatmentsRouteImport.update({
   id: '/admin/treatments',
@@ -127,7 +127,6 @@ const AdminTreatmentsRoute = AdminTreatmentsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/clinics': typeof ClinicsRouteWithChildren
   '/login': typeof LoginRoute
   '/product-detail': typeof ProductDetailRoute
   '/products': typeof ProductsRouteWithChildren
@@ -145,10 +144,10 @@ export interface FileRoutesByFullPath {
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment/$id': typeof TreatmentIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/clinics/': typeof ClinicsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/clinics': typeof ClinicsRouteWithChildren
   '/login': typeof LoginRoute
   '/product-detail': typeof ProductDetailRoute
   '/products': typeof ProductsRouteWithChildren
@@ -166,11 +165,11 @@ export interface FileRoutesByTo {
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment/$id': typeof TreatmentIdRoute
   '/admin': typeof AdminIndexRoute
+  '/clinics': typeof ClinicsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/clinics': typeof ClinicsRouteWithChildren
   '/login': typeof LoginRoute
   '/product-detail': typeof ProductDetailRoute
   '/products': typeof ProductsRouteWithChildren
@@ -188,12 +187,12 @@ export interface FileRoutesById {
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment/$id': typeof TreatmentIdRoute
   '/admin/': typeof AdminIndexRoute
+  '/clinics/': typeof ClinicsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/clinics'
     | '/login'
     | '/product-detail'
     | '/products'
@@ -211,10 +210,10 @@ export interface FileRouteTypes {
     | '/tea-products/$postId'
     | '/treatment/$id'
     | '/admin/'
+    | '/clinics/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/clinics'
     | '/login'
     | '/product-detail'
     | '/products'
@@ -232,10 +231,10 @@ export interface FileRouteTypes {
     | '/tea-products/$postId'
     | '/treatment/$id'
     | '/admin'
+    | '/clinics'
   id:
     | '__root__'
     | '/'
-    | '/clinics'
     | '/login'
     | '/product-detail'
     | '/products'
@@ -253,11 +252,11 @@ export interface FileRouteTypes {
     | '/tea-products/$postId'
     | '/treatment/$id'
     | '/admin/'
+    | '/clinics/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ClinicsRoute: typeof ClinicsRouteWithChildren
   LoginRoute: typeof LoginRoute
   ProductDetailRoute: typeof ProductDetailRoute
   ProductsRoute: typeof ProductsRouteWithChildren
@@ -270,8 +269,10 @@ export interface RootRouteChildren {
   TeaProductsRoute: typeof TeaProductsRouteWithChildren
   TreatmentTalk2Route: typeof TreatmentTalk2Route
   AdminTreatmentsRoute: typeof AdminTreatmentsRoute
+  ClinicsIdRoute: typeof ClinicsIdRoute
   TreatmentIdRoute: typeof TreatmentIdRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  ClinicsIndexRoute: typeof ClinicsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -353,18 +354,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/clinics': {
-      id: '/clinics'
-      path: '/clinics'
-      fullPath: '/clinics'
-      preLoaderRoute: typeof ClinicsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clinics/': {
+      id: '/clinics/'
+      path: '/clinics'
+      fullPath: '/clinics/'
+      preLoaderRoute: typeof ClinicsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -397,10 +398,10 @@ declare module '@tanstack/react-router' {
     }
     '/clinics/$id': {
       id: '/clinics/$id'
-      path: '/$id'
+      path: '/clinics/$id'
       fullPath: '/clinics/$id'
       preLoaderRoute: typeof ClinicsIdRouteImport
-      parentRoute: typeof ClinicsRoute
+      parentRoute: typeof rootRouteImport
     }
     '/admin/treatments': {
       id: '/admin/treatments'
@@ -411,17 +412,6 @@ declare module '@tanstack/react-router' {
     }
   }
 }
-
-interface ClinicsRouteChildren {
-  ClinicsIdRoute: typeof ClinicsIdRoute
-}
-
-const ClinicsRouteChildren: ClinicsRouteChildren = {
-  ClinicsIdRoute: ClinicsIdRoute,
-}
-
-const ClinicsRouteWithChildren =
-  ClinicsRoute._addFileChildren(ClinicsRouteChildren)
 
 interface ProductsRouteChildren {
   ProductsIdV2Route: typeof ProductsIdV2Route
@@ -449,7 +439,6 @@ const TeaProductsRouteWithChildren = TeaProductsRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ClinicsRoute: ClinicsRouteWithChildren,
   LoginRoute: LoginRoute,
   ProductDetailRoute: ProductDetailRoute,
   ProductsRoute: ProductsRouteWithChildren,
@@ -462,9 +451,20 @@ const rootRouteChildren: RootRouteChildren = {
   TeaProductsRoute: TeaProductsRouteWithChildren,
   TreatmentTalk2Route: TreatmentTalk2Route,
   AdminTreatmentsRoute: AdminTreatmentsRoute,
+  ClinicsIdRoute: ClinicsIdRoute,
   TreatmentIdRoute: TreatmentIdRoute,
   AdminIndexRoute: AdminIndexRoute,
+  ClinicsIndexRoute: ClinicsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

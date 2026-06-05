@@ -2,7 +2,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
-import { Search, SlidersHorizontal, Map, Bell, MapPin, Sparkles, X, Heart } from "lucide-react";
+import { Search, SlidersHorizontal, Map, Bell, MapPin, Sparkles, X } from "lucide-react";
+import { IconBookmark } from "@tabler/icons-react";
 
 export const Route = createFileRoute("/clinics")({
   head: () => ({

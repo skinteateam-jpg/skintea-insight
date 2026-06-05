@@ -550,6 +550,13 @@ function ClinicCard({
   const photos = Array.isArray(clinic.photos) ? clinic.photos : [];
   const isFeatured = (clinic.badges ?? []).some((b) => /featured/i.test(b));
   const isSkinMatch = !!skinType && (clinic.tea_skin_type ?? "").toLowerCase().includes(skinType.toLowerCase());
+  const [pop, setPop] = useState(false);
+  const handleFooterSave = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggleSave();
+    setPop(true);
+    setTimeout(() => setPop(false), 220);
+  };
 
   const mainPhoto = photos.length > 0 ? photos[activeThumb] ?? clinic.image_url : clinic.image_url;
   const tags = clinic.best_for ?? [];
@@ -682,6 +689,14 @@ function ClinicCard({
             {clinic.yelp_review_count != null && (
               <span style={{ fontSize: 10, color: MUTED }}>{clinic.yelp_review_count} reviews</span>
             )}
+            <button
+              type="button"
+              aria-label={isSaved ? "Unsave clinic" : "Save clinic"}
+              onClick={handleFooterSave}
+              style={{ background: "transparent", border: "none", padding: 0, marginLeft: 4, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", transform: pop ? "scale(1.2)" : "scale(1)", transition: "transform 180ms ease" }}
+            >
+              <Heart size={20} color={isSaved ? CRIMSON : MUTED} fill={isSaved ? CRIMSON : "none"} strokeWidth={2} />
+            </button>
           </div>
         </div>
       </div>

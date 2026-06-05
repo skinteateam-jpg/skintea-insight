@@ -5,7 +5,7 @@ import BottomNav from "@/components/BottomNav";
 import { Search, SlidersHorizontal, Map, Bell, MapPin, Sparkles, X } from "lucide-react";
 import { IconBookmark } from "@tabler/icons-react";
 
-export const Route = createFileRoute("/clinics")({
+export const Route = createFileRoute("/clinics/")({
   head: () => ({
     meta: [
       { title: "Find your clinic — Skintea" },

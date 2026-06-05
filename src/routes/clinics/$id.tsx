@@ -146,8 +146,13 @@ function ClinicDetailPage() {
     return () => { alive = false; };
   }, [id]);
 
-  const photos = (clinic?.photos ?? {}) as Record<string, string[]>;
-  const currentPhotos = photos[photoTab] ?? [];
+  const photoTabs = {
+    interior: (clinic?.photos as any)?.interior ?? [],
+    results: (clinic?.photos as any)?.results ?? [],
+    staff: (clinic?.photos as any)?.staff ?? [],
+    outside: (clinic?.photos as any)?.outside ?? [],
+  } as Record<"interior"|"results"|"staff"|"outside", string[]>;
+  const activePhotos = photoTabs[activePhotoTab];
 
   const userSkinScore = useMemo(
     () => userSkin ? skinScores.find((s) => s.skin_type === userSkin)?.recommend_pct : null,

@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
-import { Search, SlidersHorizontal, Map, Bell, MapPin, Sparkles, X } from "lucide-react";
+import { Search, SlidersHorizontal, Map, Bell, MapPin, Sparkles, X, Heart } from "lucide-react";
 
 export const Route = createFileRoute("/clinics")({
   head: () => ({
@@ -93,6 +93,15 @@ const PREF_OPTIONS = ["Walk-in Friendly", "Same-day OK", "Groups (2+)", "Women-O
 const FACILITY_OPTIONS = ["Makeup Room", "Changing Room", "Drink Service", "Kids Space", "Small Salon (under 3 beds)", "Large Salon (10+ beds)", "Korean Aesthetics", "Membership Available", "In Shopping Mall", "Amex Friendly"];
 const TREATMENT_OPTIONS = ["Facial", "Laser", "IPL", "Botox", "Filler", "PRF", "Microneedling", "Hydrafacial", "LED Therapy", "Chemical Peel", "Hair Removal", "Body"];
 
+const TREATMENT_CATEGORIES: { title: string; items: string[] }[] = [
+  { title: "Facial & Skin", items: ["Pore Care", "Glass Skin", "Lifting", "Brightening", "Hydrafacial", "Chemical Peel", "Herb Peeling", "Aqua Peel", "Deep Cleansing"] },
+  { title: "Injectables & Medical", items: ["Botox", "Filler", "PRF", "PRP", "Potenza", "Indiba", "Skinbooster"] },
+  { title: "Laser & Energy", items: ["Laser", "IPL", "LED Therapy", "Microneedling", "RF Therapy", "HIFU"] },
+  { title: "Face Surgery & Contouring", items: ["Chin Line", "Jaw Slimming", "Nose", "Eyes", "Face Lifting Surgery", "Thread Lift"] },
+  { title: "Body", items: ["Body Contouring", "Slimming", "Waist", "Bust", "Back", "Hip Lift"] },
+  { title: "Hair Removal", items: ["Underarm", "Arms", "Legs", "Full Body", "VIO", "Face"] },
+];
+
 function ClinicsPage() {
   const navigate = useNavigate();
   const [clinics, setClinics] = useState<Clinic[]>([]);
@@ -113,6 +122,7 @@ function ClinicsPage() {
   const [treatmentFilter, setTreatmentFilter] = useState<string[]>([]);
   const [, setSavedFilters] = useState<any>(null);
   const [savedConfirm, setSavedConfirm] = useState(false);
+  const [savedClinics, setSavedClinics] = useState<string[]>([]);
 
   useEffect(() => {
     let alive = true;
@@ -135,7 +145,17 @@ function ClinicsPage() {
     }
     const saved = localStorage.getItem("skintea.savedFilters");
     if (saved) { try { setSavedFilters(JSON.parse(saved)); } catch {} }
+    const sc = localStorage.getItem("skintea.savedClinics");
+    if (sc) { try { const arr = JSON.parse(sc); if (Array.isArray(arr)) setSavedClinics(arr); } catch {} }
   }, []);
+
+  const toggleSaveClinic = (id: string) => {
+    setSavedClinics(prev => {
+      const next = prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id];
+      try { localStorage.setItem("skintea.savedClinics", JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
 
   const allActiveFilters: string[] = [
     ...areaFilter,
@@ -326,6 +346,8 @@ function ClinicsPage() {
               activeThumb={activeThumbMap[c.id] ?? 0}
               onThumbChange={(i) => handleThumbChange(c.id, i)}
               onOpen={() => navigate({ to: "/clinics/$id", params: { id: c.id } }).catch(() => {})}
+              isSaved={savedClinics.includes(c.id)}
+              onToggleSave={() => toggleSaveClinic(c.id)}
             />
           ))
         )}
@@ -433,13 +455,15 @@ function ClinicsPage() {
               </PillWrap>
             </DrawerSection>
 
-            <DrawerSection title="Treatment Type" last>
-              <PillWrap>
-                {TREATMENT_OPTIONS.map(o => (
-                  <Pill key={o} label={o} active={treatmentFilter.includes(o)} onClick={() => toggle(setTreatmentFilter, treatmentFilter, o)} />
-                ))}
-              </PillWrap>
-            </DrawerSection>
+            {TREATMENT_CATEGORIES.map((cat, idx) => (
+              <DrawerSection key={cat.title} title={cat.title} last={idx === TREATMENT_CATEGORIES.length - 1}>
+                <PillWrap>
+                  {cat.items.map(o => (
+                    <Pill key={o} label={o} active={treatmentFilter.includes(o)} onClick={() => toggle(setTreatmentFilter, treatmentFilter, o)} />
+                  ))}
+                </PillWrap>
+              </DrawerSection>
+            ))}
 
             {/* Footer */}
             <div style={{ position: "sticky", bottom: 0, background: WARM_WHITE, borderTop: `0.5px solid ${BORDER}`, padding: "12px 16px 24px", display: "flex", gap: 8 }}>
@@ -513,13 +537,15 @@ function Pill({ label, active, onClick }: { label: string; active: boolean; onCl
 }
 
 function ClinicCard({
-  clinic, skinType, activeThumb, onThumbChange, onOpen,
+  clinic, skinType, activeThumb, onThumbChange, onOpen, isSaved, onToggleSave,
 }: {
   clinic: Clinic;
   skinType: string;
   activeThumb: number;
   onThumbChange: (i: number) => void;
   onOpen: () => void;
+  isSaved: boolean;
+  onToggleSave: () => void;
 }) {
   const photos = Array.isArray(clinic.photos) ? clinic.photos : [];
   const isFeatured = (clinic.badges ?? []).some((b) => /featured/i.test(b));
@@ -535,6 +561,8 @@ function ClinicCard({
   const MAX_THUMBS = 4;
   const visibleThumbs = photos.slice(0, MAX_THUMBS);
   const remainingPhotos = Math.max(0, photos.length - visibleThumbs.length);
+  const PLACEHOLDERS = ["#C9A98A", "#B8967A", "#A07860"];
+  const hasPhotos = photos.length > 0;
 
   return (
     <div
@@ -559,26 +587,40 @@ function ClinicCard({
             <div style={{ fontSize: 9, color: "rgba(255,252,248,0.75)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2 }}>Recommend</div>
           </div>
         )}
+        <button
+          type="button"
+          aria-label={isSaved ? "Unsave clinic" : "Save clinic"}
+          onClick={(e) => { e.stopPropagation(); onToggleSave(); }}
+          style={{ position: "absolute", top: 10, right: 10, zIndex: 3, width: 32, height: 32, borderRadius: 999, background: "rgba(255,252,248,0.9)", border: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}
+        >
+          <Heart size={16} color={CRIMSON} fill={isSaved ? CRIMSON : "none"} strokeWidth={2} />
+        </button>
       </div>
 
-      {photos.length > 0 && (
-        <div className="no-scrollbar" style={{ display: "flex", gap: 4, padding: "6px 10px", background: WARM_WHITE, borderBottom: `0.5px solid ${BORDER}`, overflowX: "auto", ...noScrollbar }}>
-          {visibleThumbs.map((p, i) => (
-            <div
-              key={i}
-              onClick={(e) => { e.stopPropagation(); onThumbChange(i); }}
-              style={{ width: 56, height: 44, borderRadius: 6, flexShrink: 0, background: `url(${p}) center/cover no-repeat`, border: `1.5px solid ${i === activeThumb ? CRIMSON : "transparent"}`, cursor: "pointer" }}
-            />
-          ))}
-          <div
-            onClick={(e) => { e.stopPropagation(); onOpen(); }}
-            style={{ width: 56, height: 44, borderRadius: 6, background: TAG_BG, border: `0.5px solid ${BORDER}`, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
-          >
-            <div style={{ fontSize: 12, fontWeight: 800, color: ESPRESSO, lineHeight: 1 }}>+{remainingPhotos}</div>
-            <div style={{ fontSize: 8, color: MUTED, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2 }}>Photos</div>
-          </div>
+      <div className="no-scrollbar" style={{ display: "flex", gap: 4, padding: "6px 10px", background: WARM_WHITE, borderBottom: `0.5px solid ${BORDER}`, overflowX: "auto", ...noScrollbar }}>
+        {hasPhotos
+          ? visibleThumbs.map((p, i) => (
+              <div
+                key={i}
+                onClick={(e) => { e.stopPropagation(); onThumbChange(i); }}
+                style={{ width: 56, height: 44, borderRadius: 6, flexShrink: 0, background: `url(${p}) center/cover no-repeat`, border: `1.5px solid ${i === activeThumb ? CRIMSON : "transparent"}`, cursor: "pointer" }}
+              />
+            ))
+          : PLACEHOLDERS.map((bg, i) => (
+              <div
+                key={i}
+                onClick={(e) => { e.stopPropagation(); onThumbChange(i); }}
+                style={{ width: 56, height: 44, borderRadius: 6, flexShrink: 0, background: bg, border: `1.5px solid ${i === activeThumb ? CRIMSON : "transparent"}`, cursor: "pointer" }}
+              />
+            ))}
+        <div
+          onClick={(e) => { e.stopPropagation(); onOpen(); }}
+          style={{ width: 56, height: 44, borderRadius: 6, background: TAG_BG, border: `0.5px solid ${BORDER}`, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+        >
+          <div style={{ fontSize: 12, fontWeight: 800, color: ESPRESSO, lineHeight: 1 }}>+{hasPhotos ? remainingPhotos : 0}</div>
+          <div style={{ fontSize: 8, color: MUTED, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2 }}>Photos</div>
         </div>
-      )}
+      </div>
 
       <div style={{ padding: "12px 14px" }}>
         <div style={{ fontSize: 15, fontWeight: 800, color: ESPRESSO, marginBottom: 3 }}>{clinic.name}</div>

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, LayoutGrid, List as ListIcon, Star } from "lucide-react";
+import { Search, SlidersHorizontal, Map, Bell, MapPin, Sparkles, ChevronDown } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 
 export const Route = createFileRoute("/clinics")({
@@ -18,16 +18,13 @@ export const Route = createFileRoute("/clinics")({
 
 const ESPRESSO = "#1C0A00";
 const CRIMSON = "#A8001C";
-const CREAM = "#FFFCF8";
 const WARM_WHITE = "#FFFCF8";
 const BORDER = "#E8DDD4";
 const MUTED = "#999999";
-const AMBER = "#E8A000";
-const TAG_BG = "#F5EDE0";
-const TAG_FG = "#5C3D2E";
-const QUOTE_BG = "#F7F0E8";
-const WARM_BADGE_BG = "#F5EDE0";
-const WARM_BADGE_FG = "#7A4A1C";
+const TAG_BG = "#F5EFEC";
+const QUOTE_BG = "#F9F5F0";
+const SKIN_BG = "#FEE8EC";
+const OPEN_GREEN = "#2D7A3A";
 
 type Clinic = {
   id: string;
@@ -46,55 +43,40 @@ type Clinic = {
   image_url: string | null;
   booking_url: string | null;
   is_verified: boolean;
+  photos?: string[] | null;
+  travel_minutes?: number | null;
+  is_open_now?: boolean | null;
+  skintea_score?: number | null;
+  distance_miles?: number | null;
+  tea_handle?: string | null;
 };
 
-const FILTERS: { id: string; label: string; match?: (c: Clinic) => boolean }[] = [
-  { id: "all", label: "All" },
-  {
-    id: "botox",
-    label: "Botox / filler",
-    match: (c) => (c.best_for ?? []).some((t) => /botox|filler|dysport|xeomin|lip/i.test(t)),
-  },
-  {
-    id: "laser",
-    label: "Laser / IPL",
-    match: (c) => (c.best_for ?? []).some((t) => /laser|ipl/i.test(t)),
-  },
-  {
-    id: "korean",
-    label: "Korean aesthetics",
-    match: (c) => (c.badges ?? []).some((b) => /korean/i.test(b)) || /koreatown/i.test(c.neighborhood ?? ""),
-  },
-  {
-    id: "prp",
-    label: "PRP / microneedling",
-    match: (c) => (c.best_for ?? []).some((t) => /prp|microneedling/i.test(t)),
-  },
-  {
-    id: "cheap",
-    label: "$ under $200",
-    match: (c) => (c.price_from ?? 9999) < 200,
-  },
-  {
-    id: "oily",
-    label: "Oily skin",
-    match: (c) => /oily/i.test(c.tea_skin_type ?? "") || (c.badges ?? []).some((b) => /oily/i.test(b)),
-  },
-  {
-    id: "sensitive",
-    label: "Sensitive skin",
-    match: (c) => /sensitive/i.test(c.tea_skin_type ?? "") || (c.badges ?? []).some((b) => /sensitive/i.test(b)),
-  },
-];
+const TREATMENT_PILLS = ["all", "Botox", "PRF", "Laser", "Hydrafacial", "Microneedling", "LED", "Chemical Peel", "Facial"];
+const SKIN_PILLS = ["all", "Oily", "Dry", "Combination", "Normal", "Sensitive"];
+const SORT_LABELS: Record<string, string> = { nearest: "Nearest", rating: "Highest Rated", reviews: "Most Reviewed" };
+
+const SECTION_LABEL: React.CSSProperties = {
+  fontSize: 9,
+  fontWeight: 800,
+  letterSpacing: "0.14em",
+  textTransform: "uppercase",
+  color: CRIMSON,
+};
+
+const noScrollbar: React.CSSProperties = {
+  scrollbarWidth: "none",
+  msOverflowStyle: "none",
+};
 
 function ClinicsPage() {
   const navigate = useNavigate();
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [view, setView] = useState<"grid" | "list">("grid");
-  const [treatmentQ, setTreatmentQ] = useState("");
-  const [locationQ, setLocationQ] = useState("");
+  const [searchQ, setSearchQ] = useState("");
+  const [skinType, setSkinType] = useState<string>("");
+  const [treatmentFilter, setTreatmentFilter] = useState("all");
+  const [skinFilter, setSkinFilter] = useState("all");
+  const [sortBy, setSortBy] = useState<"nearest" | "rating" | "reviews">("nearest");
 
   useEffect(() => {
     let alive = true;
@@ -112,333 +94,488 @@ function ClinicsPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const st = localStorage.getItem("skintea_skin_type") || localStorage.getItem("skintea.quizResult");
+    if (st) {
+      try {
+        const parsed = JSON.parse(st);
+        setSkinType((parsed?.skinTypeLabel || st).toString().toLowerCase());
+      } catch {
+        setSkinType(st.toLowerCase());
+      }
+    }
+  }, []);
+
+  // Pre-select skin pill once skinType is known
+  useEffect(() => {
+    if (!skinType) return;
+    const match = SKIN_PILLS.find((p) => p !== "all" && skinType.includes(p.toLowerCase()));
+    if (match) setSkinFilter(match);
+  }, [skinType]);
+
   const filtered = useMemo(() => {
     let out = clinics;
-    const f = FILTERS.find((x) => x.id === activeFilter);
-    if (f?.match) out = out.filter(f.match);
-    if (treatmentQ.trim()) {
-      const q = treatmentQ.toLowerCase();
+    if (treatmentFilter !== "all") {
+      out = out.filter((c) =>
+        (c.best_for ?? []).some((t) => t.toLowerCase().includes(treatmentFilter.toLowerCase())),
+      );
+    }
+    if (skinFilter !== "all") {
       out = out.filter(
         (c) =>
+          (c.tea_skin_type ?? "").toLowerCase().includes(skinFilter.toLowerCase()) ||
+          (c.badges ?? []).some((b) => b.toLowerCase().includes(skinFilter.toLowerCase())),
+      );
+    }
+    if (searchQ.trim()) {
+      const q = searchQ.toLowerCase();
+      out = out.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
           (c.best_for ?? []).some((t) => t.toLowerCase().includes(q)) ||
-          c.name.toLowerCase().includes(q),
+          (c.neighborhood ?? "").toLowerCase().includes(q),
       );
     }
-    if (locationQ.trim()) {
-      const q = locationQ.toLowerCase();
-      out = out.filter(
-        (c) =>
-          (c.neighborhood ?? "").toLowerCase().includes(q) ||
-          (c.address ?? "").toLowerCase().includes(q),
-      );
-    }
+    if (sortBy === "rating") out = [...out].sort((a, b) => (b.skintea_score ?? b.trust_score ?? 0) - (a.skintea_score ?? a.trust_score ?? 0));
+    if (sortBy === "reviews") out = [...out].sort((a, b) => (b.yelp_review_count ?? 0) - (a.yelp_review_count ?? 0));
     return out;
-  }, [clinics, activeFilter, treatmentQ, locationQ]);
+  }, [clinics, treatmentFilter, skinFilter, searchQ, sortBy]);
+
+  const cycleSort = () => {
+    setSortBy((s) => (s === "nearest" ? "rating" : s === "rating" ? "reviews" : "nearest"));
+  };
+
+  const skinTypeDisplay = skinType ? skinType.charAt(0).toUpperCase() + skinType.slice(1) : "";
 
   return (
-    <div style={{ background: CREAM, minHeight: "100vh", fontFamily: "'DM Sans', sans-serif" }}>
-      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <div style={{ background: WARM_WHITE, minHeight: "100vh", fontFamily: "system-ui, -apple-system, sans-serif", paddingBottom: 80 }}>
+      <style>{`.no-scrollbar::-webkit-scrollbar{display:none}`}</style>
+      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet" />
 
-      {/* Header */}
-      <header style={{ background: ESPRESSO, color: CREAM, padding: "20px 16px 28px" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-            <Link to="/" style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, color: CREAM, textDecoration: "none", fontWeight: 600 }}>
-              skintea
-            </Link>
-            <nav style={{ display: "flex", gap: 18, fontSize: 13, color: CREAM }}>
-              <Link to="/clinics" style={{ color: CREAM, textDecoration: "none", opacity: 1 }}>clinics</Link>
-              <Link to="/products" style={{ color: CREAM, textDecoration: "none", opacity: 0.7 }}>products</Link>
-              <Link to="/skin-profile" style={{ color: CREAM, textDecoration: "none", opacity: 0.7 }}>my skin</Link>
-            </nav>
+      {/* 1. Sticky Header */}
+      <header
+        style={{
+          background: WARM_WHITE,
+          borderBottom: `0.5px solid ${BORDER}`,
+          padding: "14px 16px 10px",
+          position: "sticky",
+          top: 0,
+          zIndex: 10,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Link to="/" style={{ textDecoration: "none" }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 22, lineHeight: 1 }}>
+            <span style={{ color: ESPRESSO }}>Skin</span>
+            <span style={{ color: CRIMSON }}>tea</span>
           </div>
-
-          <div style={{ color: CRIMSON, fontSize: 11, fontWeight: 600, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 10 }}>
-            Find your clinic · Los Angeles
-          </div>
-          <h1 style={{ fontFamily: "'Playfair Display', serif", color: CREAM, fontSize: 30, lineHeight: 1.15, fontWeight: 600, margin: 0, marginBottom: 8 }}>
-            Real places. Real results. No fluff.
-          </h1>
-          <p style={{ color: "#B8AAA0", fontSize: 13, margin: 0, marginBottom: 18 }}>
-            Ranked by Skintea trust score — not sponsored
-          </p>
-
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <input
-              value={treatmentQ}
-              onChange={(e) => setTreatmentQ(e.target.value)}
-              placeholder="Search treatment…"
-              style={{
-                flex: "1 1 180px", background: WARM_WHITE, color: ESPRESSO, border: "none",
-                padding: "10px 12px", borderRadius: 6, fontSize: 13, outline: "none",
-              }}
-            />
-            <input
-              value={locationQ}
-              onChange={(e) => setLocationQ(e.target.value)}
-              placeholder="Neighborhood…"
-              style={{
-                flex: "1 1 140px", background: WARM_WHITE, color: ESPRESSO, border: "none",
-                padding: "10px 12px", borderRadius: 6, fontSize: 13, outline: "none",
-              }}
-            />
-            <button
-              type="button"
-              style={{
-                background: CRIMSON, color: CREAM, border: "none", padding: "10px 18px",
-                borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer",
-                display: "inline-flex", alignItems: "center", gap: 6,
-              }}
-            >
-              <Search size={14} /> Search
-            </button>
-          </div>
+          <div style={{ ...SECTION_LABEL, color: MUTED, marginTop: 3 }}>Got Skintea? Spill it.</div>
+        </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <Map size={20} color={ESPRESSO} />
+          <Bell size={20} color={ESPRESSO} />
         </div>
       </header>
 
-      {/* Filter chips */}
-      <div style={{ borderBottom: `1px solid ${BORDER}`, background: CREAM }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "12px 16px", overflowX: "auto", whiteSpace: "nowrap", display: "flex", gap: 8 }}>
-          {FILTERS.map((f) => {
-            const active = activeFilter === f.id;
-            return (
-              <button
-                key={f.id}
-                onClick={() => setActiveFilter(f.id)}
-                style={{
-                  padding: "7px 14px",
-                  borderRadius: 999,
-                  fontSize: 12,
-                  fontWeight: 500,
-                  border: `1px solid ${active ? ESPRESSO : BORDER}`,
-                  background: active ? ESPRESSO : WARM_WHITE,
-                  color: active ? CREAM : ESPRESSO,
-                  cursor: "pointer",
-                  flexShrink: 0,
-                  fontFamily: "'DM Sans', sans-serif",
-                }}
-              >
-                {f.label}
-              </button>
-            );
-          })}
+      {/* 2. Search bar */}
+      <div
+        style={{
+          padding: "10px 16px",
+          borderBottom: `0.5px solid ${BORDER}`,
+          display: "flex",
+          gap: 8,
+          background: WARM_WHITE,
+        }}
+      >
+        <div style={{ position: "relative", flex: 1 }}>
+          <Search size={16} color={MUTED} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
+          <input
+            value={searchQ}
+            onChange={(e) => setSearchQ(e.target.value)}
+            placeholder="Search treatments, clinics..."
+            style={{
+              width: "100%",
+              background: "#F5EFEC",
+              border: "none",
+              borderRadius: 8,
+              padding: "9px 12px 9px 34px",
+              fontSize: 13,
+              color: ESPRESSO,
+              outline: "none",
+              fontFamily: "inherit",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+        <button
+          type="button"
+          aria-label="Filters"
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            border: `0.5px solid ${BORDER}`,
+            background: WARM_WHITE,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            flexShrink: 0,
+          }}
+        >
+          <SlidersHorizontal size={16} color={ESPRESSO} />
+        </button>
+      </div>
+
+      {/* 3. Skin match bar */}
+      <div
+        style={{
+          background: SKIN_BG,
+          borderBottom: `0.5px solid ${BORDER}`,
+          padding: "9px 16px",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          cursor: skinType ? "default" : "pointer",
+        }}
+        onClick={() => {
+          if (!skinType) navigate({ to: "/quiz" as any }).catch(() => {});
+        }}
+      >
+        {skinType ? (
+          <>
+            <Sparkles size={14} color={CRIMSON} />
+            <span style={{ fontSize: 12, color: ESPRESSO }}>
+              Matched to your skin —{" "}
+              <span style={{ color: CRIMSON, fontWeight: 800 }}>{skinTypeDisplay}</span>
+            </span>
+          </>
+        ) : (
+          <span style={{ fontSize: 12, color: MUTED }}>Take the quiz to get matched →</span>
+        )}
+      </div>
+
+      {/* 4. Filter section */}
+      <div style={{ padding: "10px 16px 0", borderBottom: `0.5px solid ${BORDER}` }}>
+        <div style={SECTION_LABEL}>Treatment</div>
+        <div
+          className="no-scrollbar"
+          style={{
+            display: "flex",
+            gap: 6,
+            overflowX: "auto",
+            paddingTop: 8,
+            paddingBottom: 10,
+            ...noScrollbar,
+          }}
+        >
+          {TREATMENT_PILLS.map((p) => (
+            <Pill key={p} label={p === "all" ? "All" : p} active={treatmentFilter === p} onClick={() => setTreatmentFilter(p)} />
+          ))}
+        </div>
+        <div style={SECTION_LABEL}>Skin Type</div>
+        <div
+          className="no-scrollbar"
+          style={{
+            display: "flex",
+            gap: 6,
+            overflowX: "auto",
+            paddingTop: 8,
+            paddingBottom: 10,
+            ...noScrollbar,
+          }}
+        >
+          {SKIN_PILLS.map((p) => (
+            <Pill key={p} label={p === "all" ? "All" : p} active={skinFilter === p} onClick={() => setSkinFilter(p)} />
+          ))}
         </div>
       </div>
 
-      {/* Results bar */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "16px 16px 8px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-        <div style={{ color: MUTED, fontSize: 12 }}>
-          {filtered.length} {filtered.length === 1 ? "clinic" : "clinics"} in Los Angeles · sorted by trust score
-        </div>
-        <div style={{ display: "flex", gap: 4, border: `1px solid ${BORDER}`, borderRadius: 6, padding: 2, background: WARM_WHITE }}>
-          <button
-            onClick={() => setView("grid")}
-            aria-label="Grid view"
-            style={{
-              border: "none", background: view === "grid" ? ESPRESSO : "transparent",
-              color: view === "grid" ? CREAM : ESPRESSO, padding: "6px 8px", borderRadius: 4, cursor: "pointer",
-              display: "inline-flex", alignItems: "center",
-            }}
-          >
-            <LayoutGrid size={14} />
-          </button>
-          <button
-            onClick={() => setView("list")}
-            aria-label="List view"
-            style={{
-              border: "none", background: view === "list" ? ESPRESSO : "transparent",
-              color: view === "list" ? CREAM : ESPRESSO, padding: "6px 8px", borderRadius: 4, cursor: "pointer",
-              display: "inline-flex", alignItems: "center",
-            }}
-          >
-            <ListIcon size={14} />
-          </button>
-        </div>
+      {/* 5. Results bar */}
+      <div
+        style={{
+          padding: "12px 16px 0",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <div style={SECTION_LABEL}>{filtered.length} Clinics Near You</div>
+        <button
+          onClick={cycleSort}
+          style={{
+            background: "transparent",
+            border: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 3,
+            color: MUTED,
+            fontSize: 11,
+            cursor: "pointer",
+            fontFamily: "inherit",
+            padding: 0,
+          }}
+        >
+          Sort: {SORT_LABELS[sortBy]} <ChevronDown size={12} />
+        </button>
       </div>
 
-      {/* Cards */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "8px 16px 60px" }}>
+      {/* 6. Cards */}
+      <div style={{ padding: "10px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
         {loading ? (
-          <div style={{ color: MUTED, fontSize: 13, padding: 40, textAlign: "center" }}>Loading clinics…</div>
+          <div style={{ color: MUTED, fontSize: 13, padding: 40, textAlign: "center" }}>Loading clinics...</div>
         ) : filtered.length === 0 ? (
           <div style={{ color: MUTED, fontSize: 13, padding: 40, textAlign: "center" }}>No clinics match this filter.</div>
         ) : (
-          <div
-            style={
-              view === "grid"
-                ? { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 13 }
-                : { display: "flex", flexDirection: "column", gap: 13 }
-            }
-          >
-            {filtered.map((c) => (
-              <ClinicCard
-                key={c.id}
-                clinic={c}
-                view={view}
-                onOpen={() => navigate({ to: "/clinics/$id" as any, params: { id: c.id } as any }).catch(() => {})}
-              />
-            ))}
-          </div>
+          filtered.map((c) => (
+            <ClinicCard
+              key={c.id}
+              clinic={c}
+              skinType={skinType}
+              onOpen={() => navigate({ to: "/clinics/$id" as any, params: { id: c.id } as any }).catch(() => {})}
+            />
+          ))
         )}
       </div>
+
       <BottomNav />
     </div>
   );
 }
 
-function ClinicCard({ clinic, view, onOpen }: { clinic: Clinic; view: "grid" | "list"; onOpen: () => void }) {
-  const isList = view === "list";
+function Pill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        flexShrink: 0,
+        padding: "7px 14px",
+        borderRadius: 999,
+        fontSize: 12,
+        fontWeight: 600,
+        border: `0.5px solid ${active ? ESPRESSO : BORDER}`,
+        background: active ? ESPRESSO : "#FFFFFF",
+        color: active ? WARM_WHITE : MUTED,
+        cursor: "pointer",
+        fontFamily: "inherit",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function ClinicCard({ clinic, skinType, onOpen }: { clinic: Clinic; skinType: string; onOpen: () => void }) {
+  const [activeThumb, setActiveThumb] = useState(0);
+  const photos = clinic.photos ?? [];
+  const isFeatured = (clinic.badges ?? []).some((b) => /featured/i.test(b));
+  const isSkinMatch = !!skinType && (clinic.tea_skin_type ?? "").toLowerCase().includes(skinType.toLowerCase());
+
+  const mainPhoto = photos.length > 0 ? photos[activeThumb] ?? clinic.image_url : clinic.image_url;
+  const tags = clinic.best_for ?? [];
+  const visibleTags = tags.slice(0, 3);
+  const extraTags = tags.length - visibleTags.length;
+
+  const score = clinic.trust_score ?? clinic.skintea_score;
+
+  // thumbnails: show photos + a "+N Photos" tile if there are more or always show last tile when there are extras
+  const MAX_THUMBS = 4;
+  const visibleThumbs = photos.slice(0, MAX_THUMBS);
+  const remainingPhotos = Math.max(0, photos.length - visibleThumbs.length);
+
   return (
     <div
       onClick={onOpen}
       style={{
-        background: WARM_WHITE,
-        border: `1px solid ${BORDER}`,
-        borderRadius: 10,
+        background: "#FFFFFF",
+        borderRadius: 12,
         overflow: "hidden",
         cursor: "pointer",
-        display: "flex",
-        flexDirection: isList ? "row" : "column",
-        transition: "border-color 0.15s",
+        border: isFeatured ? `1px solid ${CRIMSON}` : `0.5px solid ${BORDER}`,
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.borderColor = ESPRESSO)}
-      onMouseLeave={(e) => (e.currentTarget.style.borderColor = BORDER)}
     >
-      {/* Photo */}
+      {/* A. Main photo */}
       <div
         style={{
-          width: isList ? 160 : "100%",
-          height: isList ? "auto" : 128,
-          minHeight: isList ? 140 : undefined,
-          flexShrink: 0,
-          background: clinic.image_url
-            ? `url(${clinic.image_url}) center/cover no-repeat`
-            : `linear-gradient(135deg, ${ESPRESSO}, #3a1a08)`,
+          height: 160,
+          position: "relative",
+          overflow: "hidden",
+          background: mainPhoto ? `url(${mainPhoto}) center/cover no-repeat` : ESPRESSO,
         }}
-      />
-
-      <div style={{ padding: 10, flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-        {/* Badges */}
-        {(clinic.badges ?? []).length > 0 && (
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-            {(clinic.badges ?? []).map((b, i) => {
-              const isVerified = /verified/i.test(b);
-              const isCrimson = /top for|#1|top rated/i.test(b);
-              const style = isVerified
-                ? { background: CREAM, color: ESPRESSO, border: `1px solid ${ESPRESSO}` }
-                : isCrimson
-                ? { background: CRIMSON, color: CREAM, border: "none" }
-                : { background: WARM_BADGE_BG, color: WARM_BADGE_FG, border: "none" };
-              return (
-                <span
-                  key={i}
-                  style={{
-                    ...style,
-                    fontSize: 10,
-                    fontWeight: 600,
-                    padding: "2px 6px",
-                    borderRadius: 3,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {isVerified && !b.includes("✓") ? `✓ Skintea ${b}` : b}
-                </span>
-              );
-            })}
+      >
+        <div style={{ position: "absolute", inset: 0, background: "rgba(28,10,0,0.32)" }} />
+        <div style={{ position: "absolute", top: 10, left: 10, display: "flex", flexDirection: "column", gap: 5, zIndex: 2 }}>
+          {isFeatured && (
+            <span style={{ background: CRIMSON, color: WARM_WHITE, fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", borderRadius: 3, padding: "3px 8px" }}>
+              Featured
+            </span>
+          )}
+          {isSkinMatch && (
+            <span style={{ background: SKIN_BG, color: CRIMSON, fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", borderRadius: 3, padding: "3px 8px" }}>
+              {skinType.charAt(0).toUpperCase() + skinType.slice(1)} Match
+            </span>
+          )}
+        </div>
+        {score != null && (
+          <div style={{ position: "absolute", bottom: 10, right: 10, zIndex: 2, textAlign: "right" }}>
+            <div style={{ fontSize: 24, fontWeight: 800, color: WARM_WHITE, lineHeight: 1 }}>{score}%</div>
+            <div style={{ fontSize: 9, color: "rgba(255,252,248,0.75)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2 }}>
+              Recommend
+            </div>
           </div>
         )}
+      </div>
 
-        {/* Name + trust score */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 14, color: ESPRESSO, fontWeight: 600, lineHeight: 1.2 }}>
-            {clinic.name}
-          </div>
-          <div style={{ textAlign: "right", flexShrink: 0 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: CRIMSON, lineHeight: 1 }}>
-              {clinic.trust_score ?? "—"}%
+      {/* B. Thumbnail strip */}
+      {photos.length > 0 && (
+        <div
+          className="no-scrollbar"
+          style={{
+            display: "flex",
+            gap: 4,
+            padding: "6px 10px",
+            background: WARM_WHITE,
+            borderBottom: `0.5px solid ${BORDER}`,
+            overflowX: "auto",
+            ...noScrollbar,
+          }}
+        >
+          {visibleThumbs.map((p, i) => (
+            <div
+              key={i}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveThumb(i);
+              }}
+              style={{
+                width: 56,
+                height: 44,
+                borderRadius: 6,
+                flexShrink: 0,
+                background: `url(${p}) center/cover no-repeat`,
+                border: `1.5px solid ${i === activeThumb ? CRIMSON : "transparent"}`,
+                cursor: "pointer",
+              }}
+            />
+          ))}
+          {remainingPhotos > 0 && (
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpen();
+              }}
+              style={{
+                width: 56,
+                height: 44,
+                borderRadius: 6,
+                background: "#F5EFEC",
+                border: `0.5px solid ${BORDER}`,
+                flexShrink: 0,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ fontSize: 12, fontWeight: 800, color: ESPRESSO, lineHeight: 1 }}>+{remainingPhotos}</div>
+              <div style={{ fontSize: 8, color: MUTED, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2 }}>Photos</div>
             </div>
-            <div style={{ fontSize: 9, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginTop: 2 }}>
-              trust score
-            </div>
-          </div>
+          )}
         </div>
+      )}
 
-        {/* Location */}
-        <div style={{ fontSize: 11, color: MUTED }}>
-          {clinic.neighborhood}
-          {clinic.address ? ` · ${clinic.address}` : ""}
-        </div>
-
-        {/* Yelp */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ background: "#D32323", color: "white", fontSize: 9, fontWeight: 700, padding: "1px 4px", borderRadius: 2 }}>
-            YELP
+      {/* C. Card body */}
+      <div style={{ padding: "12px 14px" }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: ESPRESSO, marginBottom: 3 }}>{clinic.name}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: MUTED, marginBottom: 8 }}>
+          <MapPin size={11} color={MUTED} />
+          <span>
+            {clinic.neighborhood ?? ""}
+            {clinic.distance_miles != null ? ` · ${clinic.distance_miles} mi` : ""}
+            {clinic.travel_minutes != null ? ` · ${clinic.travel_minutes} min` : ""}
           </span>
-          <Star size={11} fill={AMBER} color={AMBER} />
-          <span style={{ fontSize: 11, color: ESPRESSO, fontWeight: 600 }}>{clinic.yelp_rating?.toFixed(1)}</span>
-          <span style={{ fontSize: 10, color: MUTED }}>({clinic.yelp_review_count} reviews)</span>
         </div>
 
-        {/* Treatment tags */}
-        {(clinic.best_for ?? []).length > 0 && (
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-            {(clinic.best_for ?? []).map((t, i) => (
+        {tags.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 8 }}>
+            {visibleTags.map((t, i) => (
               <span
                 key={i}
                 style={{
                   background: TAG_BG,
-                  color: TAG_FG,
+                  color: ESPRESSO,
                   fontSize: 10,
-                  padding: "2px 6px",
-                  borderRadius: 3,
-                  fontWeight: 500,
+                  fontWeight: 600,
+                  padding: "3px 8px",
+                  borderRadius: 4,
                 }}
               >
-                {i === 0 ? `Best for: ${t}` : t}
+                {t}
               </span>
             ))}
-          </div>
-        )}
-
-        {/* Tea quote */}
-        {clinic.tea_quote && (
-          <div style={{ background: QUOTE_BG, borderLeft: `2.5px solid ${CRIMSON}`, padding: "6px 8px", borderRadius: 2 }}>
-            <div style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontSize: 11, color: ESPRESSO, lineHeight: 1.4 }}>
-              "{clinic.tea_quote}"
-            </div>
-            {clinic.tea_skin_type && (
-              <div style={{ fontSize: 10, color: MUTED, marginTop: 3 }}>
-                — community member · {clinic.tea_skin_type}
-              </div>
+            {extraTags > 0 && (
+              <span style={{ fontSize: 10, color: MUTED, padding: "3px 4px" }}>+{extraTags} more</span>
             )}
           </div>
         )}
 
-        {/* Footer */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", paddingTop: 4 }}>
-          <div style={{ fontSize: 11, color: MUTED }}>
-            <span style={{ color: ESPRESSO, fontWeight: 600 }}>{clinic.price_tier}</span>
-            {clinic.price_from ? ` · from $${clinic.price_from}` : ""}
-          </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (clinic.booking_url) window.open(clinic.booking_url, "_blank", "noopener,noreferrer");
-            }}
+        {clinic.tea_quote && (
+          <div
             style={{
-              background: ESPRESSO,
-              color: CREAM,
-              border: "none",
-              fontSize: 11,
-              fontWeight: 600,
-              padding: "5px 10px",
-              borderRadius: 5,
-              cursor: "pointer",
-              fontFamily: "'DM Sans', sans-serif",
+              borderLeft: `2px solid ${CRIMSON}`,
+              padding: "5px 8px",
+              background: QUOTE_BG,
+              marginBottom: 10,
             }}
           >
-            Book →
-          </button>
+            <div style={{ fontSize: 11, fontStyle: "italic", color: ESPRESSO, lineHeight: 1.5 }}>
+              "{clinic.tea_quote}"
+            </div>
+            <div style={{ fontSize: 10, color: MUTED, marginTop: 3 }}>
+              {clinic.tea_handle ? `— @${clinic.tea_handle}` : "— anon"}
+              {clinic.tea_skin_type ? ` · ${clinic.tea_skin_type}` : ""}
+            </div>
+          </div>
+        )}
+
+        {/* D. Footer */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {clinic.is_verified ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <span style={{ width: 5, height: 5, borderRadius: 999, background: CRIMSON }} />
+                <span style={{ fontSize: 10, fontWeight: 800, color: CRIMSON, textTransform: "uppercase", letterSpacing: "0.06em" }}>Verified</span>
+              </span>
+            ) : (
+              <span style={{ fontSize: 10, color: MUTED }}>Not verified</span>
+            )}
+            {clinic.is_open_now ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <span style={{ width: 6, height: 6, borderRadius: 999, background: OPEN_GREEN }} />
+                <span style={{ fontSize: 10, fontWeight: 700, color: OPEN_GREEN }}>Open</span>
+              </span>
+            ) : (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, opacity: 0.5 }}>
+                <span style={{ width: 6, height: 6, borderRadius: 999, background: MUTED }} />
+                <span style={{ fontSize: 10, color: MUTED }}>Closed</span>
+              </span>
+            )}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {clinic.price_tier && (
+              <span style={{ fontSize: 11, fontWeight: 700, color: ESPRESSO }}>
+                {clinic.price_tier}
+                {clinic.price_from != null ? ` · from $${clinic.price_from}` : ""}
+              </span>
+            )}
+            {clinic.yelp_review_count != null && (
+              <span style={{ fontSize: 10, color: MUTED }}>{clinic.yelp_review_count} reviews</span>
+            )}
+          </div>
         </div>
       </div>
     </div>

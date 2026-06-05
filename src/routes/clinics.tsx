@@ -594,6 +594,7 @@ function ClinicCard({
             <div style={{ fontSize: 9, color: "rgba(255,252,248,0.75)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2 }}>Recommend</div>
           </div>
         )}
+      </div>
 
       <div className="no-scrollbar" style={{ display: "flex", gap: 4, padding: "6px 10px", background: WARM_WHITE, borderBottom: `0.5px solid ${BORDER}`, overflowX: "auto", ...noScrollbar }}>
         {hasPhotos

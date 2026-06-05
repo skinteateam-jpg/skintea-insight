@@ -59,8 +59,8 @@ const WARM = "#FFFCF8";
 const BORDER = "#E8DDD4";
 const MUTED = "#999999";
 const TINT = "#F5EFEC";
-const SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-const SERIF = "'Playfair Display', Georgia, serif";
+const SANS = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+const SERIF = "'Playfair Display', serif";
 
 const CELEB_NAMES: Record<string, string> = {
   kimkardashian: "Kim Kardashian",

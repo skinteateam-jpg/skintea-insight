@@ -738,6 +738,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          slug: string | null
           sort_order: number
           updated_at: string
         }
@@ -748,6 +749,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          slug?: string | null
           sort_order?: number
           updated_at?: string
         }
@@ -758,6 +760,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          slug?: string | null
           sort_order?: number
           updated_at?: string
         }

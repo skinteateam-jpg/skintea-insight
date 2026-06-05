@@ -179,7 +179,7 @@ function ClinicDetailPage() {
     return <div style={{ padding: 40, textAlign: "center", color: MUTED, fontSize: 12, background: WARM_WHITE, minHeight: "100vh" }}>Clinic not found.</div>;
   }
 
-  const photoTabs: Array<"interior" | "results" | "staff" | "outside"> = ["interior", "results", "staff", "outside"];
+  const TAB_KEYS: Array<"interior" | "results" | "staff" | "outside"> = ["interior", "results", "staff", "outside"];
 
   return (
     <div style={{ background: WARM_WHITE, minHeight: "100vh", color: ESPRESSO, fontFamily: "system-ui, -apple-system, sans-serif" }}>
@@ -211,19 +211,19 @@ function ClinicDetailPage() {
 
       {/* 2. Photo hero */}
       <div style={{ width: "100%", height: 170, background: ESPRESSO, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-        {photos.interior?.[0] ? (
-          <img src={photos.interior[0]} alt={clinic.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        {activePhotos[activeThumbIndex] ? (
+          <img src={activePhotos[activeThumbIndex]} alt={clinic.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
-          <Building2 size={36} color={WARM_WHITE} opacity={0.4} />
+          <Camera size={36} color={MUTED} />
         )}
       </div>
 
       {/* 3. Photo category tabs */}
       <div style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}` }}>
-        {photoTabs.map((t) => {
-          const active = t === photoTab;
+        {TAB_KEYS.map((t) => {
+          const active = t === activePhotoTab;
           return (
-            <button key={t} onClick={() => setPhotoTab(t)} style={{
+            <button key={t} onClick={() => { setActivePhotoTab(t); setActiveThumbIndex(0); }} style={{
               flex: 1, background: "none", border: "none", cursor: "pointer",
               padding: "10px 0", fontSize: 11, fontWeight: 700, textTransform: "capitalize",
               color: active ? ESPRESSO : MUTED,
@@ -234,25 +234,39 @@ function ClinicDetailPage() {
       </div>
 
       {/* 4. Photo strip */}
-      <div style={{
-        display: "flex", gap: 8, overflowX: "auto", padding: "10px 16px",
-        scrollbarWidth: "none",
-      }}>
-        <style>{`div::-webkit-scrollbar{display:none}`}</style>
-        {currentPhotos.slice(0, 6).map((p, i) => (
-          <img key={i} src={p} alt="" style={{ width: 88, height: 68, borderRadius: 8, objectFit: "cover", flexShrink: 0, background: CREAM_TINT }} />
-        ))}
-        {currentPhotos.length > 0 && (
-          <div style={{
-            width: 88, height: 68, borderRadius: 8, background: CREAM_TINT,
-            border: `1px dashed ${BORDER}`, display: "flex", flexDirection: "column",
-            alignItems: "center", justifyContent: "center", flexShrink: 0, gap: 2,
-          }}>
-            <Plus size={16} color={MUTED} />
-            <div style={{ fontSize: 9, color: MUTED }}>+{currentPhotos.length} more</div>
-          </div>
-        )}
-      </div>
+      {activePhotos.length > 0 && (
+        <div style={{
+          display: "flex", gap: 4, overflowX: "auto", padding: "6px 10px",
+          scrollbarWidth: "none", background: WARM_WHITE,
+          borderBottom: `0.5px solid ${BORDER}`,
+        }}>
+          <style>{`div::-webkit-scrollbar{display:none}`}</style>
+          {activePhotos.slice(0, 4).map((p: string, i: number) => (
+            <img
+              key={i}
+              src={p}
+              alt=""
+              onClick={() => setActiveThumbIndex(i)}
+              style={{
+                width: 56, height: 44, borderRadius: 6, objectFit: "cover",
+                flexShrink: 0, cursor: "pointer",
+                border: i === activeThumbIndex ? `1.5px solid ${CRIMSON}` : "1.5px solid transparent",
+              }}
+            />
+          ))}
+          {activePhotos.length > 4 && (
+            <div style={{
+              width: 56, height: 44, borderRadius: 6, background: CREAM_TINT,
+              border: `0.5px solid ${BORDER}`,
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center", flexShrink: 0,
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: ESPRESSO, lineHeight: 1 }}>+{activePhotos.length - 4}</div>
+              <div style={{ fontSize: 8, color: MUTED, textTransform: "uppercase", marginTop: 2 }}>Photos</div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 5. Clinic hero block */}
       <div style={{ padding: "14px 16px", borderBottom: `0.5px solid ${BORDER}` }}>

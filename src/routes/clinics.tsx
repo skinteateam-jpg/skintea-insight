@@ -455,13 +455,15 @@ function ClinicsPage() {
               </PillWrap>
             </DrawerSection>
 
-            <DrawerSection title="Treatment Type" last>
-              <PillWrap>
-                {TREATMENT_OPTIONS.map(o => (
-                  <Pill key={o} label={o} active={treatmentFilter.includes(o)} onClick={() => toggle(setTreatmentFilter, treatmentFilter, o)} />
-                ))}
-              </PillWrap>
-            </DrawerSection>
+            {TREATMENT_CATEGORIES.map((cat, idx) => (
+              <DrawerSection key={cat.title} title={cat.title} last={idx === TREATMENT_CATEGORIES.length - 1}>
+                <PillWrap>
+                  {cat.items.map(o => (
+                    <Pill key={o} label={o} active={treatmentFilter.includes(o)} onClick={() => toggle(setTreatmentFilter, treatmentFilter, o)} />
+                  ))}
+                </PillWrap>
+              </DrawerSection>
+            ))}
 
             {/* Footer */}
             <div style={{ position: "sticky", bottom: 0, background: WARM_WHITE, borderTop: `0.5px solid ${BORDER}`, padding: "12px 16px 24px", display: "flex", gap: 8 }}>

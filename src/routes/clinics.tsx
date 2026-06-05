@@ -521,7 +521,7 @@ function ClinicCard({
   onThumbChange: (i: number) => void;
   onOpen: () => void;
 }) {
-  const photos = clinic.photos ?? [];
+  const photos = Array.isArray(clinic.photos) ? clinic.photos : [];
   const isFeatured = (clinic.badges ?? []).some((b) => /featured/i.test(b));
   const isSkinMatch = !!skinType && (clinic.tea_skin_type ?? "").toLowerCase().includes(skinType.toLowerCase());
 

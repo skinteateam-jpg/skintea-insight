@@ -733,36 +733,69 @@ export type Database = {
       treatments: {
         Row: {
           active: boolean
+          average_cost: string | null
           category: string | null
+          celebrity_handles: string[] | null
           created_at: string
           description: string | null
+          downtime: string | null
+          how_it_works: string | null
           id: string
+          majority_pct: number | null
+          minority_opinion: string | null
           name: string
+          results_pct: number | null
+          sessions_recommended: string | null
           slug: string | null
           sort_order: number
+          subtitle: string | null
           updated_at: string
+          what_it_is: string | null
+          who_its_for: string | null
         }
         Insert: {
           active?: boolean
+          average_cost?: string | null
           category?: string | null
+          celebrity_handles?: string[] | null
           created_at?: string
           description?: string | null
+          downtime?: string | null
+          how_it_works?: string | null
           id?: string
+          majority_pct?: number | null
+          minority_opinion?: string | null
           name: string
+          results_pct?: number | null
+          sessions_recommended?: string | null
           slug?: string | null
           sort_order?: number
+          subtitle?: string | null
           updated_at?: string
+          what_it_is?: string | null
+          who_its_for?: string | null
         }
         Update: {
           active?: boolean
+          average_cost?: string | null
           category?: string | null
+          celebrity_handles?: string[] | null
           created_at?: string
           description?: string | null
+          downtime?: string | null
+          how_it_works?: string | null
           id?: string
+          majority_pct?: number | null
+          minority_opinion?: string | null
           name?: string
+          results_pct?: number | null
+          sessions_recommended?: string | null
           slug?: string | null
           sort_order?: number
+          subtitle?: string | null
           updated_at?: string
+          what_it_is?: string | null
+          who_its_for?: string | null
         }
         Relationships: []
       }

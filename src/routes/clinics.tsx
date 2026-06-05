@@ -122,6 +122,7 @@ function ClinicsPage() {
   const [treatmentFilter, setTreatmentFilter] = useState<string[]>([]);
   const [, setSavedFilters] = useState<any>(null);
   const [savedConfirm, setSavedConfirm] = useState(false);
+  const [savedClinics, setSavedClinics] = useState<string[]>([]);
 
   useEffect(() => {
     let alive = true;
@@ -144,7 +145,17 @@ function ClinicsPage() {
     }
     const saved = localStorage.getItem("skintea.savedFilters");
     if (saved) { try { setSavedFilters(JSON.parse(saved)); } catch {} }
+    const sc = localStorage.getItem("skintea.savedClinics");
+    if (sc) { try { const arr = JSON.parse(sc); if (Array.isArray(arr)) setSavedClinics(arr); } catch {} }
   }, []);
+
+  const toggleSaveClinic = (id: string) => {
+    setSavedClinics(prev => {
+      const next = prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id];
+      try { localStorage.setItem("skintea.savedClinics", JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
 
   const allActiveFilters: string[] = [
     ...areaFilter,
@@ -335,6 +346,8 @@ function ClinicsPage() {
               activeThumb={activeThumbMap[c.id] ?? 0}
               onThumbChange={(i) => handleThumbChange(c.id, i)}
               onOpen={() => navigate({ to: "/clinics/$id", params: { id: c.id } }).catch(() => {})}
+              isSaved={savedClinics.includes(c.id)}
+              onToggleSave={() => toggleSaveClinic(c.id)}
             />
           ))
         )}

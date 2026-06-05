@@ -734,6 +734,7 @@ export type Database = {
         Row: {
           active: boolean
           average_cost: string | null
+          best_for_skin: string | null
           category: string | null
           celebrity_handles: string[] | null
           created_at: string
@@ -756,6 +757,7 @@ export type Database = {
         Insert: {
           active?: boolean
           average_cost?: string | null
+          best_for_skin?: string | null
           category?: string | null
           celebrity_handles?: string[] | null
           created_at?: string
@@ -778,6 +780,7 @@ export type Database = {
         Update: {
           active?: boolean
           average_cost?: string | null
+          best_for_skin?: string | null
           category?: string | null
           celebrity_handles?: string[] | null
           created_at?: string

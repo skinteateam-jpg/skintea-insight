@@ -230,7 +230,14 @@ function SkinProfilePage() {
 }
 
 // ---------- Header ----------
-function Header({ persona, tab, setTab }: { persona: typeof PERSONAS[SkinType]; tab: Tab; setTab: (t: Tab) => void }) {
+function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog }: {
+  persona: typeof PERSONAS[SkinType];
+  tab: Tab;
+  setTab: (t: Tab) => void;
+  logs: TLog[];
+  onTogglePublic: (id: string, next: boolean) => void;
+  onAddLog: () => void;
+}) {
   const tabs: Array<{ id: Tab; icon: string; label: string; private?: boolean }> = [
     { id: "tea", icon: "☕", label: "The Tea" },
     { id: "shelf", icon: "🧴", label: "My Shelf" },
@@ -268,6 +275,9 @@ function Header({ persona, tab, setTab }: { persona: typeof PERSONAS[SkinType]; 
             <Pencil size={12} /> Edit
           </button>
         </div>
+
+        {/* WHAT I'VE DONE strip */}
+        <WhatIveDoneStrip logs={logs} onTogglePublic={onTogglePublic} onAdd={onAddLog} />
 
         <div style={{ overflowX: "auto", scrollbarWidth: "none", margin: "16px -16px 0", padding: "0 16px" }}>
           <div style={{ display: "flex", width: "max-content" }}>

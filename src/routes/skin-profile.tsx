@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Pencil, Plus, Lock, Star, X, Bookmark, Link2, Download, ArrowUp, ArrowDown, Heart } from "lucide-react";
+import { Pencil, Plus, Lock, Star, X, Bookmark, Link2, Download, ArrowUp, ArrowDown, Heart, ArrowRight } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
@@ -143,38 +143,101 @@ const NEXT_STEPS = [
 // ---------- Page ----------
 type Tab = "tea" | "shelf" | "gift" | "saved" | "chart";
 
+export type TLog = {
+  id: string;
+  treatment_name: string;
+  category: string | null;
+  clinic_id: string | null;
+  clinic_name: string | null;
+  cost: string | null;
+  date: string | null;
+  rating: number | null;
+  notes: string | null;
+  fixed: string[];
+  working: string[];
+  is_public: boolean;
+  emoji: string | null;
+};
+
 function SkinProfilePage() {
   const [tab, setTab] = useState<Tab>("tea");
   const [quizResult, setQuizResult] = useState<any>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [logs, setLogs] = useState<TLog[]>([]);
+  const [editLog, setEditLog] = useState<TLog | "new" | null>(null);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem("skintea.quizResult");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        setQuizResult(parsed);
-      }
+      if (raw) setQuizResult(JSON.parse(raw));
     } catch {}
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id ?? null);
+    })();
   }, []);
+
+  const reloadLogs = async () => {
+    if (!userId) return;
+    const { data } = await supabase
+      .from("treatment_logs")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    setLogs(((data as any[]) ?? []) as TLog[]);
+  };
+  useEffect(() => { reloadLogs(); }, [userId]);
+
+  const togglePublic = async (id: string, next: boolean) => {
+    setLogs(ls => ls.map(l => l.id === id ? { ...l, is_public: next } : l));
+    await supabase.from("treatment_logs").update({ is_public: next }).eq("id", id);
+  };
+
+  const openAddLog = () => setEditLog("new");
+  const openChartTab = () => setTab("chart");
+
   const activeSkinType = (quizResult?.skinTypeLabel as SkinType) || USER.skinType;
   const persona = PERSONAS[activeSkinType] || PERSONAS[USER.skinType];
 
   return (
-    <div style={{ background: C.bg, minHeight: "100vh", color: C.ink, fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      <Header persona={persona} tab={tab} setTab={setTab} />
+    <div style={{ background: C.bg, minHeight: "100vh", color: C.ink, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+      <Header
+        persona={persona}
+        tab={tab}
+        setTab={setTab}
+        logs={logs}
+        onTogglePublic={togglePublic}
+        onAddLog={() => { openChartTab(); openAddLog(); }}
+      />
       <main style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px 80px" }}>
         {tab === "tea" && <TeaTab />}
         {tab === "shelf" && <ShelfTab />}
         {tab === "gift" && <GiftMeTab quizResult={quizResult} />}
-        {tab === "saved" && <SavedTab />}
-        {tab === "chart" && <ChartTab persona={persona} />}
+        {tab === "saved" && <SavedTab userId={userId} />}
+        {tab === "chart" && <ChartTab persona={persona} logs={logs} onAdd={openAddLog} onEdit={(l) => setEditLog(l)} />}
       </main>
+      {editLog && userId && (
+        <TreatmentLogSheet
+          userId={userId}
+          initial={editLog === "new" ? null : editLog}
+          onClose={() => setEditLog(null)}
+          onSaved={() => { setEditLog(null); reloadLogs(); }}
+        />
+      )}
       <BottomNav />
     </div>
   );
 }
 
 // ---------- Header ----------
-function Header({ persona, tab, setTab }: { persona: typeof PERSONAS[SkinType]; tab: Tab; setTab: (t: Tab) => void }) {
+function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog }: {
+  persona: typeof PERSONAS[SkinType];
+  tab: Tab;
+  setTab: (t: Tab) => void;
+  logs: TLog[];
+  onTogglePublic: (id: string, next: boolean) => void;
+  onAddLog: () => void;
+}) {
   const tabs: Array<{ id: Tab; icon: string; label: string; private?: boolean }> = [
     { id: "tea", icon: "☕", label: "The Tea" },
     { id: "shelf", icon: "🧴", label: "My Shelf" },
@@ -212,6 +275,9 @@ function Header({ persona, tab, setTab }: { persona: typeof PERSONAS[SkinType]; 
             <Pencil size={12} /> Edit
           </button>
         </div>
+
+        {/* WHAT I'VE DONE strip */}
+        <WhatIveDoneStrip logs={logs} onTogglePublic={onTogglePublic} onAdd={onAddLog} />
 
         <div style={{ overflowX: "auto", scrollbarWidth: "none", margin: "16px -16px 0", padding: "0 16px" }}>
           <div style={{ display: "flex", width: "max-content" }}>
@@ -388,90 +454,56 @@ function ShelfTab() {
 }
 
 // ---------- Tab 3: Saved ----------
-function SavedTab() {
+function CrimsonLabel({ children }: { children: ReactNode }) {
+  return <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#A8001C", margin: "20px 0 10px" }}>{children}</div>;
+}
+
+function SavedTab({ userId }: { userId: string | null }) {
   const [active, setActive] = useState("Recently Saved");
   const items = active === "Recently Saved" ? SAVED : SAVED.filter(s => s.category === active);
   const navigate = useNavigate();
-  const [savedIds, setSavedIds] = useState<string[]>([]);
-  const [savedClinics, setSavedClinics] = useState<Array<{ id: string; name: string; neighborhood: string | null; image_url: string | null; best_for: string[] | null; trust_score: number | null; }>>([]);
+  const [savedClinics, setSavedClinics] = useState<Array<{ id: string; name: string; neighborhood: string | null; image_url: string | null; best_for: string[] | null; trust_score: number | null; skintea_score: number | null; }>>([]);
+  const [savedPosts, setSavedPosts] = useState<Array<{ id: string; post_id: string; post_type: string }>>([]);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("skintea.savedClinics");
-      const arr = raw ? JSON.parse(raw) : [];
-      if (Array.isArray(arr)) setSavedIds(arr);
-    } catch {}
-  }, []);
-
-  useEffect(() => {
+    if (!userId) return;
     let alive = true;
-    if (savedIds.length === 0) { setSavedClinics([]); return; }
     (async () => {
-      const { data } = await supabase
-        .from("clinics")
-        .select("id,name,neighborhood,image_url,best_for,trust_score")
-        .in("id", savedIds);
-      if (alive) setSavedClinics((data as any[]) ?? []);
+      const { data: scs } = await supabase
+        .from("saved_clinics")
+        .select("clinic_id, clinics(id,name,neighborhood,image_url,best_for,trust_score,skintea_score)")
+        .eq("user_id", userId);
+      if (alive) setSavedClinics(((scs as any[]) ?? []).map(r => r.clinics).filter(Boolean));
+      const { data: sps } = await supabase
+        .from("saved_posts")
+        .select("id, post_id, post_type")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+      if (alive) setSavedPosts((sps as any[]) ?? []);
     })();
     return () => { alive = false; };
-  }, [savedIds]);
+  }, [userId]);
 
-  const unsaveClinic = (id: string) => {
-    const next = savedIds.filter(x => x !== id);
-    setSavedIds(next);
-    try { localStorage.setItem("skintea.savedClinics", JSON.stringify(next)); } catch {}
+  const unsaveClinic = async (id: string) => {
+    setSavedClinics(cs => cs.filter(c => c.id !== id));
+    if (userId) await supabase.from("saved_clinics").delete().eq("user_id", userId).eq("clinic_id", id);
+  };
+
+  const postTypeStyle = (t: string) => {
+    switch (t) {
+      case "skin_tea": return { bg: "#A8001C", label: "SKIN TEA" };
+      case "look_tea": return { bg: "#5B3FA6", label: "LOOK TEA" };
+      case "spill": return { bg: "#B45309", label: "SPILL" };
+      case "treatment": return { bg: "#1C0A00", label: "TREATMENT" };
+      default: return { bg: "#999", label: t.toUpperCase() };
+    }
   };
 
   return (
     <>
       <PrivateLabel />
 
-      <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#A8001C", marginBottom: 10 }}>
-        Saved Clinics
-      </div>
-      {savedClinics.length === 0 ? (
-        <div style={{ fontSize: 12, color: C.textLight, textAlign: "center", padding: "16px 8px", border: `0.5px solid ${C.border}`, borderRadius: 10, background: C.surface }}>
-          No saved clinics yet. Tap ♥ on any clinic to save it.
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {savedClinics.map(cl => {
-            const tags = (cl.best_for ?? []).slice(0, 2);
-            return (
-              <div
-                key={cl.id}
-                onClick={() => navigate({ to: "/clinics/$id", params: { id: cl.id } }).catch(() => {})}
-                style={{ background: "#FFFFFF", border: `0.5px solid #E8DDD4`, borderRadius: 10, padding: 12, display: "flex", gap: 12, cursor: "pointer", alignItems: "center" }}
-              >
-                <div style={{ width: 52, height: 52, borderRadius: 8, flexShrink: 0, background: cl.image_url ? `url(${cl.image_url}) center/cover no-repeat` : "#C9A98A" }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: "#1C0A00", lineHeight: 1.2 }}>{cl.name}</div>
-                  {cl.neighborhood && <div style={{ fontSize: 11, color: C.textLight, marginTop: 2 }}>{cl.neighborhood}</div>}
-                  {tags.length > 0 && (
-                    <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
-                      {tags.map((t, i) => (
-                        <span key={i} style={{ background: "#F5EFEC", color: "#1C0A00", fontSize: 9, fontWeight: 600, padding: "2px 6px", borderRadius: 3 }}>{t}</span>
-                      ))}
-                    </div>
-                  )}
-                  {cl.trust_score != null && (
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#A8001C", marginTop: 4 }}>{cl.trust_score}% recommend</div>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  aria-label="Unsave clinic"
-                  onClick={(e) => { e.stopPropagation(); unsaveClinic(cl.id); }}
-                  style={{ background: "transparent", border: "none", padding: 6, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
-                >
-                  <Heart size={18} color="#A8001C" fill="#A8001C" strokeWidth={2} />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
+      {/* Section 1 — Products saved */}
       <FilterRow items={SAVED_FILTERS} active={active} onChange={setActive} />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginTop: 16 }}>
         {items.map((p, i) => (
@@ -481,15 +513,79 @@ function SavedTab() {
               <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{p.name}</div>
               <div style={{ fontSize: 10, color: C.textLight, marginTop: 2 }}>{p.category}</div>
               <div style={{ marginTop: 6 }}><MatchPill match={p.match} /></div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: "auto" }}>
-                <button style={{ width: "100%", background: "#1C0A00", color: "#FFFCF8", border: "none", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, textAlign: "center", cursor: "pointer" }}>Add to My Shelf</button>
-                <button style={{ width: "100%", background: "#FFF5F5", color: "#A8001C", border: "0.5px solid #A8001C", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, textAlign: "center", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>🎁 Add to Gift Me</button>
-                <button style={{ width: "100%", background: "transparent", color: "#bbb", border: "0.5px solid #E8DDD4", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 600, textAlign: "center", cursor: "pointer" }}>Remove</button>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
+                <button style={{ width: "100%", background: "#1C0A00", color: "#FFFCF8", border: "none", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, cursor: "pointer" }}>Add to My Shelf</button>
+                <button style={{ width: "100%", background: "#FFF5F5", color: "#A8001C", border: "0.5px solid #A8001C", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, cursor: "pointer" }}>🎁 Add to Gift Me</button>
+                <button style={{ width: "100%", background: "transparent", color: "#bbb", border: "0.5px solid #E8DDD4", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 600, cursor: "pointer" }}>Remove</button>
               </div>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Section 2 — Saved Clinics */}
+      <CrimsonLabel>Saved Clinics</CrimsonLabel>
+      {savedClinics.length === 0 ? (
+        <div style={{ fontSize: 12, color: C.textLight, textAlign: "center", padding: "16px 8px", border: `0.5px solid #E8DDD4`, borderRadius: 10, background: "#FFFFFF" }}>
+          No saved clinics yet. Tap ♥ on any clinic to save it.
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {savedClinics.map(cl => {
+            const tags = (cl.best_for ?? []).slice(0, 3);
+            const photoBgs = ["#C9A98A", "#E8DDD4", "#F5EFEC"];
+            return (
+              <div key={cl.id}
+                onClick={() => navigate({ to: "/clinics/$id", params: { id: cl.id } })}
+                style={{ background: "#FFFFFF", border: `0.5px solid #E8DDD4`, borderRadius: 12, overflow: "hidden", cursor: "pointer" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1 }}>
+                  {photoBgs.map((bg, i) => (
+                    <div key={i} style={{ height: 48, background: i === 0 && cl.image_url ? `url(${cl.image_url}) center/cover no-repeat` : bg }} />
+                  ))}
+                </div>
+                <div style={{ padding: 10, position: "relative" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#1C0A00" }}>{cl.name}</div>
+                  {cl.neighborhood && <div style={{ fontSize: 10, color: "#999", marginTop: 2 }}>{cl.neighborhood}</div>}
+                  {tags.length > 0 && (
+                    <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
+                      {tags.map((t, i) => (
+                        <span key={i} style={{ background: "#F0E8E0", color: "#1C0A00", fontSize: 9, fontWeight: 600, padding: "2px 6px", borderRadius: 3 }}>{t}</span>
+                      ))}
+                    </div>
+                  )}
+                  {cl.skintea_score != null && (
+                    <div style={{ position: "absolute", top: 10, right: 10, fontSize: 14, fontWeight: 800, color: "#A8001C" }}>{cl.skintea_score}</div>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); unsaveClinic(cl.id); }}
+                    style={{ position: "absolute", bottom: 8, right: 10, background: "transparent", border: "none", padding: 4, cursor: "pointer" }}>
+                    <Heart size={16} color="#A8001C" fill="#A8001C" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Section 3 — Saved Posts */}
+      <CrimsonLabel>Saved Posts</CrimsonLabel>
+      {savedPosts.length === 0 ? (
+        <div style={{ fontSize: 12, color: C.textLight, textAlign: "center", padding: "16px 8px", border: `0.5px solid #E8DDD4`, borderRadius: 10, background: "#FFFFFF" }}>
+          No saved posts yet.
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
+          {savedPosts.map(sp => {
+            const s = postTypeStyle(sp.post_type);
+            return (
+              <div key={sp.id} style={{ position: "relative", aspectRatio: "1", background: "#F5F0EB" }}>
+                <span style={{ position: "absolute", top: 6, left: 6, background: s.bg, color: "#FFFCF8", fontSize: 8, fontWeight: 800, padding: "3px 6px", borderRadius: 3, letterSpacing: "0.08em" }}>{s.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </>
   );
 }
@@ -679,10 +775,10 @@ function GiftMeTab({ quizResult }: { quizResult: any }) {
 }
 
 // ---------- Tab 4: Skin Chart ----------
-function ChartTab({ persona }: { persona: typeof PERSONAS[SkinType] }) {
-  const [openTreat, setOpenTreat] = useState<typeof TREATMENTS[number] | null>(null);
+function ChartTab({ persona, logs, onAdd, onEdit }: { persona: typeof PERSONAS[SkinType]; logs: TLog[]; onAdd: () => void; onEdit: (l: TLog) => void }) {
+  const navigate = useNavigate();
   const [treatFilter, setTreatFilter] = useState("All");
-  const treats = treatFilter === "All" ? TREATMENTS : TREATMENTS.filter(t => t.category === treatFilter);
+  const treats = treatFilter === "All" ? logs : logs.filter(t => (t.category ?? "") === treatFilter);
 
   return (
     <>
@@ -739,32 +835,44 @@ function ChartTab({ persona }: { persona: typeof PERSONAS[SkinType] }) {
 
       {/* Treatment log */}
       <SectionTitle action={
-        <button style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "6px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+        <button onClick={onAdd} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "6px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
           <Plus size={12} /> Add
         </button>
       }>Treatment Log</SectionTitle>
       <FilterRow items={TREAT_FILTERS} active={treatFilter} onChange={setTreatFilter} />
       <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+        {treats.length === 0 && (
+          <div style={{ fontSize: 12, color: C.textLight, textAlign: "center", padding: "20px 10px", border: `0.5px dashed ${C.border}`, borderRadius: 10 }}>
+            No treatments logged yet. Tap Add to log your first.
+          </div>
+        )}
         {treats.map(t => (
-          <button key={t.id} onClick={() => setOpenTreat(t)}
+          <button key={t.id} onClick={() => onEdit(t)}
             style={{ textAlign: "left", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, cursor: "pointer", width: "100%" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ fontSize: 32 }}>{t.emoji}</div>
+              <div style={{ fontSize: 32 }}>{t.emoji ?? "💉"}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700 }}>{t.name}</div>
-                <div style={{ fontSize: 11, color: C.textLight }}>{t.category} · {t.date}</div>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>{t.treatment_name}</div>
+                <div style={{ fontSize: 11, color: C.textLight }}>{t.category ?? "—"} · {t.date ?? ""}</div>
+                {t.clinic_id && t.clinic_name && (
+                  <div
+                    onClick={(e) => { e.stopPropagation(); navigate({ to: "/clinics/$id", params: { id: t.clinic_id! } }); }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 600, color: "#A8001C", textDecoration: "underline", marginTop: 4, cursor: "pointer" }}>
+                    {t.clinic_name} <ArrowRight size={10} />
+                  </div>
+                )}
               </div>
               <div style={{ display: "flex", gap: 1 }}>
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} size={12} fill={i < t.rating ? C.gold : "transparent"} color={i < t.rating ? C.gold : C.borderStrong} />
+                  <Star key={i} size={12} fill={i < (t.rating ?? 0) ? C.gold : "transparent"} color={i < (t.rating ?? 0) ? C.gold : C.borderStrong} />
                 ))}
               </div>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
-              {t.fixed.map(f => <span key={f} style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: C.goodBg, color: C.good }}>✓ Fixed {f}</span>)}
-              {t.working.map(w => <span key={w} style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: C.warnBg, color: C.warn }}>△ {w}</span>)}
+              {(t.fixed ?? []).map(f => <span key={f} style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: C.goodBg, color: C.good }}>✓ Fixed {f}</span>)}
+              {(t.working ?? []).map(w => <span key={w} style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: C.warnBg, color: C.warn }}>△ {w}</span>)}
             </div>
-            <div style={{ fontSize: 11, color: C.textLight, marginTop: 8 }}>Tap for full notes →</div>
+            <div style={{ fontSize: 11, color: C.textLight, marginTop: 8 }}>Tap to edit →</div>
           </button>
         ))}
       </div>
@@ -801,7 +909,6 @@ function ChartTab({ persona }: { persona: typeof PERSONAS[SkinType] }) {
         </div>
       </div>
 
-      {openTreat && <TreatmentSheet t={openTreat} onClose={() => setOpenTreat(null)} />}
     </>
   );
 }
@@ -894,5 +1001,177 @@ function Sheet({ children, onClose }: { children: ReactNode; onClose: () => void
         {children}
       </div>
     </div>
+  );
+}
+
+// ---------- What I've Done strip ----------
+function WhatIveDoneStrip({ logs, onTogglePublic, onAdd }: { logs: TLog[]; onTogglePublic: (id: string, next: boolean) => void; onAdd: () => void }) {
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#A8001C", marginBottom: 8 }}>What I've Done</div>
+      <div style={{ display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", margin: "0 -16px", padding: "0 16px 4px" }}>
+        {logs.map(l => (
+          <div key={l.id} style={{ flexShrink: 0, width: 130, background: "#FFFFFF", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#1C0A00", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.treatment_name}</div>
+            {l.clinic_name && (
+              <div style={{ fontSize: 11, color: "#A8001C", marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.clinic_name}</div>
+            )}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
+              <span style={{ fontSize: 10, color: "#999" }}>{l.cost ?? ""}</span>
+              <button
+                type="button"
+                aria-label="Toggle public"
+                onClick={() => onTogglePublic(l.id, !l.is_public)}
+                style={{ width: 28, height: 16, borderRadius: 8, background: l.is_public ? "#A8001C" : "#ddd", position: "relative", border: "none", cursor: "pointer", padding: 0 }}>
+                <span style={{ position: "absolute", top: 2, left: l.is_public ? 14 : 2, width: 12, height: 12, borderRadius: "50%", background: "#fff", transition: "left 0.15s" }} />
+              </button>
+            </div>
+          </div>
+        ))}
+        <button onClick={onAdd}
+          style={{ flexShrink: 0, width: 80, minHeight: 90, border: "0.5px dashed #E8DDD4", borderRadius: 10, background: "transparent", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, color: "#999", fontFamily: "inherit" }}>
+          <Plus size={18} />
+          <span style={{ fontSize: 10 }}>log treatment</span>
+        </button>
+      </div>
+      <div style={{ fontSize: 10, color: "#ccc", marginTop: 6 }}>Toggle on = visible to subscribers · off = private</div>
+    </div>
+  );
+}
+
+// ---------- Treatment Log add/edit sheet ----------
+function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
+  userId: string;
+  initial: TLog | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [treatmentName, setTreatmentName] = useState(initial?.treatment_name ?? "");
+  const [category, setCategory] = useState(initial?.category ?? "");
+  const [clinicQuery, setClinicQuery] = useState(initial?.clinic_name ?? "");
+  const [clinicId, setClinicId] = useState<string | null>(initial?.clinic_id ?? null);
+  const [cost, setCost] = useState(initial?.cost ?? "");
+  const [date, setDate] = useState(initial?.date ?? "");
+  const [rating, setRating] = useState(initial?.rating ?? 5);
+  const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [emoji, setEmoji] = useState(initial?.emoji ?? "💉");
+  const [suggestions, setSuggestions] = useState<Array<{ id: string; name: string }>>([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!clinicQuery || clinicQuery === initial?.clinic_name) { setSuggestions([]); return; }
+    let alive = true;
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from("clinics")
+        .select("id,name")
+        .ilike("name", `%${clinicQuery}%`)
+        .limit(5);
+      if (alive) setSuggestions((data as any[]) ?? []);
+    }, 200);
+    return () => { alive = false; clearTimeout(t); };
+  }, [clinicQuery, initial?.clinic_name]);
+
+  const save = async () => {
+    if (!treatmentName.trim()) return;
+    setSaving(true);
+    const payload = {
+      user_id: userId,
+      treatment_name: treatmentName.trim(),
+      category: category || null,
+      clinic_id: clinicId,
+      clinic_name: clinicQuery || null,
+      cost: cost || null,
+      date: date || null,
+      rating,
+      notes: notes || null,
+      emoji,
+    };
+    if (initial) {
+      await supabase.from("treatment_logs").update(payload).eq("id", initial.id);
+    } else {
+      await supabase.from("treatment_logs").insert(payload);
+    }
+    setSaving(false);
+    onSaved();
+  };
+
+  const remove = async () => {
+    if (!initial) return;
+    await supabase.from("treatment_logs").delete().eq("id", initial.id);
+    onSaved();
+  };
+
+  const input = { width: "100%", border: "0.5px solid #E8DDD4", background: "#fff", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1C0A00", fontFamily: "inherit" } as const;
+  const label = { fontSize: 11, fontWeight: 700, color: "#1C0A00", marginBottom: 4, display: "block" } as const;
+
+  return (
+    <Sheet onClose={onClose}>
+      <div style={{ fontSize: 18, fontWeight: 800, color: "#1C0A00", marginBottom: 14 }}>{initial ? "Edit treatment" : "Log a treatment"}</div>
+
+      <div style={{ display: "grid", gap: 12 }}>
+        <div>
+          <label style={label}>Treatment name</label>
+          <input style={input} value={treatmentName} onChange={e => setTreatmentName(e.target.value)} placeholder="e.g. Hydrafacial" />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div>
+            <label style={label}>Category</label>
+            <input style={input} value={category} onChange={e => setCategory(e.target.value)} placeholder="Facial / Laser / …" />
+          </div>
+          <div>
+            <label style={label}>Emoji</label>
+            <input style={input} value={emoji} onChange={e => setEmoji(e.target.value)} maxLength={2} />
+          </div>
+        </div>
+        <div style={{ position: "relative" }}>
+          <label style={label}>Clinic</label>
+          <input style={input} value={clinicQuery} onChange={e => { setClinicQuery(e.target.value); setClinicId(null); }} placeholder="Search clinics…" />
+          {suggestions.length > 0 && (
+            <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 8, marginTop: 4, zIndex: 5, maxHeight: 180, overflowY: "auto" }}>
+              {suggestions.map(s => (
+                <button key={s.id} type="button"
+                  onClick={() => { setClinicId(s.id); setClinicQuery(s.name); setSuggestions([]); }}
+                  style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 12px", fontSize: 13, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", color: "#1C0A00" }}>{s.name}</button>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div>
+            <label style={label}>Cost</label>
+            <input style={input} value={cost} onChange={e => setCost(e.target.value)} placeholder="$250" />
+          </div>
+          <div>
+            <label style={label}>Date</label>
+            <input style={input} type="date" value={date ?? ""} onChange={e => setDate(e.target.value)} />
+          </div>
+        </div>
+        <div>
+          <label style={label}>Rating</label>
+          <div style={{ display: "flex", gap: 4 }}>
+            {[1,2,3,4,5].map(n => (
+              <button key={n} type="button" onClick={() => setRating(n)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 2 }}>
+                <Star size={20} fill={n <= rating ? C.gold : "transparent"} color={n <= rating ? C.gold : C.borderStrong} />
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label style={label}>Notes</label>
+          <textarea style={{ ...input, minHeight: 80, resize: "vertical" }} value={notes} onChange={e => setNotes(e.target.value)} />
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+        <button onClick={save} disabled={saving || !treatmentName.trim()}
+          style={{ flex: 1, background: "#A8001C", color: "#FFFCF8", border: "none", borderRadius: 8, padding: 13, fontSize: 14, fontWeight: 800, cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+          {saving ? "Saving…" : (initial ? "Save changes" : "Log treatment")}
+        </button>
+        {initial && (
+          <button onClick={remove} style={{ background: "transparent", color: "#999", border: "0.5px solid #E8DDD4", borderRadius: 8, padding: "13px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Delete</button>
+        )}
+      </div>
+    </Sheet>
   );
 }

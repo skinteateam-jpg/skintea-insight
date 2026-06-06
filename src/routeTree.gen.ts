@@ -25,6 +25,7 @@ import { Route as ClinicsIndexRouteImport } from './routes/clinics.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TreatmentIdRouteImport } from './routes/treatment.$id'
 import { Route as TeaProductsPostIdRouteImport } from './routes/tea-products.$postId'
+import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
 import { Route as ProductsIdV2RouteImport } from './routes/products.$id-v2'
 import { Route as ClinicsIdRouteImport } from './routes/clinics/$id'
 import { Route as AdminTreatmentsRouteImport } from './routes/admin.treatments'
@@ -109,6 +110,11 @@ const TeaProductsPostIdRoute = TeaProductsPostIdRouteImport.update({
   path: '/$postId',
   getParentRoute: () => TeaProductsRoute,
 } as any)
+const ProfileUsernameRoute = ProfileUsernameRouteImport.update({
+  id: '/profile/$username',
+  path: '/profile/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProductsIdV2Route = ProductsIdV2RouteImport.update({
   id: '/$id-v2',
   path: '/$id-v2',
@@ -141,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/clinics/$id': typeof ClinicsIdRoute
   '/products/$id-v2': typeof ProductsIdV2Route
+  '/profile/$username': typeof ProfileUsernameRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment/$id': typeof TreatmentIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -162,6 +169,7 @@ export interface FileRoutesByTo {
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/clinics/$id': typeof ClinicsIdRoute
   '/products/$id-v2': typeof ProductsIdV2Route
+  '/profile/$username': typeof ProfileUsernameRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment/$id': typeof TreatmentIdRoute
   '/admin': typeof AdminIndexRoute
@@ -184,6 +192,7 @@ export interface FileRoutesById {
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/clinics/$id': typeof ClinicsIdRoute
   '/products/$id-v2': typeof ProductsIdV2Route
+  '/profile/$username': typeof ProfileUsernameRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment/$id': typeof TreatmentIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -207,6 +216,7 @@ export interface FileRouteTypes {
     | '/admin/treatments'
     | '/clinics/$id'
     | '/products/$id-v2'
+    | '/profile/$username'
     | '/tea-products/$postId'
     | '/treatment/$id'
     | '/admin/'
@@ -228,6 +238,7 @@ export interface FileRouteTypes {
     | '/admin/treatments'
     | '/clinics/$id'
     | '/products/$id-v2'
+    | '/profile/$username'
     | '/tea-products/$postId'
     | '/treatment/$id'
     | '/admin'
@@ -249,6 +260,7 @@ export interface FileRouteTypes {
     | '/admin/treatments'
     | '/clinics/$id'
     | '/products/$id-v2'
+    | '/profile/$username'
     | '/tea-products/$postId'
     | '/treatment/$id'
     | '/admin/'
@@ -270,6 +282,7 @@ export interface RootRouteChildren {
   TreatmentTalk2Route: typeof TreatmentTalk2Route
   AdminTreatmentsRoute: typeof AdminTreatmentsRoute
   ClinicsIdRoute: typeof ClinicsIdRoute
+  ProfileUsernameRoute: typeof ProfileUsernameRoute
   TreatmentIdRoute: typeof TreatmentIdRoute
   AdminIndexRoute: typeof AdminIndexRoute
   ClinicsIndexRoute: typeof ClinicsIndexRoute
@@ -389,6 +402,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeaProductsPostIdRouteImport
       parentRoute: typeof TeaProductsRoute
     }
+    '/profile/$username': {
+      id: '/profile/$username'
+      path: '/profile/$username'
+      fullPath: '/profile/$username'
+      preLoaderRoute: typeof ProfileUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/products/$id-v2': {
       id: '/products/$id-v2'
       path: '/$id-v2'
@@ -452,6 +472,7 @@ const rootRouteChildren: RootRouteChildren = {
   TreatmentTalk2Route: TreatmentTalk2Route,
   AdminTreatmentsRoute: AdminTreatmentsRoute,
   ClinicsIdRoute: ClinicsIdRoute,
+  ProfileUsernameRoute: ProfileUsernameRoute,
   TreatmentIdRoute: TreatmentIdRoute,
   AdminIndexRoute: AdminIndexRoute,
   ClinicsIndexRoute: ClinicsIndexRoute,
@@ -459,12 +480,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

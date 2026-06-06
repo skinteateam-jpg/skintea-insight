@@ -775,10 +775,10 @@ function GiftMeTab({ quizResult }: { quizResult: any }) {
 }
 
 // ---------- Tab 4: Skin Chart ----------
-function ChartTab({ persona }: { persona: typeof PERSONAS[SkinType] }) {
-  const [openTreat, setOpenTreat] = useState<typeof TREATMENTS[number] | null>(null);
+function ChartTab({ persona, logs, onAdd, onEdit }: { persona: typeof PERSONAS[SkinType]; logs: TLog[]; onAdd: () => void; onEdit: (l: TLog) => void }) {
+  const navigate = useNavigate();
   const [treatFilter, setTreatFilter] = useState("All");
-  const treats = treatFilter === "All" ? TREATMENTS : TREATMENTS.filter(t => t.category === treatFilter);
+  const treats = treatFilter === "All" ? logs : logs.filter(t => (t.category ?? "") === treatFilter);
 
   return (
     <>
@@ -835,32 +835,44 @@ function ChartTab({ persona }: { persona: typeof PERSONAS[SkinType] }) {
 
       {/* Treatment log */}
       <SectionTitle action={
-        <button style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "6px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+        <button onClick={onAdd} style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "6px 10px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
           <Plus size={12} /> Add
         </button>
       }>Treatment Log</SectionTitle>
       <FilterRow items={TREAT_FILTERS} active={treatFilter} onChange={setTreatFilter} />
       <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
+        {treats.length === 0 && (
+          <div style={{ fontSize: 12, color: C.textLight, textAlign: "center", padding: "20px 10px", border: `0.5px dashed ${C.border}`, borderRadius: 10 }}>
+            No treatments logged yet. Tap Add to log your first.
+          </div>
+        )}
         {treats.map(t => (
-          <button key={t.id} onClick={() => setOpenTreat(t)}
+          <button key={t.id} onClick={() => onEdit(t)}
             style={{ textAlign: "left", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, cursor: "pointer", width: "100%" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ fontSize: 32 }}>{t.emoji}</div>
+              <div style={{ fontSize: 32 }}>{t.emoji ?? "💉"}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700 }}>{t.name}</div>
-                <div style={{ fontSize: 11, color: C.textLight }}>{t.category} · {t.date}</div>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>{t.treatment_name}</div>
+                <div style={{ fontSize: 11, color: C.textLight }}>{t.category ?? "—"} · {t.date ?? ""}</div>
+                {t.clinic_id && t.clinic_name && (
+                  <div
+                    onClick={(e) => { e.stopPropagation(); navigate({ to: "/clinics/$id", params: { id: t.clinic_id! } }); }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 600, color: "#A8001C", textDecoration: "underline", marginTop: 4, cursor: "pointer" }}>
+                    {t.clinic_name} <ArrowRight size={10} />
+                  </div>
+                )}
               </div>
               <div style={{ display: "flex", gap: 1 }}>
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} size={12} fill={i < t.rating ? C.gold : "transparent"} color={i < t.rating ? C.gold : C.borderStrong} />
+                  <Star key={i} size={12} fill={i < (t.rating ?? 0) ? C.gold : "transparent"} color={i < (t.rating ?? 0) ? C.gold : C.borderStrong} />
                 ))}
               </div>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
-              {t.fixed.map(f => <span key={f} style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: C.goodBg, color: C.good }}>✓ Fixed {f}</span>)}
-              {t.working.map(w => <span key={w} style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: C.warnBg, color: C.warn }}>△ {w}</span>)}
+              {(t.fixed ?? []).map(f => <span key={f} style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: C.goodBg, color: C.good }}>✓ Fixed {f}</span>)}
+              {(t.working ?? []).map(w => <span key={w} style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: C.warnBg, color: C.warn }}>△ {w}</span>)}
             </div>
-            <div style={{ fontSize: 11, color: C.textLight, marginTop: 8 }}>Tap for full notes →</div>
+            <div style={{ fontSize: 11, color: C.textLight, marginTop: 8 }}>Tap to edit →</div>
           </button>
         ))}
       </div>
@@ -897,7 +909,6 @@ function ChartTab({ persona }: { persona: typeof PERSONAS[SkinType] }) {
         </div>
       </div>
 
-      {openTreat && <TreatmentSheet t={openTreat} onClose={() => setOpenTreat(null)} />}
     </>
   );
 }

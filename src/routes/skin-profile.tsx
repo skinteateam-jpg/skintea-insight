@@ -1003,3 +1003,175 @@ function Sheet({ children, onClose }: { children: ReactNode; onClose: () => void
     </div>
   );
 }
+
+// ---------- What I've Done strip ----------
+function WhatIveDoneStrip({ logs, onTogglePublic, onAdd }: { logs: TLog[]; onTogglePublic: (id: string, next: boolean) => void; onAdd: () => void }) {
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#A8001C", marginBottom: 8 }}>What I've Done</div>
+      <div style={{ display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", margin: "0 -16px", padding: "0 16px 4px" }}>
+        {logs.map(l => (
+          <div key={l.id} style={{ flexShrink: 0, width: 130, background: "#FFFFFF", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#1C0A00", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.treatment_name}</div>
+            {l.clinic_name && (
+              <div style={{ fontSize: 11, color: "#A8001C", marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.clinic_name}</div>
+            )}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
+              <span style={{ fontSize: 10, color: "#999" }}>{l.cost ?? ""}</span>
+              <button
+                type="button"
+                aria-label="Toggle public"
+                onClick={() => onTogglePublic(l.id, !l.is_public)}
+                style={{ width: 28, height: 16, borderRadius: 8, background: l.is_public ? "#A8001C" : "#ddd", position: "relative", border: "none", cursor: "pointer", padding: 0 }}>
+                <span style={{ position: "absolute", top: 2, left: l.is_public ? 14 : 2, width: 12, height: 12, borderRadius: "50%", background: "#fff", transition: "left 0.15s" }} />
+              </button>
+            </div>
+          </div>
+        ))}
+        <button onClick={onAdd}
+          style={{ flexShrink: 0, width: 80, minHeight: 90, border: "0.5px dashed #E8DDD4", borderRadius: 10, background: "transparent", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, color: "#999", fontFamily: "inherit" }}>
+          <Plus size={18} />
+          <span style={{ fontSize: 10 }}>log treatment</span>
+        </button>
+      </div>
+      <div style={{ fontSize: 10, color: "#ccc", marginTop: 6 }}>Toggle on = visible to subscribers · off = private</div>
+    </div>
+  );
+}
+
+// ---------- Treatment Log add/edit sheet ----------
+function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
+  userId: string;
+  initial: TLog | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [treatmentName, setTreatmentName] = useState(initial?.treatment_name ?? "");
+  const [category, setCategory] = useState(initial?.category ?? "");
+  const [clinicQuery, setClinicQuery] = useState(initial?.clinic_name ?? "");
+  const [clinicId, setClinicId] = useState<string | null>(initial?.clinic_id ?? null);
+  const [cost, setCost] = useState(initial?.cost ?? "");
+  const [date, setDate] = useState(initial?.date ?? "");
+  const [rating, setRating] = useState(initial?.rating ?? 5);
+  const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [emoji, setEmoji] = useState(initial?.emoji ?? "💉");
+  const [suggestions, setSuggestions] = useState<Array<{ id: string; name: string }>>([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!clinicQuery || clinicQuery === initial?.clinic_name) { setSuggestions([]); return; }
+    let alive = true;
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from("clinics")
+        .select("id,name")
+        .ilike("name", `%${clinicQuery}%`)
+        .limit(5);
+      if (alive) setSuggestions((data as any[]) ?? []);
+    }, 200);
+    return () => { alive = false; clearTimeout(t); };
+  }, [clinicQuery, initial?.clinic_name]);
+
+  const save = async () => {
+    if (!treatmentName.trim()) return;
+    setSaving(true);
+    const payload = {
+      user_id: userId,
+      treatment_name: treatmentName.trim(),
+      category: category || null,
+      clinic_id: clinicId,
+      clinic_name: clinicQuery || null,
+      cost: cost || null,
+      date: date || null,
+      rating,
+      notes: notes || null,
+      emoji,
+    };
+    if (initial) {
+      await supabase.from("treatment_logs").update(payload).eq("id", initial.id);
+    } else {
+      await supabase.from("treatment_logs").insert(payload);
+    }
+    setSaving(false);
+    onSaved();
+  };
+
+  const remove = async () => {
+    if (!initial) return;
+    await supabase.from("treatment_logs").delete().eq("id", initial.id);
+    onSaved();
+  };
+
+  const input = { width: "100%", border: "0.5px solid #E8DDD4", background: "#fff", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#1C0A00", fontFamily: "inherit" } as const;
+  const label = { fontSize: 11, fontWeight: 700, color: "#1C0A00", marginBottom: 4, display: "block" } as const;
+
+  return (
+    <Sheet onClose={onClose}>
+      <div style={{ fontSize: 18, fontWeight: 800, color: "#1C0A00", marginBottom: 14 }}>{initial ? "Edit treatment" : "Log a treatment"}</div>
+
+      <div style={{ display: "grid", gap: 12 }}>
+        <div>
+          <label style={label}>Treatment name</label>
+          <input style={input} value={treatmentName} onChange={e => setTreatmentName(e.target.value)} placeholder="e.g. Hydrafacial" />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div>
+            <label style={label}>Category</label>
+            <input style={input} value={category} onChange={e => setCategory(e.target.value)} placeholder="Facial / Laser / …" />
+          </div>
+          <div>
+            <label style={label}>Emoji</label>
+            <input style={input} value={emoji} onChange={e => setEmoji(e.target.value)} maxLength={2} />
+          </div>
+        </div>
+        <div style={{ position: "relative" }}>
+          <label style={label}>Clinic</label>
+          <input style={input} value={clinicQuery} onChange={e => { setClinicQuery(e.target.value); setClinicId(null); }} placeholder="Search clinics…" />
+          {suggestions.length > 0 && (
+            <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 8, marginTop: 4, zIndex: 5, maxHeight: 180, overflowY: "auto" }}>
+              {suggestions.map(s => (
+                <button key={s.id} type="button"
+                  onClick={() => { setClinicId(s.id); setClinicQuery(s.name); setSuggestions([]); }}
+                  style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 12px", fontSize: 13, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", color: "#1C0A00" }}>{s.name}</button>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div>
+            <label style={label}>Cost</label>
+            <input style={input} value={cost} onChange={e => setCost(e.target.value)} placeholder="$250" />
+          </div>
+          <div>
+            <label style={label}>Date</label>
+            <input style={input} type="date" value={date ?? ""} onChange={e => setDate(e.target.value)} />
+          </div>
+        </div>
+        <div>
+          <label style={label}>Rating</label>
+          <div style={{ display: "flex", gap: 4 }}>
+            {[1,2,3,4,5].map(n => (
+              <button key={n} type="button" onClick={() => setRating(n)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 2 }}>
+                <Star size={20} fill={n <= rating ? C.gold : "transparent"} color={n <= rating ? C.gold : C.borderStrong} />
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label style={label}>Notes</label>
+          <textarea style={{ ...input, minHeight: 80, resize: "vertical" }} value={notes} onChange={e => setNotes(e.target.value)} />
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+        <button onClick={save} disabled={saving || !treatmentName.trim()}
+          style={{ flex: 1, background: "#A8001C", color: "#FFFCF8", border: "none", borderRadius: 8, padding: 13, fontSize: 14, fontWeight: 800, cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+          {saving ? "Saving…" : (initial ? "Save changes" : "Log treatment")}
+        </button>
+        {initial && (
+          <button onClick={remove} style={{ background: "transparent", color: "#999", border: "0.5px solid #E8DDD4", borderRadius: 8, padding: "13px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Delete</button>
+        )}
+      </div>
+    </Sheet>
+  );
+}

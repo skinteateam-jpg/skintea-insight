@@ -444,6 +444,7 @@ export type Database = {
           skin_type: string | null
           updated_at: string
           user_id: string
+          username: string | null
         }
         Insert: {
           created_at?: string
@@ -456,6 +457,7 @@ export type Database = {
           skin_type?: string | null
           updated_at?: string
           user_id: string
+          username?: string | null
         }
         Update: {
           created_at?: string
@@ -467,6 +469,60 @@ export type Database = {
           name?: string | null
           skin_type?: string | null
           updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      saved_clinics: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_clinics_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_posts: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          post_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          post_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          post_type?: string
           user_id?: string
         }
         Relationships: []
@@ -723,6 +779,81 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "treatment_influencers_treatment_id_fkey"
+            columns: ["treatment_id"]
+            isOneToOne: false
+            referencedRelation: "treatments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_logs: {
+        Row: {
+          category: string | null
+          clinic_id: string | null
+          clinic_name: string | null
+          cost: string | null
+          created_at: string
+          date: string | null
+          emoji: string | null
+          fixed: string[]
+          id: string
+          is_public: boolean
+          notes: string | null
+          rating: number | null
+          treatment_id: string | null
+          treatment_name: string
+          updated_at: string
+          user_id: string
+          working: string[]
+        }
+        Insert: {
+          category?: string | null
+          clinic_id?: string | null
+          clinic_name?: string | null
+          cost?: string | null
+          created_at?: string
+          date?: string | null
+          emoji?: string | null
+          fixed?: string[]
+          id?: string
+          is_public?: boolean
+          notes?: string | null
+          rating?: number | null
+          treatment_id?: string | null
+          treatment_name: string
+          updated_at?: string
+          user_id: string
+          working?: string[]
+        }
+        Update: {
+          category?: string | null
+          clinic_id?: string | null
+          clinic_name?: string | null
+          cost?: string | null
+          created_at?: string
+          date?: string | null
+          emoji?: string | null
+          fixed?: string[]
+          id?: string
+          is_public?: boolean
+          notes?: string | null
+          rating?: number | null
+          treatment_id?: string | null
+          treatment_name?: string
+          updated_at?: string
+          user_id?: string
+          working?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_logs_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatment_logs_treatment_id_fkey"
             columns: ["treatment_id"]
             isOneToOne: false
             referencedRelation: "treatments"

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Pencil, Plus, Lock, Star, X, Bookmark, Link2, Download, ArrowUp, ArrowDown, Heart } from "lucide-react";
+import { Pencil, Plus, Lock, Star, X, Bookmark, Link2, Download, ArrowUp, ArrowDown, Heart, ArrowRight } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
@@ -143,31 +143,87 @@ const NEXT_STEPS = [
 // ---------- Page ----------
 type Tab = "tea" | "shelf" | "gift" | "saved" | "chart";
 
+export type TLog = {
+  id: string;
+  treatment_name: string;
+  category: string | null;
+  clinic_id: string | null;
+  clinic_name: string | null;
+  cost: string | null;
+  date: string | null;
+  rating: number | null;
+  notes: string | null;
+  fixed: string[];
+  working: string[];
+  is_public: boolean;
+  emoji: string | null;
+};
+
 function SkinProfilePage() {
   const [tab, setTab] = useState<Tab>("tea");
   const [quizResult, setQuizResult] = useState<any>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [logs, setLogs] = useState<TLog[]>([]);
+  const [editLog, setEditLog] = useState<TLog | "new" | null>(null);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem("skintea.quizResult");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        setQuizResult(parsed);
-      }
+      if (raw) setQuizResult(JSON.parse(raw));
     } catch {}
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id ?? null);
+    })();
   }, []);
+
+  const reloadLogs = async () => {
+    if (!userId) return;
+    const { data } = await supabase
+      .from("treatment_logs")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    setLogs(((data as any[]) ?? []) as TLog[]);
+  };
+  useEffect(() => { reloadLogs(); }, [userId]);
+
+  const togglePublic = async (id: string, next: boolean) => {
+    setLogs(ls => ls.map(l => l.id === id ? { ...l, is_public: next } : l));
+    await supabase.from("treatment_logs").update({ is_public: next }).eq("id", id);
+  };
+
+  const openAddLog = () => setEditLog("new");
+  const openChartTab = () => setTab("chart");
+
   const activeSkinType = (quizResult?.skinTypeLabel as SkinType) || USER.skinType;
   const persona = PERSONAS[activeSkinType] || PERSONAS[USER.skinType];
 
   return (
-    <div style={{ background: C.bg, minHeight: "100vh", color: C.ink, fontFamily: "'DM Sans', system-ui, sans-serif" }}>
-      <Header persona={persona} tab={tab} setTab={setTab} />
+    <div style={{ background: C.bg, minHeight: "100vh", color: C.ink, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+      <Header
+        persona={persona}
+        tab={tab}
+        setTab={setTab}
+        logs={logs}
+        onTogglePublic={togglePublic}
+        onAddLog={() => { openChartTab(); openAddLog(); }}
+      />
       <main style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px 80px" }}>
         {tab === "tea" && <TeaTab />}
         {tab === "shelf" && <ShelfTab />}
         {tab === "gift" && <GiftMeTab quizResult={quizResult} />}
-        {tab === "saved" && <SavedTab />}
-        {tab === "chart" && <ChartTab persona={persona} />}
+        {tab === "saved" && <SavedTab userId={userId} />}
+        {tab === "chart" && <ChartTab persona={persona} logs={logs} onAdd={openAddLog} onEdit={(l) => setEditLog(l)} />}
       </main>
+      {editLog && userId && (
+        <TreatmentLogSheet
+          userId={userId}
+          initial={editLog === "new" ? null : editLog}
+          onClose={() => setEditLog(null)}
+          onSaved={() => { setEditLog(null); reloadLogs(); }}
+        />
+      )}
       <BottomNav />
     </div>
   );

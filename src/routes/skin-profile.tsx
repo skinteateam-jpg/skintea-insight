@@ -454,90 +454,56 @@ function ShelfTab() {
 }
 
 // ---------- Tab 3: Saved ----------
-function SavedTab() {
+function CrimsonLabel({ children }: { children: ReactNode }) {
+  return <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#A8001C", margin: "20px 0 10px" }}>{children}</div>;
+}
+
+function SavedTab({ userId }: { userId: string | null }) {
   const [active, setActive] = useState("Recently Saved");
   const items = active === "Recently Saved" ? SAVED : SAVED.filter(s => s.category === active);
   const navigate = useNavigate();
-  const [savedIds, setSavedIds] = useState<string[]>([]);
-  const [savedClinics, setSavedClinics] = useState<Array<{ id: string; name: string; neighborhood: string | null; image_url: string | null; best_for: string[] | null; trust_score: number | null; }>>([]);
+  const [savedClinics, setSavedClinics] = useState<Array<{ id: string; name: string; neighborhood: string | null; image_url: string | null; best_for: string[] | null; trust_score: number | null; skintea_score: number | null; }>>([]);
+  const [savedPosts, setSavedPosts] = useState<Array<{ id: string; post_id: string; post_type: string }>>([]);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("skintea.savedClinics");
-      const arr = raw ? JSON.parse(raw) : [];
-      if (Array.isArray(arr)) setSavedIds(arr);
-    } catch {}
-  }, []);
-
-  useEffect(() => {
+    if (!userId) return;
     let alive = true;
-    if (savedIds.length === 0) { setSavedClinics([]); return; }
     (async () => {
-      const { data } = await supabase
-        .from("clinics")
-        .select("id,name,neighborhood,image_url,best_for,trust_score")
-        .in("id", savedIds);
-      if (alive) setSavedClinics((data as any[]) ?? []);
+      const { data: scs } = await supabase
+        .from("saved_clinics")
+        .select("clinic_id, clinics(id,name,neighborhood,image_url,best_for,trust_score,skintea_score)")
+        .eq("user_id", userId);
+      if (alive) setSavedClinics(((scs as any[]) ?? []).map(r => r.clinics).filter(Boolean));
+      const { data: sps } = await supabase
+        .from("saved_posts")
+        .select("id, post_id, post_type")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+      if (alive) setSavedPosts((sps as any[]) ?? []);
     })();
     return () => { alive = false; };
-  }, [savedIds]);
+  }, [userId]);
 
-  const unsaveClinic = (id: string) => {
-    const next = savedIds.filter(x => x !== id);
-    setSavedIds(next);
-    try { localStorage.setItem("skintea.savedClinics", JSON.stringify(next)); } catch {}
+  const unsaveClinic = async (id: string) => {
+    setSavedClinics(cs => cs.filter(c => c.id !== id));
+    if (userId) await supabase.from("saved_clinics").delete().eq("user_id", userId).eq("clinic_id", id);
+  };
+
+  const postTypeStyle = (t: string) => {
+    switch (t) {
+      case "skin_tea": return { bg: "#A8001C", label: "SKIN TEA" };
+      case "look_tea": return { bg: "#5B3FA6", label: "LOOK TEA" };
+      case "spill": return { bg: "#B45309", label: "SPILL" };
+      case "treatment": return { bg: "#1C0A00", label: "TREATMENT" };
+      default: return { bg: "#999", label: t.toUpperCase() };
+    }
   };
 
   return (
     <>
       <PrivateLabel />
 
-      <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#A8001C", marginBottom: 10 }}>
-        Saved Clinics
-      </div>
-      {savedClinics.length === 0 ? (
-        <div style={{ fontSize: 12, color: C.textLight, textAlign: "center", padding: "16px 8px", border: `0.5px solid ${C.border}`, borderRadius: 10, background: C.surface }}>
-          No saved clinics yet. Tap ♥ on any clinic to save it.
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {savedClinics.map(cl => {
-            const tags = (cl.best_for ?? []).slice(0, 2);
-            return (
-              <div
-                key={cl.id}
-                onClick={() => navigate({ to: "/clinics/$id", params: { id: cl.id } }).catch(() => {})}
-                style={{ background: "#FFFFFF", border: `0.5px solid #E8DDD4`, borderRadius: 10, padding: 12, display: "flex", gap: 12, cursor: "pointer", alignItems: "center" }}
-              >
-                <div style={{ width: 52, height: 52, borderRadius: 8, flexShrink: 0, background: cl.image_url ? `url(${cl.image_url}) center/cover no-repeat` : "#C9A98A" }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: "#1C0A00", lineHeight: 1.2 }}>{cl.name}</div>
-                  {cl.neighborhood && <div style={{ fontSize: 11, color: C.textLight, marginTop: 2 }}>{cl.neighborhood}</div>}
-                  {tags.length > 0 && (
-                    <div style={{ display: "flex", gap: 4, marginTop: 4, flexWrap: "wrap" }}>
-                      {tags.map((t, i) => (
-                        <span key={i} style={{ background: "#F5EFEC", color: "#1C0A00", fontSize: 9, fontWeight: 600, padding: "2px 6px", borderRadius: 3 }}>{t}</span>
-                      ))}
-                    </div>
-                  )}
-                  {cl.trust_score != null && (
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#A8001C", marginTop: 4 }}>{cl.trust_score}% recommend</div>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  aria-label="Unsave clinic"
-                  onClick={(e) => { e.stopPropagation(); unsaveClinic(cl.id); }}
-                  style={{ background: "transparent", border: "none", padding: 6, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
-                >
-                  <Heart size={18} color="#A8001C" fill="#A8001C" strokeWidth={2} />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
+      {/* Section 1 — Products saved */}
       <FilterRow items={SAVED_FILTERS} active={active} onChange={setActive} />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginTop: 16 }}>
         {items.map((p, i) => (
@@ -547,15 +513,79 @@ function SavedTab() {
               <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{p.name}</div>
               <div style={{ fontSize: 10, color: C.textLight, marginTop: 2 }}>{p.category}</div>
               <div style={{ marginTop: 6 }}><MatchPill match={p.match} /></div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: "auto" }}>
-                <button style={{ width: "100%", background: "#1C0A00", color: "#FFFCF8", border: "none", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, textAlign: "center", cursor: "pointer" }}>Add to My Shelf</button>
-                <button style={{ width: "100%", background: "#FFF5F5", color: "#A8001C", border: "0.5px solid #A8001C", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, textAlign: "center", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>🎁 Add to Gift Me</button>
-                <button style={{ width: "100%", background: "transparent", color: "#bbb", border: "0.5px solid #E8DDD4", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 600, textAlign: "center", cursor: "pointer" }}>Remove</button>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
+                <button style={{ width: "100%", background: "#1C0A00", color: "#FFFCF8", border: "none", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, cursor: "pointer" }}>Add to My Shelf</button>
+                <button style={{ width: "100%", background: "#FFF5F5", color: "#A8001C", border: "0.5px solid #A8001C", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, cursor: "pointer" }}>🎁 Add to Gift Me</button>
+                <button style={{ width: "100%", background: "transparent", color: "#bbb", border: "0.5px solid #E8DDD4", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 600, cursor: "pointer" }}>Remove</button>
               </div>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Section 2 — Saved Clinics */}
+      <CrimsonLabel>Saved Clinics</CrimsonLabel>
+      {savedClinics.length === 0 ? (
+        <div style={{ fontSize: 12, color: C.textLight, textAlign: "center", padding: "16px 8px", border: `0.5px solid #E8DDD4`, borderRadius: 10, background: "#FFFFFF" }}>
+          No saved clinics yet. Tap ♥ on any clinic to save it.
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {savedClinics.map(cl => {
+            const tags = (cl.best_for ?? []).slice(0, 3);
+            const photoBgs = ["#C9A98A", "#E8DDD4", "#F5EFEC"];
+            return (
+              <div key={cl.id}
+                onClick={() => navigate({ to: "/clinics/$id", params: { id: cl.id } })}
+                style={{ background: "#FFFFFF", border: `0.5px solid #E8DDD4`, borderRadius: 12, overflow: "hidden", cursor: "pointer" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1 }}>
+                  {photoBgs.map((bg, i) => (
+                    <div key={i} style={{ height: 48, background: i === 0 && cl.image_url ? `url(${cl.image_url}) center/cover no-repeat` : bg }} />
+                  ))}
+                </div>
+                <div style={{ padding: 10, position: "relative" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#1C0A00" }}>{cl.name}</div>
+                  {cl.neighborhood && <div style={{ fontSize: 10, color: "#999", marginTop: 2 }}>{cl.neighborhood}</div>}
+                  {tags.length > 0 && (
+                    <div style={{ display: "flex", gap: 4, marginTop: 6, flexWrap: "wrap" }}>
+                      {tags.map((t, i) => (
+                        <span key={i} style={{ background: "#F0E8E0", color: "#1C0A00", fontSize: 9, fontWeight: 600, padding: "2px 6px", borderRadius: 3 }}>{t}</span>
+                      ))}
+                    </div>
+                  )}
+                  {cl.skintea_score != null && (
+                    <div style={{ position: "absolute", top: 10, right: 10, fontSize: 14, fontWeight: 800, color: "#A8001C" }}>{cl.skintea_score}</div>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); unsaveClinic(cl.id); }}
+                    style={{ position: "absolute", bottom: 8, right: 10, background: "transparent", border: "none", padding: 4, cursor: "pointer" }}>
+                    <Heart size={16} color="#A8001C" fill="#A8001C" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Section 3 — Saved Posts */}
+      <CrimsonLabel>Saved Posts</CrimsonLabel>
+      {savedPosts.length === 0 ? (
+        <div style={{ fontSize: 12, color: C.textLight, textAlign: "center", padding: "16px 8px", border: `0.5px solid #E8DDD4`, borderRadius: 10, background: "#FFFFFF" }}>
+          No saved posts yet.
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
+          {savedPosts.map(sp => {
+            const s = postTypeStyle(sp.post_type);
+            return (
+              <div key={sp.id} style={{ position: "relative", aspectRatio: "1", background: "#F5F0EB" }}>
+                <span style={{ position: "absolute", top: 6, left: 6, background: s.bg, color: "#FFFCF8", fontSize: 8, fontWeight: 800, padding: "3px 6px", borderRadius: 3, letterSpacing: "0.08em" }}>{s.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </>
   );
 }

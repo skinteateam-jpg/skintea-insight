@@ -165,6 +165,7 @@ function SkinProfilePage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [logs, setLogs] = useState<TLog[]>([]);
   const [editLog, setEditLog] = useState<TLog | "new" | null>(null);
+  const [debugMsg, setDebugMsg] = useState<string>("init");
 
   useEffect(() => {
     try {
@@ -178,12 +179,15 @@ function SkinProfilePage() {
   }, []);
 
   const reloadLogs = async () => {
-    if (!userId) return;
-    const { data } = await supabase
+    if (!userId) { setDebugMsg("no user"); return; }
+    const { data, error } = await supabase
       .from("treatment_logs")
       .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
+    console.log("[skin-profile] treatment_logs query", { userId, data, error });
+    if (error) setDebugMsg(`error: ${error.message}`);
+    else setDebugMsg(`user ${userId.slice(0,8)} · ${data?.length ?? 0} log(s)`);
     setLogs(((data as any[]) ?? []) as TLog[]);
   };
   useEffect(() => { reloadLogs(); }, [userId]);
@@ -208,6 +212,7 @@ function SkinProfilePage() {
         logs={logs}
         onTogglePublic={togglePublic}
         onAddLog={openAddLog}
+        debugMsg={debugMsg}
       />
       <main style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px 80px" }}>
         {tab === "tea" && <TeaTab />}
@@ -230,13 +235,14 @@ function SkinProfilePage() {
 }
 
 // ---------- Header ----------
-function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog }: {
+function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog, debugMsg }: {
   persona: typeof PERSONAS[SkinType];
   tab: Tab;
   setTab: (t: Tab) => void;
   logs: TLog[];
   onTogglePublic: (id: string, next: boolean) => void;
   onAddLog: () => void;
+  debugMsg?: string;
 }) {
   const tabs: Array<{ id: Tab; icon: string; label: string; private?: boolean }> = [
     { id: "tea", icon: "☕", label: "The Tea" },
@@ -277,7 +283,7 @@ function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog }: {
         </div>
 
         {/* WHAT I'VE DONE strip */}
-        <WhatIveDoneStrip logs={logs} onTogglePublic={onTogglePublic} onAdd={onAddLog} />
+        <WhatIveDoneStrip logs={logs} onTogglePublic={onTogglePublic} onAdd={onAddLog} debugMsg={debugMsg} />
 
         <div style={{ overflowX: "auto", scrollbarWidth: "none", margin: "16px -16px 0", padding: "0 16px" }}>
           <div style={{ display: "flex", width: "max-content" }}>
@@ -1005,10 +1011,13 @@ function Sheet({ children, onClose }: { children: ReactNode; onClose: () => void
 }
 
 // ---------- What I've Done strip ----------
-function WhatIveDoneStrip({ logs, onTogglePublic, onAdd }: { logs: TLog[]; onTogglePublic: (id: string, next: boolean) => void; onAdd: () => void }) {
+function WhatIveDoneStrip({ logs, onTogglePublic, onAdd, debugMsg }: { logs: TLog[]; onTogglePublic: (id: string, next: boolean) => void; onAdd: () => void; debugMsg?: string }) {
   return (
     <div style={{ marginTop: 16 }}>
-      <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#A8001C", marginBottom: 8 }}>What I've Done</div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#A8001C" }}>What I've Done</div>
+        {debugMsg && <div style={{ fontSize: 9, color: "#999", fontWeight: 600 }}>{debugMsg}</div>}
+      </div>
       <div style={{ display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", margin: "0 -16px", padding: "0 16px 4px" }}>
         {logs.map(l => (
           <div key={l.id} style={{ flexShrink: 0, width: 130, background: "#FFFFFF", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: 10 }}>

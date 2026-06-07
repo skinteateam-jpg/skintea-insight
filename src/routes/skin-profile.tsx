@@ -1011,10 +1011,13 @@ function Sheet({ children, onClose }: { children: ReactNode; onClose: () => void
 }
 
 // ---------- What I've Done strip ----------
-function WhatIveDoneStrip({ logs, onTogglePublic, onAdd }: { logs: TLog[]; onTogglePublic: (id: string, next: boolean) => void; onAdd: () => void }) {
+function WhatIveDoneStrip({ logs, onTogglePublic, onAdd, debugMsg }: { logs: TLog[]; onTogglePublic: (id: string, next: boolean) => void; onAdd: () => void; debugMsg?: string }) {
   return (
     <div style={{ marginTop: 16 }}>
-      <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#A8001C", marginBottom: 8 }}>What I've Done</div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#A8001C" }}>What I've Done</div>
+        {debugMsg && <div style={{ fontSize: 9, color: "#999", fontWeight: 600 }}>{debugMsg}</div>}
+      </div>
       <div style={{ display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", margin: "0 -16px", padding: "0 16px 4px" }}>
         {logs.map(l => (
           <div key={l.id} style={{ flexShrink: 0, width: 130, background: "#FFFFFF", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: 10 }}>

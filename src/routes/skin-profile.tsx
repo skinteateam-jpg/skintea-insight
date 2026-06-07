@@ -207,7 +207,7 @@ function SkinProfilePage() {
         setTab={setTab}
         logs={logs}
         onTogglePublic={togglePublic}
-        onAddLog={() => { openChartTab(); openAddLog(); }}
+        onAddLog={openAddLog}
       />
       <main style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px 80px" }}>
         {tab === "tea" && <TeaTab />}

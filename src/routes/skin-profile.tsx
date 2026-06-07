@@ -207,7 +207,7 @@ function SkinProfilePage() {
         setTab={setTab}
         logs={logs}
         onTogglePublic={togglePublic}
-        onAddLog={() => { openChartTab(); openAddLog(); }}
+        onAddLog={openAddLog}
       />
       <main style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px 80px" }}>
         {tab === "tea" && <TeaTab />}
@@ -1051,12 +1051,15 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
   const [clinicQuery, setClinicQuery] = useState(initial?.clinic_name ?? "");
   const [clinicId, setClinicId] = useState<string | null>(initial?.clinic_id ?? null);
   const [cost, setCost] = useState(initial?.cost ?? "");
-  const [date, setDate] = useState(initial?.date ?? "");
+  const initialMonth = initial?.date ? String(initial.date).slice(0, 7) : "";
+  const [month, setMonth] = useState(initialMonth);
   const [rating, setRating] = useState(initial?.rating ?? 5);
+  const [fixedText, setFixedText] = useState((initial?.fixed ?? []).join(", "));
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [emoji, setEmoji] = useState(initial?.emoji ?? "💉");
   const [suggestions, setSuggestions] = useState<Array<{ id: string; name: string }>>([]);
   const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!clinicQuery || clinicQuery === initial?.clinic_name) { setSuggestions([]); return; }
@@ -1075,6 +1078,7 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
   const save = async () => {
     if (!treatmentName.trim()) return;
     setSaving(true);
+    setErrorMsg(null);
     const payload = {
       user_id: userId,
       treatment_name: treatmentName.trim(),
@@ -1082,17 +1086,21 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
       clinic_id: clinicId,
       clinic_name: clinicQuery || null,
       cost: cost || null,
-      date: date || null,
+      date: month ? `${month}-01` : null,
       rating,
+      fixed: fixedText.split(",").map(s => s.trim()).filter(Boolean),
       notes: notes || null,
       emoji,
+      is_public: initial?.is_public ?? false,
     };
-    if (initial) {
-      await supabase.from("treatment_logs").update(payload).eq("id", initial.id);
-    } else {
-      await supabase.from("treatment_logs").insert(payload);
-    }
+    const { error } = initial
+      ? await supabase.from("treatment_logs").update(payload).eq("id", initial.id)
+      : await supabase.from("treatment_logs").insert(payload);
     setSaving(false);
+    if (error) {
+      setErrorMsg(error.message || "Could not save. Please try again.");
+      return;
+    }
     onSaved();
   };
 
@@ -1117,7 +1125,13 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div>
             <label style={label}>Category</label>
-            <input style={input} value={category} onChange={e => setCategory(e.target.value)} placeholder="Facial / Laser / …" />
+            <select style={input} value={category} onChange={e => setCategory(e.target.value)}>
+              <option value="">Select…</option>
+              <option value="Injection">Injection</option>
+              <option value="Light Therapy">Light Therapy</option>
+              <option value="Facial">Facial</option>
+              <option value="Surgery">Surgery</option>
+            </select>
           </div>
           <div>
             <label style={label}>Emoji</label>
@@ -1143,8 +1157,8 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
             <input style={input} value={cost} onChange={e => setCost(e.target.value)} placeholder="$250" />
           </div>
           <div>
-            <label style={label}>Date</label>
-            <input style={input} type="date" value={date ?? ""} onChange={e => setDate(e.target.value)} />
+            <label style={label}>Month</label>
+            <input style={input} type="month" value={month} onChange={e => setMonth(e.target.value)} />
           </div>
         </div>
         <div>
@@ -1158,10 +1172,18 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
           </div>
         </div>
         <div>
+          <label style={label}>What it fixed</label>
+          <input style={input} value={fixedText} onChange={e => setFixedText(e.target.value)} placeholder="e.g. texture, dullness" />
+        </div>
+        <div>
           <label style={label}>Notes</label>
           <textarea style={{ ...input, minHeight: 80, resize: "vertical" }} value={notes} onChange={e => setNotes(e.target.value)} />
         </div>
       </div>
+
+      {errorMsg && (
+        <div style={{ marginTop: 12, padding: "10px 12px", background: "rgba(168,0,28,0.08)", border: "0.5px solid rgba(168,0,28,0.3)", borderRadius: 8, color: "#A8001C", fontSize: 12, fontWeight: 600 }}>{errorMsg}</div>
+      )}
 
       <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
         <button onClick={save} disabled={saving || !treatmentName.trim()}

@@ -221,13 +221,21 @@ function SkinProfilePage() {
         {tab === "saved" && <SavedTab userId={userId} />}
         {tab === "chart" && <ChartTab persona={persona} logs={logs} onAdd={openAddLog} onEdit={(l) => setEditLog(l)} />}
       </main>
-      {editLog && userId && (
-        <TreatmentLogSheet
-          userId={userId}
-          initial={editLog === "new" ? null : editLog}
-          onClose={() => setEditLog(null)}
-          onSaved={() => { setEditLog(null); reloadLogs(); }}
-        />
+      {editLog && (
+        userId ? (
+          <TreatmentLogSheet
+            userId={userId}
+            initial={editLog === "new" ? null : editLog}
+            onClose={() => setEditLog(null)}
+            onSaved={() => { setEditLog(null); reloadLogs(); }}
+          />
+        ) : (
+          <Sheet onClose={() => setEditLog(null)}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "#1C0A00", marginBottom: 8 }}>Sign in to log a treatment</div>
+            <div style={{ fontSize: 13, color: "#5C4033", lineHeight: 1.5 }}>You need an account to track treatments privately.</div>
+            <a href="/login" style={{ display: "block", marginTop: 16, textAlign: "center", background: "#A8001C", color: "#FFFCF8", borderRadius: 8, padding: 13, fontSize: 14, fontWeight: 800, textDecoration: "none" }}>Sign in</a>
+          </Sheet>
+        )
       )}
       <BottomNav />
     </div>

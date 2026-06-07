@@ -235,13 +235,14 @@ function SkinProfilePage() {
 }
 
 // ---------- Header ----------
-function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog }: {
+function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog, debugMsg }: {
   persona: typeof PERSONAS[SkinType];
   tab: Tab;
   setTab: (t: Tab) => void;
   logs: TLog[];
   onTogglePublic: (id: string, next: boolean) => void;
   onAddLog: () => void;
+  debugMsg?: string;
 }) {
   const tabs: Array<{ id: Tab; icon: string; label: string; private?: boolean }> = [
     { id: "tea", icon: "☕", label: "The Tea" },
@@ -282,7 +283,7 @@ function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog }: {
         </div>
 
         {/* WHAT I'VE DONE strip */}
-        <WhatIveDoneStrip logs={logs} onTogglePublic={onTogglePublic} onAdd={onAddLog} />
+        <WhatIveDoneStrip logs={logs} onTogglePublic={onTogglePublic} onAdd={onAddLog} debugMsg={debugMsg} />
 
         <div style={{ overflowX: "auto", scrollbarWidth: "none", margin: "16px -16px 0", padding: "0 16px" }}>
           <div style={{ display: "flex", width: "max-content" }}>

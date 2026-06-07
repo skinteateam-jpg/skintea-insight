@@ -165,6 +165,7 @@ function SkinProfilePage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [logs, setLogs] = useState<TLog[]>([]);
   const [editLog, setEditLog] = useState<TLog | "new" | null>(null);
+  const [debugMsg, setDebugMsg] = useState<string>("init");
 
   useEffect(() => {
     try {
@@ -178,12 +179,15 @@ function SkinProfilePage() {
   }, []);
 
   const reloadLogs = async () => {
-    if (!userId) return;
-    const { data } = await supabase
+    if (!userId) { setDebugMsg("no user"); return; }
+    const { data, error } = await supabase
       .from("treatment_logs")
       .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
+    console.log("[skin-profile] treatment_logs query", { userId, data, error });
+    if (error) setDebugMsg(`error: ${error.message}`);
+    else setDebugMsg(`user ${userId.slice(0,8)} · ${data?.length ?? 0} log(s)`);
     setLogs(((data as any[]) ?? []) as TLog[]);
   };
   useEffect(() => { reloadLogs(); }, [userId]);
@@ -208,6 +212,7 @@ function SkinProfilePage() {
         logs={logs}
         onTogglePublic={togglePublic}
         onAddLog={openAddLog}
+        debugMsg={debugMsg}
       />
       <main style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px 80px" }}>
         {tab === "tea" && <TeaTab />}

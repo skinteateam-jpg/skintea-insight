@@ -802,6 +802,7 @@ export type Database = {
           rating: number | null
           treatment_id: string | null
           treatment_name: string
+          treatment_slug: string | null
           updated_at: string
           user_id: string
           working: string[]
@@ -821,6 +822,7 @@ export type Database = {
           rating?: number | null
           treatment_id?: string | null
           treatment_name: string
+          treatment_slug?: string | null
           updated_at?: string
           user_id: string
           working?: string[]
@@ -840,6 +842,7 @@ export type Database = {
           rating?: number | null
           treatment_id?: string | null
           treatment_name?: string
+          treatment_slug?: string | null
           updated_at?: string
           user_id?: string
           working?: string[]

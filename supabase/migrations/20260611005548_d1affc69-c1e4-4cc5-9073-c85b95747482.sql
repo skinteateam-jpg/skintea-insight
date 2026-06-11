@@ -1,0 +1,1 @@
+ALTER TABLE public.treatment_logs ADD COLUMN IF NOT EXISTS treatment_slug text;

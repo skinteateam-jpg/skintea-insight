@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Pencil, Plus, Lock, Star, X, Bookmark, Link2, Download, ArrowUp, ArrowDown, Heart, ArrowRight } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
@@ -145,6 +145,8 @@ type Tab = "tea" | "shelf" | "gift" | "saved" | "chart";
 
 export type TLog = {
   id: string;
+  treatment_id: string | null;
+  treatment_slug: string | null;
   treatment_name: string;
   category: string | null;
   clinic_id: string | null;
@@ -861,12 +863,23 @@ function ChartTab({ persona, logs, onAdd, onEdit }: { persona: typeof PERSONAS[S
           </div>
         )}
         {treats.map(t => (
-          <button key={t.id} onClick={() => onEdit(t)}
+          <div key={t.id} onClick={() => onEdit(t)} role="button"
             style={{ textAlign: "left", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, cursor: "pointer", width: "100%" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ fontSize: 32 }}>{t.emoji ?? "💉"}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700 }}>{t.treatment_name}</div>
+                {t.treatment_slug ? (
+                  <Link
+                    to="/treatment/$id"
+                    params={{ id: t.treatment_slug }}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ display: "inline-block", fontSize: 13, fontWeight: 700, color: "#1C0A00", textDecoration: "none" }}
+                  >
+                    {t.treatment_name}
+                  </Link>
+                ) : (
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#1C0A00" }}>{t.treatment_name}</div>
+                )}
                 <div style={{ fontSize: 11, color: C.textLight }}>{t.category ?? "—"} · {t.date ?? ""}</div>
                 {t.clinic_id && t.clinic_name && (
                   <div
@@ -887,7 +900,7 @@ function ChartTab({ persona, logs, onAdd, onEdit }: { persona: typeof PERSONAS[S
               {(t.working ?? []).map(w => <span key={w} style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: C.warnBg, color: C.warn }}>△ {w}</span>)}
             </div>
             <div style={{ fontSize: 11, color: C.textLight, marginTop: 8 }}>Tap to edit →</div>
-          </button>
+          </div>
         ))}
       </div>
 
@@ -1029,7 +1042,17 @@ function WhatIveDoneStrip({ logs, onTogglePublic, onAdd, debugMsg }: { logs: TLo
       <div style={{ display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", margin: "0 -16px", padding: "0 16px 4px" }}>
         {logs.map(l => (
           <div key={l.id} style={{ flexShrink: 0, width: 130, background: "#FFFFFF", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: 10 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#1C0A00", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.treatment_name}</div>
+            {l.treatment_slug ? (
+              <Link
+                to="/treatment/$id"
+                params={{ id: l.treatment_slug }}
+                style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#1C0A00", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textDecoration: "none" }}
+              >
+                {l.treatment_name}
+              </Link>
+            ) : (
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#1C0A00", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.treatment_name}</div>
+            )}
             {l.clinic_name && (
               <div style={{ fontSize: 11, color: "#A8001C", marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.clinic_name}</div>
             )}
@@ -1064,6 +1087,9 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
   onSaved: () => void;
 }) {
   const [treatmentName, setTreatmentName] = useState(initial?.treatment_name ?? "");
+  const [treatmentId, setTreatmentId] = useState<string | null>(initial?.treatment_id ?? null);
+  const [treatmentSlug, setTreatmentSlug] = useState<string | null>(initial?.treatment_slug ?? null);
+  const [treatmentSuggestions, setTreatmentSuggestions] = useState<Array<{ id: string; name: string; slug: string | null; category: string | null }>>([]);
   const [category, setCategory] = useState(initial?.category ?? "");
   const [clinicQuery, setClinicQuery] = useState(initial?.clinic_name ?? "");
   const [clinicId, setClinicId] = useState<string | null>(initial?.clinic_id ?? null);
@@ -1092,12 +1118,29 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
     return () => { alive = false; clearTimeout(t); };
   }, [clinicQuery, initial?.clinic_name]);
 
+  useEffect(() => {
+    if (!treatmentName || treatmentId) { setTreatmentSuggestions([]); return; }
+    let alive = true;
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from("treatments")
+        .select("id,name,slug,category")
+        .ilike("name", `%${treatmentName}%`)
+        .eq("active", true)
+        .limit(6);
+      if (alive) setTreatmentSuggestions((data as any[]) ?? []);
+    }, 200);
+    return () => { alive = false; clearTimeout(t); };
+  }, [treatmentName, treatmentId]);
+
   const save = async () => {
     if (!treatmentName.trim()) return;
     setSaving(true);
     setErrorMsg(null);
     const payload = {
       user_id: userId,
+      treatment_id: treatmentId,
+      treatment_slug: treatmentSlug,
       treatment_name: treatmentName.trim(),
       category: category || null,
       clinic_id: clinicId,
@@ -1135,9 +1178,31 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
       <div style={{ fontSize: 18, fontWeight: 800, color: "#1C0A00", marginBottom: 14 }}>{initial ? "Edit treatment" : "Log a treatment"}</div>
 
       <div style={{ display: "grid", gap: 12 }}>
-        <div>
+        <div style={{ position: "relative" }}>
           <label style={label}>Treatment name</label>
-          <input style={input} value={treatmentName} onChange={e => setTreatmentName(e.target.value)} placeholder="e.g. Hydrafacial" />
+          <input
+            style={input}
+            value={treatmentName}
+            onChange={e => { setTreatmentName(e.target.value); setTreatmentId(null); setTreatmentSlug(null); }}
+            placeholder="Search treatments…"
+          />
+          {treatmentSuggestions.length > 0 && (
+            <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 8, marginTop: 4, zIndex: 6, maxHeight: 200, overflowY: "auto" }}>
+              {treatmentSuggestions.map(s => (
+                <button key={s.id} type="button"
+                  onClick={() => {
+                    setTreatmentId(s.id);
+                    setTreatmentSlug(s.slug);
+                    setTreatmentName(s.name);
+                    if (s.category && !category) setCategory(s.category);
+                    setTreatmentSuggestions([]);
+                  }}
+                  style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 12px", fontSize: 13, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", color: "#1C0A00" }}>
+                  {s.name}{s.category ? <span style={{ color: "#999", fontSize: 11 }}> · {s.category}</span> : null}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div>

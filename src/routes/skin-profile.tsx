@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Pencil, Plus, Lock, Star, X, Bookmark, Link2, Download, ArrowUp, ArrowDown, Heart, ArrowRight } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
@@ -145,6 +145,8 @@ type Tab = "tea" | "shelf" | "gift" | "saved" | "chart";
 
 export type TLog = {
   id: string;
+  treatment_id: string | null;
+  treatment_slug: string | null;
   treatment_name: string;
   category: string | null;
   clinic_id: string | null;

@@ -870,8 +870,8 @@ function ChartTab({ persona, logs, onAdd, onEdit }: { persona: typeof PERSONAS[S
               <div style={{ flex: 1, minWidth: 0 }}>
                 {t.treatment_slug ? (
                   <Link
-                    to="/treatment/$id"
-                    params={{ id: t.treatment_slug }}
+                    to="/treatment/$slug"
+                    params={{ slug: t.treatment_slug }}
                     onClick={(e) => e.stopPropagation()}
                     style={{ display: "inline-block", fontSize: 13, fontWeight: 700, color: "#1C0A00", textDecoration: "none" }}
                   >
@@ -1044,8 +1044,8 @@ function WhatIveDoneStrip({ logs, onTogglePublic, onAdd, debugMsg }: { logs: TLo
           <div key={l.id} style={{ flexShrink: 0, width: 130, background: "#FFFFFF", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: 10 }}>
             {l.treatment_slug ? (
               <Link
-                to="/treatment/$id"
-                params={{ id: l.treatment_slug }}
+                to="/treatment/$slug"
+                params={{ slug: l.treatment_slug }}
                 style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#1C0A00", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textDecoration: "none" }}
               >
                 {l.treatment_name}

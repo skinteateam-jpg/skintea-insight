@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
 import { Pencil, Plus, Lock, Star, X, Bookmark, Link2, Download, ArrowUp, ArrowDown, Heart, ArrowRight } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
@@ -190,7 +190,33 @@ function SkinProfilePage() {
     console.log("[skin-profile] treatment_logs query", { userId, data, error });
     if (error) setDebugMsg(`error: ${error.message}`);
     else setDebugMsg(`user ${userId.slice(0,8)} · ${data?.length ?? 0} log(s)`);
-    setLogs(((data as any[]) ?? []) as TLog[]);
+    const rows = ((data as any[]) ?? []) as TLog[];
+    setLogs(rows);
+    // Backfill missing treatment_slug for rows that have treatment_id
+    const slugless = rows.filter(l => l.treatment_id && !l.treatment_slug);
+    if (slugless.length > 0) {
+      const ids = Array.from(new Set(slugless.map(l => l.treatment_id as string)));
+      const { data: treatments } = await supabase
+        .from("treatments")
+        .select("id,slug")
+        .in("id", ids);
+      if (treatments && treatments.length > 0) {
+        const slugMap: Record<string, string> = Object.fromEntries(
+          (treatments as any[]).filter(t => t.slug).map(t => [t.id, t.slug])
+        );
+        for (const l of slugless) {
+          const s = slugMap[l.treatment_id as string];
+          if (s) {
+            supabase.from("treatment_logs").update({ treatment_slug: s }).eq("id", l.id).then(() => {});
+          }
+        }
+        setLogs(prev => prev.map(l =>
+          l.treatment_id && !l.treatment_slug && slugMap[l.treatment_id]
+            ? { ...l, treatment_slug: slugMap[l.treatment_id] }
+            : l
+        ));
+      }
+    }
   };
   useEffect(() => { reloadLogs(); }, [userId]);
 
@@ -868,18 +894,7 @@ function ChartTab({ persona, logs, onAdd, onEdit }: { persona: typeof PERSONAS[S
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ fontSize: 32 }}>{t.emoji ?? "💉"}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                {t.treatment_slug ? (
-                  <Link
-                    to="/treatment/$slug"
-                    params={{ slug: t.treatment_slug }}
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ display: "inline-block", fontSize: 13, fontWeight: 700, color: "#1C0A00", textDecoration: "none" }}
-                  >
-                    {t.treatment_name}
-                  </Link>
-                ) : (
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#1C0A00" }}>{t.treatment_name}</div>
-                )}
+                <TreatmentNameLink name={t.treatment_name} slug={t.treatment_slug} />
                 <div style={{ fontSize: 11, color: C.textLight }}>{t.category ?? "—"} · {t.date ?? ""}</div>
                 {t.clinic_id && t.clinic_name && (
                   <div
@@ -1042,17 +1057,7 @@ function WhatIveDoneStrip({ logs, onTogglePublic, onAdd, debugMsg }: { logs: TLo
       <div style={{ display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", margin: "0 -16px", padding: "0 16px 4px" }}>
         {logs.map(l => (
           <div key={l.id} style={{ flexShrink: 0, width: 130, background: "#FFFFFF", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: 10 }}>
-            {l.treatment_slug ? (
-              <Link
-                to="/treatment/$slug"
-                params={{ slug: l.treatment_slug }}
-                style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#1C0A00", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textDecoration: "none" }}
-              >
-                {l.treatment_name}
-              </Link>
-            ) : (
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#1C0A00", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.treatment_name}</div>
-            )}
+            <TreatmentNameLink name={l.treatment_name} slug={l.treatment_slug} />
             {l.clinic_name && (
               <div style={{ fontSize: 11, color: "#A8001C", marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.clinic_name}</div>
             )}
@@ -1080,6 +1085,52 @@ function WhatIveDoneStrip({ logs, onTogglePublic, onAdd, debugMsg }: { logs: TLo
 }
 
 // ---------- Treatment Log add/edit sheet ----------
+function TreatmentNameLink({ name, slug, style }: { name: string; slug: string | null; style?: CSSProperties }) {
+  const navigate = useNavigate();
+  const [resolvedSlug, setResolvedSlug] = useState<string | null>(slug);
+  useEffect(() => { setResolvedSlug(slug); }, [slug]);
+
+  const handleClick = async (e: ReactMouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    let s = resolvedSlug;
+    if (!s && name) {
+      const { data } = await supabase
+        .from("treatments")
+        .select("slug")
+        .ilike("name", name)
+        .maybeSingle();
+      s = (data as any)?.slug ?? null;
+      if (s) setResolvedSlug(s);
+    }
+    if (s) navigate({ to: "/treatment/$slug", params: { slug: s } });
+  };
+
+  const baseStyle: CSSProperties = {
+    fontSize: 13,
+    fontWeight: 700,
+    color: "#1C0A00",
+    lineHeight: 1.2,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    textDecoration: "none",
+    cursor: "pointer",
+    background: "none",
+    border: "none",
+    padding: 0,
+    fontFamily: "inherit",
+    display: "block",
+    width: "100%",
+    textAlign: "left",
+    ...style,
+  };
+
+  return (
+    <button type="button" style={baseStyle} onClick={handleClick}>{name}</button>
+  );
+}
+
 function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
   userId: string;
   initial: TLog | null;
@@ -1137,10 +1188,31 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
     if (!treatmentName.trim()) return;
     setSaving(true);
     setErrorMsg(null);
+    let finalId = treatmentId;
+    let finalSlug = treatmentSlug;
+    if (finalId && !finalSlug) {
+      const { data: t } = await supabase
+        .from("treatments")
+        .select("slug")
+        .eq("id", finalId)
+        .maybeSingle();
+      finalSlug = (t as any)?.slug ?? null;
+    }
+    if (!finalId) {
+      const { data: t } = await supabase
+        .from("treatments")
+        .select("id,slug")
+        .ilike("name", treatmentName.trim())
+        .maybeSingle();
+      if (t) {
+        finalId = (t as any).id ?? null;
+        finalSlug = (t as any).slug ?? finalSlug;
+      }
+    }
     const payload = {
       user_id: userId,
-      treatment_id: treatmentId,
-      treatment_slug: treatmentSlug,
+      treatment_id: finalId,
+      treatment_slug: finalSlug,
       treatment_name: treatmentName.trim(),
       category: category || null,
       clinic_id: clinicId,

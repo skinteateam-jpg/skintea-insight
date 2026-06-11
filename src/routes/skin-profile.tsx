@@ -1188,10 +1188,31 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
     if (!treatmentName.trim()) return;
     setSaving(true);
     setErrorMsg(null);
+    let finalId = treatmentId;
+    let finalSlug = treatmentSlug;
+    if (finalId && !finalSlug) {
+      const { data: t } = await supabase
+        .from("treatments")
+        .select("slug")
+        .eq("id", finalId)
+        .maybeSingle();
+      finalSlug = (t as any)?.slug ?? null;
+    }
+    if (!finalId) {
+      const { data: t } = await supabase
+        .from("treatments")
+        .select("id,slug")
+        .ilike("name", treatmentName.trim())
+        .maybeSingle();
+      if (t) {
+        finalId = (t as any).id ?? null;
+        finalSlug = (t as any).slug ?? finalSlug;
+      }
+    }
     const payload = {
       user_id: userId,
-      treatment_id: treatmentId,
-      treatment_slug: treatmentSlug,
+      treatment_id: finalId,
+      treatment_slug: finalSlug,
       treatment_name: treatmentName.trim(),
       category: category || null,
       clinic_id: clinicId,

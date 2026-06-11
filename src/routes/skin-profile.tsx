@@ -1068,17 +1068,7 @@ function WhatIveDoneStrip({ logs, onTogglePublic, onAdd, debugMsg }: { logs: TLo
       <div style={{ display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", margin: "0 -16px", padding: "0 16px 4px" }}>
         {logs.map(l => (
           <div key={l.id} style={{ flexShrink: 0, width: 130, background: "#FFFFFF", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: 10 }}>
-            {l.treatment_slug ? (
-              <Link
-                to="/treatment/$slug"
-                params={{ slug: l.treatment_slug }}
-                style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#1C0A00", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textDecoration: "none" }}
-              >
-                {l.treatment_name}
-              </Link>
-            ) : (
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#1C0A00", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.treatment_name}</div>
-            )}
+            <TreatmentNameLink name={l.treatment_name} slug={l.treatment_slug} />
             {l.clinic_name && (
               <div style={{ fontSize: 11, color: "#A8001C", marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l.clinic_name}</div>
             )}

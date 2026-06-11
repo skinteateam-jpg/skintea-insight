@@ -863,12 +863,23 @@ function ChartTab({ persona, logs, onAdd, onEdit }: { persona: typeof PERSONAS[S
           </div>
         )}
         {treats.map(t => (
-          <button key={t.id} onClick={() => onEdit(t)}
+          <div key={t.id} onClick={() => onEdit(t)} role="button"
             style={{ textAlign: "left", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, cursor: "pointer", width: "100%" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ fontSize: 32 }}>{t.emoji ?? "💉"}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700 }}>{t.treatment_name}</div>
+                {t.treatment_slug ? (
+                  <Link
+                    to="/treatment/$id"
+                    params={{ id: t.treatment_slug }}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ display: "inline-block", fontSize: 13, fontWeight: 700, color: "#1C0A00", textDecoration: "none" }}
+                  >
+                    {t.treatment_name}
+                  </Link>
+                ) : (
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#1C0A00" }}>{t.treatment_name}</div>
+                )}
                 <div style={{ fontSize: 11, color: C.textLight }}>{t.category ?? "—"} · {t.date ?? ""}</div>
                 {t.clinic_id && t.clinic_name && (
                   <div
@@ -889,7 +900,7 @@ function ChartTab({ persona, logs, onAdd, onEdit }: { persona: typeof PERSONAS[S
               {(t.working ?? []).map(w => <span key={w} style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: C.warnBg, color: C.warn }}>△ {w}</span>)}
             </div>
             <div style={{ fontSize: 11, color: C.textLight, marginTop: 8 }}>Tap to edit →</div>
-          </button>
+          </div>
         ))}
       </div>
 

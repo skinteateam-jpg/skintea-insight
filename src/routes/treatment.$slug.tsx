@@ -18,7 +18,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 
-export const Route = createFileRoute("/treatment/$id")({
+export const Route = createFileRoute("/treatment/$slug")({
   component: TreatmentDetailPage,
   head: ({ params }) => ({
     meta: [

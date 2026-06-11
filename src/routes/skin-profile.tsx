@@ -894,18 +894,7 @@ function ChartTab({ persona, logs, onAdd, onEdit }: { persona: typeof PERSONAS[S
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div style={{ fontSize: 32 }}>{t.emoji ?? "💉"}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                {t.treatment_slug ? (
-                  <Link
-                    to="/treatment/$slug"
-                    params={{ slug: t.treatment_slug }}
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ display: "inline-block", fontSize: 13, fontWeight: 700, color: "#1C0A00", textDecoration: "none" }}
-                  >
-                    {t.treatment_name}
-                  </Link>
-                ) : (
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#1C0A00" }}>{t.treatment_name}</div>
-                )}
+                <TreatmentNameLink name={t.treatment_name} slug={t.treatment_slug} />
                 <div style={{ fontSize: 11, color: C.textLight }}>{t.category ?? "—"} · {t.date ?? ""}</div>
                 {t.clinic_id && t.clinic_name && (
                   <div

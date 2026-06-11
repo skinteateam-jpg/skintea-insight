@@ -192,30 +192,39 @@ function SkinProfilePage() {
     else setDebugMsg(`user ${userId.slice(0,8)} · ${data?.length ?? 0} log(s)`);
     const rows = ((data as any[]) ?? []) as TLog[];
     setLogs(rows);
-    // Backfill missing treatment_slug for rows that have treatment_id
-    const slugless = rows.filter(l => l.treatment_id && !l.treatment_slug);
+    // Backfill missing treatment_slug — by treatment_id when present, otherwise by name
+    const slugless = rows.filter(l => !l.treatment_slug);
     if (slugless.length > 0) {
-      const ids = Array.from(new Set(slugless.map(l => l.treatment_id as string)));
-      const { data: treatments } = await supabase
-        .from("treatments")
-        .select("id,slug")
-        .in("id", ids);
-      if (treatments && treatments.length > 0) {
-        const slugMap: Record<string, string> = Object.fromEntries(
-          (treatments as any[]).filter(t => t.slug).map(t => [t.id, t.slug])
-        );
-        for (const l of slugless) {
-          const s = slugMap[l.treatment_id as string];
-          if (s) {
-            supabase.from("treatment_logs").update({ treatment_slug: s }).eq("id", l.id).then(() => {});
-          }
-        }
-        setLogs(prev => prev.map(l =>
-          l.treatment_id && !l.treatment_slug && slugMap[l.treatment_id]
-            ? { ...l, treatment_slug: slugMap[l.treatment_id] }
-            : l
-        ));
+      const idMap: Record<string, { id: string; slug: string }> = {};
+      const nameMap: Record<string, { id: string; slug: string }> = {};
+      const ids = Array.from(new Set(slugless.map(l => l.treatment_id).filter(Boolean) as string[]));
+      const names = Array.from(new Set(slugless.filter(l => !l.treatment_id && l.treatment_name).map(l => l.treatment_name)));
+      if (ids.length > 0) {
+        const { data } = await supabase.from("treatments").select("id,name,slug").in("id", ids);
+        (data as any[] | null)?.forEach(t => { if (t.slug) idMap[t.id] = { id: t.id, slug: t.slug }; });
       }
+      if (names.length > 0) {
+        const { data } = await supabase.from("treatments").select("id,name,slug").in("name", names);
+        (data as any[] | null)?.forEach(t => { if (t.slug) nameMap[t.name.toLowerCase()] = { id: t.id, slug: t.slug }; });
+      }
+      const resolve = (l: TLog) => {
+        if (l.treatment_id && idMap[l.treatment_id]) return idMap[l.treatment_id];
+        if (!l.treatment_id && l.treatment_name && nameMap[l.treatment_name.toLowerCase()]) return nameMap[l.treatment_name.toLowerCase()];
+        return null;
+      };
+      for (const l of slugless) {
+        const r = resolve(l);
+        if (r) {
+          supabase.from("treatment_logs")
+            .update({ treatment_slug: r.slug, treatment_id: r.id })
+            .eq("id", l.id)
+            .then(() => {});
+        }
+      }
+      setLogs(prev => prev.map(l => {
+        const r = resolve(l);
+        return r ? { ...l, treatment_slug: r.slug, treatment_id: r.id } : l;
+      }));
     }
   };
   useEffect(() => { reloadLogs(); }, [userId]);
@@ -1094,15 +1103,23 @@ function TreatmentNameLink({ name, slug, style }: { name: string; slug: string |
     e.preventDefault();
     e.stopPropagation();
     let s = resolvedSlug;
+    console.log("[TreatmentNameLink] click", { name, initialSlug: slug, resolvedSlug });
     if (!s && name) {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("treatments")
         .select("slug")
         .ilike("name", name)
         .maybeSingle();
+      console.log("[TreatmentNameLink] lookup by name", { name, data, error });
       s = (data as any)?.slug ?? null;
       if (s) setResolvedSlug(s);
     }
+    if (!s && name) {
+      // Last-resort: slugify the name and let /treatment/$slug handle not-found gracefully
+      s = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      console.log("[TreatmentNameLink] fallback slugified", { name, s });
+    }
+    console.log("[TreatmentNameLink] navigating to", s);
     if (s) navigate({ to: "/treatment/$slug", params: { slug: s } });
   };
 

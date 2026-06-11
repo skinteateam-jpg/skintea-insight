@@ -1178,9 +1178,31 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
       <div style={{ fontSize: 18, fontWeight: 800, color: "#1C0A00", marginBottom: 14 }}>{initial ? "Edit treatment" : "Log a treatment"}</div>
 
       <div style={{ display: "grid", gap: 12 }}>
-        <div>
+        <div style={{ position: "relative" }}>
           <label style={label}>Treatment name</label>
-          <input style={input} value={treatmentName} onChange={e => setTreatmentName(e.target.value)} placeholder="e.g. Hydrafacial" />
+          <input
+            style={input}
+            value={treatmentName}
+            onChange={e => { setTreatmentName(e.target.value); setTreatmentId(null); setTreatmentSlug(null); }}
+            placeholder="Search treatments…"
+          />
+          {treatmentSuggestions.length > 0 && (
+            <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 8, marginTop: 4, zIndex: 6, maxHeight: 200, overflowY: "auto" }}>
+              {treatmentSuggestions.map(s => (
+                <button key={s.id} type="button"
+                  onClick={() => {
+                    setTreatmentId(s.id);
+                    setTreatmentSlug(s.slug);
+                    setTreatmentName(s.name);
+                    if (s.category && !category) setCategory(s.category);
+                    setTreatmentSuggestions([]);
+                  }}
+                  style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 12px", fontSize: 13, background: "transparent", border: "none", cursor: "pointer", fontFamily: "inherit", color: "#1C0A00" }}>
+                  {s.name}{s.category ? <span style={{ color: "#999", fontSize: 11 }}> · {s.category}</span> : null}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           <div>

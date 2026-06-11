@@ -1087,6 +1087,9 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
   onSaved: () => void;
 }) {
   const [treatmentName, setTreatmentName] = useState(initial?.treatment_name ?? "");
+  const [treatmentId, setTreatmentId] = useState<string | null>(initial?.treatment_id ?? null);
+  const [treatmentSlug, setTreatmentSlug] = useState<string | null>(initial?.treatment_slug ?? null);
+  const [treatmentSuggestions, setTreatmentSuggestions] = useState<Array<{ id: string; name: string; slug: string | null; category: string | null }>>([]);
   const [category, setCategory] = useState(initial?.category ?? "");
   const [clinicQuery, setClinicQuery] = useState(initial?.clinic_name ?? "");
   const [clinicId, setClinicId] = useState<string | null>(initial?.clinic_id ?? null);
@@ -1115,12 +1118,29 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
     return () => { alive = false; clearTimeout(t); };
   }, [clinicQuery, initial?.clinic_name]);
 
+  useEffect(() => {
+    if (!treatmentName || treatmentId) { setTreatmentSuggestions([]); return; }
+    let alive = true;
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from("treatments")
+        .select("id,name,slug,category")
+        .ilike("name", `%${treatmentName}%`)
+        .eq("active", true)
+        .limit(6);
+      if (alive) setTreatmentSuggestions((data as any[]) ?? []);
+    }, 200);
+    return () => { alive = false; clearTimeout(t); };
+  }, [treatmentName, treatmentId]);
+
   const save = async () => {
     if (!treatmentName.trim()) return;
     setSaving(true);
     setErrorMsg(null);
     const payload = {
       user_id: userId,
+      treatment_id: treatmentId,
+      treatment_slug: treatmentSlug,
       treatment_name: treatmentName.trim(),
       category: category || null,
       clinic_id: clinicId,

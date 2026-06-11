@@ -401,7 +401,7 @@ function QuizResultPage() {
               {(TREATMENT_DATA[skinTypeKey] ?? TREATMENT_DATA["oily"]).slice(0, 4).map((t) => (
                 <div
                   key={t.name}
-                  onClick={() => navigate({ to: "/treatment/$id", params: { id: t.name.toLowerCase().replace(/\s+/g, "-") } })}
+                  onClick={() => navigate({ to: "/treatment/$slug", params: { slug: t.name.toLowerCase().replace(/\s+/g, "-") } })}
                   style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 14, overflow: "hidden", cursor: "pointer" }}
                 >
                   <div style={{ background: "#1C0A00", padding: "10px 10px 8px" }}>

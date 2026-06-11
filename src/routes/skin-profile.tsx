@@ -1085,6 +1085,52 @@ function WhatIveDoneStrip({ logs, onTogglePublic, onAdd, debugMsg }: { logs: TLo
 }
 
 // ---------- Treatment Log add/edit sheet ----------
+function TreatmentNameLink({ name, slug, style }: { name: string; slug: string | null; style?: CSSProperties }) {
+  const navigate = useNavigate();
+  const [resolvedSlug, setResolvedSlug] = useState<string | null>(slug);
+  useEffect(() => { setResolvedSlug(slug); }, [slug]);
+
+  const handleClick = async (e: ReactMouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    let s = resolvedSlug;
+    if (!s && name) {
+      const { data } = await supabase
+        .from("treatments")
+        .select("slug")
+        .ilike("name", name)
+        .maybeSingle();
+      s = (data as any)?.slug ?? null;
+      if (s) setResolvedSlug(s);
+    }
+    if (s) navigate({ to: "/treatment/$slug", params: { slug: s } });
+  };
+
+  const baseStyle: CSSProperties = {
+    fontSize: 13,
+    fontWeight: 700,
+    color: "#1C0A00",
+    lineHeight: 1.2,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    textDecoration: "none",
+    cursor: "pointer",
+    background: "none",
+    border: "none",
+    padding: 0,
+    fontFamily: "inherit",
+    display: "block",
+    width: "100%",
+    textAlign: "left",
+    ...style,
+  };
+
+  return (
+    <button type="button" style={baseStyle} onClick={handleClick}>{name}</button>
+  );
+}
+
 function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
   userId: string;
   initial: TLog | null;

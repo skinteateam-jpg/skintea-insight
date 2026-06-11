@@ -18,11 +18,11 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 
-export const Route = createFileRoute("/treatment/$id")({
+export const Route = createFileRoute("/treatment/$slug")({
   component: TreatmentDetailPage,
   head: ({ params }) => ({
     meta: [
-      { title: `${params.id} — Skintea` },
+      { title: `${params.slug} — Skintea` },
       { name: "description", content: "Real treatment reviews on Skintea." },
     ],
     links: [
@@ -255,7 +255,7 @@ function pickHeroIcon(slug: string) {
 }
 
 function TreatmentDetailPage() {
-  const { id } = Route.useParams();
+  const { slug } = Route.useParams();
   const navigate = useNavigate();
   const [treatment, setTreatment] = useState<Treatment | null>(null);
   const [clinics, setClinics] = useState<any[]>([]);
@@ -279,7 +279,7 @@ function TreatmentDetailPage() {
       const { data: t } = await supabase
         .from("treatments")
         .select("*")
-        .eq("slug", id)
+        .eq("slug", slug)
         .maybeSingle();
       if (!alive) return;
       setTreatment(t as Treatment | null);
@@ -300,7 +300,7 @@ function TreatmentDetailPage() {
     return () => {
       alive = false;
     };
-  }, [id]);
+  }, [slug]);
 
   const matchesSkin = useMemo(() => {
     if (!skinType || !treatment?.who_its_for) return false;

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
 import { Pencil, Plus, Lock, Star, X, Bookmark, Link2, Download, ArrowUp, ArrowDown, Heart, ArrowRight } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
@@ -190,7 +190,33 @@ function SkinProfilePage() {
     console.log("[skin-profile] treatment_logs query", { userId, data, error });
     if (error) setDebugMsg(`error: ${error.message}`);
     else setDebugMsg(`user ${userId.slice(0,8)} · ${data?.length ?? 0} log(s)`);
-    setLogs(((data as any[]) ?? []) as TLog[]);
+    const rows = ((data as any[]) ?? []) as TLog[];
+    setLogs(rows);
+    // Backfill missing treatment_slug for rows that have treatment_id
+    const slugless = rows.filter(l => l.treatment_id && !l.treatment_slug);
+    if (slugless.length > 0) {
+      const ids = Array.from(new Set(slugless.map(l => l.treatment_id as string)));
+      const { data: treatments } = await supabase
+        .from("treatments")
+        .select("id,slug")
+        .in("id", ids);
+      if (treatments && treatments.length > 0) {
+        const slugMap: Record<string, string> = Object.fromEntries(
+          (treatments as any[]).filter(t => t.slug).map(t => [t.id, t.slug])
+        );
+        for (const l of slugless) {
+          const s = slugMap[l.treatment_id as string];
+          if (s) {
+            supabase.from("treatment_logs").update({ treatment_slug: s }).eq("id", l.id).then(() => {});
+          }
+        }
+        setLogs(prev => prev.map(l =>
+          l.treatment_id && !l.treatment_slug && slugMap[l.treatment_id]
+            ? { ...l, treatment_slug: slugMap[l.treatment_id] }
+            : l
+        ));
+      }
+    }
   };
   useEffect(() => { reloadLogs(); }, [userId]);
 

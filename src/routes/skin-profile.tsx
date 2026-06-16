@@ -619,14 +619,26 @@ function CrimsonLabel({ children }: { children: ReactNode }) {
 
 function SavedTab({ userId }: { userId: string | null }) {
   const [active, setActive] = useState("Recently Saved");
-  const items = active === "Recently Saved" ? SAVED : SAVED.filter(s => s.category === active);
   const navigate = useNavigate();
+  const [savedProducts, setSavedProducts] = useState<SavedProductRow[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
   const [savedClinics, setSavedClinics] = useState<Array<{ id: string; name: string; neighborhood: string | null; image_url: string | null; best_for: string[] | null; trust_score: number | null; skintea_score: number | null; }>>([]);
   const [savedPosts, setSavedPosts] = useState<Array<{ id: string; post_id: string; post_type: string }>>([]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) { setLoadingProducts(false); return; }
     let alive = true;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("saved_products" as any)
+          .select("id, product_id, products(id,name,brand,category,image_url,emoji,match)")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false });
+        if (alive) setSavedProducts(((data as any[]) ?? []) as SavedProductRow[]);
+      } catch { if (alive) setSavedProducts([]); }
+      finally { if (alive) setLoadingProducts(false); }
+    })();
     (async () => {
       const { data: scs } = await supabase
         .from("saved_clinics")
@@ -642,6 +654,32 @@ function SavedTab({ userId }: { userId: string | null }) {
     })();
     return () => { alive = false; };
   }, [userId]);
+
+  const flatSaved = savedProducts
+    .map(r => r.products ? { rowId: r.id, ...r.products } : null)
+    .filter(Boolean) as Array<{ rowId: string; id: string; name: string; brand: string | null; category: string | null; image_url: string | null; emoji: string | null; match: Match | null }>;
+  const items = active === "Recently Saved" ? flatSaved : flatSaved.filter(s => s.category === active);
+
+  const removeSaved = async (rowId: string) => {
+    setSavedProducts(rows => rows.filter(r => r.id !== rowId));
+    try { await supabase.from("saved_products" as any).delete().eq("id", rowId); } catch {}
+  };
+
+  const addToShelf = async (p: { id: string; name: string; brand: string | null; category: string | null; emoji: string | null; match: Match | null }) => {
+    if (!userId) return;
+    try {
+      await supabase.from("shelf_items" as any).insert({
+        user_id: userId,
+        product_id: p.id,
+        category: p.category ?? "Other",
+        product_name: p.name,
+        brand: p.brand,
+        emoji: p.emoji,
+        match: p.match ?? "good",
+        is_top_pick: false,
+      });
+    } catch {}
+  };
 
   const unsaveClinic = async (id: string) => {
     setSavedClinics(cs => cs.filter(c => c.id !== id));
@@ -664,23 +702,37 @@ function SavedTab({ userId }: { userId: string | null }) {
 
       {/* Section 1 — Products saved */}
       <FilterRow items={SAVED_FILTERS} active={active} onChange={setActive} />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginTop: 16 }}>
-        {items.map((p, i) => (
-          <div key={i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-            <div style={{ aspectRatio: "1.3", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 44 }}>{p.emoji}</div>
-            <div style={{ padding: 10 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{p.name}</div>
-              <div style={{ fontSize: 10, color: C.textLight, marginTop: 2 }}>{p.category}</div>
-              <div style={{ marginTop: 6 }}><MatchPill match={p.match} /></div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
-                <button style={{ width: "100%", background: "#1C0A00", color: "#FFFCF8", border: "none", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, cursor: "pointer" }}>Add to My Shelf</button>
-                <button style={{ width: "100%", background: "#FFF5F5", color: "#A8001C", border: "0.5px solid #A8001C", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, cursor: "pointer" }}>🎁 Add to Gift Me</button>
-                <button style={{ width: "100%", background: "transparent", color: "#bbb", border: "0.5px solid #E8DDD4", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 600, cursor: "pointer" }}>Remove</button>
+      {loadingProducts ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginTop: 16 }}>
+          {[0,1,2,3].map(i => <Skel key={i} h={170} r={12} />)}
+        </div>
+      ) : items.length === 0 ? (
+        <div style={{ marginTop: 16, fontSize: 12, color: C.textLight, textAlign: "center", padding: "20px 10px", border: `0.5px dashed ${C.border}`, borderRadius: 10 }}>
+          No saved products yet.
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginTop: 16 }}>
+          {items.map((p) => (
+            <div key={p.rowId} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+              {p.image_url ? (
+                <div style={{ aspectRatio: "1.3", background: `#F5F0EB url(${p.image_url}) center/cover no-repeat` }} />
+              ) : (
+                <div style={{ aspectRatio: "1.3", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 44 }}>{p.emoji ?? "🧴"}</div>
+              )}
+              <div style={{ padding: 10 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{p.name}</div>
+                {p.category && <div style={{ fontSize: 10, color: C.textLight, marginTop: 2 }}>{p.category}</div>}
+                <div style={{ marginTop: 6 }}><MatchPill match={(p.match ?? "good") as Match} /></div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
+                  <button onClick={() => addToShelf(p)} style={{ width: "100%", background: "#1C0A00", color: "#FFFCF8", border: "none", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, cursor: "pointer" }}>Add to My Shelf</button>
+                  <button style={{ width: "100%", background: "#FFF5F5", color: "#A8001C", border: "0.5px solid #A8001C", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, cursor: "pointer" }}>🎁 Add to Gift Me</button>
+                  <button onClick={() => removeSaved(p.rowId)} style={{ width: "100%", background: "transparent", color: "#bbb", border: "0.5px solid #E8DDD4", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 600, cursor: "pointer" }}>Remove</button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Section 2 — Saved Clinics */}
       <CrimsonLabel>Saved Clinics</CrimsonLabel>

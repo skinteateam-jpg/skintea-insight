@@ -551,26 +551,54 @@ function PostSheet({ post, onClose }: { post: Post; onClose: () => void }) {
 }
 
 // ---------- Tab 2: My Shelf ----------
-function ShelfTab() {
-  const cats = ["All", ...Object.keys(SHELF)];
+function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks }: { shelfItems: ShelfItem[]; topPicks: TopPick[]; loadingShelf: boolean; loadingTopPicks: boolean }) {
+  const grouped = useMemo(() => {
+    const map = new Map<string, ShelfItem[]>();
+    for (const it of shelfItems) {
+      const list = map.get(it.category) ?? [];
+      list.push(it);
+      map.set(it.category, list);
+    }
+    return Array.from(map.entries());
+  }, [shelfItems]);
+
+  const shelfTopPicks = useMemo(() => {
+    const fromShelf = shelfItems.filter(i => i.is_top_pick).slice(0, 3).map(i => ({
+      id: i.id, name: i.product_name, brand: i.brand, emoji: i.emoji, image_url: null,
+    }));
+    return fromShelf.length > 0 ? fromShelf : topPicks;
+  }, [shelfItems, topPicks]);
+
+  const cats = ["All", ...grouped.map(([c]) => c)];
   const [active, setActive] = useState("All");
-  const visible = active === "All" ? Object.entries(SHELF) : Object.entries(SHELF).filter(([c]) => c === active);
+  const visible = active === "All" ? grouped : grouped.filter(([c]) => c === active);
+
   return (
     <>
-      <TopPicksRow />
+      <TopPicksRow picks={shelfTopPicks} loading={loadingTopPicks && shelfItems.length === 0} />
       <div style={{ marginTop: 8 }}><FilterRow items={cats} active={active} onChange={setActive} /></div>
+      {loadingShelf && shelfItems.length === 0 && (
+        <div style={{ marginTop: 24, display: "flex", gap: 10 }}>
+          {[0,1,2].map(i => <Skel key={i} h={170} w={120} r={10} />)}
+        </div>
+      )}
+      {!loadingShelf && shelfItems.length === 0 && (
+        <div style={{ marginTop: 24, fontSize: 12, color: C.textLight, textAlign: "center", padding: "20px 10px", border: `0.5px dashed ${C.border}`, borderRadius: 10 }}>
+          Your shelf is empty. Save products to start.
+        </div>
+      )}
       {visible.map(([cat, items]) => (
         <div key={cat} style={{ marginTop: 24 }}>
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>{cat}</div>
           <div style={{ display: "flex", gap: 10, overflowX: "auto", margin: "0 -16px", padding: "0 16px 8px" }}>
-            {items.map((p, i) => (
-              <div key={i} style={{ flexShrink: 0, width: 120, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", position: "relative" }}>
-                {p.top && <div style={{ position: "absolute", top: 6, left: 6, background: C.gold, color: "#fff", fontSize: 8, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
-                <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 36 }}>{p.emoji}</div>
+            {items.map((p) => (
+              <div key={p.id} style={{ flexShrink: 0, width: 120, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", position: "relative" }}>
+                {p.is_top_pick && <div style={{ position: "absolute", top: 6, left: 6, background: C.gold, color: "#fff", fontSize: 8, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
+                <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 36 }}>{p.emoji ?? "🧴"}</div>
                 <div style={{ padding: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, minHeight: 26 }}>{p.name}</div>
-                  <div style={{ fontSize: 10, color: C.textLight, margin: "2px 0 6px" }}>{p.brand}</div>
-                  <MatchPill match={p.match} />
+                  <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, minHeight: 26 }}>{p.product_name}</div>
+                  {p.brand && <div style={{ fontSize: 10, color: C.textLight, margin: "2px 0 6px" }}>{p.brand}</div>}
+                  <MatchPill match={(p.match ?? "good") as Match} />
                 </div>
               </div>
             ))}

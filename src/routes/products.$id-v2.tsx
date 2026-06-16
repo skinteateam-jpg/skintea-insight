@@ -103,7 +103,7 @@ function ProductDetailV2() {
         setIsSaved(false);
         return;
       }
-      const { data: row } = await supabase
+      const { data: row } = await (supabase as any)
         .from("saved_products")
         .select("id")
         .eq("user_id", uid)
@@ -123,7 +123,7 @@ function ProductDetailV2() {
     if (saving) return;
     setSaving(true);
     if (!isSaved) {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("saved_products")
         .insert({
           user_id: userId,
@@ -132,7 +132,7 @@ function ProductDetailV2() {
         });
       if (!error) setIsSaved(true);
     } else {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("saved_products")
         .delete()
         .eq("user_id", userId)

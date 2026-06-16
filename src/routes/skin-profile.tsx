@@ -63,52 +63,51 @@ const matchStyle = (m: Match) =>
     : { bg: C.badBg, color: C.bad, label: "✕ Avoid" };
 
 // ---------- Mock data ----------
-const TOP_PICKS = [
-  { emoji: "🧴", name: "Foaming Cleanser", brand: "CeraVe" },
-  { emoji: "💧", name: "BHA Liquid", brand: "Paula's Choice" },
-  { emoji: "☀️", name: "UV Daily", brand: "Beauty of Joseon" },
-];
-
-const POSTS = [
-  { id: 1, emoji: "🧴", bg: "#FCE8EC", caption: "Current AM routine, simplified.", date: "Apr 12", likes: 412, comments: 38, products: [
-    { emoji: "🧴", name: "Foaming Cleanser", brand: "CeraVe", category: "Cleanser", match: "good" as Match },
-    { emoji: "☀️", name: "UV Daily", brand: "Beauty of Joseon", category: "SPF", match: "good" as Match },
-  ]},
-  { id: 2, emoji: "💧", bg: "#EFE5F7", caption: "BHA week 6 update.", date: "Apr 8", likes: 287, comments: 19, products: [
-    { emoji: "💧", name: "BHA Liquid", brand: "Paula's Choice", category: "Serum", match: "good" as Match },
-  ]},
-  { id: 3, emoji: "🌸", bg: "#FCE4EC", caption: "Tried this mask. Mixed feelings.", date: "Apr 3", likes: 156, comments: 22, products: [
-    { emoji: "🌸", name: "Clay Mask", brand: "Innisfree", category: "Face Mask", match: "warn" as Match },
-  ]},
-  { id: 4, emoji: "🍵", bg: "#E6F4EA", caption: "Green tea toner > everything.", date: "Mar 28", likes: 503, comments: 41, products: [
-    { emoji: "🍵", name: "Green Tea Toner", brand: "Innisfree", category: "Toner", match: "good" as Match },
-  ]},
-  { id: 5, emoji: "🧊", bg: "#E3F2FD", caption: "Ice globes hype check.", date: "Mar 22", likes: 198, comments: 14, products: [
-    { emoji: "🧊", name: "Ice Globes", brand: "Skintea Lab", category: "Device", match: "good" as Match },
-  ]},
-  { id: 6, emoji: "🩹", bg: "#FBF3DC", caption: "Pimple patch saves.", date: "Mar 18", likes: 342, comments: 27, products: [
-    { emoji: "🩹", name: "Hydro Patches", brand: "COSRX", category: "Treatment", match: "good" as Match },
-  ]},
-];
-
-const SHELF: Record<string, Array<{ emoji: string; name: string; brand: string; match: Match; top?: boolean }>> = {
-  Cleanser:   [{ emoji: "🧴", name: "Foaming Cleanser", brand: "CeraVe", match: "good", top: true }, { emoji: "🧼", name: "Gel Wash", brand: "La Roche", match: "good" }],
-  Toner:      [{ emoji: "🍵", name: "Green Tea Toner", brand: "Innisfree", match: "good" }, { emoji: "🌹", name: "Rose Toner", brand: "Klairs", match: "warn" }],
-  Serum:      [{ emoji: "💧", name: "BHA Liquid", brand: "Paula's Choice", match: "good", top: true }, { emoji: "✨", name: "Vitamin C", brand: "Skinceuticals", match: "warn" }],
-  Moisturizer:[{ emoji: "🥛", name: "Moisturizing Cream", brand: "CeraVe", match: "good" }],
-  "Face Mask":[{ emoji: "🌸", name: "Clay Mask", brand: "Innisfree", match: "warn" }, { emoji: "🍯", name: "Honey Mask", brand: "I'm From", match: "good" }],
-  Device:     [{ emoji: "🧊", name: "Ice Globes", brand: "Skintea Lab", match: "good" }],
-  SPF:        [{ emoji: "☀️", name: "UV Daily", brand: "Beauty of Joseon", match: "good", top: true }],
+// ---------- Live data types ----------
+export type TopPick = { id: string; name: string; brand: string | null; image_url: string | null; emoji: string | null };
+export type Post = {
+  id: string;
+  emoji: string | null;
+  bg_color: string | null;
+  caption: string | null;
+  created_at: string;
+  likes_count: number;
+  comments_count: number;
 };
-
-const SAVED = [
-  { emoji: "🌿", name: "Centella Ampoule", brand: "Purito", category: "Serum", match: "good" as Match },
-  { emoji: "🧴", name: "Cream Cleanser", brand: "Aveeno", category: "Cleanser", match: "warn" as Match },
-  { emoji: "💄", name: "Tinted Balm", brand: "Rhode", category: "Makeup", match: "good" as Match },
-  { emoji: "☀️", name: "Mineral SPF", brand: "EltaMD", category: "SPF", match: "good" as Match },
-  { emoji: "🧪", name: "Retinol 0.3", brand: "The Ordinary", category: "Serum", match: "bad" as Match },
-  { emoji: "🌹", name: "Rose Water", brand: "Heritage", category: "Toner", match: "warn" as Match },
-];
+export type ShelfItem = {
+  id: string;
+  product_id: string | null;
+  category: string;
+  product_name: string;
+  brand: string | null;
+  emoji: string | null;
+  match: Match | null;
+  is_top_pick: boolean;
+};
+export type SavedProductRow = {
+  id: string;
+  product_id: string;
+  products: {
+    id: string;
+    name: string;
+    brand: string | null;
+    category: string | null;
+    image_url: string | null;
+    emoji: string | null;
+    match: Match | null;
+  } | null;
+};
+export type GiftItem = {
+  id: string;
+  product_id: string | null;
+  product_name: string;
+  brand: string | null;
+  category: string | null;
+  emoji: string | null;
+  affiliate_url: string | null;
+  affiliate_store: string | null;
+  type: "skincare" | "makeup";
+};
 const SAVED_FILTERS = ["Recently Saved", "Cleanser", "Toner", "Serum", "Moisturizer", "SPF", "Makeup"];
 
 const SCORE_TREND = [62, 65, 64, 68, 72, 75, 78];
@@ -169,6 +168,14 @@ function SkinProfilePage() {
   const [editLog, setEditLog] = useState<TLog | "new" | null>(null);
   const [debugMsg, setDebugMsg] = useState<string>("init");
 
+  // Live data
+  const [topPicks, setTopPicks] = useState<TopPick[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [shelfItems, setShelfItems] = useState<ShelfItem[]>([]);
+  const [loadingTopPicks, setLoadingTopPicks] = useState(true);
+  const [loadingPosts, setLoadingPosts] = useState(true);
+  const [loadingShelf, setLoadingShelf] = useState(true);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem("skintea.quizResult");
@@ -179,6 +186,68 @@ function SkinProfilePage() {
       setUserId(user?.id ?? null);
     })();
   }, []);
+
+  // Top picks (global) — load once
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        let { data, error } = await supabase
+          .from("products" as any)
+          .select("id,name,brand,image_url,emoji")
+          .eq("is_top_pick", true)
+          .limit(3);
+        if (error) {
+          const fb = await supabase
+            .from("products" as any)
+            .select("id,name,brand,image_url,emoji")
+            .order("skintea_score", { ascending: false })
+            .limit(3);
+          data = fb.data;
+        }
+        if (alive) setTopPicks(((data as any[]) ?? []) as TopPick[]);
+      } catch {
+        if (alive) setTopPicks([]);
+      } finally {
+        if (alive) setLoadingTopPicks(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  // User-scoped: posts + shelf
+  useEffect(() => {
+    if (!userId) {
+      setPosts([]); setShelfItems([]);
+      setLoadingPosts(false); setLoadingShelf(false);
+      return;
+    }
+    let alive = true;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("tea_posts" as any)
+          .select("id,emoji,bg_color,caption,created_at,likes_count,comments_count")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(18);
+        if (alive) setPosts(((data as any[]) ?? []) as Post[]);
+      } catch { if (alive) setPosts([]); }
+      finally { if (alive) setLoadingPosts(false); }
+    })();
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("shelf_items" as any)
+          .select("id,product_id,category,product_name,brand,emoji,match,is_top_pick")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false });
+        if (alive) setShelfItems(((data as any[]) ?? []) as ShelfItem[]);
+      } catch { if (alive) setShelfItems([]); }
+      finally { if (alive) setLoadingShelf(false); }
+    })();
+    return () => { alive = false; };
+  }, [userId]);
 
   const reloadLogs = async () => {
     if (!userId) { setDebugMsg("no user"); return; }
@@ -252,9 +321,9 @@ function SkinProfilePage() {
         debugMsg={debugMsg}
       />
       <main style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px 80px" }}>
-        {tab === "tea" && <TeaTab />}
-        {tab === "shelf" && <ShelfTab />}
-        {tab === "gift" && <GiftMeTab quizResult={quizResult} />}
+        {tab === "tea" && <TeaTab posts={posts} topPicks={topPicks} loadingPosts={loadingPosts} loadingTopPicks={loadingTopPicks} />}
+        {tab === "shelf" && <ShelfTab shelfItems={shelfItems} topPicks={topPicks} loadingShelf={loadingShelf} loadingTopPicks={loadingTopPicks} />}
+        {tab === "gift" && <GiftMeTab quizResult={quizResult} userId={userId} />}
         {tab === "saved" && <SavedTab userId={userId} />}
         {tab === "chart" && <ChartTab persona={persona} logs={logs} onAdd={openAddLog} onEdit={(l) => setEditLog(l)} />}
       </main>
@@ -392,19 +461,37 @@ function FilterRow({ items, active, onChange }: { items: string[]; active: strin
   );
 }
 
+// ---------- Skeleton helpers ----------
+function Skel({ h = 14, w = "100%", r = 6, style }: { h?: number; w?: number | string; r?: number; style?: CSSProperties }) {
+  return <div style={{ height: h, width: w, background: "#EFEAE3", borderRadius: r, ...style }} />;
+}
+
 // ---------- Tab 1: The Tea ----------
-function TopPicksRow() {
+function TopPicksRow({ picks, loading }: { picks: Array<{ id?: string; name: string; brand: string | null; image_url?: string | null; emoji: string | null }>; loading?: boolean }) {
   return (
     <>
       <SectionTitle>★ Top 3 Picks</SectionTitle>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-        {TOP_PICKS.map((p, i) => (
-          <div key={i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", position: "relative" }}>
-            <div style={{ position: "absolute", top: 8, left: 8, background: C.gold, color: "#fff", fontSize: 9, fontWeight: 800, padding: "3px 6px", borderRadius: 4, letterSpacing: 0.5 }}>★ TOP PICK</div>
-            <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 40 }}>{p.emoji}</div>
+        {loading && picks.length === 0 && [0, 1, 2].map(i => (
+          <div key={i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+            <Skel h={110} r={0} />
+            <div style={{ padding: 10 }}><Skel h={10} w="80%" /><div style={{ height: 6 }} /><Skel h={9} w="60%" /></div>
+          </div>
+        ))}
+        {!loading && picks.length === 0 && (
+          <div style={{ gridColumn: "1 / -1", fontSize: 12, color: C.textLight, padding: "12px 0" }}>No top picks yet.</div>
+        )}
+        {picks.map((p, i) => (
+          <div key={p.id ?? i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", position: "relative" }}>
+            <div style={{ position: "absolute", top: 8, left: 8, background: C.gold, color: "#fff", fontSize: 9, fontWeight: 800, padding: "3px 6px", borderRadius: 4, letterSpacing: 0.5, zIndex: 1 }}>★ TOP PICK</div>
+            {p.image_url ? (
+              <div style={{ aspectRatio: "1", background: `#F5F0EB url(${p.image_url}) center/cover no-repeat` }} />
+            ) : (
+              <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 40 }}>{p.emoji ?? "🧴"}</div>
+            )}
             <div style={{ padding: 10 }}>
               <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{p.name}</div>
-              <div style={{ fontSize: 11, color: C.textLight, marginTop: 2 }}>{p.brand}</div>
+              {p.brand && <div style={{ fontSize: 11, color: C.textLight, marginTop: 2 }}>{p.brand}</div>}
             </div>
           </div>
         ))}
@@ -413,84 +500,105 @@ function TopPicksRow() {
   );
 }
 
-function TeaTab() {
-  const [openPost, setOpenPost] = useState<typeof POSTS[number] | null>(null);
+function TeaTab({ posts, topPicks, loadingPosts, loadingTopPicks }: { posts: Post[]; topPicks: TopPick[]; loadingPosts: boolean; loadingTopPicks: boolean }) {
+  const [openPost, setOpenPost] = useState<Post | null>(null);
   return (
     <>
-      <TopPicksRow />
+      <TopPicksRow picks={topPicks} loading={loadingTopPicks} />
 
-      <SectionTitle>Posts</SectionTitle>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
-        {POSTS.map(p => (
-          <button key={p.id} onClick={() => setOpenPost(p)}
-            style={{ position: "relative", aspectRatio: "1", background: p.bg, border: "none", cursor: "pointer", display: "grid", placeItems: "center", padding: 0 }}>
-            <span style={{ fontSize: 56 }}>{p.emoji}</span>
-            <span style={{ position: "absolute", bottom: 6, right: 6, background: "rgba(0,0,0,0.65)", color: "#fff", fontSize: 10, fontWeight: 600, padding: "3px 6px", borderRadius: 4 }}>🏷 {p.products.length}</span>
-          </button>
-        ))}
-      </div>
+      <SectionTitle>Posts {posts.length > 0 && <span style={{ fontWeight: 500, color: C.textLight, textTransform: "none", letterSpacing: 0 }}>({posts.length})</span>}</SectionTitle>
+      {loadingPosts ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
+          {[0,1,2,3,4,5].map(i => <Skel key={i} h={120} r={0} />)}
+        </div>
+      ) : posts.length === 0 ? (
+        <div style={{ fontSize: 12, color: C.textLight, textAlign: "center", padding: "20px 10px", border: `0.5px dashed ${C.border}`, borderRadius: 10 }}>
+          No posts yet.
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
+          {posts.map(p => (
+            <button key={p.id} onClick={() => setOpenPost(p)}
+              style={{ position: "relative", aspectRatio: "1", background: p.bg_color ?? "#F5F0EB", border: "none", cursor: "pointer", display: "grid", placeItems: "center", padding: 0 }}>
+              <span style={{ fontSize: 56 }}>{p.emoji ?? "🌸"}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {openPost && <PostSheet post={openPost} onClose={() => setOpenPost(null)} />}
     </>
   );
 }
 
-function PostSheet({ post, onClose }: { post: typeof POSTS[number]; onClose: () => void }) {
+function PostSheet({ post, onClose }: { post: Post; onClose: () => void }) {
   const persona = PERSONAS[USER.skinType];
+  const dateStr = post.created_at ? new Date(post.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "";
   return (
     <Sheet onClose={onClose}>
-      <div style={{ aspectRatio: "1", background: post.bg, display: "grid", placeItems: "center", fontSize: 120, borderRadius: 12, marginBottom: 16 }}>{post.emoji}</div>
+      <div style={{ aspectRatio: "1", background: post.bg_color ?? "#F5F0EB", display: "grid", placeItems: "center", fontSize: 120, borderRadius: 12, marginBottom: 16 }}>{post.emoji ?? "🌸"}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
         <span style={{ fontWeight: 700 }}>@{USER.username}</span>
         <span style={{ padding: "2px 8px", borderRadius: 999, background: persona.bg, color: persona.color, fontSize: 10, fontWeight: 700 }}>{persona.name} {persona.emoji}</span>
       </div>
-      <div style={{ fontSize: 11, color: C.textLight }}>{post.date}</div>
-      <p style={{ marginTop: 10, fontSize: 14, lineHeight: 1.5 }}>{post.caption}</p>
+      {dateStr && <div style={{ fontSize: 11, color: C.textLight }}>{dateStr}</div>}
+      {post.caption && <p style={{ marginTop: 10, fontSize: 14, lineHeight: 1.5 }}>{post.caption}</p>}
       <div style={{ display: "flex", gap: 16, fontSize: 13, color: C.textMid, marginTop: 8 }}>
-        <span>♥ {post.likes}</span><span>💬 {post.comments}</span>
-      </div>
-
-      <div style={{ marginTop: 20, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Products in this post</div>
-      <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
-        {post.products.map((pr, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10 }}>
-            <div style={{ width: 44, height: 44, background: "#F5F0EB", borderRadius: 8, display: "grid", placeItems: "center", fontSize: 22 }}>{pr.emoji}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700 }}>{pr.name}</div>
-              <div style={{ fontSize: 11, color: C.textLight }}>{pr.brand} · {pr.category}</div>
-              <div style={{ marginTop: 4 }}><MatchPill match={pr.match} /></div>
-            </div>
-            <button style={{ display: "grid", placeItems: "center", width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface, cursor: "pointer" }}>
-              <Bookmark size={16} />
-            </button>
-          </div>
-        ))}
+        <span>♥ {post.likes_count ?? 0}</span><span>💬 {post.comments_count ?? 0}</span>
       </div>
     </Sheet>
   );
 }
 
 // ---------- Tab 2: My Shelf ----------
-function ShelfTab() {
-  const cats = ["All", ...Object.keys(SHELF)];
+function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks }: { shelfItems: ShelfItem[]; topPicks: TopPick[]; loadingShelf: boolean; loadingTopPicks: boolean }) {
+  const grouped = useMemo(() => {
+    const map = new Map<string, ShelfItem[]>();
+    for (const it of shelfItems) {
+      const list = map.get(it.category) ?? [];
+      list.push(it);
+      map.set(it.category, list);
+    }
+    return Array.from(map.entries());
+  }, [shelfItems]);
+
+  const shelfTopPicks = useMemo(() => {
+    const fromShelf = shelfItems.filter(i => i.is_top_pick).slice(0, 3).map(i => ({
+      id: i.id, name: i.product_name, brand: i.brand, emoji: i.emoji, image_url: null,
+    }));
+    return fromShelf.length > 0 ? fromShelf : topPicks;
+  }, [shelfItems, topPicks]);
+
+  const cats = ["All", ...grouped.map(([c]) => c)];
   const [active, setActive] = useState("All");
-  const visible = active === "All" ? Object.entries(SHELF) : Object.entries(SHELF).filter(([c]) => c === active);
+  const visible = active === "All" ? grouped : grouped.filter(([c]) => c === active);
+
   return (
     <>
-      <TopPicksRow />
+      <TopPicksRow picks={shelfTopPicks} loading={loadingTopPicks && shelfItems.length === 0} />
       <div style={{ marginTop: 8 }}><FilterRow items={cats} active={active} onChange={setActive} /></div>
+      {loadingShelf && shelfItems.length === 0 && (
+        <div style={{ marginTop: 24, display: "flex", gap: 10 }}>
+          {[0,1,2].map(i => <Skel key={i} h={170} w={120} r={10} />)}
+        </div>
+      )}
+      {!loadingShelf && shelfItems.length === 0 && (
+        <div style={{ marginTop: 24, fontSize: 12, color: C.textLight, textAlign: "center", padding: "20px 10px", border: `0.5px dashed ${C.border}`, borderRadius: 10 }}>
+          Your shelf is empty. Save products to start.
+        </div>
+      )}
       {visible.map(([cat, items]) => (
         <div key={cat} style={{ marginTop: 24 }}>
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>{cat}</div>
           <div style={{ display: "flex", gap: 10, overflowX: "auto", margin: "0 -16px", padding: "0 16px 8px" }}>
-            {items.map((p, i) => (
-              <div key={i} style={{ flexShrink: 0, width: 120, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", position: "relative" }}>
-                {p.top && <div style={{ position: "absolute", top: 6, left: 6, background: C.gold, color: "#fff", fontSize: 8, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
-                <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 36 }}>{p.emoji}</div>
+            {items.map((p) => (
+              <div key={p.id} style={{ flexShrink: 0, width: 120, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", position: "relative" }}>
+                {p.is_top_pick && <div style={{ position: "absolute", top: 6, left: 6, background: C.gold, color: "#fff", fontSize: 8, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
+                <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 36 }}>{p.emoji ?? "🧴"}</div>
                 <div style={{ padding: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, minHeight: 26 }}>{p.name}</div>
-                  <div style={{ fontSize: 10, color: C.textLight, margin: "2px 0 6px" }}>{p.brand}</div>
-                  <MatchPill match={p.match} />
+                  <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, minHeight: 26 }}>{p.product_name}</div>
+                  {p.brand && <div style={{ fontSize: 10, color: C.textLight, margin: "2px 0 6px" }}>{p.brand}</div>}
+                  <MatchPill match={(p.match ?? "good") as Match} />
                 </div>
               </div>
             ))}
@@ -511,14 +619,26 @@ function CrimsonLabel({ children }: { children: ReactNode }) {
 
 function SavedTab({ userId }: { userId: string | null }) {
   const [active, setActive] = useState("Recently Saved");
-  const items = active === "Recently Saved" ? SAVED : SAVED.filter(s => s.category === active);
   const navigate = useNavigate();
+  const [savedProducts, setSavedProducts] = useState<SavedProductRow[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
   const [savedClinics, setSavedClinics] = useState<Array<{ id: string; name: string; neighborhood: string | null; image_url: string | null; best_for: string[] | null; trust_score: number | null; skintea_score: number | null; }>>([]);
   const [savedPosts, setSavedPosts] = useState<Array<{ id: string; post_id: string; post_type: string }>>([]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) { setLoadingProducts(false); return; }
     let alive = true;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("saved_products" as any)
+          .select("id, product_id, products(id,name,brand,category,image_url,emoji,match)")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false });
+        if (alive) setSavedProducts(((data as any[]) ?? []) as SavedProductRow[]);
+      } catch { if (alive) setSavedProducts([]); }
+      finally { if (alive) setLoadingProducts(false); }
+    })();
     (async () => {
       const { data: scs } = await supabase
         .from("saved_clinics")
@@ -534,6 +654,32 @@ function SavedTab({ userId }: { userId: string | null }) {
     })();
     return () => { alive = false; };
   }, [userId]);
+
+  const flatSaved = savedProducts
+    .map(r => r.products ? { rowId: r.id, ...r.products } : null)
+    .filter(Boolean) as Array<{ rowId: string; id: string; name: string; brand: string | null; category: string | null; image_url: string | null; emoji: string | null; match: Match | null }>;
+  const items = active === "Recently Saved" ? flatSaved : flatSaved.filter(s => s.category === active);
+
+  const removeSaved = async (rowId: string) => {
+    setSavedProducts(rows => rows.filter(r => r.id !== rowId));
+    try { await supabase.from("saved_products" as any).delete().eq("id", rowId); } catch {}
+  };
+
+  const addToShelf = async (p: { id: string; name: string; brand: string | null; category: string | null; emoji: string | null; match: Match | null }) => {
+    if (!userId) return;
+    try {
+      await supabase.from("shelf_items" as any).insert({
+        user_id: userId,
+        product_id: p.id,
+        category: p.category ?? "Other",
+        product_name: p.name,
+        brand: p.brand,
+        emoji: p.emoji,
+        match: p.match ?? "good",
+        is_top_pick: false,
+      });
+    } catch {}
+  };
 
   const unsaveClinic = async (id: string) => {
     setSavedClinics(cs => cs.filter(c => c.id !== id));
@@ -556,23 +702,37 @@ function SavedTab({ userId }: { userId: string | null }) {
 
       {/* Section 1 — Products saved */}
       <FilterRow items={SAVED_FILTERS} active={active} onChange={setActive} />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginTop: 16 }}>
-        {items.map((p, i) => (
-          <div key={i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-            <div style={{ aspectRatio: "1.3", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 44 }}>{p.emoji}</div>
-            <div style={{ padding: 10 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{p.name}</div>
-              <div style={{ fontSize: 10, color: C.textLight, marginTop: 2 }}>{p.category}</div>
-              <div style={{ marginTop: 6 }}><MatchPill match={p.match} /></div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
-                <button style={{ width: "100%", background: "#1C0A00", color: "#FFFCF8", border: "none", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, cursor: "pointer" }}>Add to My Shelf</button>
-                <button style={{ width: "100%", background: "#FFF5F5", color: "#A8001C", border: "0.5px solid #A8001C", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, cursor: "pointer" }}>🎁 Add to Gift Me</button>
-                <button style={{ width: "100%", background: "transparent", color: "#bbb", border: "0.5px solid #E8DDD4", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 600, cursor: "pointer" }}>Remove</button>
+      {loadingProducts ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginTop: 16 }}>
+          {[0,1,2,3].map(i => <Skel key={i} h={170} r={12} />)}
+        </div>
+      ) : items.length === 0 ? (
+        <div style={{ marginTop: 16, fontSize: 12, color: C.textLight, textAlign: "center", padding: "20px 10px", border: `0.5px dashed ${C.border}`, borderRadius: 10 }}>
+          No saved products yet.
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginTop: 16 }}>
+          {items.map((p) => (
+            <div key={p.rowId} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+              {p.image_url ? (
+                <div style={{ aspectRatio: "1.3", background: `#F5F0EB url(${p.image_url}) center/cover no-repeat` }} />
+              ) : (
+                <div style={{ aspectRatio: "1.3", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 44 }}>{p.emoji ?? "🧴"}</div>
+              )}
+              <div style={{ padding: 10 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{p.name}</div>
+                {p.category && <div style={{ fontSize: 10, color: C.textLight, marginTop: 2 }}>{p.category}</div>}
+                <div style={{ marginTop: 6 }}><MatchPill match={(p.match ?? "good") as Match} /></div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
+                  <button onClick={() => addToShelf(p)} style={{ width: "100%", background: "#1C0A00", color: "#FFFCF8", border: "none", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, cursor: "pointer" }}>Add to My Shelf</button>
+                  <button style={{ width: "100%", background: "#FFF5F5", color: "#A8001C", border: "0.5px solid #A8001C", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, cursor: "pointer" }}>🎁 Add to Gift Me</button>
+                  <button onClick={() => removeSaved(p.rowId)} style={{ width: "100%", background: "transparent", color: "#bbb", border: "0.5px solid #E8DDD4", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 600, cursor: "pointer" }}>Remove</button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Section 2 — Saved Clinics */}
       <CrimsonLabel>Saved Clinics</CrimsonLabel>
@@ -642,21 +802,38 @@ function SavedTab({ userId }: { userId: string | null }) {
 }
 
 // ---------- Tab: Gift Me ----------
-function GiftMeTab({ quizResult }: { quizResult: any }) {
+function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | null }) {
   const [giftSubTab, setGiftSubTab] = useState<"needs" | "skincare" | "makeup">("needs");
   const [activeRoutineTab, setActiveRoutineTab] = useState("cleanser");
-  const [skincareWishlist, setSkincareWishlist] = useState([
-    { emoji: "🌿", name: "Centella Unscented Serum", brand: "Purito", category: "Serum", affiliate: "Amazon" },
-    { emoji: "☀️", name: "UV Clear SPF 46", brand: "EltaMD", category: "SPF", affiliate: "Amazon" },
-    { emoji: "🫙", name: "The Water Cream", brand: "Tatcha", category: "Moisturizer", affiliate: "Sephora" },
-    { emoji: "🍉", name: "Watermelon Sleeping Mask", brand: "Glow Recipe", category: "Mask", affiliate: "Sephora" },
-  ]);
-  const [makeupWishlist, setMakeupWishlist] = useState([
-    { emoji: "💄", name: "Peptide Lip Tint", brand: "Rhode", category: "Lip", affiliate: "Sephora" },
-    { emoji: "🌟", name: "Glowgasm Face Palette", brand: "Charlotte Tilbury", category: "Highlighter", affiliate: "Sephora" },
-    { emoji: "🫦", name: "Lip Cheat Liner", brand: "Charlotte Tilbury", category: "Lip Liner", affiliate: "Sephora" },
-    { emoji: "🌸", name: "Orgasm Blush", brand: "NARS", category: "Blush", affiliate: "Sephora" },
-  ]);
+  const [skincareWishlist, setSkincareWishlist] = useState<GiftItem[]>([]);
+  const [makeupWishlist, setMakeupWishlist] = useState<GiftItem[]>([]);
+
+  useEffect(() => {
+    if (!userId) { setSkincareWishlist([]); setMakeupWishlist([]); return; }
+    let alive = true;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("gift_wishlist" as any)
+          .select("id,product_id,product_name,brand,category,emoji,affiliate_url,affiliate_store,type")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false });
+        if (!alive) return;
+        const all = ((data as any[]) ?? []) as GiftItem[];
+        setSkincareWishlist(all.filter(i => i.type === "skincare"));
+        setMakeupWishlist(all.filter(i => i.type === "makeup"));
+      } catch {
+        if (alive) { setSkincareWishlist([]); setMakeupWishlist([]); }
+      }
+    })();
+    return () => { alive = false; };
+  }, [userId]);
+
+  const removeItem = async (item: GiftItem) => {
+    if (item.type === "skincare") setSkincareWishlist(l => l.filter(x => x.id !== item.id));
+    else setMakeupWishlist(l => l.filter(x => x.id !== item.id));
+    try { await supabase.from("gift_wishlist" as any).delete().eq("id", item.id); } catch {}
+  };
 
   const ROUTINE_TABS = [
     { num: 1, key: "cleanser", label: "Cleanser" },
@@ -695,8 +872,7 @@ function GiftMeTab({ quizResult }: { quizResult: any }) {
   ];
 
   const renderWishlist = (
-    list: typeof skincareWishlist,
-    setList: (l: typeof skincareWishlist) => void,
+    list: GiftItem[],
     filters: string[],
     badge: { bg: string; color: string; border: string; text: string },
     addText: string,
@@ -709,25 +885,35 @@ function GiftMeTab({ quizResult }: { quizResult: any }) {
             <button key={f} style={pillStyle(f === activeFilter)}>{f}</button>
           ))}
         </div>
+        {list.length === 0 ? (
+          <div style={{ fontSize: 12, color: "#999", textAlign: "center", padding: "20px 10px", border: "0.5px dashed #E8DDD4", borderRadius: 10 }}>
+            Nothing on your wishlist yet.
+          </div>
+        ) : (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {list.map((item) => (
-            <div key={item.name} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, overflow: "hidden" }}>
+            <div key={item.id} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, overflow: "hidden" }}>
               <div style={{ height: 75, background: "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
-                {item.emoji}
+                {item.emoji ?? "🎁"}
                 <span style={{ position: "absolute", top: 5, right: 5, fontSize: 7, fontWeight: 800, padding: "2px 5px", borderRadius: 99, background: badge.bg, color: badge.color, border: `0.5px solid ${badge.border}` }}>{badge.text}</span>
               </div>
               <div style={{ padding: "7px 8px 8px" }}>
-                <div style={{ fontSize: 7, color: "#A8001C", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{item.category}</div>
-                <div style={{ fontSize: 8, color: "#999" }}>{item.brand}</div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00", marginBottom: 5 }}>{item.name}</div>
+                {item.category && <div style={{ fontSize: 7, color: "#A8001C", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{item.category}</div>}
+                {item.brand && <div style={{ fontSize: 8, color: "#999" }}>{item.brand}</div>}
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00", marginBottom: 5 }}>{item.product_name}</div>
                 <div style={{ display: "flex", gap: 4 }}>
-                  <div style={{ flex: 1, background: "#1C0A00", color: "#FFFCF8", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 700, textAlign: "center" }}>Buy → {item.affiliate}</div>
-                  <div onClick={() => setList(list.filter(x => x.name !== item.name))} style={{ width: 22, background: "#FFFCF8", border: "0.5px solid #E8DDD4", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: "#bbb", cursor: "pointer" }}>×</div>
+                  {item.affiliate_url ? (
+                    <a href={item.affiliate_url} target="_blank" rel="noreferrer" style={{ flex: 1, background: "#1C0A00", color: "#FFFCF8", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 700, textAlign: "center", textDecoration: "none" }}>Buy{item.affiliate_store ? ` → ${item.affiliate_store}` : ""}</a>
+                  ) : (
+                    <div style={{ flex: 1, background: "#1C0A00", color: "#FFFCF8", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 700, textAlign: "center" }}>Buy{item.affiliate_store ? ` → ${item.affiliate_store}` : ""}</div>
+                  )}
+                  <div onClick={() => removeItem(item)} style={{ width: 22, background: "#FFFCF8", border: "0.5px solid #E8DDD4", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: "#bbb", cursor: "pointer" }}>×</div>
                 </div>
               </div>
             </div>
           ))}
         </div>
+        )}
         <button style={{ width: "100%", border: "1.5px dashed #E8DDD4", borderRadius: 10, background: "transparent", padding: 12, fontSize: 11, fontWeight: 600, color: "#999", marginTop: 8, cursor: "pointer" }}>{addText}</button>
       </>
     );
@@ -789,7 +975,6 @@ function GiftMeTab({ quizResult }: { quizResult: any }) {
           <div style={{ marginTop: 24, marginBottom: 10, fontSize: 11, fontWeight: 800, color: "#1C0A00", textTransform: "uppercase", letterSpacing: "0.06em" }}>Skincare Wishlist</div>
           {renderWishlist(
             skincareWishlist,
-            setSkincareWishlist,
             ["All", "Serum", "Moisturizer", "SPF", "Mask"],
             { bg: "#F0FAF1", color: "#2D7A3A", border: "#2D7A3A", text: "Skin" },
             "+ Add skincare to wishlist",
@@ -798,7 +983,6 @@ function GiftMeTab({ quizResult }: { quizResult: any }) {
           <div style={{ marginTop: 24, marginBottom: 10, fontSize: 11, fontWeight: 800, color: "#1C0A00", textTransform: "uppercase", letterSpacing: "0.06em" }}>Makeup Wishlist</div>
           {renderWishlist(
             makeupWishlist,
-            setMakeupWishlist,
             ["All", "Lip", "Eye", "Base", "Blush"],
             { bg: "#FFF0F5", color: "#C2185B", border: "#C2185B", text: "Makeup" },
             "+ Add makeup to wishlist",
@@ -808,7 +992,6 @@ function GiftMeTab({ quizResult }: { quizResult: any }) {
 
       {giftSubTab === "skincare" && renderWishlist(
         skincareWishlist,
-        setSkincareWishlist,
         ["All", "Serum", "Moisturizer", "SPF", "Mask"],
         { bg: "#F0FAF1", color: "#2D7A3A", border: "#2D7A3A", text: "Skin" },
         "+ Add skincare to wishlist",
@@ -816,7 +999,6 @@ function GiftMeTab({ quizResult }: { quizResult: any }) {
 
       {giftSubTab === "makeup" && renderWishlist(
         makeupWishlist,
-        setMakeupWishlist,
         ["All", "Lip", "Eye", "Base", "Blush"],
         { bg: "#FFF0F5", color: "#C2185B", border: "#C2185B", text: "Makeup" },
         "+ Add makeup to wishlist",

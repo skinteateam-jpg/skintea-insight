@@ -334,23 +334,28 @@ function ProductDetailV2() {
               </div>
             </div>
             <button
+              onClick={handleSaveToggle}
+              disabled={saving}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
                 padding: "9px 16px",
                 borderRadius: 999,
-                border: `1.5px solid ${C.textDark}`,
-                background: "transparent",
-                color: C.textDark,
+                border: isSaved ? "none" : `1.5px solid ${C.textDark}`,
+                background: isSaved ? C.textDark : "transparent",
+                color: isSaved ? "#FFFCF8" : C.textDark,
                 fontSize: 12,
                 fontWeight: 700,
                 textTransform: "uppercase",
                 letterSpacing: "0.06em",
-                cursor: "pointer",
+                cursor: saving ? "default" : "pointer",
+                opacity: saving ? 0.6 : 1,
+                transition: "opacity 150ms ease",
               }}
             >
-              <Bookmark size={13} /> Save
+              <Bookmark size={13} fill={isSaved ? "#FFFCF8" : "none"} />
+              {isSaved ? "Saved" : "Save"}
             </button>
           </div>
 

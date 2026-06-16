@@ -322,7 +322,7 @@ function SkinProfilePage() {
       />
       <main style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px 80px" }}>
         {tab === "tea" && <TeaTab posts={posts} topPicks={topPicks} loadingPosts={loadingPosts} loadingTopPicks={loadingTopPicks} />}
-        {tab === "shelf" && <ShelfTab shelfItems={shelfItems} topPicks={topPicks} loadingShelf={loadingShelf} loadingTopPicks={loadingTopPicks} />}
+        {tab === "shelf" && <ShelfTab shelfItems={shelfItems} topPicks={topPicks} loadingShelf={loadingShelf} loadingTopPicks={loadingTopPicks} userId={userId} onShelfAdded={(it) => setShelfItems(prev => [it, ...prev])} />}
         {tab === "gift" && <GiftMeTab quizResult={quizResult} userId={userId} />}
         {tab === "saved" && <SavedTab userId={userId} />}
         {tab === "chart" && <ChartTab persona={persona} logs={logs} onAdd={openAddLog} onEdit={(l) => setEditLog(l)} />}

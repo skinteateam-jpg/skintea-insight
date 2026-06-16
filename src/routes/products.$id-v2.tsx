@@ -1,5 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Bookmark, Check, X, ChevronRight, Lock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/products/$id-v2")({
   component: ProductDetailV2,
@@ -84,6 +86,62 @@ function fitColor(v: number) {
 }
 
 function ProductDetailV2() {
+  const navigate = useNavigate();
+  const productId = "cerave-moisturizing-cream";
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      const uid = data.user?.id ?? null;
+      if (!alive) return;
+      setUserId(uid);
+      if (!uid) {
+        setIsSaved(false);
+        return;
+      }
+      const { data: row } = await (supabase as any)
+        .from("saved_products")
+        .select("id")
+        .eq("user_id", uid)
+        .eq("product_id", productId)
+        .maybeSingle();
+      if (!alive) return;
+      setIsSaved(!!row);
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  async function handleSaveToggle() {
+    if (!userId) {
+      navigate({ to: "/login" });
+      return;
+    }
+    if (saving) return;
+    setSaving(true);
+    if (!isSaved) {
+      const { error } = await (supabase as any)
+        .from("saved_products")
+        .insert({
+          user_id: userId,
+          product_id: productId,
+          created_at: new Date().toISOString(),
+        });
+      if (!error) setIsSaved(true);
+    } else {
+      const { error } = await (supabase as any)
+        .from("saved_products")
+        .delete()
+        .eq("user_id", userId)
+        .eq("product_id", productId);
+      if (!error) setIsSaved(false);
+    }
+    setSaving(false);
+  }
+
   return (
     <div style={{ background: C.espresso, minHeight: "100vh", color: C.textDark }}>
       <div style={{ maxWidth: 480, margin: "0 auto" }}>
@@ -276,23 +334,28 @@ function ProductDetailV2() {
               </div>
             </div>
             <button
+              onClick={handleSaveToggle}
+              disabled={saving}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 6,
                 padding: "9px 16px",
                 borderRadius: 999,
-                border: `1.5px solid ${C.textDark}`,
-                background: "transparent",
-                color: C.textDark,
+                border: isSaved ? "none" : `1.5px solid ${C.textDark}`,
+                background: isSaved ? C.textDark : "transparent",
+                color: isSaved ? "#FFFCF8" : C.textDark,
                 fontSize: 12,
                 fontWeight: 700,
                 textTransform: "uppercase",
                 letterSpacing: "0.06em",
-                cursor: "pointer",
+                cursor: saving ? "default" : "pointer",
+                opacity: saving ? 0.6 : 1,
+                transition: "opacity 150ms ease",
               }}
             >
-              <Bookmark size={13} /> Save
+              <Bookmark size={13} fill={isSaved ? "#FFFCF8" : "none"} />
+              {isSaved ? "Saved" : "Save"}
             </button>
           </div>
 

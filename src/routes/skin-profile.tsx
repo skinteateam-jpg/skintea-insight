@@ -802,21 +802,38 @@ function SavedTab({ userId }: { userId: string | null }) {
 }
 
 // ---------- Tab: Gift Me ----------
-function GiftMeTab({ quizResult }: { quizResult: any }) {
+function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | null }) {
   const [giftSubTab, setGiftSubTab] = useState<"needs" | "skincare" | "makeup">("needs");
   const [activeRoutineTab, setActiveRoutineTab] = useState("cleanser");
-  const [skincareWishlist, setSkincareWishlist] = useState([
-    { emoji: "🌿", name: "Centella Unscented Serum", brand: "Purito", category: "Serum", affiliate: "Amazon" },
-    { emoji: "☀️", name: "UV Clear SPF 46", brand: "EltaMD", category: "SPF", affiliate: "Amazon" },
-    { emoji: "🫙", name: "The Water Cream", brand: "Tatcha", category: "Moisturizer", affiliate: "Sephora" },
-    { emoji: "🍉", name: "Watermelon Sleeping Mask", brand: "Glow Recipe", category: "Mask", affiliate: "Sephora" },
-  ]);
-  const [makeupWishlist, setMakeupWishlist] = useState([
-    { emoji: "💄", name: "Peptide Lip Tint", brand: "Rhode", category: "Lip", affiliate: "Sephora" },
-    { emoji: "🌟", name: "Glowgasm Face Palette", brand: "Charlotte Tilbury", category: "Highlighter", affiliate: "Sephora" },
-    { emoji: "🫦", name: "Lip Cheat Liner", brand: "Charlotte Tilbury", category: "Lip Liner", affiliate: "Sephora" },
-    { emoji: "🌸", name: "Orgasm Blush", brand: "NARS", category: "Blush", affiliate: "Sephora" },
-  ]);
+  const [skincareWishlist, setSkincareWishlist] = useState<GiftItem[]>([]);
+  const [makeupWishlist, setMakeupWishlist] = useState<GiftItem[]>([]);
+
+  useEffect(() => {
+    if (!userId) { setSkincareWishlist([]); setMakeupWishlist([]); return; }
+    let alive = true;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("gift_wishlist" as any)
+          .select("id,product_id,product_name,brand,category,emoji,affiliate_url,affiliate_store,type")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false });
+        if (!alive) return;
+        const all = ((data as any[]) ?? []) as GiftItem[];
+        setSkincareWishlist(all.filter(i => i.type === "skincare"));
+        setMakeupWishlist(all.filter(i => i.type === "makeup"));
+      } catch {
+        if (alive) { setSkincareWishlist([]); setMakeupWishlist([]); }
+      }
+    })();
+    return () => { alive = false; };
+  }, [userId]);
+
+  const removeItem = async (item: GiftItem) => {
+    if (item.type === "skincare") setSkincareWishlist(l => l.filter(x => x.id !== item.id));
+    else setMakeupWishlist(l => l.filter(x => x.id !== item.id));
+    try { await supabase.from("gift_wishlist" as any).delete().eq("id", item.id); } catch {}
+  };
 
   const ROUTINE_TABS = [
     { num: 1, key: "cleanser", label: "Cleanser" },
@@ -855,8 +872,7 @@ function GiftMeTab({ quizResult }: { quizResult: any }) {
   ];
 
   const renderWishlist = (
-    list: typeof skincareWishlist,
-    setList: (l: typeof skincareWishlist) => void,
+    list: GiftItem[],
     filters: string[],
     badge: { bg: string; color: string; border: string; text: string },
     addText: string,
@@ -869,25 +885,35 @@ function GiftMeTab({ quizResult }: { quizResult: any }) {
             <button key={f} style={pillStyle(f === activeFilter)}>{f}</button>
           ))}
         </div>
+        {list.length === 0 ? (
+          <div style={{ fontSize: 12, color: "#999", textAlign: "center", padding: "20px 10px", border: "0.5px dashed #E8DDD4", borderRadius: 10 }}>
+            Nothing on your wishlist yet.
+          </div>
+        ) : (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {list.map((item) => (
-            <div key={item.name} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, overflow: "hidden" }}>
+            <div key={item.id} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, overflow: "hidden" }}>
               <div style={{ height: 75, background: "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
-                {item.emoji}
+                {item.emoji ?? "🎁"}
                 <span style={{ position: "absolute", top: 5, right: 5, fontSize: 7, fontWeight: 800, padding: "2px 5px", borderRadius: 99, background: badge.bg, color: badge.color, border: `0.5px solid ${badge.border}` }}>{badge.text}</span>
               </div>
               <div style={{ padding: "7px 8px 8px" }}>
-                <div style={{ fontSize: 7, color: "#A8001C", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{item.category}</div>
-                <div style={{ fontSize: 8, color: "#999" }}>{item.brand}</div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00", marginBottom: 5 }}>{item.name}</div>
+                {item.category && <div style={{ fontSize: 7, color: "#A8001C", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{item.category}</div>}
+                {item.brand && <div style={{ fontSize: 8, color: "#999" }}>{item.brand}</div>}
+                <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00", marginBottom: 5 }}>{item.product_name}</div>
                 <div style={{ display: "flex", gap: 4 }}>
-                  <div style={{ flex: 1, background: "#1C0A00", color: "#FFFCF8", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 700, textAlign: "center" }}>Buy → {item.affiliate}</div>
-                  <div onClick={() => setList(list.filter(x => x.name !== item.name))} style={{ width: 22, background: "#FFFCF8", border: "0.5px solid #E8DDD4", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: "#bbb", cursor: "pointer" }}>×</div>
+                  {item.affiliate_url ? (
+                    <a href={item.affiliate_url} target="_blank" rel="noreferrer" style={{ flex: 1, background: "#1C0A00", color: "#FFFCF8", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 700, textAlign: "center", textDecoration: "none" }}>Buy{item.affiliate_store ? ` → ${item.affiliate_store}` : ""}</a>
+                  ) : (
+                    <div style={{ flex: 1, background: "#1C0A00", color: "#FFFCF8", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 700, textAlign: "center" }}>Buy{item.affiliate_store ? ` → ${item.affiliate_store}` : ""}</div>
+                  )}
+                  <div onClick={() => removeItem(item)} style={{ width: 22, background: "#FFFCF8", border: "0.5px solid #E8DDD4", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: "#bbb", cursor: "pointer" }}>×</div>
                 </div>
               </div>
             </div>
           ))}
         </div>
+        )}
         <button style={{ width: "100%", border: "1.5px dashed #E8DDD4", borderRadius: 10, background: "transparent", padding: 12, fontSize: 11, fontWeight: 600, color: "#999", marginTop: 8, cursor: "pointer" }}>{addText}</button>
       </>
     );
@@ -949,7 +975,6 @@ function GiftMeTab({ quizResult }: { quizResult: any }) {
           <div style={{ marginTop: 24, marginBottom: 10, fontSize: 11, fontWeight: 800, color: "#1C0A00", textTransform: "uppercase", letterSpacing: "0.06em" }}>Skincare Wishlist</div>
           {renderWishlist(
             skincareWishlist,
-            setSkincareWishlist,
             ["All", "Serum", "Moisturizer", "SPF", "Mask"],
             { bg: "#F0FAF1", color: "#2D7A3A", border: "#2D7A3A", text: "Skin" },
             "+ Add skincare to wishlist",
@@ -958,7 +983,6 @@ function GiftMeTab({ quizResult }: { quizResult: any }) {
           <div style={{ marginTop: 24, marginBottom: 10, fontSize: 11, fontWeight: 800, color: "#1C0A00", textTransform: "uppercase", letterSpacing: "0.06em" }}>Makeup Wishlist</div>
           {renderWishlist(
             makeupWishlist,
-            setMakeupWishlist,
             ["All", "Lip", "Eye", "Base", "Blush"],
             { bg: "#FFF0F5", color: "#C2185B", border: "#C2185B", text: "Makeup" },
             "+ Add makeup to wishlist",
@@ -968,7 +992,6 @@ function GiftMeTab({ quizResult }: { quizResult: any }) {
 
       {giftSubTab === "skincare" && renderWishlist(
         skincareWishlist,
-        setSkincareWishlist,
         ["All", "Serum", "Moisturizer", "SPF", "Mask"],
         { bg: "#F0FAF1", color: "#2D7A3A", border: "#2D7A3A", text: "Skin" },
         "+ Add skincare to wishlist",
@@ -976,7 +999,6 @@ function GiftMeTab({ quizResult }: { quizResult: any }) {
 
       {giftSubTab === "makeup" && renderWishlist(
         makeupWishlist,
-        setMakeupWishlist,
         ["All", "Lip", "Eye", "Base", "Blush"],
         { bg: "#FFF0F5", color: "#C2185B", border: "#C2185B", text: "Makeup" },
         "+ Add makeup to wishlist",

@@ -1146,7 +1146,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
           userId={userId}
           type={addWish.type}
           onClose={() => setAddWish(null)}
-          onSaved={(it) => {
+          onSaved={(it: GiftItem) => {
             if (it.type === "skincare") setSkincareWishlist(prev => [it, ...prev]);
             else setMakeupWishlist(prev => [it, ...prev]);
             setAddWish(null);

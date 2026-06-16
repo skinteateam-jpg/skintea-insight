@@ -939,6 +939,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
   const [activeRoutineTab, setActiveRoutineTab] = useState("cleanser");
   const [skincareWishlist, setSkincareWishlist] = useState<GiftItem[]>([]);
   const [makeupWishlist, setMakeupWishlist] = useState<GiftItem[]>([]);
+  const [addWish, setAddWish] = useState<{ type: "skincare" | "makeup" } | null>(null);
 
   useEffect(() => {
     if (!userId) { setSkincareWishlist([]); setMakeupWishlist([]); return; }

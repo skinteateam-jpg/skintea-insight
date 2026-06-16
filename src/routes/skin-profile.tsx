@@ -461,19 +461,37 @@ function FilterRow({ items, active, onChange }: { items: string[]; active: strin
   );
 }
 
+// ---------- Skeleton helpers ----------
+function Skel({ h = 14, w = "100%", r = 6, style }: { h?: number; w?: number | string; r?: number; style?: CSSProperties }) {
+  return <div style={{ height: h, width: w, background: "#EFEAE3", borderRadius: r, ...style }} />;
+}
+
 // ---------- Tab 1: The Tea ----------
-function TopPicksRow() {
+function TopPicksRow({ picks, loading }: { picks: Array<{ id?: string; name: string; brand: string | null; image_url?: string | null; emoji: string | null }>; loading?: boolean }) {
   return (
     <>
       <SectionTitle>★ Top 3 Picks</SectionTitle>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-        {TOP_PICKS.map((p, i) => (
-          <div key={i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", position: "relative" }}>
-            <div style={{ position: "absolute", top: 8, left: 8, background: C.gold, color: "#fff", fontSize: 9, fontWeight: 800, padding: "3px 6px", borderRadius: 4, letterSpacing: 0.5 }}>★ TOP PICK</div>
-            <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 40 }}>{p.emoji}</div>
+        {loading && picks.length === 0 && [0, 1, 2].map(i => (
+          <div key={i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
+            <Skel h={110} r={0} />
+            <div style={{ padding: 10 }}><Skel h={10} w="80%" /><div style={{ height: 6 }} /><Skel h={9} w="60%" /></div>
+          </div>
+        ))}
+        {!loading && picks.length === 0 && (
+          <div style={{ gridColumn: "1 / -1", fontSize: 12, color: C.textLight, padding: "12px 0" }}>No top picks yet.</div>
+        )}
+        {picks.map((p, i) => (
+          <div key={p.id ?? i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", position: "relative" }}>
+            <div style={{ position: "absolute", top: 8, left: 8, background: C.gold, color: "#fff", fontSize: 9, fontWeight: 800, padding: "3px 6px", borderRadius: 4, letterSpacing: 0.5, zIndex: 1 }}>★ TOP PICK</div>
+            {p.image_url ? (
+              <div style={{ aspectRatio: "1", background: `#F5F0EB url(${p.image_url}) center/cover no-repeat` }} />
+            ) : (
+              <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 40 }}>{p.emoji ?? "🧴"}</div>
+            )}
             <div style={{ padding: 10 }}>
               <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{p.name}</div>
-              <div style={{ fontSize: 11, color: C.textLight, marginTop: 2 }}>{p.brand}</div>
+              {p.brand && <div style={{ fontSize: 11, color: C.textLight, marginTop: 2 }}>{p.brand}</div>}
             </div>
           </div>
         ))}
@@ -482,58 +500,51 @@ function TopPicksRow() {
   );
 }
 
-function TeaTab() {
-  const [openPost, setOpenPost] = useState<typeof POSTS[number] | null>(null);
+function TeaTab({ posts, topPicks, loadingPosts, loadingTopPicks }: { posts: Post[]; topPicks: TopPick[]; loadingPosts: boolean; loadingTopPicks: boolean }) {
+  const [openPost, setOpenPost] = useState<Post | null>(null);
   return (
     <>
-      <TopPicksRow />
+      <TopPicksRow picks={topPicks} loading={loadingTopPicks} />
 
-      <SectionTitle>Posts</SectionTitle>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
-        {POSTS.map(p => (
-          <button key={p.id} onClick={() => setOpenPost(p)}
-            style={{ position: "relative", aspectRatio: "1", background: p.bg, border: "none", cursor: "pointer", display: "grid", placeItems: "center", padding: 0 }}>
-            <span style={{ fontSize: 56 }}>{p.emoji}</span>
-            <span style={{ position: "absolute", bottom: 6, right: 6, background: "rgba(0,0,0,0.65)", color: "#fff", fontSize: 10, fontWeight: 600, padding: "3px 6px", borderRadius: 4 }}>🏷 {p.products.length}</span>
-          </button>
-        ))}
-      </div>
+      <SectionTitle>Posts {posts.length > 0 && <span style={{ fontWeight: 500, color: C.textLight, textTransform: "none", letterSpacing: 0 }}>({posts.length})</span>}</SectionTitle>
+      {loadingPosts ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
+          {[0,1,2,3,4,5].map(i => <Skel key={i} h={120} r={0} />)}
+        </div>
+      ) : posts.length === 0 ? (
+        <div style={{ fontSize: 12, color: C.textLight, textAlign: "center", padding: "20px 10px", border: `0.5px dashed ${C.border}`, borderRadius: 10 }}>
+          No posts yet.
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
+          {posts.map(p => (
+            <button key={p.id} onClick={() => setOpenPost(p)}
+              style={{ position: "relative", aspectRatio: "1", background: p.bg_color ?? "#F5F0EB", border: "none", cursor: "pointer", display: "grid", placeItems: "center", padding: 0 }}>
+              <span style={{ fontSize: 56 }}>{p.emoji ?? "🌸"}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {openPost && <PostSheet post={openPost} onClose={() => setOpenPost(null)} />}
     </>
   );
 }
 
-function PostSheet({ post, onClose }: { post: typeof POSTS[number]; onClose: () => void }) {
+function PostSheet({ post, onClose }: { post: Post; onClose: () => void }) {
   const persona = PERSONAS[USER.skinType];
+  const dateStr = post.created_at ? new Date(post.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "";
   return (
     <Sheet onClose={onClose}>
-      <div style={{ aspectRatio: "1", background: post.bg, display: "grid", placeItems: "center", fontSize: 120, borderRadius: 12, marginBottom: 16 }}>{post.emoji}</div>
+      <div style={{ aspectRatio: "1", background: post.bg_color ?? "#F5F0EB", display: "grid", placeItems: "center", fontSize: 120, borderRadius: 12, marginBottom: 16 }}>{post.emoji ?? "🌸"}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
         <span style={{ fontWeight: 700 }}>@{USER.username}</span>
         <span style={{ padding: "2px 8px", borderRadius: 999, background: persona.bg, color: persona.color, fontSize: 10, fontWeight: 700 }}>{persona.name} {persona.emoji}</span>
       </div>
-      <div style={{ fontSize: 11, color: C.textLight }}>{post.date}</div>
-      <p style={{ marginTop: 10, fontSize: 14, lineHeight: 1.5 }}>{post.caption}</p>
+      {dateStr && <div style={{ fontSize: 11, color: C.textLight }}>{dateStr}</div>}
+      {post.caption && <p style={{ marginTop: 10, fontSize: 14, lineHeight: 1.5 }}>{post.caption}</p>}
       <div style={{ display: "flex", gap: 16, fontSize: 13, color: C.textMid, marginTop: 8 }}>
-        <span>♥ {post.likes}</span><span>💬 {post.comments}</span>
-      </div>
-
-      <div style={{ marginTop: 20, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Products in this post</div>
-      <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
-        {post.products.map((pr, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10 }}>
-            <div style={{ width: 44, height: 44, background: "#F5F0EB", borderRadius: 8, display: "grid", placeItems: "center", fontSize: 22 }}>{pr.emoji}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700 }}>{pr.name}</div>
-              <div style={{ fontSize: 11, color: C.textLight }}>{pr.brand} · {pr.category}</div>
-              <div style={{ marginTop: 4 }}><MatchPill match={pr.match} /></div>
-            </div>
-            <button style={{ display: "grid", placeItems: "center", width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.border}`, background: C.surface, cursor: "pointer" }}>
-              <Bookmark size={16} />
-            </button>
-          </div>
-        ))}
+        <span>♥ {post.likes_count ?? 0}</span><span>💬 {post.comments_count ?? 0}</span>
       </div>
     </Sheet>
   );

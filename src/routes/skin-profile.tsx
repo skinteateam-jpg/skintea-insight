@@ -63,52 +63,51 @@ const matchStyle = (m: Match) =>
     : { bg: C.badBg, color: C.bad, label: "✕ Avoid" };
 
 // ---------- Mock data ----------
-const TOP_PICKS = [
-  { emoji: "🧴", name: "Foaming Cleanser", brand: "CeraVe" },
-  { emoji: "💧", name: "BHA Liquid", brand: "Paula's Choice" },
-  { emoji: "☀️", name: "UV Daily", brand: "Beauty of Joseon" },
-];
-
-const POSTS = [
-  { id: 1, emoji: "🧴", bg: "#FCE8EC", caption: "Current AM routine, simplified.", date: "Apr 12", likes: 412, comments: 38, products: [
-    { emoji: "🧴", name: "Foaming Cleanser", brand: "CeraVe", category: "Cleanser", match: "good" as Match },
-    { emoji: "☀️", name: "UV Daily", brand: "Beauty of Joseon", category: "SPF", match: "good" as Match },
-  ]},
-  { id: 2, emoji: "💧", bg: "#EFE5F7", caption: "BHA week 6 update.", date: "Apr 8", likes: 287, comments: 19, products: [
-    { emoji: "💧", name: "BHA Liquid", brand: "Paula's Choice", category: "Serum", match: "good" as Match },
-  ]},
-  { id: 3, emoji: "🌸", bg: "#FCE4EC", caption: "Tried this mask. Mixed feelings.", date: "Apr 3", likes: 156, comments: 22, products: [
-    { emoji: "🌸", name: "Clay Mask", brand: "Innisfree", category: "Face Mask", match: "warn" as Match },
-  ]},
-  { id: 4, emoji: "🍵", bg: "#E6F4EA", caption: "Green tea toner > everything.", date: "Mar 28", likes: 503, comments: 41, products: [
-    { emoji: "🍵", name: "Green Tea Toner", brand: "Innisfree", category: "Toner", match: "good" as Match },
-  ]},
-  { id: 5, emoji: "🧊", bg: "#E3F2FD", caption: "Ice globes hype check.", date: "Mar 22", likes: 198, comments: 14, products: [
-    { emoji: "🧊", name: "Ice Globes", brand: "Skintea Lab", category: "Device", match: "good" as Match },
-  ]},
-  { id: 6, emoji: "🩹", bg: "#FBF3DC", caption: "Pimple patch saves.", date: "Mar 18", likes: 342, comments: 27, products: [
-    { emoji: "🩹", name: "Hydro Patches", brand: "COSRX", category: "Treatment", match: "good" as Match },
-  ]},
-];
-
-const SHELF: Record<string, Array<{ emoji: string; name: string; brand: string; match: Match; top?: boolean }>> = {
-  Cleanser:   [{ emoji: "🧴", name: "Foaming Cleanser", brand: "CeraVe", match: "good", top: true }, { emoji: "🧼", name: "Gel Wash", brand: "La Roche", match: "good" }],
-  Toner:      [{ emoji: "🍵", name: "Green Tea Toner", brand: "Innisfree", match: "good" }, { emoji: "🌹", name: "Rose Toner", brand: "Klairs", match: "warn" }],
-  Serum:      [{ emoji: "💧", name: "BHA Liquid", brand: "Paula's Choice", match: "good", top: true }, { emoji: "✨", name: "Vitamin C", brand: "Skinceuticals", match: "warn" }],
-  Moisturizer:[{ emoji: "🥛", name: "Moisturizing Cream", brand: "CeraVe", match: "good" }],
-  "Face Mask":[{ emoji: "🌸", name: "Clay Mask", brand: "Innisfree", match: "warn" }, { emoji: "🍯", name: "Honey Mask", brand: "I'm From", match: "good" }],
-  Device:     [{ emoji: "🧊", name: "Ice Globes", brand: "Skintea Lab", match: "good" }],
-  SPF:        [{ emoji: "☀️", name: "UV Daily", brand: "Beauty of Joseon", match: "good", top: true }],
+// ---------- Live data types ----------
+export type TopPick = { id: string; name: string; brand: string | null; image_url: string | null; emoji: string | null };
+export type Post = {
+  id: string;
+  emoji: string | null;
+  bg_color: string | null;
+  caption: string | null;
+  created_at: string;
+  likes_count: number;
+  comments_count: number;
 };
-
-const SAVED = [
-  { emoji: "🌿", name: "Centella Ampoule", brand: "Purito", category: "Serum", match: "good" as Match },
-  { emoji: "🧴", name: "Cream Cleanser", brand: "Aveeno", category: "Cleanser", match: "warn" as Match },
-  { emoji: "💄", name: "Tinted Balm", brand: "Rhode", category: "Makeup", match: "good" as Match },
-  { emoji: "☀️", name: "Mineral SPF", brand: "EltaMD", category: "SPF", match: "good" as Match },
-  { emoji: "🧪", name: "Retinol 0.3", brand: "The Ordinary", category: "Serum", match: "bad" as Match },
-  { emoji: "🌹", name: "Rose Water", brand: "Heritage", category: "Toner", match: "warn" as Match },
-];
+export type ShelfItem = {
+  id: string;
+  product_id: string | null;
+  category: string;
+  product_name: string;
+  brand: string | null;
+  emoji: string | null;
+  match: Match | null;
+  is_top_pick: boolean;
+};
+export type SavedProductRow = {
+  id: string;
+  product_id: string;
+  products: {
+    id: string;
+    name: string;
+    brand: string | null;
+    category: string | null;
+    image_url: string | null;
+    emoji: string | null;
+    match: Match | null;
+  } | null;
+};
+export type GiftItem = {
+  id: string;
+  product_id: string | null;
+  product_name: string;
+  brand: string | null;
+  category: string | null;
+  emoji: string | null;
+  affiliate_url: string | null;
+  affiliate_store: string | null;
+  type: "skincare" | "makeup";
+};
 const SAVED_FILTERS = ["Recently Saved", "Cleanser", "Toner", "Serum", "Moisturizer", "SPF", "Makeup"];
 
 const SCORE_TREND = [62, 65, 64, 68, 72, 75, 78];

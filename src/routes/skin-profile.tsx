@@ -1008,6 +1008,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
     filters: string[],
     badge: { bg: string; color: string; border: string; text: string },
     addText: string,
+    wishType: "skincare" | "makeup",
   ) => {
     const [activeFilter, _setActiveFilter] = [filters[0], (_: string) => {}];
     return (
@@ -1046,7 +1047,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
           ))}
         </div>
         )}
-        <button style={{ width: "100%", border: "1.5px dashed #E8DDD4", borderRadius: 10, background: "transparent", padding: 12, fontSize: 11, fontWeight: 600, color: "#999", marginTop: 8, cursor: "pointer" }}>{addText}</button>
+        <button onClick={() => setAddWish({ type: wishType })} style={{ width: "100%", border: "1.5px dashed #E8DDD4", borderRadius: 10, background: "transparent", padding: 12, fontSize: 11, fontWeight: 600, color: "#999", marginTop: 8, cursor: "pointer" }}>{addText}</button>
       </>
     );
   };
@@ -1110,6 +1111,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
             ["All", "Serum", "Moisturizer", "SPF", "Mask"],
             { bg: "#F0FAF1", color: "#2D7A3A", border: "#2D7A3A", text: "Skin" },
             "+ Add skincare to wishlist",
+            "skincare",
           )}
 
           <div style={{ marginTop: 24, marginBottom: 10, fontSize: 11, fontWeight: 800, color: "#1C0A00", textTransform: "uppercase", letterSpacing: "0.06em" }}>Makeup Wishlist</div>
@@ -1118,6 +1120,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
             ["All", "Lip", "Eye", "Base", "Blush"],
             { bg: "#FFF0F5", color: "#C2185B", border: "#C2185B", text: "Makeup" },
             "+ Add makeup to wishlist",
+            "makeup",
           )}
         </>
       )}
@@ -1127,6 +1130,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
         ["All", "Serum", "Moisturizer", "SPF", "Mask"],
         { bg: "#F0FAF1", color: "#2D7A3A", border: "#2D7A3A", text: "Skin" },
         "+ Add skincare to wishlist",
+        "skincare",
       )}
 
       {giftSubTab === "makeup" && renderWishlist(
@@ -1134,6 +1138,24 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
         ["All", "Lip", "Eye", "Base", "Blush"],
         { bg: "#FFF0F5", color: "#C2185B", border: "#C2185B", text: "Makeup" },
         "+ Add makeup to wishlist",
+        "makeup",
+      )}
+      {addWish && userId && (
+        <AddWishlistSheet
+          userId={userId}
+          type={addWish.type}
+          onClose={() => setAddWish(null)}
+          onSaved={(it) => {
+            if (it.type === "skincare") setSkincareWishlist(prev => [it, ...prev]);
+            else setMakeupWishlist(prev => [it, ...prev]);
+            setAddWish(null);
+          }}
+        />
+      )}
+      {addWish && !userId && (
+        <Sheet onClose={() => setAddWish(null)}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: "#1C0A00" }}>Sign in to add to your wishlist</div>
+        </Sheet>
       )}
     </div>
   );

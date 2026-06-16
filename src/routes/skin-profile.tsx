@@ -168,6 +168,14 @@ function SkinProfilePage() {
   const [editLog, setEditLog] = useState<TLog | "new" | null>(null);
   const [debugMsg, setDebugMsg] = useState<string>("init");
 
+  // Live data
+  const [topPicks, setTopPicks] = useState<TopPick[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [shelfItems, setShelfItems] = useState<ShelfItem[]>([]);
+  const [loadingTopPicks, setLoadingTopPicks] = useState(true);
+  const [loadingPosts, setLoadingPosts] = useState(true);
+  const [loadingShelf, setLoadingShelf] = useState(true);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem("skintea.quizResult");
@@ -178,6 +186,68 @@ function SkinProfilePage() {
       setUserId(user?.id ?? null);
     })();
   }, []);
+
+  // Top picks (global) — load once
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        let { data, error } = await supabase
+          .from("products" as any)
+          .select("id,name,brand,image_url,emoji")
+          .eq("is_top_pick", true)
+          .limit(3);
+        if (error) {
+          const fb = await supabase
+            .from("products" as any)
+            .select("id,name,brand,image_url,emoji")
+            .order("skintea_score", { ascending: false })
+            .limit(3);
+          data = fb.data;
+        }
+        if (alive) setTopPicks(((data as any[]) ?? []) as TopPick[]);
+      } catch {
+        if (alive) setTopPicks([]);
+      } finally {
+        if (alive) setLoadingTopPicks(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  // User-scoped: posts + shelf
+  useEffect(() => {
+    if (!userId) {
+      setPosts([]); setShelfItems([]);
+      setLoadingPosts(false); setLoadingShelf(false);
+      return;
+    }
+    let alive = true;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("tea_posts" as any)
+          .select("id,emoji,bg_color,caption,created_at,likes_count,comments_count")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(18);
+        if (alive) setPosts(((data as any[]) ?? []) as Post[]);
+      } catch { if (alive) setPosts([]); }
+      finally { if (alive) setLoadingPosts(false); }
+    })();
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("shelf_items" as any)
+          .select("id,product_id,category,product_name,brand,emoji,match,is_top_pick")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false });
+        if (alive) setShelfItems(((data as any[]) ?? []) as ShelfItem[]);
+      } catch { if (alive) setShelfItems([]); }
+      finally { if (alive) setLoadingShelf(false); }
+    })();
+    return () => { alive = false; };
+  }, [userId]);
 
   const reloadLogs = async () => {
     if (!userId) { setDebugMsg("no user"); return; }
@@ -251,9 +321,9 @@ function SkinProfilePage() {
         debugMsg={debugMsg}
       />
       <main style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px 80px" }}>
-        {tab === "tea" && <TeaTab />}
-        {tab === "shelf" && <ShelfTab />}
-        {tab === "gift" && <GiftMeTab quizResult={quizResult} />}
+        {tab === "tea" && <TeaTab posts={posts} topPicks={topPicks} loadingPosts={loadingPosts} loadingTopPicks={loadingTopPicks} />}
+        {tab === "shelf" && <ShelfTab shelfItems={shelfItems} topPicks={topPicks} loadingShelf={loadingShelf} loadingTopPicks={loadingTopPicks} />}
+        {tab === "gift" && <GiftMeTab quizResult={quizResult} userId={userId} />}
         {tab === "saved" && <SavedTab userId={userId} />}
         {tab === "chart" && <ChartTab persona={persona} logs={logs} onAdd={openAddLog} onEdit={(l) => setEditLog(l)} />}
       </main>

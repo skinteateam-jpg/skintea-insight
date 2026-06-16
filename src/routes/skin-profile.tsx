@@ -322,7 +322,7 @@ function SkinProfilePage() {
       />
       <main style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px 80px" }}>
         {tab === "tea" && <TeaTab posts={posts} topPicks={topPicks} loadingPosts={loadingPosts} loadingTopPicks={loadingTopPicks} />}
-        {tab === "shelf" && <ShelfTab shelfItems={shelfItems} topPicks={topPicks} loadingShelf={loadingShelf} loadingTopPicks={loadingTopPicks} />}
+        {tab === "shelf" && <ShelfTab shelfItems={shelfItems} topPicks={topPicks} loadingShelf={loadingShelf} loadingTopPicks={loadingTopPicks} userId={userId} onShelfAdded={(it) => setShelfItems(prev => [it, ...prev])} />}
         {tab === "gift" && <GiftMeTab quizResult={quizResult} userId={userId} />}
         {tab === "saved" && <SavedTab userId={userId} />}
         {tab === "chart" && <ChartTab persona={persona} logs={logs} onAdd={openAddLog} onEdit={(l) => setEditLog(l)} />}
@@ -551,7 +551,7 @@ function PostSheet({ post, onClose }: { post: Post; onClose: () => void }) {
 }
 
 // ---------- Tab 2: My Shelf ----------
-function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks }: { shelfItems: ShelfItem[]; topPicks: TopPick[]; loadingShelf: boolean; loadingTopPicks: boolean }) {
+function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks, userId, onShelfAdded }: { shelfItems: ShelfItem[]; topPicks: TopPick[]; loadingShelf: boolean; loadingTopPicks: boolean; userId: string | null; onShelfAdded: (it: ShelfItem) => void }) {
   const grouped = useMemo(() => {
     const map = new Map<string, ShelfItem[]>();
     for (const it of shelfItems) {
@@ -572,10 +572,17 @@ function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks }: { she
   const cats = ["All", ...grouped.map(([c]) => c)];
   const [active, setActive] = useState("All");
   const visible = active === "All" ? grouped : grouped.filter(([c]) => c === active);
+  const [addOpen, setAddOpen] = useState<{ category?: string } | null>(null);
 
   return (
     <>
       <TopPicksRow picks={shelfTopPicks} loading={loadingTopPicks && shelfItems.length === 0} />
+      <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+        <button onClick={() => setAddOpen({})}
+          style={{ padding: "7px 12px", borderRadius: 999, border: `1px solid ${C.ink}`, background: C.ink, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+          + Add to Shelf
+        </button>
+      </div>
       <div style={{ marginTop: 8 }}><FilterRow items={cats} active={active} onChange={setActive} /></div>
       {loadingShelf && shelfItems.length === 0 && (
         <div style={{ marginTop: 24, display: "flex", gap: 10 }}>
@@ -602,13 +609,138 @@ function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks }: { she
                 </div>
               </div>
             ))}
-            <button style={{ flexShrink: 0, width: 120, aspectRatio: "0.78", border: `1.5px dashed ${C.borderStrong}`, borderRadius: 10, background: "transparent", cursor: "pointer", display: "grid", placeItems: "center", color: C.textLight }}>
+            <button onClick={() => setAddOpen({ category: cat })}
+              style={{ flexShrink: 0, width: 120, aspectRatio: "0.78", border: `1.5px dashed ${C.borderStrong}`, borderRadius: 10, background: "transparent", cursor: "pointer", display: "grid", placeItems: "center", color: C.textLight }}>
               <Plus size={22} />
             </button>
           </div>
         </div>
       ))}
+      {addOpen && userId && (
+        <AddShelfSheet
+          userId={userId}
+          defaultCategory={addOpen.category}
+          onClose={() => setAddOpen(null)}
+          onSaved={(it) => { onShelfAdded(it); setAddOpen(null); }}
+        />
+      )}
+      {addOpen && !userId && (
+        <Sheet onClose={() => setAddOpen(null)}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: C.ink }}>Sign in to add to your shelf</div>
+        </Sheet>
+      )}
     </>
+  );
+}
+
+const SHELF_CATEGORIES = ["Cleanser", "Toner", "Serum", "Moisturizer", "SPF", "Face Mask", "Eye Cream", "Sunscreen", "Device", "Treatment", "Other"];
+
+function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: string; defaultCategory?: string; onClose: () => void; onSaved: (it: ShelfItem) => void }) {
+  const [name, setName] = useState("");
+  const [brand, setBrand] = useState("");
+  const [category, setCategory] = useState(defaultCategory && SHELF_CATEGORIES.includes(defaultCategory) ? defaultCategory : (defaultCategory ?? "Cleanser"));
+  const [emoji, setEmoji] = useState("🧴");
+  const [match, setMatch] = useState<Match>("good");
+  const [isTopPick, setIsTopPick] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const allCats = Array.from(new Set([...SHELF_CATEGORIES, ...(defaultCategory ? [defaultCategory] : [])]));
+
+  const save = async () => {
+    setErr(null);
+    if (!name.trim()) { setErr("Product name is required"); return; }
+    setSaving(true);
+    try {
+      const payload = {
+        user_id: userId,
+        product_name: name.trim(),
+        brand: brand.trim() || null,
+        category,
+        emoji: emoji.trim() || "🧴",
+        match,
+        is_top_pick: isTopPick,
+        is_public: true,
+      };
+      const { data, error } = await supabase.from("shelf_items" as any).insert(payload).select().single();
+      if (error) throw error;
+      const row = (data as any) ?? { id: crypto.randomUUID(), product_id: null, ...payload };
+      onSaved({
+        id: row.id,
+        product_id: row.product_id ?? null,
+        category: row.category,
+        product_name: row.product_name,
+        brand: row.brand,
+        emoji: row.emoji,
+        match: row.match,
+        is_top_pick: row.is_top_pick,
+      } as ShelfItem);
+    } catch (e: any) {
+      setErr(e?.message ?? "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const pillStyle = (m: Match) => {
+    const s = matchStyle(m);
+    const on = match === m;
+    return {
+      padding: "8px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700, cursor: "pointer",
+      border: `1px solid ${on ? s.color : C.border}`,
+      background: on ? s.bg : C.surface,
+      color: on ? s.color : C.textMid,
+      flex: 1,
+    } as CSSProperties;
+  };
+
+  const inputStyle: CSSProperties = { width: "100%", padding: "10px 12px", border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 14, background: C.surface, color: C.ink, boxSizing: "border-box" };
+  const labelStyle: CSSProperties = { fontSize: 11, fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase", color: C.textMid, marginBottom: 6, display: "block" };
+
+  return (
+    <Sheet onClose={onClose}>
+      <div style={{ fontSize: 18, fontWeight: 800, color: C.ink, marginBottom: 16 }}>Add to Shelf</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div>
+          <label style={labelStyle}>Product name</label>
+          <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. CeraVe Foaming Cleanser" style={inputStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Brand</label>
+          <input value={brand} onChange={e => setBrand(e.target.value)} placeholder="e.g. CeraVe" style={inputStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Category</label>
+          <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
+            {allCats.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={labelStyle}>Emoji</label>
+          <input value={emoji} onChange={e => setEmoji(e.target.value)} placeholder="🧴" maxLength={4} style={{ ...inputStyle, width: 80, textAlign: "center", fontSize: 22 }} />
+        </div>
+        <div>
+          <label style={labelStyle}>Match</label>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" onClick={() => setMatch("good")} style={pillStyle("good")}>✓ Fits you</button>
+            <button type="button" onClick={() => setMatch("warn")} style={pillStyle("warn")}>△ Check</button>
+            <button type="button" onClick={() => setMatch("bad")} style={pillStyle("bad")}>✕ Avoid</button>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0" }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: C.ink }}>Mark as Top Pick ★</span>
+          <button type="button" onClick={() => setIsTopPick(v => !v)}
+            style={{ width: 28, height: 16, borderRadius: 8, background: isTopPick ? "#A8001C" : "#ddd", position: "relative", border: "none", cursor: "pointer", padding: 0 }}>
+            <span style={{ position: "absolute", top: 2, left: isTopPick ? 14 : 2, width: 12, height: 12, borderRadius: "50%", background: "#fff", transition: "left 0.15s" }} />
+          </button>
+        </div>
+        {err && <div style={{ fontSize: 12, color: "#A8001C" }}>{err}</div>}
+        <button onClick={save} disabled={saving}
+          style={{ marginTop: 4, padding: "12px 16px", borderRadius: 10, border: "none", background: C.ink, color: "#fff", fontSize: 14, fontWeight: 700, cursor: saving ? "default" : "pointer", opacity: saving ? 0.6 : 1 }}>
+          {saving ? "Saving…" : "Save to shelf"}
+        </button>
+      </div>
+    </Sheet>
   );
 }
 

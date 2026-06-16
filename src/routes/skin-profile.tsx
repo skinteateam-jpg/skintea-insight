@@ -939,6 +939,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
   const [activeRoutineTab, setActiveRoutineTab] = useState("cleanser");
   const [skincareWishlist, setSkincareWishlist] = useState<GiftItem[]>([]);
   const [makeupWishlist, setMakeupWishlist] = useState<GiftItem[]>([]);
+  const [addWish, setAddWish] = useState<{ type: "skincare" | "makeup" } | null>(null);
 
   useEffect(() => {
     if (!userId) { setSkincareWishlist([]); setMakeupWishlist([]); return; }
@@ -1008,6 +1009,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
     filters: string[],
     badge: { bg: string; color: string; border: string; text: string },
     addText: string,
+    wishType: "skincare" | "makeup",
   ) => {
     const [activeFilter, _setActiveFilter] = [filters[0], (_: string) => {}];
     return (
@@ -1046,7 +1048,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
           ))}
         </div>
         )}
-        <button style={{ width: "100%", border: "1.5px dashed #E8DDD4", borderRadius: 10, background: "transparent", padding: 12, fontSize: 11, fontWeight: 600, color: "#999", marginTop: 8, cursor: "pointer" }}>{addText}</button>
+        <button onClick={() => setAddWish({ type: wishType })} style={{ width: "100%", border: "1.5px dashed #E8DDD4", borderRadius: 10, background: "transparent", padding: 12, fontSize: 11, fontWeight: 600, color: "#999", marginTop: 8, cursor: "pointer" }}>{addText}</button>
       </>
     );
   };
@@ -1110,6 +1112,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
             ["All", "Serum", "Moisturizer", "SPF", "Mask"],
             { bg: "#F0FAF1", color: "#2D7A3A", border: "#2D7A3A", text: "Skin" },
             "+ Add skincare to wishlist",
+            "skincare",
           )}
 
           <div style={{ marginTop: 24, marginBottom: 10, fontSize: 11, fontWeight: 800, color: "#1C0A00", textTransform: "uppercase", letterSpacing: "0.06em" }}>Makeup Wishlist</div>
@@ -1118,6 +1121,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
             ["All", "Lip", "Eye", "Base", "Blush"],
             { bg: "#FFF0F5", color: "#C2185B", border: "#C2185B", text: "Makeup" },
             "+ Add makeup to wishlist",
+            "makeup",
           )}
         </>
       )}
@@ -1127,6 +1131,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
         ["All", "Serum", "Moisturizer", "SPF", "Mask"],
         { bg: "#F0FAF1", color: "#2D7A3A", border: "#2D7A3A", text: "Skin" },
         "+ Add skincare to wishlist",
+        "skincare",
       )}
 
       {giftSubTab === "makeup" && renderWishlist(
@@ -1134,12 +1139,106 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
         ["All", "Lip", "Eye", "Base", "Blush"],
         { bg: "#FFF0F5", color: "#C2185B", border: "#C2185B", text: "Makeup" },
         "+ Add makeup to wishlist",
+        "makeup",
+      )}
+      {addWish && userId && (
+        <AddWishlistSheet
+          userId={userId}
+          type={addWish.type}
+          onClose={() => setAddWish(null)}
+          onSaved={(it: GiftItem) => {
+            if (it.type === "skincare") setSkincareWishlist(prev => [it, ...prev]);
+            else setMakeupWishlist(prev => [it, ...prev]);
+            setAddWish(null);
+          }}
+        />
+      )}
+      {addWish && !userId && (
+        <Sheet onClose={() => setAddWish(null)}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: "#1C0A00" }}>Sign in to add to your wishlist</div>
+        </Sheet>
       )}
     </div>
   );
 }
 
 // ---------- Tab 4: Skin Chart ----------
+function AddWishlistSheet({ userId, type, onClose, onSaved }: { userId: string; type: "skincare" | "makeup"; onClose: () => void; onSaved: (it: GiftItem) => void }) {
+  const [name, setName] = useState("");
+  const [brand, setBrand] = useState("");
+  const [category, setCategory] = useState("");
+  const [emoji, setEmoji] = useState("🎁");
+  const [url, setUrl] = useState("");
+  const [store, setStore] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const save = async () => {
+    setErr(null);
+    if (!name.trim()) { setErr("Product name is required"); return; }
+    setSaving(true);
+    try {
+      const payload = {
+        user_id: userId,
+        product_name: name.trim(),
+        brand: brand.trim() || null,
+        category: category.trim() || null,
+        emoji: emoji.trim() || "🎁",
+        affiliate_url: url.trim() || null,
+        affiliate_store: store.trim() || null,
+        type,
+        is_public: true,
+      };
+      const { data, error } = await supabase.from("gift_wishlist" as any).insert(payload).select().single();
+      if (error) throw error;
+      const row = (data as any) ?? { id: crypto.randomUUID(), product_id: null, ...payload };
+      onSaved({
+        id: row.id,
+        product_id: row.product_id ?? null,
+        product_name: row.product_name,
+        brand: row.brand,
+        category: row.category,
+        emoji: row.emoji,
+        affiliate_url: row.affiliate_url,
+        affiliate_store: row.affiliate_store,
+        type: row.type,
+      });
+    } catch (e: any) {
+      setErr(e?.message ?? "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inputStyle: CSSProperties = { width: "100%", padding: "10px 12px", border: "1px solid #E8DDD4", borderRadius: 8, fontSize: 14, background: "#fff", color: "#1C0A00", boxSizing: "border-box" };
+  const labelStyle: CSSProperties = { fontSize: 11, fontWeight: 700, letterSpacing: 0.4, textTransform: "uppercase", color: "#666", marginBottom: 6, display: "block" };
+  const badge = type === "skincare"
+    ? { bg: "#F0FAF1", color: "#2D7A3A", border: "#2D7A3A", text: "Skin" }
+    : { bg: "#FFF0F5", color: "#C2185B", border: "#C2185B", text: "Makeup" };
+
+  return (
+    <Sheet onClose={onClose}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+        <div style={{ fontSize: 18, fontWeight: 800, color: "#1C0A00" }}>Add to Wishlist</div>
+        <span style={{ fontSize: 9, fontWeight: 800, padding: "3px 8px", borderRadius: 99, background: badge.bg, color: badge.color, border: `0.5px solid ${badge.border}`, textTransform: "uppercase", letterSpacing: 0.4 }}>{badge.text}</span>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div><label style={labelStyle}>Product name</label><input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Rhode Peptide Lip Tint" style={inputStyle} /></div>
+        <div><label style={labelStyle}>Brand</label><input value={brand} onChange={e => setBrand(e.target.value)} style={inputStyle} /></div>
+        <div><label style={labelStyle}>Category</label><input value={category} onChange={e => setCategory(e.target.value)} placeholder="e.g. Lip, Serum, SPF" style={inputStyle} /></div>
+        <div><label style={labelStyle}>Emoji</label><input value={emoji} onChange={e => setEmoji(e.target.value)} maxLength={4} style={{ ...inputStyle, width: 80, textAlign: "center", fontSize: 22 }} /></div>
+        <div><label style={labelStyle}>Affiliate link</label><input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..." style={inputStyle} /></div>
+        <div><label style={labelStyle}>Store name</label><input value={store} onChange={e => setStore(e.target.value)} placeholder="e.g. Sephora, Amazon" style={inputStyle} /></div>
+        {err && <div style={{ fontSize: 12, color: "#A8001C" }}>{err}</div>}
+        <button onClick={save} disabled={saving}
+          style={{ marginTop: 4, padding: "12px 16px", borderRadius: 10, border: "none", background: "#1C0A00", color: "#FFFCF8", fontSize: 14, fontWeight: 700, cursor: saving ? "default" : "pointer", opacity: saving ? 0.6 : 1 }}>
+          {saving ? "Saving…" : "Save to wishlist"}
+        </button>
+      </div>
+    </Sheet>
+  );
+}
+
 function ChartTab({ persona, logs, onAdd, onEdit }: { persona: typeof PERSONAS[SkinType]; logs: TLog[]; onAdd: () => void; onEdit: (l: TLog) => void }) {
   const navigate = useNavigate();
   const [treatFilter, setTreatFilter] = useState("All");

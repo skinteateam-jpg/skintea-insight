@@ -86,6 +86,62 @@ function fitColor(v: number) {
 }
 
 function ProductDetailV2() {
+  const navigate = useNavigate();
+  const productId = "cerave-moisturizing-cream";
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      const uid = data.user?.id ?? null;
+      if (!alive) return;
+      setUserId(uid);
+      if (!uid) {
+        setIsSaved(false);
+        return;
+      }
+      const { data: row } = await supabase
+        .from("saved_products")
+        .select("id")
+        .eq("user_id", uid)
+        .eq("product_id", productId)
+        .maybeSingle();
+      if (!alive) return;
+      setIsSaved(!!row);
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  async function handleSaveToggle() {
+    if (!userId) {
+      navigate({ to: "/login" });
+      return;
+    }
+    if (saving) return;
+    setSaving(true);
+    if (!isSaved) {
+      const { error } = await supabase
+        .from("saved_products")
+        .insert({
+          user_id: userId,
+          product_id: productId,
+          created_at: new Date().toISOString(),
+        });
+      if (!error) setIsSaved(true);
+    } else {
+      const { error } = await supabase
+        .from("saved_products")
+        .delete()
+        .eq("user_id", userId)
+        .eq("product_id", productId);
+      if (!error) setIsSaved(false);
+    }
+    setSaving(false);
+  }
+
   return (
     <div style={{ background: C.espresso, minHeight: "100vh", color: C.textDark }}>
       <div style={{ maxWidth: 480, margin: "0 auto" }}>

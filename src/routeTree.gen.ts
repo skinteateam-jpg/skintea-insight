@@ -110,9 +110,9 @@ const ProfileUsernameRoute = ProfileUsernameRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProductDetailIdRoute = ProductDetailIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ProductDetailRoute,
+  id: '/product-detail/$id',
+  path: '/product-detail/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ClinicsIdRoute = ClinicsIdRouteImport.update({
   id: '/clinics/$id',
@@ -269,6 +269,7 @@ export interface RootRouteChildren {
   TreatmentTalk2Route: typeof TreatmentTalk2Route
   AdminTreatmentsRoute: typeof AdminTreatmentsRoute
   ClinicsIdRoute: typeof ClinicsIdRoute
+  ProductDetailIdRoute: typeof ProductDetailIdRoute
   ProfileUsernameRoute: typeof ProfileUsernameRoute
   TreatmentSlugRoute: typeof TreatmentSlugRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -391,10 +392,10 @@ declare module '@tanstack/react-router' {
     }
     '/product-detail/$id': {
       id: '/product-detail/$id'
-      path: '/$id'
+      path: '/product-detail/$id'
       fullPath: '/product-detail/$id'
       preLoaderRoute: typeof ProductDetailIdRouteImport
-      parentRoute: typeof ProductDetailRoute
+      parentRoute: typeof rootRouteImport
     }
     '/clinics/$id': {
       id: '/clinics/$id'
@@ -439,6 +440,7 @@ const rootRouteChildren: RootRouteChildren = {
   TreatmentTalk2Route: TreatmentTalk2Route,
   AdminTreatmentsRoute: AdminTreatmentsRoute,
   ClinicsIdRoute: ClinicsIdRoute,
+  ProductDetailIdRoute: ProductDetailIdRoute,
   ProfileUsernameRoute: ProfileUsernameRoute,
   TreatmentSlugRoute: TreatmentSlugRoute,
   AdminIndexRoute: AdminIndexRoute,

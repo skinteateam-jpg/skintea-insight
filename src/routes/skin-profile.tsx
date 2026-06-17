@@ -601,7 +601,11 @@ function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks, userId,
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>{cat}</div>
           <div style={{ display: "flex", gap: 10, overflowX: "auto", margin: "0 -16px", padding: "0 16px 8px" }}>
             {items.map((p) => (
-              <div key={p.id} style={{ flexShrink: 0, width: 120, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", position: "relative" }}>
+              <a
+                key={p.id}
+                href={p.product_id ? `/products/${p.product_id}` : undefined}
+                style={{ flexShrink: 0, width: 120, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", position: "relative", textDecoration: "none", color: "inherit", cursor: p.product_id ? "pointer" : "default", display: "block" }}
+              >
                 {p.is_top_pick && <div style={{ position: "absolute", top: 6, left: 6, background: C.gold, color: "#fff", fontSize: 8, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
                 {p.image_url ? (
                   <div style={{ aspectRatio: "1", background: `#F5F0EB url(${p.image_url}) center/cover no-repeat` }} />
@@ -613,7 +617,7 @@ function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks, userId,
                   {p.brand && <div style={{ fontSize: 10, color: C.textLight, margin: "2px 0 6px" }}>{p.brand}</div>}
                   <MatchPill match={(p.match ?? "good") as Match} />
                 </div>
-              </div>
+              </a>
             ))}
             <button onClick={() => setAddOpen({ category: cat })}
               style={{ flexShrink: 0, width: 120, aspectRatio: "0.78", border: `1.5px dashed ${C.borderStrong}`, borderRadius: 10, background: "transparent", cursor: "pointer", display: "grid", placeItems: "center", color: C.textLight }}>

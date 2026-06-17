@@ -745,7 +745,7 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
       };
       const { data, error } = await supabase.from("shelf_items" as any).insert(payload).select().single();
       if (error) throw error;
-      const row = (data as any) ?? { id: crypto.randomUUID(), product_id: null, ...payload };
+      const row = (data as any) ?? { id: crypto.randomUUID(), ...payload };
       onSaved({
         id: row.id,
         product_id: row.product_id ?? null,

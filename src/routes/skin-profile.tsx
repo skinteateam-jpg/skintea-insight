@@ -94,8 +94,6 @@ export type SavedProductRow = {
     brand: string | null;
     category: string | null;
     image_url: string | null;
-    emoji: string | null;
-    match: Match | null;
   } | null;
 };
 export type GiftItem = {

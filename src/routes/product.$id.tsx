@@ -3,7 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Bookmark, ChevronRight, Lock, Sparkles, Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-export const Route = createFileRoute("/products/$id")({
+export const Route = createFileRoute("/product/$id")({
   component: ProductDetail,
   head: () => ({
     meta: [

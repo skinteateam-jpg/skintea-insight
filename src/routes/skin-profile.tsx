@@ -1144,8 +1144,8 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {list.map((item) => (
             <div key={item.id} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, overflow: "hidden" }}>
-              <div style={{ height: 75, background: "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
-                {item.emoji ?? "🎁"}
+              <div style={{ height: 75, background: item.image_url ? `#FFFCF8 url(${item.image_url}) center/cover no-repeat` : "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
+                {!item.image_url && (item.emoji ?? "🎁")}
                 <span style={{ position: "absolute", top: 5, right: 5, fontSize: 7, fontWeight: 800, padding: "2px 5px", borderRadius: 99, background: badge.bg, color: badge.color, border: `0.5px solid ${badge.border}` }}>{badge.text}</span>
               </div>
               <div style={{ padding: "7px 8px 8px" }}>

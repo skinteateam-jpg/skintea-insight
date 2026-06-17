@@ -113,6 +113,10 @@ function ProductPage() {
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isInShelf, setIsInShelf] = useState(false);
+  const [shelving, setShelving] = useState(false);
+  const [isInGift, setIsInGift] = useState(false);
+  const [gifting, setGifting] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -123,6 +127,10 @@ function ProductPage() {
       if (!uid) return;
       (supabase as any).from("saved_products").select("id").eq("user_id", uid).eq("product_id", id).maybeSingle()
         .then(({ data: row }: any) => setIsSaved(!!row));
+      (supabase as any).from("shelf_items").select("id").eq("user_id", uid).eq("product_id", id).maybeSingle()
+        .then(({ data: row }: any) => setIsInShelf(!!row));
+      (supabase as any).from("gift_wishlist").select("id").eq("user_id", uid).eq("product_id", id).maybeSingle()
+        .then(({ data: row }: any) => setIsInGift(!!row));
     });
   }, [id]);
 
@@ -164,15 +172,54 @@ function ProductPage() {
 
   function showToast(msg: string) { setToast(msg); window.setTimeout(() => setToast(null), 2200); }
 
-  function handleShelfClick() {
+  async function handleShelfClick() {
     if (!userId) { navigate({ to: "/login" }); return; }
-    showToast("Taking you to your shelf… 🧴");
-    window.setTimeout(() => navigate({ to: "/skin-profile" }), 900);
+    if (shelving) return;
+    setShelving(true);
+    if (!isInShelf) {
+      const { error } = await (supabase as any).from("shelf_items").insert({
+        user_id: userId,
+        product_id: id,
+        product_name: productData?.name ?? "Product",
+        brand: productData?.brand ?? null,
+        category: productData?.category ?? "Other",
+        image_url: productData?.image_url ?? null,
+        is_public: true,
+      });
+      if (!error) { setIsInShelf(true); showToast("Added to your shelf 🧴"); }
+      else { showToast("Couldn't add to shelf"); }
+    } else {
+      const { error } = await (supabase as any).from("shelf_items").delete().eq("user_id", userId).eq("product_id", id);
+      if (!error) { setIsInShelf(false); showToast("Removed from shelf"); }
+    }
+    setShelving(false);
   }
-  function handleGiftClick() {
+  async function handleGiftClick() {
     if (!userId) { navigate({ to: "/login" }); return; }
-    showToast("Taking you to Gift Me… 🎁");
-    window.setTimeout(() => navigate({ to: "/skin-profile" }), 900);
+    if (gifting) return;
+    setGifting(true);
+    if (!isInGift) {
+      const cat = (productData?.category ?? "").toLowerCase();
+      const type = cat.includes("makeup") ? "makeup" : "skincare";
+      const { error } = await (supabase as any).from("gift_wishlist").insert({
+        user_id: userId,
+        product_id: id,
+        product_name: productData?.name ?? "Product",
+        brand: productData?.brand ?? null,
+        category: productData?.category ?? null,
+        emoji: "🎁",
+        image_url: productData?.image_url ?? null,
+        affiliate_url: productData?.product_url ?? null,
+        type,
+        is_public: true,
+      });
+      if (!error) { setIsInGift(true); showToast("Added to Gift Me 🎁"); }
+      else { showToast("Couldn't add to Gift Me"); }
+    } else {
+      const { error } = await (supabase as any).from("gift_wishlist").delete().eq("user_id", userId).eq("product_id", id);
+      if (!error) { setIsInGift(false); showToast("Removed from Gift Me"); }
+    }
+    setGifting(false);
   }
 
   async function handleSaveToggle() {

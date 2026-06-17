@@ -1,7 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState, useMemo, useEffect } from "react";
 import { Search, Bookmark, ChevronRight, X } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/products")({
   component: ProductsPage,
@@ -37,34 +38,56 @@ const C = {
 };
 
 // ---------- Data ----------
+type DbProduct = {
+  id: string;
+  name: string;
+  brand: string | null;
+  category: string | null;
+  price: number | null;
+  currency: string | null;
+  image_url: string | null;
+  product_url: string | null;
+  description: string | null;
+  is_active: boolean | null;
+  is_top_pick: boolean | null;
+  skintea_score: number | null;
+  source: string | null;
+  created_at: string | null;
+};
+
 type Product = {
+  id: string;
   brand: string;
   name: string;
   price: string;
-  source: "Ulta" | "Sephora" | "Amazon";
-  rating?: number;
-  reviews?: string;
+  source: string;
   recommend?: number;
   emoji: string;
+  image_url?: string | null;
 };
 
-const soaring: Product[] = [
-  { brand: "Some By Mi", name: "AHA BHA PHA 30 Days Toner", price: "$19.99", source: "Ulta", rating: 4.4, reviews: "2.1k", emoji: "🧴" },
-  { brand: "The Ordinary", name: "Hyaluronic Acid 2% + B5", price: "$9.90", source: "Amazon", rating: 4.3, reviews: "5.8k", emoji: "💧" },
-  { brand: "e.l.f.", name: "Halo Glow Liquid Filter", price: "$14.00", source: "Amazon", rating: 4.4, reviews: "4.1k", emoji: "✨" },
-];
+function emojiFor(category: string | null | undefined): string {
+  const c = (category ?? "").toLowerCase();
+  if (c.includes("serum")) return "🧪";
+  if (c.includes("moistur")) return "🫙";
+  if (c.includes("cleans")) return "🧼";
+  if (c.includes("toner")) return "💦";
+  if (c.includes("spf") || c.includes("sun")) return "☀️";
+  return "🧴";
+}
 
-const tiktokRanking: Product[] = [
-  { brand: "CeraVe", name: "Moisturizing Cream", price: "$14.99", source: "Ulta", rating: 4.6, reviews: "7.4k", emoji: "🫙" },
-  { brand: "Glow Recipe", name: "Watermelon Niacinamide Dew Drops", price: "$35.00", source: "Sephora", rating: 4.2, reviews: "2.9k", emoji: "🍉" },
-  { brand: "La Roche-Posay", name: "Toleriane Hydrating Cleanser", price: "$16.99", source: "Amazon", rating: 4.5, reviews: "3.6k", emoji: "🧼" },
-];
-
-const highestRecommended: Product[] = [
-  { brand: "Skinceuticals", name: "C E Ferulic Serum", price: "$166.00", source: "Sephora", recommend: 91, emoji: "🧪" },
-  { brand: "CeraVe", name: "Ceramide Barrier Cream", price: "$14.99", source: "Ulta", recommend: 91, emoji: "🫙" },
-  { brand: "Cosrx", name: "Snail 96 Mucin Power Essence", price: "$22.00", source: "Amazon", recommend: 88, emoji: "🐌" },
-];
+function toProduct(p: DbProduct, opts?: { recommend?: boolean }): Product {
+  return {
+    id: p.id,
+    brand: p.brand ?? "",
+    name: p.name,
+    price: p.price != null ? `$${p.price}` : "",
+    source: p.source ?? "",
+    emoji: emojiFor(p.category),
+    image_url: p.image_url,
+    recommend: opts?.recommend && p.skintea_score != null ? Math.round(p.skintea_score) : undefined,
+  };
+}
 
 const CATEGORIES = ["All", "Skincare", "Base Makeup", "Makeup", "Lip", "SPF"] as const;
 type Category = (typeof CATEGORIES)[number];
@@ -113,6 +136,56 @@ const FILTERS = ["Filters", "Price", "Skin type", "Concern"];
 function ProductsPage() {
   const [activeCategory, setActiveCategory] = useState<Category>("All");
   const [showLogin, setShowLogin] = useState(false);
+  const navigate = useNavigate();
+
+  const [items, setItems] = useState<DbProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<DbProduct[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("products")
+        .select("*")
+        .eq("is_active", true)
+        .order("skintea_score", { ascending: false, nullsFirst: false })
+        .limit(9);
+      if (!cancelled) {
+        setItems((data ?? []) as DbProduct[]);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (searchQuery.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    const q = searchQuery.trim();
+    const t = window.setTimeout(async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("*")
+        .eq("is_active", true)
+        .or(`name.ilike.%${q}%,brand.ilike.%${q}%`)
+        .limit(20);
+      setSearchResults((data ?? []) as DbProduct[]);
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, [searchQuery]);
+
+  const soaring = items.slice(0, 3).map((p) => toProduct(p));
+  const tiktokRanking = items.slice(3, 6).map((p) => toProduct(p));
+  const highestRecommended = items.slice(6, 9).map((p) => toProduct(p, { recommend: true }));
+  const showDropdown = searchQuery.trim().length >= 2 && searchResults.length > 0;
 
   const visibleSubCategories = useMemo(() => {
     if (activeCategory === "All") {
@@ -145,9 +218,9 @@ function ProductsPage() {
             </div>
             <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "#999999", marginTop: 2 }}>Got Skintea? Spill it.</div>
           </Link>
+          <div style={{ flex: 1, position: "relative" }}>
           <div
             style={{
-              flex: 1,
               display: "flex",
               alignItems: "center",
               gap: 8,
@@ -161,6 +234,8 @@ function ProductsPage() {
             <input
               type="text"
               placeholder="Search products, brands"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               style={{
                 flex: 1,
                 border: "none",
@@ -171,6 +246,64 @@ function ProductsPage() {
                 fontWeight: 500,
               }}
             />
+            {searchQuery && (
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setSearchResults([]);
+                }}
+                style={{ background: "transparent", border: "none", cursor: "pointer", padding: 0, display: "flex" }}
+                aria-label="Clear search"
+              >
+                <X size={14} color={C.espresso} />
+              </button>
+            )}
+          </div>
+          {showDropdown && (
+            <div
+              style={{
+                position: "absolute",
+                top: "calc(100% + 4px)",
+                left: 0,
+                right: 0,
+                background: C.surface,
+                border: `1.5px solid ${C.espresso}`,
+                borderRadius: 4,
+                maxHeight: 320,
+                overflowY: "auto",
+                zIndex: 100,
+              }}
+            >
+              {searchResults.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => {
+                    navigate({ to: "/product-detail/$id", params: { id: r.id } });
+                    setSearchQuery("");
+                    setSearchResults([]);
+                  }}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "8px 12px",
+                    background: "transparent",
+                    border: "none",
+                    borderBottom: `0.5px solid ${C.border}`,
+                    cursor: "pointer",
+                  }}
+                >
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: C.textLight, letterSpacing: "0.04em" }}>
+                    {r.brand}
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.espresso }}>{r.name}</div>
+                  {r.price != null && (
+                    <div style={{ fontSize: 12, fontWeight: 800, color: C.espresso, marginTop: 2 }}>${r.price}</div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
           </div>
         </header>
 
@@ -251,17 +384,20 @@ function ProductsPage() {
           products={soaring}
           onSave={() => setShowLogin(true)}
           trendingBadge
+          loading={loading}
         />
         <RankingSection
           title="TikTok Ranking"
           products={tiktokRanking}
           onSave={() => setShowLogin(true)}
+          loading={loading}
         />
         <RankingSection
           title="Highest Recommended"
           products={highestRecommended}
           onSave={() => setShowLogin(true)}
           showRecommend
+          loading={loading}
         />
 
         {/* 5. Category sub-sections */}
@@ -403,6 +539,7 @@ function RankingSection({
   onSave,
   showRecommend,
   trendingBadge,
+  loading,
 }: {
   title: string;
   icon?: string;
@@ -410,6 +547,7 @@ function RankingSection({
   onSave: () => void;
   showRecommend?: boolean;
   trendingBadge?: boolean;
+  loading?: boolean;
 }) {
   return (
     <section style={{ padding: "16px 16px 8px" }}>
@@ -451,16 +589,29 @@ function RankingSection({
         </a>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-        {products.map((p, idx) => (
-          <ProductCard
-            key={`${title}-${p.brand}-${p.name}`}
-            product={p}
-            rank={idx + 1}
-            onSave={onSave}
-            showRecommend={showRecommend}
-            trendingBadge={trendingBadge}
-          />
-        ))}
+        {loading
+          ? [0, 1, 2].map((i) => (
+              <div
+                key={`sk-${title}-${i}`}
+                style={{
+                  border: `1.5px solid ${C.border}`,
+                  borderRadius: 6,
+                  background: C.surface,
+                  aspectRatio: "1 / 1.6",
+                  opacity: 0.5,
+                }}
+              />
+            ))
+          : products.map((p, idx) => (
+              <ProductCard
+                key={`${title}-${p.id}`}
+                product={p}
+                rank={idx + 1}
+                onSave={onSave}
+                showRecommend={showRecommend}
+                trendingBadge={trendingBadge}
+              />
+            ))}
       </div>
     </section>
   );
@@ -481,8 +632,8 @@ function ProductCard({
 }) {
   return (
     <Link
-      to="/products/$id"
-      params={{ id: "00000000-0000-0000-0000-000000000001" }}
+      to="/product-detail/$id"
+      params={{ id: product.id }}
       style={{
         border: `1.5px solid ${C.border}`,
         borderRadius: 6,
@@ -562,7 +713,16 @@ function ProductCard({
         >
           <Bookmark size={12} color={C.textLight} strokeWidth={2} />
         </button>
-        <span aria-hidden>{product.emoji}</span>
+        {product.image_url ? (
+          <img
+            src={product.image_url}
+            alt={product.name}
+            loading="lazy"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          <span aria-hidden>{product.emoji}</span>
+        )}
       </div>
 
       {/* Body */}
@@ -601,12 +761,7 @@ function ProductCard({
           <div style={{ fontSize: 12, color: C.crimson, fontWeight: 800 }}>
             {product.recommend}% recommend
           </div>
-        ) : (
-          <div style={{ fontSize: 11, color: C.espresso, fontWeight: 600 }}>
-            <span style={{ color: C.crimson }}>★</span> {product.rating}{" "}
-            <span style={{ color: C.textLight, fontWeight: 500 }}>({product.reviews})</span>
-          </div>
-        )}
+        ) : null}
         <span
           style={{
             marginTop: 4,

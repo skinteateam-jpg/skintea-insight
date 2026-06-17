@@ -601,7 +601,11 @@ function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks, userId,
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>{cat}</div>
           <div style={{ display: "flex", gap: 10, overflowX: "auto", margin: "0 -16px", padding: "0 16px 8px" }}>
             {items.map((p) => (
-              <div key={p.id} style={{ flexShrink: 0, width: 120, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", position: "relative" }}>
+              <a
+                key={p.id}
+                href={p.product_id ? `/products/${p.product_id}` : undefined}
+                style={{ flexShrink: 0, width: 120, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", position: "relative", textDecoration: "none", color: "inherit", cursor: p.product_id ? "pointer" : "default", display: "block" }}
+              >
                 {p.is_top_pick && <div style={{ position: "absolute", top: 6, left: 6, background: C.gold, color: "#fff", fontSize: 8, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
                 {p.image_url ? (
                   <div style={{ aspectRatio: "1", background: `#F5F0EB url(${p.image_url}) center/cover no-repeat` }} />
@@ -613,7 +617,7 @@ function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks, userId,
                   {p.brand && <div style={{ fontSize: 10, color: C.textLight, margin: "2px 0 6px" }}>{p.brand}</div>}
                   <MatchPill match={(p.match ?? "good") as Match} />
                 </div>
-              </div>
+              </a>
             ))}
             <button onClick={() => setAddOpen({ category: cat })}
               style={{ flexShrink: 0, width: 120, aspectRatio: "0.78", border: `1.5px dashed ${C.borderStrong}`, borderRadius: 10, background: "transparent", cursor: "pointer", display: "grid", placeItems: "center", color: C.textLight }}>
@@ -831,10 +835,6 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
           <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
             {allCats.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
-        </div>
-        <div>
-          <label style={labelStyle}>Emoji</label>
-          <input value={emoji} onChange={e => setEmoji(e.target.value)} placeholder="🧴" maxLength={4} style={{ ...inputStyle, width: 80, textAlign: "center", fontSize: 22 }} />
         </div>
         <div>
           <label style={labelStyle}>Match</label>
@@ -1116,13 +1116,6 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
     cursor: "pointer",
   });
 
-  const placeholderPicks = [
-    { rank: 1, emoji: "🧴", brand: "CeraVe", name: "Foaming Cleanser", pct: "94%" },
-    { rank: 2, emoji: "💧", brand: "Paula's Choice", name: "BHA Liquid", pct: "91%" },
-    { rank: 3, emoji: "☀️", brand: "Beauty of Joseon", name: "Relief Sun", pct: "89%" },
-    { rank: 4, emoji: "🥛", brand: "CeraVe", name: "Moisturizing Cream", pct: "87%" },
-  ];
-
   const renderWishlist = (
     list: GiftItem[],
     filters: string[],
@@ -1188,6 +1181,13 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
         ))}
       </div>
 
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+        <button onClick={() => setAddWish({ type: giftSubTab === "makeup" ? "makeup" : "skincare" })}
+          style={{ padding: "7px 12px", borderRadius: 999, border: "1px solid #1C0A00", background: "#1C0A00", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+          + Add to Wishlist
+        </button>
+      </div>
+
       {giftSubTab === "needs" && (
         <>
           <div style={{ background: "#F0FAF1", border: "0.5px solid #2D7A3A", borderRadius: 8, padding: "8px 12px", display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
@@ -1206,23 +1206,6 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
                 </button>
               );
             })}
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            {placeholderPicks.map(p => (
-              <div key={p.rank} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, overflow: "hidden" }}>
-                <div style={{ height: 70, background: "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
-                  <div style={{ position: "absolute", top: 5, left: 5, width: 16, height: 16, background: "#1C0A00", color: "#FFFCF8", borderRadius: 99, fontSize: 8, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{p.rank}</div>
-                  {p.emoji}
-                </div>
-                <div style={{ padding: "7px 8px 10px" }}>
-                  <div style={{ fontSize: 8, color: "#999" }}>{p.brand}</div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00" }}>{p.name}</div>
-                  <div style={{ fontSize: 10, color: "#A8001C", fontWeight: 800 }}>{p.pct}</div>
-                  <button style={{ background: "#FFF5F5", color: "#A8001C", border: "0.5px solid #A8001C", borderRadius: 6, padding: "4px 8px", fontSize: 8, fontWeight: 700, width: "100%", marginTop: 4, cursor: "pointer" }}>+ Add to wishlist</button>
-                </div>
-              </div>
-            ))}
           </div>
 
           <div style={{ marginTop: 24, marginBottom: 10, fontSize: 11, fontWeight: 800, color: "#1C0A00", textTransform: "uppercase", letterSpacing: "0.06em" }}>Skincare Wishlist</div>

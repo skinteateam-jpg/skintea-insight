@@ -164,8 +164,16 @@ function ProductPage() {
 
   function showToast(msg: string) { setToast(msg); window.setTimeout(() => setToast(null), 2200); }
 
-  function handleShelfClick() { if (!userId) { navigate({ to: "/login" }); return; } showToast("Coming soon — add from your profile 🧴"); }
-  function handleGiftClick() { if (!userId) { navigate({ to: "/login" }); return; } showToast("Coming soon — add from your profile 🎁"); }
+  function handleShelfClick() {
+    if (!userId) { navigate({ to: "/login" }); return; }
+    showToast("Taking you to your shelf… 🧴");
+    window.setTimeout(() => navigate({ to: "/skin-profile" }), 900);
+  }
+  function handleGiftClick() {
+    if (!userId) { navigate({ to: "/login" }); return; }
+    showToast("Taking you to Gift Me… 🎁");
+    window.setTimeout(() => navigate({ to: "/skin-profile" }), 900);
+  }
 
   async function handleSaveToggle() {
     if (!userId) { navigate({ to: "/login" }); return; }
@@ -173,10 +181,10 @@ function ProductPage() {
     setSaving(true);
     if (!isSaved) {
       const { error } = await (supabase as any).from("saved_products").insert({ user_id: userId, product_id: id, created_at: new Date().toISOString() });
-      if (!error) setIsSaved(true);
+      if (!error) { setIsSaved(true); showToast("Saved! View in your profile 🔖"); }
     } else {
       const { error } = await (supabase as any).from("saved_products").delete().eq("user_id", userId).eq("product_id", id);
-      if (!error) setIsSaved(false);
+      if (!error) { setIsSaved(false); showToast("Removed from saved"); }
     }
     setSaving(false);
   }

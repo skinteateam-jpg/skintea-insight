@@ -926,6 +926,7 @@ function SavedTab({ userId }: { userId: string | null }) {
         emoji: p.emoji,
         match: p.match ?? "good",
         is_top_pick: false,
+        is_public: true,
       });
     } catch {}
   };

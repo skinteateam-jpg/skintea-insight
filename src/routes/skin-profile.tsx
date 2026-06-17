@@ -1116,13 +1116,6 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
     cursor: "pointer",
   });
 
-  const placeholderPicks = [
-    { rank: 1, emoji: "🧴", brand: "CeraVe", name: "Foaming Cleanser", pct: "94%" },
-    { rank: 2, emoji: "💧", brand: "Paula's Choice", name: "BHA Liquid", pct: "91%" },
-    { rank: 3, emoji: "☀️", brand: "Beauty of Joseon", name: "Relief Sun", pct: "89%" },
-    { rank: 4, emoji: "🥛", brand: "CeraVe", name: "Moisturizing Cream", pct: "87%" },
-  ];
-
   const renderWishlist = (
     list: GiftItem[],
     filters: string[],

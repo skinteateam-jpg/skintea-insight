@@ -241,7 +241,7 @@ function SkinProfilePage() {
       try {
         const { data } = await supabase
           .from("shelf_items" as any)
-          .select("id,product_id,category,product_name,brand,emoji,match,is_top_pick")
+          .select("id,product_id,category,product_name,brand,emoji,match,is_top_pick,image_url")
           .eq("user_id", userId)
           .order("created_at", { ascending: false });
         if (alive) setShelfItems(((data as any[]) ?? []) as ShelfItem[]);
@@ -566,7 +566,7 @@ function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks, userId,
 
   const shelfTopPicks = useMemo(() => {
     const fromShelf = shelfItems.filter(i => i.is_top_pick).slice(0, 3).map(i => ({
-      id: i.id, name: i.product_name, brand: i.brand, emoji: i.emoji, image_url: null,
+      id: i.id, name: i.product_name, brand: i.brand, emoji: i.emoji, image_url: i.image_url,
     }));
     return fromShelf.length > 0 ? fromShelf : topPicks;
   }, [shelfItems, topPicks]);
@@ -603,7 +603,11 @@ function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks, userId,
             {items.map((p) => (
               <div key={p.id} style={{ flexShrink: 0, width: 120, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", position: "relative" }}>
                 {p.is_top_pick && <div style={{ position: "absolute", top: 6, left: 6, background: C.gold, color: "#fff", fontSize: 8, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
-                <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 36 }}>{p.emoji ?? "🧴"}</div>
+                {p.image_url ? (
+                  <div style={{ aspectRatio: "1", background: `#F5F0EB url(${p.image_url}) center/cover no-repeat` }} />
+                ) : (
+                  <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 36 }}>{p.emoji ?? "🧴"}</div>
+                )}
                 <div style={{ padding: 8 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, minHeight: 26 }}>{p.product_name}</div>
                   {p.brand && <div style={{ fontSize: 10, color: C.textLight, margin: "2px 0 6px" }}>{p.brand}</div>}

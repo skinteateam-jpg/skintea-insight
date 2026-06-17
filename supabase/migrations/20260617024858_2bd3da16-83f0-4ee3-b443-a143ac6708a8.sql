@@ -1,0 +1,2 @@
+ALTER TABLE public.saved_products ALTER COLUMN product_id TYPE uuid USING product_id::uuid;
+ALTER TABLE public.saved_products ADD CONSTRAINT saved_products_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE CASCADE;

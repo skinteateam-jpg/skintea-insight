@@ -985,12 +985,11 @@ function SavedTab({ userId }: { userId: string | null }) {
                 {p.image_url ? (
                   <div style={{ aspectRatio: "1.3", background: `#F5F0EB url(${p.image_url}) center/cover no-repeat` }} />
                 ) : (
-                  <div style={{ aspectRatio: "1.3", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 44 }}>{p.emoji ?? "🧴"}</div>
+                  <div style={{ aspectRatio: "1.3", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 44 }}>{"🧴"}</div>
                 )}
                 <div style={{ padding: "10px 10px 0" }}>
                   <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{p.name}</div>
                   {p.category && <div style={{ fontSize: 10, color: C.textLight, marginTop: 2 }}>{p.category}</div>}
-                  <div style={{ marginTop: 6 }}><MatchPill match={(p.match ?? "good") as Match} /></div>
                 </div>
               </Link>
               <div style={{ padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>

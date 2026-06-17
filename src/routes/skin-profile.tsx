@@ -641,9 +641,67 @@ function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks, userId,
 
 const SHELF_CATEGORIES = ["Cleanser", "Toner", "Serum", "Moisturizer", "SPF", "Face Mask", "Eye Cream", "Sunscreen", "Device", "Treatment", "Other"];
 
+type ProductSearchRow = { id: string; name: string; brand: string; category: string | null; image_url: string | null; price: number | null };
+
+function useProductSearch(query: string) {
+  const [results, setResults] = useState<ProductSearchRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) { setResults([]); setLoading(false); return; }
+    setLoading(true);
+    let alive = true;
+    const t = setTimeout(async () => {
+      try {
+        const { data } = await supabase
+          .from("products")
+          .select("id,name,brand,category,image_url,price")
+          .eq("is_active", true)
+          .or(`name.ilike.%${q}%,brand.ilike.%${q}%`)
+          .limit(10);
+        if (alive) setResults(((data as any[]) ?? []) as ProductSearchRow[]);
+      } catch { if (alive) setResults([]); }
+      finally { if (alive) setLoading(false); }
+    }, 300);
+    return () => { alive = false; clearTimeout(t); };
+  }, [query]);
+  return { results, loading };
+}
+
+function ProductSearchList({ query, onPick }: { query: string; onPick: (p: ProductSearchRow) => void }) {
+  const { results, loading } = useProductSearch(query);
+  if (!query.trim()) return null;
+  if (loading) return <div style={{ fontSize: 12, color: C.textLight, padding: "8px 4px" }}>Searching…</div>;
+  if (results.length === 0) return null;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden", background: C.surface }}>
+      {results.map((p, i) => (
+        <button key={p.id} type="button" onClick={() => onPick(p)}
+          style={{ display: "flex", alignItems: "center", gap: 10, padding: 8, background: "transparent", border: "none", borderTop: i === 0 ? "none" : `1px solid ${C.border}`, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
+          <div style={{ width: 40, height: 40, borderRadius: 6, background: p.image_url ? `#F5F0EB url(${p.image_url}) center/cover no-repeat` : "#F5F0EB", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 18 }}>
+            {!p.image_url && "🧴"}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+            <div style={{ fontSize: 10, color: C.textLight, marginTop: 2 }}>
+              {p.brand}{p.category ? ` · ${p.category}` : ""}
+            </div>
+          </div>
+          {p.price != null && <div style={{ fontSize: 11, fontWeight: 700, color: C.ink }}>${Number(p.price).toFixed(2)}</div>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: string; defaultCategory?: string; onClose: () => void; onSaved: (it: ShelfItem) => void }) {
+  const [query, setQuery] = useState("");
+  const [manual, setManual] = useState(false);
+  const [picked, setPicked] = useState<ProductSearchRow | null>(null);
   const [name, setName] = useState("");
   const [brand, setBrand] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [productId, setProductId] = useState<string | null>(null);
   const [category, setCategory] = useState(defaultCategory && SHELF_CATEGORIES.includes(defaultCategory) ? defaultCategory : (defaultCategory ?? "Cleanser"));
   const [emoji, setEmoji] = useState("🧴");
   const [match, setMatch] = useState<Match>("good");
@@ -653,6 +711,21 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
 
   const allCats = Array.from(new Set([...SHELF_CATEGORIES, ...(defaultCategory ? [defaultCategory] : [])]));
 
+  const onPick = (p: ProductSearchRow) => {
+    setPicked(p);
+    setName(p.name);
+    setBrand(p.brand);
+    setImageUrl(p.image_url);
+    setProductId(p.id);
+    if (p.category && allCats.includes(p.category)) setCategory(p.category);
+    setQuery("");
+    setManual(true);
+  };
+
+  const reset = () => {
+    setPicked(null); setName(""); setBrand(""); setImageUrl(null); setProductId(null); setManual(false);
+  };
+
   const save = async () => {
     setErr(null);
     if (!name.trim()) { setErr("Product name is required"); return; }
@@ -660,11 +733,13 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
     try {
       const payload = {
         user_id: userId,
+        product_id: productId,
         product_name: name.trim(),
         brand: brand.trim() || null,
         category,
         emoji: emoji.trim() || "🧴",
         match,
+        image_url: imageUrl,
         is_top_pick: isTopPick,
         is_public: true,
       };
@@ -680,6 +755,7 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
         emoji: row.emoji,
         match: row.match,
         is_top_pick: row.is_top_pick,
+        image_url: row.image_url ?? null,
       } as ShelfItem);
     } catch (e: any) {
       setErr(e?.message ?? "Failed to save");
@@ -707,14 +783,49 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
     <Sheet onClose={onClose}>
       <div style={{ fontSize: 18, fontWeight: 800, color: C.ink, marginBottom: 16 }}>Add to Shelf</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <div>
-          <label style={labelStyle}>Product name</label>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. CeraVe Foaming Cleanser" style={inputStyle} />
-        </div>
-        <div>
-          <label style={labelStyle}>Brand</label>
-          <input value={brand} onChange={e => setBrand(e.target.value)} placeholder="e.g. CeraVe" style={inputStyle} />
-        </div>
+        {!manual && (
+          <>
+            <div>
+              <label style={labelStyle}>Search products</label>
+              <input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Search products..." style={inputStyle} />
+            </div>
+            <ProductSearchList query={query} onPick={onPick} />
+            <button type="button" onClick={() => setManual(true)}
+              style={{ background: "transparent", border: "none", color: C.textMid, fontSize: 12, fontWeight: 600, textDecoration: "underline", cursor: "pointer", alignSelf: "flex-start", padding: 0 }}>
+              Not finding it? Add manually
+            </button>
+          </>
+        )}
+        {manual && (
+          <>
+            {picked && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 8, border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface }}>
+                <div style={{ width: 44, height: 44, borderRadius: 6, background: imageUrl ? `#F5F0EB url(${imageUrl}) center/cover no-repeat` : "#F5F0EB", flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.ink }}>{name}</div>
+                  <div style={{ fontSize: 10, color: C.textLight }}>{brand}</div>
+                </div>
+                <button type="button" onClick={reset} style={{ background: "transparent", border: "none", color: C.textLight, cursor: "pointer", fontSize: 11, textDecoration: "underline" }}>Change</button>
+              </div>
+            )}
+            {!picked && (
+              <>
+                <div>
+                  <label style={labelStyle}>Product name</label>
+                  <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. CeraVe Foaming Cleanser" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Brand</label>
+                  <input value={brand} onChange={e => setBrand(e.target.value)} placeholder="e.g. CeraVe" style={inputStyle} />
+                </div>
+                <button type="button" onClick={() => setManual(false)}
+                  style={{ background: "transparent", border: "none", color: C.textMid, fontSize: 12, fontWeight: 600, textDecoration: "underline", cursor: "pointer", alignSelf: "flex-start", padding: 0 }}>
+                  ← Back to search
+                </button>
+              </>
+            )}
+          </>
+        )}
         <div>
           <label style={labelStyle}>Category</label>
           <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>

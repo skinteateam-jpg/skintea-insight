@@ -983,7 +983,7 @@ function SavedTab({ userId }: { userId: string | null }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginTop: 16 }}>
           {items.map((p) => (
             <div key={p.rowId} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-              <Link to="/products/$id" params={{ id: p.id }} style={{ display: "block", textDecoration: "none", color: "inherit" }}>
+              <Link to="/product/$id" params={{ id: p.id }} style={{ display: "block", textDecoration: "none", color: "inherit" }}>
                 {p.image_url ? (
                   <div style={{ aspectRatio: "1.3", background: `#F5F0EB url(${p.image_url}) center/cover no-repeat` }} />
                 ) : (
@@ -1160,7 +1160,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
           {list.map((item) => (
             <div key={item.id} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, overflow: "hidden" }}>
               {item.product_id ? (
-                <Link to="/products/$id" params={{ id: item.product_id }} style={{ display: "block", textDecoration: "none" }}>
+                <Link to="/product/$id" params={{ id: item.product_id }} style={{ display: "block", textDecoration: "none" }}>
                   <div style={{ height: 75, background: item.image_url ? `#FFFCF8 url(${item.image_url}) center/cover no-repeat` : "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
                     {!item.image_url && (item.emoji ?? "🎁")}
                     <span style={{ position: "absolute", top: 5, right: 5, fontSize: 7, fontWeight: 800, padding: "2px 5px", borderRadius: 99, background: badge.bg, color: badge.color, border: `0.5px solid ${badge.border}` }}>{badge.text}</span>

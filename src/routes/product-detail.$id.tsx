@@ -109,8 +109,22 @@ function ProductPage() {
   const fromPost = search?.from === "post";
   const fromPostId = search?.postId;
   const [userSkinType, setUserSkinType] = useState<string | null>(null);
-  const [productData, setProductData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isSaved, setIsSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const uid = data.user?.id ?? null;
+      setUserId(uid);
+      if (!uid) return;
+      (supabase as any).from("saved_products").select("id").eq("user_id", uid).eq("product_id", id).maybeSingle()
+        .then(({ data: row }: any) => setIsSaved(!!row));
+    });
+  }, [id]);
+
   useEffect(() => {
     setUserSkinType(localStorage.getItem("skintea_skin_type") || null);
   }, []);

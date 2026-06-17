@@ -18,7 +18,6 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as QuizResultRouteImport } from './routes/quiz-result'
 import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as ProductsRouteImport } from './routes/products'
-import { Route as ProductDetailRouteImport } from './routes/product-detail'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ClinicsIndexRouteImport } from './routes/clinics.index'
@@ -75,11 +74,6 @@ const ProductsRoute = ProductsRouteImport.update({
   path: '/products',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProductDetailRoute = ProductDetailRouteImport.update({
-  id: '/product-detail',
-  path: '/product-detail',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -134,7 +128,6 @@ const AdminTreatmentsRoute = AdminTreatmentsRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/product-detail': typeof ProductDetailRouteWithChildren
   '/products': typeof ProductsRoute
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
@@ -156,7 +149,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/product-detail': typeof ProductDetailRouteWithChildren
   '/products': typeof ProductsRoute
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
@@ -179,7 +171,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/product-detail': typeof ProductDetailRouteWithChildren
   '/products': typeof ProductsRoute
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
@@ -203,7 +194,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
-    | '/product-detail'
     | '/products'
     | '/quiz'
     | '/quiz-result'
@@ -225,7 +215,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
-    | '/product-detail'
     | '/products'
     | '/quiz'
     | '/quiz-result'
@@ -247,7 +236,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/login'
-    | '/product-detail'
     | '/products'
     | '/quiz'
     | '/quiz-result'
@@ -270,7 +258,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
-  ProductDetailRoute: typeof ProductDetailRouteWithChildren
   ProductsRoute: typeof ProductsRoute
   QuizRoute: typeof QuizRoute
   QuizResultRoute: typeof QuizResultRoute
@@ -353,13 +340,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/product-detail': {
-      id: '/product-detail'
-      path: '/product-detail'
-      fullPath: '/product-detail'
-      preLoaderRoute: typeof ProductDetailRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -433,18 +413,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface ProductDetailRouteChildren {
-  ProductDetailIdRoute: typeof ProductDetailIdRoute
-}
-
-const ProductDetailRouteChildren: ProductDetailRouteChildren = {
-  ProductDetailIdRoute: ProductDetailIdRoute,
-}
-
-const ProductDetailRouteWithChildren = ProductDetailRoute._addFileChildren(
-  ProductDetailRouteChildren,
-)
-
 interface TeaProductsRouteChildren {
   TeaProductsPostIdRoute: typeof TeaProductsPostIdRoute
 }
@@ -460,7 +428,6 @@ const TeaProductsRouteWithChildren = TeaProductsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
-  ProductDetailRoute: ProductDetailRouteWithChildren,
   ProductsRoute: ProductsRoute,
   QuizRoute: QuizRoute,
   QuizResultRoute: QuizResultRoute,
@@ -480,3 +447,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

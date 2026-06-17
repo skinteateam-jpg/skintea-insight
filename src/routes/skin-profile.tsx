@@ -552,6 +552,7 @@ function PostSheet({ post, onClose }: { post: Post; onClose: () => void }) {
 
 // ---------- Tab 2: My Shelf ----------
 function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks, userId, onShelfAdded }: { shelfItems: ShelfItem[]; topPicks: TopPick[]; loadingShelf: boolean; loadingTopPicks: boolean; userId: string | null; onShelfAdded: (it: ShelfItem) => void }) {
+  const navigate = useNavigate();
   const grouped = useMemo(() => {
     const map = new Map<string, ShelfItem[]>();
     for (const it of shelfItems) {
@@ -573,6 +574,11 @@ function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks, userId,
   const [active, setActive] = useState("All");
   const visible = active === "All" ? grouped : grouped.filter(([c]) => c === active);
   const [addOpen, setAddOpen] = useState<{ category?: string } | null>(null);
+
+  const toggleTopPick = async (itemId: string, current: boolean) => {
+    setShelfItems(prev => prev.map(i => i.id === itemId ? { ...i, is_top_pick: !current } : i));
+    await supabase.from("shelf_items" as any).update({ is_top_pick: !current }).eq("id", itemId);
+  };
 
   return (
     <>

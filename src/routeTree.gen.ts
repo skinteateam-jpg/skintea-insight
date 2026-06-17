@@ -26,7 +26,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TreatmentSlugRouteImport } from './routes/treatment.$slug'
 import { Route as TeaProductsPostIdRouteImport } from './routes/tea-products.$postId'
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
-import { Route as ProductsIdV2RouteImport } from './routes/products.$id-v2'
+import { Route as ProductsIdRouteImport } from './routes/products.$id'
 import { Route as ClinicsIdRouteImport } from './routes/clinics/$id'
 import { Route as AdminTreatmentsRouteImport } from './routes/admin.treatments'
 
@@ -115,9 +115,9 @@ const ProfileUsernameRoute = ProfileUsernameRouteImport.update({
   path: '/profile/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProductsIdV2Route = ProductsIdV2RouteImport.update({
-  id: '/$id-v2',
-  path: '/$id-v2',
+const ProductsIdRoute = ProductsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
   getParentRoute: () => ProductsRoute,
 } as any)
 const ClinicsIdRoute = ClinicsIdRouteImport.update({
@@ -146,7 +146,7 @@ export interface FileRoutesByFullPath {
   '/treatment-talk2': typeof TreatmentTalk2Route
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/clinics/$id': typeof ClinicsIdRoute
-  '/products/$id-v2': typeof ProductsIdV2Route
+  '/products/$id': typeof ProductsIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment/$slug': typeof TreatmentSlugRoute
@@ -168,7 +168,7 @@ export interface FileRoutesByTo {
   '/treatment-talk2': typeof TreatmentTalk2Route
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/clinics/$id': typeof ClinicsIdRoute
-  '/products/$id-v2': typeof ProductsIdV2Route
+  '/products/$id': typeof ProductsIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment/$slug': typeof TreatmentSlugRoute
@@ -191,7 +191,7 @@ export interface FileRoutesById {
   '/treatment-talk2': typeof TreatmentTalk2Route
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/clinics/$id': typeof ClinicsIdRoute
-  '/products/$id-v2': typeof ProductsIdV2Route
+  '/products/$id': typeof ProductsIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment/$slug': typeof TreatmentSlugRoute
@@ -215,7 +215,7 @@ export interface FileRouteTypes {
     | '/treatment-talk2'
     | '/admin/treatments'
     | '/clinics/$id'
-    | '/products/$id-v2'
+    | '/products/$id'
     | '/profile/$username'
     | '/tea-products/$postId'
     | '/treatment/$slug'
@@ -237,7 +237,7 @@ export interface FileRouteTypes {
     | '/treatment-talk2'
     | '/admin/treatments'
     | '/clinics/$id'
-    | '/products/$id-v2'
+    | '/products/$id'
     | '/profile/$username'
     | '/tea-products/$postId'
     | '/treatment/$slug'
@@ -259,7 +259,7 @@ export interface FileRouteTypes {
     | '/treatment-talk2'
     | '/admin/treatments'
     | '/clinics/$id'
-    | '/products/$id-v2'
+    | '/products/$id'
     | '/profile/$username'
     | '/tea-products/$postId'
     | '/treatment/$slug'
@@ -409,11 +409,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/products/$id-v2': {
-      id: '/products/$id-v2'
-      path: '/$id-v2'
-      fullPath: '/products/$id-v2'
-      preLoaderRoute: typeof ProductsIdV2RouteImport
+    '/products/$id': {
+      id: '/products/$id'
+      path: '/$id'
+      fullPath: '/products/$id'
+      preLoaderRoute: typeof ProductsIdRouteImport
       parentRoute: typeof ProductsRoute
     }
     '/clinics/$id': {
@@ -434,11 +434,11 @@ declare module '@tanstack/react-router' {
 }
 
 interface ProductsRouteChildren {
-  ProductsIdV2Route: typeof ProductsIdV2Route
+  ProductsIdRoute: typeof ProductsIdRoute
 }
 
 const ProductsRouteChildren: ProductsRouteChildren = {
-  ProductsIdV2Route: ProductsIdV2Route,
+  ProductsIdRoute: ProductsIdRoute,
 }
 
 const ProductsRouteWithChildren = ProductsRoute._addFileChildren(

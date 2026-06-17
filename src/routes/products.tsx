@@ -481,7 +481,8 @@ function ProductCard({
 }) {
   return (
     <Link
-      to="/product-detail"
+      to="/products/$id"
+      params={{ id: "00000000-0000-0000-0000-000000000001" }}
       style={{
         border: `1.5px solid ${C.border}`,
         borderRadius: 6,

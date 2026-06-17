@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Bookmark, Check, X, ChevronRight, Lock, Sparkles, Gift } from "lucide-react";
+import { Bookmark, ChevronRight, Lock, Sparkles, Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/products/$id")({
@@ -49,12 +49,6 @@ type Product = {
   skintea_score: number | null;
   is_top_pick: boolean | null;
 };
-
-function fitColor(v: number) {
-  if (v >= 70) return C.crimson;
-  if (v >= 50) return C.amber;
-  return C.gray;
-}
 
 function formatPrice(p: Product) {
   if (p.price == null) return "—";

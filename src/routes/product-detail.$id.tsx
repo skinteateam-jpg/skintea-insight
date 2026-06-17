@@ -680,10 +680,10 @@ function LegendItem({ strength, label }: { strength: number; label: string }) {
   );
 }
 
-function ActionBtn({ icon, label, onClick, active, disabled }: { icon: string; label: string; onClick: () => void; active?: boolean; disabled?: boolean }) {
+function ActionBtn({ icon, label, onClick, active, disabled, flex = 1 }: { icon: string; label: string; onClick: () => void; active?: boolean; disabled?: boolean; flex?: number }) {
   return (
-    <button onClick={onClick} disabled={disabled} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "8px 4px", background: active ? "#1C0A00" : "transparent", color: active ? "#FFFCF8" : "#1C0A00", border: `1px solid ${active ? "#1C0A00" : "#E8DDD4"}`, borderRadius: 10, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.6 : 1, fontFamily: "inherit" }}>
-      <span style={{ fontSize: 18 }}>{icon}</span>
+    <button onClick={onClick} disabled={disabled} style={{ flex, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "6px 4px", background: active ? "#1C0A00" : "transparent", color: active ? "#FFFCF8" : "#1C0A00", border: `1px solid ${active ? "#1C0A00" : "#E8DDD4"}`, borderRadius: 10, fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.6 : 1, fontFamily: "inherit" }}>
+      <span style={{ fontSize: 16 }}>{icon}</span>
       <span>{label}</span>
     </button>
   );

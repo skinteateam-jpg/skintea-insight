@@ -600,25 +600,43 @@ function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks, userId,
         <div key={cat} style={{ marginTop: 24 }}>
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>{cat}</div>
           <div style={{ display: "flex", gap: 10, overflowX: "auto", margin: "0 -16px", padding: "0 16px 8px" }}>
-            {items.map((p) => (
-              <a
-                key={p.id}
-                href={p.product_id ? `/products/${p.product_id}` : undefined}
-                style={{ flexShrink: 0, width: 120, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", position: "relative", textDecoration: "none", color: "inherit", cursor: p.product_id ? "pointer" : "default", display: "block" }}
-              >
-                {p.is_top_pick && <div style={{ position: "absolute", top: 6, left: 6, background: C.gold, color: "#fff", fontSize: 8, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
-                {p.image_url ? (
-                  <div style={{ aspectRatio: "1", background: `#F5F0EB url(${p.image_url}) center/cover no-repeat` }} />
-                ) : (
-                  <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 36 }}>{p.emoji ?? "🧴"}</div>
-                )}
-                <div style={{ padding: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, minHeight: 26 }}>{p.product_name}</div>
-                  {p.brand && <div style={{ fontSize: 10, color: C.textLight, margin: "2px 0 6px" }}>{p.brand}</div>}
-                  <MatchPill match={(p.match ?? "good") as Match} />
+            {items.map((p) => {
+              const cardStyle: CSSProperties = { flexShrink: 0, width: 120, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", position: "relative", display: "block" };
+              return p.product_id ? (
+                <Link
+                  key={p.id}
+                  to="/products/$id"
+                  params={{ id: p.product_id }}
+                  style={{ ...cardStyle, textDecoration: "none", color: "inherit" }}
+                >
+                  {p.is_top_pick && <div style={{ position: "absolute", top: 6, left: 6, background: C.gold, color: "#fff", fontSize: 8, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
+                  {p.image_url ? (
+                    <div style={{ aspectRatio: "1", background: `#F5F0EB url(${p.image_url}) center/cover no-repeat` }} />
+                  ) : (
+                    <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 36 }}>{p.emoji ?? "🧴"}</div>
+                  )}
+                  <div style={{ padding: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, minHeight: 26 }}>{p.product_name}</div>
+                    {p.brand && <div style={{ fontSize: 10, color: C.textLight, margin: "2px 0 6px" }}>{p.brand}</div>}
+                    <MatchPill match={(p.match ?? "good") as Match} />
+                  </div>
+                </Link>
+              ) : (
+                <div key={p.id} style={{ ...cardStyle, cursor: "default", textDecoration: "none", color: "inherit" }}>
+                  {p.is_top_pick && <div style={{ position: "absolute", top: 6, left: 6, background: C.gold, color: "#fff", fontSize: 8, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
+                  {p.image_url ? (
+                    <div style={{ aspectRatio: "1", background: `#F5F0EB url(${p.image_url}) center/cover no-repeat` }} />
+                  ) : (
+                    <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 36 }}>{p.emoji ?? "🧴"}</div>
+                  )}
+                  <div style={{ padding: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, minHeight: 26 }}>{p.product_name}</div>
+                    {p.brand && <div style={{ fontSize: 10, color: C.textLight, margin: "2px 0 6px" }}>{p.brand}</div>}
+                    <MatchPill match={(p.match ?? "good") as Match} />
+                  </div>
                 </div>
-              </a>
-            ))}
+              );
+            })}
             <button onClick={() => setAddOpen({ category: cat })}
               style={{ flexShrink: 0, width: 120, aspectRatio: "0.78", border: `1.5px dashed ${C.borderStrong}`, borderRadius: 10, background: "transparent", cursor: "pointer", display: "grid", placeItems: "center", color: C.textLight }}>
               <Plus size={22} />
@@ -965,20 +983,22 @@ function SavedTab({ userId }: { userId: string | null }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginTop: 16 }}>
           {items.map((p) => (
             <div key={p.rowId} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
-              {p.image_url ? (
-                <div style={{ aspectRatio: "1.3", background: `#F5F0EB url(${p.image_url}) center/cover no-repeat` }} />
-              ) : (
-                <div style={{ aspectRatio: "1.3", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 44 }}>{p.emoji ?? "🧴"}</div>
-              )}
-              <div style={{ padding: 10 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{p.name}</div>
-                {p.category && <div style={{ fontSize: 10, color: C.textLight, marginTop: 2 }}>{p.category}</div>}
-                <div style={{ marginTop: 6 }}><MatchPill match={(p.match ?? "good") as Match} /></div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
-                  <button onClick={() => addToShelf(p)} style={{ width: "100%", background: "#1C0A00", color: "#FFFCF8", border: "none", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, cursor: "pointer" }}>Add to My Shelf</button>
-                  <button style={{ width: "100%", background: "#FFF5F5", color: "#A8001C", border: "0.5px solid #A8001C", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, cursor: "pointer" }}>🎁 Add to Gift Me</button>
-                  <button onClick={() => removeSaved(p.rowId)} style={{ width: "100%", background: "transparent", color: "#bbb", border: "0.5px solid #E8DDD4", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 600, cursor: "pointer" }}>Remove</button>
+              <Link to="/products/$id" params={{ id: p.id }} style={{ display: "block", textDecoration: "none", color: "inherit" }}>
+                {p.image_url ? (
+                  <div style={{ aspectRatio: "1.3", background: `#F5F0EB url(${p.image_url}) center/cover no-repeat` }} />
+                ) : (
+                  <div style={{ aspectRatio: "1.3", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 44 }}>{p.emoji ?? "🧴"}</div>
+                )}
+                <div style={{ padding: "10px 10px 0" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{p.name}</div>
+                  {p.category && <div style={{ fontSize: 10, color: C.textLight, marginTop: 2 }}>{p.category}</div>}
+                  <div style={{ marginTop: 6 }}><MatchPill match={(p.match ?? "good") as Match} /></div>
                 </div>
+              </Link>
+              <div style={{ padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
+                <button onClick={() => addToShelf(p)} style={{ width: "100%", background: "#1C0A00", color: "#FFFCF8", border: "none", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, cursor: "pointer" }}>Add to My Shelf</button>
+                <button style={{ width: "100%", background: "#FFF5F5", color: "#A8001C", border: "0.5px solid #A8001C", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, cursor: "pointer" }}>🎁 Add to Gift Me</button>
+                <button onClick={() => removeSaved(p.rowId)} style={{ width: "100%", background: "transparent", color: "#bbb", border: "0.5px solid #E8DDD4", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 600, cursor: "pointer" }}>Remove</button>
               </div>
             </div>
           ))}
@@ -1139,10 +1159,19 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {list.map((item) => (
             <div key={item.id} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, overflow: "hidden" }}>
-              <div style={{ height: 75, background: item.image_url ? `#FFFCF8 url(${item.image_url}) center/cover no-repeat` : "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
-                {!item.image_url && (item.emoji ?? "🎁")}
-                <span style={{ position: "absolute", top: 5, right: 5, fontSize: 7, fontWeight: 800, padding: "2px 5px", borderRadius: 99, background: badge.bg, color: badge.color, border: `0.5px solid ${badge.border}` }}>{badge.text}</span>
-              </div>
+              {item.product_id ? (
+                <Link to="/products/$id" params={{ id: item.product_id }} style={{ display: "block", textDecoration: "none" }}>
+                  <div style={{ height: 75, background: item.image_url ? `#FFFCF8 url(${item.image_url}) center/cover no-repeat` : "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
+                    {!item.image_url && (item.emoji ?? "🎁")}
+                    <span style={{ position: "absolute", top: 5, right: 5, fontSize: 7, fontWeight: 800, padding: "2px 5px", borderRadius: 99, background: badge.bg, color: badge.color, border: `0.5px solid ${badge.border}` }}>{badge.text}</span>
+                  </div>
+                </Link>
+              ) : (
+                <div style={{ height: 75, background: item.image_url ? `#FFFCF8 url(${item.image_url}) center/cover no-repeat` : "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
+                  {!item.image_url && (item.emoji ?? "🎁")}
+                  <span style={{ position: "absolute", top: 5, right: 5, fontSize: 7, fontWeight: 800, padding: "2px 5px", borderRadius: 99, background: badge.bg, color: badge.color, border: `0.5px solid ${badge.border}` }}>{badge.text}</span>
+                </div>
+              )}
               <div style={{ padding: "7px 8px 8px" }}>
                 {item.category && <div style={{ fontSize: 7, color: "#A8001C", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{item.category}</div>}
                 {item.brand && <div style={{ fontSize: 8, color: "#999" }}>{item.brand}</div>}

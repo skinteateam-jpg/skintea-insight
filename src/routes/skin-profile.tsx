@@ -1281,6 +1281,11 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
 
 // ---------- Tab 4: Skin Chart ----------
 function AddWishlistSheet({ userId, type, onClose, onSaved }: { userId: string; type: "skincare" | "makeup"; onClose: () => void; onSaved: (it: GiftItem) => void }) {
+  const [query, setQuery] = useState("");
+  const [manual, setManual] = useState(false);
+  const [picked, setPicked] = useState<ProductSearchRow | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [productId, setProductId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [brand, setBrand] = useState("");
   const [category, setCategory] = useState("");
@@ -1290,6 +1295,21 @@ function AddWishlistSheet({ userId, type, onClose, onSaved }: { userId: string; 
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  const onPick = (p: ProductSearchRow) => {
+    setPicked(p);
+    setName(p.name);
+    setBrand(p.brand);
+    setCategory(p.category ?? "");
+    setImageUrl(p.image_url);
+    setProductId(p.id);
+    setQuery("");
+    setManual(true);
+  };
+
+  const reset = () => {
+    setPicked(null); setName(""); setBrand(""); setCategory(""); setImageUrl(null); setProductId(null); setManual(false);
+  };
+
   const save = async () => {
     setErr(null);
     if (!name.trim()) { setErr("Product name is required"); return; }
@@ -1297,10 +1317,12 @@ function AddWishlistSheet({ userId, type, onClose, onSaved }: { userId: string; 
     try {
       const payload = {
         user_id: userId,
+        product_id: productId,
         product_name: name.trim(),
         brand: brand.trim() || null,
         category: category.trim() || null,
         emoji: emoji.trim() || "🎁",
+        image_url: imageUrl,
         affiliate_url: url.trim() || null,
         affiliate_store: store.trim() || null,
         type,
@@ -1308,7 +1330,7 @@ function AddWishlistSheet({ userId, type, onClose, onSaved }: { userId: string; 
       };
       const { data, error } = await supabase.from("gift_wishlist" as any).insert(payload).select().single();
       if (error) throw error;
-      const row = (data as any) ?? { id: crypto.randomUUID(), product_id: null, ...payload };
+      const row = (data as any) ?? { id: crypto.randomUUID(), ...payload };
       onSaved({
         id: row.id,
         product_id: row.product_id ?? null,
@@ -1319,6 +1341,7 @@ function AddWishlistSheet({ userId, type, onClose, onSaved }: { userId: string; 
         affiliate_url: row.affiliate_url,
         affiliate_store: row.affiliate_store,
         type: row.type,
+        image_url: row.image_url ?? null,
       });
     } catch (e: any) {
       setErr(e?.message ?? "Failed to save");
@@ -1340,9 +1363,37 @@ function AddWishlistSheet({ userId, type, onClose, onSaved }: { userId: string; 
         <span style={{ fontSize: 9, fontWeight: 800, padding: "3px 8px", borderRadius: 99, background: badge.bg, color: badge.color, border: `0.5px solid ${badge.border}`, textTransform: "uppercase", letterSpacing: 0.4 }}>{badge.text}</span>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <div><label style={labelStyle}>Product name</label><input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Rhode Peptide Lip Tint" style={inputStyle} /></div>
-        <div><label style={labelStyle}>Brand</label><input value={brand} onChange={e => setBrand(e.target.value)} style={inputStyle} /></div>
-        <div><label style={labelStyle}>Category</label><input value={category} onChange={e => setCategory(e.target.value)} placeholder="e.g. Lip, Serum, SPF" style={inputStyle} /></div>
+        {!manual && (
+          <>
+            <div><label style={labelStyle}>Search products</label><input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Search products..." style={inputStyle} /></div>
+            <ProductSearchList query={query} onPick={onPick} />
+            <button type="button" onClick={() => setManual(true)}
+              style={{ background: "transparent", border: "none", color: "#5C4033", fontSize: 12, fontWeight: 600, textDecoration: "underline", cursor: "pointer", alignSelf: "flex-start", padding: 0 }}>
+              Not finding it? Add manually
+            </button>
+          </>
+        )}
+        {manual && picked && (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 8, border: "1px solid #E8DDD4", borderRadius: 8, background: "#fff" }}>
+            <div style={{ width: 44, height: 44, borderRadius: 6, background: imageUrl ? `#F5F0EB url(${imageUrl}) center/cover no-repeat` : "#F5F0EB", flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#1C0A00" }}>{name}</div>
+              <div style={{ fontSize: 10, color: "#999" }}>{brand}</div>
+            </div>
+            <button type="button" onClick={reset} style={{ background: "transparent", border: "none", color: "#999", cursor: "pointer", fontSize: 11, textDecoration: "underline" }}>Change</button>
+          </div>
+        )}
+        {manual && !picked && (
+          <>
+            <div><label style={labelStyle}>Product name</label><input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Rhode Peptide Lip Tint" style={inputStyle} /></div>
+            <div><label style={labelStyle}>Brand</label><input value={brand} onChange={e => setBrand(e.target.value)} style={inputStyle} /></div>
+            <div><label style={labelStyle}>Category</label><input value={category} onChange={e => setCategory(e.target.value)} placeholder="e.g. Lip, Serum, SPF" style={inputStyle} /></div>
+            <button type="button" onClick={() => setManual(false)}
+              style={{ background: "transparent", border: "none", color: "#5C4033", fontSize: 12, fontWeight: 600, textDecoration: "underline", cursor: "pointer", alignSelf: "flex-start", padding: 0 }}>
+              ← Back to search
+            </button>
+          </>
+        )}
         <div><label style={labelStyle}>Emoji</label><input value={emoji} onChange={e => setEmoji(e.target.value)} maxLength={4} style={{ ...inputStyle, width: 80, textAlign: "center", fontSize: 22 }} /></div>
         <div><label style={labelStyle}>Affiliate link</label><input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..." style={inputStyle} /></div>
         <div><label style={labelStyle}>Store name</label><input value={store} onChange={e => setStore(e.target.value)} placeholder="e.g. Sephora, Amazon" style={inputStyle} /></div>

@@ -10,16 +10,17 @@ import { Heart, MessageCircle, Play, Share2, ArrowUpCircle, ExternalLink, Chevro
 import { Link } from "@tanstack/react-router";
 import { ProductChat } from "@/components/ProductChat";
 import BottomNav from "@/components/BottomNav";
+import { supabase } from "@/integrations/supabase/client";
 
-export const Route = createFileRoute("/product-detail")({
+export const Route = createFileRoute("/product-detail/$id")({
   component: ProductPage,
   head: () => ({
     meta: [
-      { title: "CeraVe Moisturizing Cream — Skintea" },
+      { title: "Product — Skintea" },
       {
         name: "description",
         content:
-          "Real opinions on CeraVe Moisturizing Cream from TikTok, Instagram and Reddit, summarized by AI.",
+          "Real opinions from TikTok, Instagram and Reddit, summarized by AI.",
       },
     ],
   }),
@@ -100,6 +101,7 @@ const reddits = [
 ];
 
 function ProductPage() {
+  const { id } = Route.useParams();
   const [tab, setTab] = useState("tiktok");
   const [showAllIngredients, setShowAllIngredients] = useState(false);
   const navigate = useNavigate();
@@ -107,9 +109,35 @@ function ProductPage() {
   const fromPost = search?.from === "post";
   const fromPostId = search?.postId;
   const [userSkinType, setUserSkinType] = useState<string | null>(null);
+  const [productData, setProductData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     setUserSkinType(localStorage.getItem("skintea_skin_type") || null);
   }, []);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("products")
+        .select("id,name,brand,category,description,image_url,product_url,price,currency,skintea_score")
+        .eq("id", id)
+        .single();
+      if (!cancelled) {
+        setProductData(data);
+        setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen" style={{ background: "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ fontSize: 12, color: "#999" }}>Loading…</p>
+      </main>
+    );
+  }
 
   function getIngredientStyle(ing: { name: string; match: Record<string, "good" | "watch" | "neutral"> }) {
     if (!userSkinType) return { background: "#FFFCF8", color: "#999", border: "none" };
@@ -150,16 +178,20 @@ function ProductPage() {
         {/* Header */}
         <header style={{ marginBottom: 0, paddingBottom: 20, borderBottom: "0.5px solid #E8DDD4" }}>
           <div style={{ width: "100%", height: 180, background: "#FFFCF8", border: "0.5px solid #E8DDD4", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
-            <div style={{ width: 56, height: 76, background: "#E8DDD4", borderRadius: 8 }} />
+            {productData?.image_url ? (
+              <img src={productData.image_url} alt={productData?.name ?? ""} style={{ maxHeight: 160, maxWidth: "100%", objectFit: "contain" }} />
+            ) : (
+              <div style={{ width: 56, height: 76, background: "#E8DDD4", borderRadius: 8 }} />
+            )}
           </div>
           <div style={{ fontSize: 10, color: "#A8001C", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>
-            <span style={{ color: "#A8001C" }}>{product.brand} · {product.category}</span>
+            <span style={{ color: "#A8001C" }}>{productData?.brand} · {productData?.category}</span>
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1C0A00", lineHeight: 1.1, marginBottom: 6, marginTop: 4 }}>
-            {product.name}
+            {productData?.name}
           </h1>
           <p style={{ fontSize: 12, color: "#999", lineHeight: 1.6, marginBottom: 14 }}>
-            {product.tagline}
+            {productData?.description}
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
             {affiliates.map((a, i) => (

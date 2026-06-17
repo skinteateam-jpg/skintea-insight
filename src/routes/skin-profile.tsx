@@ -954,7 +954,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
       try {
         const { data } = await supabase
           .from("gift_wishlist" as any)
-          .select("id,product_id,product_name,brand,category,emoji,affiliate_url,affiliate_store,type")
+          .select("id,product_id,product_name,brand,category,emoji,affiliate_url,affiliate_store,type,image_url")
           .eq("user_id", userId)
           .order("created_at", { ascending: false });
         if (!alive) return;

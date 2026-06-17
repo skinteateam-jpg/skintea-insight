@@ -182,7 +182,7 @@ function ProductPage() {
   }
 
   return (
-    <main className="min-h-screen" style={{ paddingBottom: "100px", background: "#FFFCF8" }}>
+    <main className="min-h-screen" style={{ paddingBottom: "170px", background: "#FFFCF8" }}>
       <div className="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-20">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
           <button
@@ -505,7 +505,7 @@ function ProductPage() {
         </div>
       )}
 
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#FFFCF8", borderTop: "1px solid #E8DDD4", padding: "10px 16px", zIndex: 50 }}>
+      <div style={{ position: "fixed", bottom: 64, left: 0, right: 0, background: "#FFFCF8", borderTop: "1px solid #E8DDD4", padding: "10px 16px", zIndex: 60 }}>
         <div style={{ maxWidth: 480, margin: "0 auto", display: "flex", gap: 8 }}>
           <ActionBtn icon="🧴" label="Add to Shelf" onClick={handleShelfClick} />
           <ActionBtn icon="🎁" label="Gift Me" onClick={handleGiftClick} />

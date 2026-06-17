@@ -12,7 +12,7 @@ import { ProductChat } from "@/components/ProductChat";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 
-export const Route = createFileRoute("/product-detail/$id")({
+export const Route = createFileRoute("/product-detail")({
   component: ProductPage,
   head: () => ({
     meta: [

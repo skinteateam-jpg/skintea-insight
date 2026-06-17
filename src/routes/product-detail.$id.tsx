@@ -560,11 +560,11 @@ function ProductPage() {
         </div>
       )}
 
-      <div style={{ position: "fixed", bottom: 64, left: 0, right: 0, background: "#FFFCF8", borderTop: "1px solid #E8DDD4", padding: "10px 16px", zIndex: 60 }}>
-        <div style={{ maxWidth: 480, margin: "0 auto", display: "flex", gap: 8 }}>
-          <ActionBtn icon="🧴" label={isInShelf ? "On Shelf" : "Add to Shelf"} onClick={handleShelfClick} active={isInShelf} disabled={shelving} />
-          <ActionBtn icon="🎁" label={isInGift ? "On Gift Me" : "Gift Me"} onClick={handleGiftClick} active={isInGift} disabled={gifting} />
-          <ActionBtn icon="🔖" label={isSaved ? "Saved" : "Save"} onClick={handleSaveToggle} active={isSaved} disabled={saving} />
+      <div style={{ position: "fixed", bottom: 64, left: 0, right: 0, background: "#FFFCF8", borderTop: "1px solid #E8DDD4", padding: "6px 14px", zIndex: 60 }}>
+        <div style={{ maxWidth: 480, margin: "0 auto", display: "flex", gap: 6 }}>
+          <ActionBtn icon="🔖" label={isSaved ? "Saved" : "Save"} onClick={handleSaveToggle} active={isSaved} disabled={saving} flex={1.4} />
+          <ActionBtn icon="🧴" label="Add to Shelf" onClick={handleShelfClick} flex={1} />
+          <ActionBtn icon="🎁" label="Gift Me" onClick={handleGiftClick} flex={1} />
         </div>
       </div>
       <BottomNav />
@@ -680,10 +680,10 @@ function LegendItem({ strength, label }: { strength: number; label: string }) {
   );
 }
 
-function ActionBtn({ icon, label, onClick, active, disabled }: { icon: string; label: string; onClick: () => void; active?: boolean; disabled?: boolean }) {
+function ActionBtn({ icon, label, onClick, active, disabled, flex = 1 }: { icon: string; label: string; onClick: () => void; active?: boolean; disabled?: boolean; flex?: number }) {
   return (
-    <button onClick={onClick} disabled={disabled} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "8px 4px", background: active ? "#1C0A00" : "transparent", color: active ? "#FFFCF8" : "#1C0A00", border: `1px solid ${active ? "#1C0A00" : "#E8DDD4"}`, borderRadius: 10, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.6 : 1, fontFamily: "inherit" }}>
-      <span style={{ fontSize: 18 }}>{icon}</span>
+    <button onClick={onClick} disabled={disabled} style={{ flex, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, padding: "6px 4px", background: active ? "#1C0A00" : "transparent", color: active ? "#FFFCF8" : "#1C0A00", border: `1px solid ${active ? "#1C0A00" : "#E8DDD4"}`, borderRadius: 10, fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.6 : 1, fontFamily: "inherit" }}>
+      <span style={{ fontSize: 16 }}>{icon}</span>
       <span>{label}</span>
     </button>
   );

@@ -897,7 +897,7 @@ function SavedTab({ userId }: { userId: string | null }) {
       try {
         const { data } = await supabase
           .from("saved_products" as any)
-          .select("id, product_id, products(id,name,brand,category,image_url,emoji,match)")
+          .select("id, product_id, products(id,name,brand,category,image_url)")
           .eq("user_id", userId)
           .order("created_at", { ascending: false });
         if (alive) setSavedProducts(((data as any[]) ?? []) as SavedProductRow[]);

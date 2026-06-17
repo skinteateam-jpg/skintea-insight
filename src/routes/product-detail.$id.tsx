@@ -562,8 +562,8 @@ function ProductPage() {
 
       <div style={{ position: "fixed", bottom: 64, left: 0, right: 0, background: "#FFFCF8", borderTop: "1px solid #E8DDD4", padding: "10px 16px", zIndex: 60 }}>
         <div style={{ maxWidth: 480, margin: "0 auto", display: "flex", gap: 8 }}>
-          <ActionBtn icon="🧴" label="Add to Shelf" onClick={handleShelfClick} />
-          <ActionBtn icon="🎁" label="Gift Me" onClick={handleGiftClick} />
+          <ActionBtn icon="🧴" label={isInShelf ? "On Shelf" : "Add to Shelf"} onClick={handleShelfClick} active={isInShelf} disabled={shelving} />
+          <ActionBtn icon="🎁" label={isInGift ? "On Gift Me" : "Gift Me"} onClick={handleGiftClick} active={isInGift} disabled={gifting} />
           <ActionBtn icon="🔖" label={isSaved ? "Saved" : "Save"} onClick={handleSaveToggle} active={isSaved} disabled={saving} />
         </div>
       </div>

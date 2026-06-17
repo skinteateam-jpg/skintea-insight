@@ -109,6 +109,7 @@ function ProductPage() {
   const fromPost = search?.from === "post";
   const fromPostId = search?.postId;
   const [userSkinType, setUserSkinType] = useState<string | null>(null);
+  const [productData, setProductData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
   const [saving, setSaving] = useState(false);

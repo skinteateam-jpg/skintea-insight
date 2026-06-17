@@ -340,6 +340,65 @@ export type Database = {
           },
         ]
       }
+      gift_wishlist: {
+        Row: {
+          affiliate_store: string | null
+          affiliate_url: string | null
+          brand: string | null
+          category: string | null
+          created_at: string
+          emoji: string | null
+          id: string
+          image_url: string | null
+          is_public: boolean
+          product_id: string | null
+          product_name: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          affiliate_store?: string | null
+          affiliate_url?: string | null
+          brand?: string | null
+          category?: string | null
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          image_url?: string | null
+          is_public?: boolean
+          product_id?: string | null
+          product_name: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          affiliate_store?: string | null
+          affiliate_url?: string | null
+          brand?: string | null
+          category?: string | null
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          image_url?: string | null
+          is_public?: boolean
+          product_id?: string | null
+          product_name?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_wishlist_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       members: {
         Row: {
           active: boolean
@@ -431,6 +490,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      products: {
+        Row: {
+          brand: string
+          category: string | null
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          is_top_pick: boolean | null
+          name: string
+          price: number | null
+          product_url: string | null
+          skintea_score: number | null
+          source: string | null
+        }
+        Insert: {
+          brand: string
+          category?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          is_top_pick?: boolean | null
+          name: string
+          price?: number | null
+          product_url?: string | null
+          skintea_score?: number | null
+          source?: string | null
+        }
+        Update: {
+          brand?: string
+          category?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          is_top_pick?: boolean | null
+          name?: string
+          price?: number | null
+          product_url?: string | null
+          skintea_score?: number | null
+          source?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -547,6 +657,62 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      shelf_items: {
+        Row: {
+          brand: string | null
+          category: string
+          created_at: string
+          emoji: string | null
+          id: string
+          image_url: string | null
+          is_public: boolean
+          is_top_pick: boolean
+          match: string | null
+          product_id: string | null
+          product_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          brand?: string | null
+          category?: string
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          image_url?: string | null
+          is_public?: boolean
+          is_top_pick?: boolean
+          match?: string | null
+          product_id?: string | null
+          product_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          brand?: string | null
+          category?: string
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          image_url?: string | null
+          is_public?: boolean
+          is_top_pick?: boolean
+          match?: string | null
+          product_id?: string | null
+          product_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shelf_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       surgeries: {
         Row: {

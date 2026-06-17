@@ -83,6 +83,7 @@ export type ShelfItem = {
   emoji: string | null;
   match: Match | null;
   is_top_pick: boolean;
+  image_url: string | null;
 };
 export type SavedProductRow = {
   id: string;
@@ -107,6 +108,7 @@ export type GiftItem = {
   affiliate_url: string | null;
   affiliate_store: string | null;
   type: "skincare" | "makeup";
+  image_url: string | null;
 };
 const SAVED_FILTERS = ["Recently Saved", "Cleanser", "Toner", "Serum", "Moisturizer", "SPF", "Makeup"];
 
@@ -239,7 +241,7 @@ function SkinProfilePage() {
       try {
         const { data } = await supabase
           .from("shelf_items" as any)
-          .select("id,product_id,category,product_name,brand,emoji,match,is_top_pick")
+          .select("id,product_id,category,product_name,brand,emoji,match,is_top_pick,image_url")
           .eq("user_id", userId)
           .order("created_at", { ascending: false });
         if (alive) setShelfItems(((data as any[]) ?? []) as ShelfItem[]);
@@ -564,7 +566,7 @@ function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks, userId,
 
   const shelfTopPicks = useMemo(() => {
     const fromShelf = shelfItems.filter(i => i.is_top_pick).slice(0, 3).map(i => ({
-      id: i.id, name: i.product_name, brand: i.brand, emoji: i.emoji, image_url: null,
+      id: i.id, name: i.product_name, brand: i.brand, emoji: i.emoji, image_url: i.image_url,
     }));
     return fromShelf.length > 0 ? fromShelf : topPicks;
   }, [shelfItems, topPicks]);
@@ -601,7 +603,11 @@ function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks, userId,
             {items.map((p) => (
               <div key={p.id} style={{ flexShrink: 0, width: 120, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", position: "relative" }}>
                 {p.is_top_pick && <div style={{ position: "absolute", top: 6, left: 6, background: C.gold, color: "#fff", fontSize: 8, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
-                <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 36 }}>{p.emoji ?? "🧴"}</div>
+                {p.image_url ? (
+                  <div style={{ aspectRatio: "1", background: `#F5F0EB url(${p.image_url}) center/cover no-repeat` }} />
+                ) : (
+                  <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 36 }}>{p.emoji ?? "🧴"}</div>
+                )}
                 <div style={{ padding: 8 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, minHeight: 26 }}>{p.product_name}</div>
                   {p.brand && <div style={{ fontSize: 10, color: C.textLight, margin: "2px 0 6px" }}>{p.brand}</div>}
@@ -635,9 +641,67 @@ function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks, userId,
 
 const SHELF_CATEGORIES = ["Cleanser", "Toner", "Serum", "Moisturizer", "SPF", "Face Mask", "Eye Cream", "Sunscreen", "Device", "Treatment", "Other"];
 
+type ProductSearchRow = { id: string; name: string; brand: string; category: string | null; image_url: string | null; price: number | null };
+
+function useProductSearch(query: string) {
+  const [results, setResults] = useState<ProductSearchRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) { setResults([]); setLoading(false); return; }
+    setLoading(true);
+    let alive = true;
+    const t = setTimeout(async () => {
+      try {
+        const { data } = await supabase
+          .from("products")
+          .select("id,name,brand,category,image_url,price")
+          .eq("is_active", true)
+          .or(`name.ilike.%${q}%,brand.ilike.%${q}%`)
+          .limit(10);
+        if (alive) setResults(((data as any[]) ?? []) as ProductSearchRow[]);
+      } catch { if (alive) setResults([]); }
+      finally { if (alive) setLoading(false); }
+    }, 300);
+    return () => { alive = false; clearTimeout(t); };
+  }, [query]);
+  return { results, loading };
+}
+
+function ProductSearchList({ query, onPick }: { query: string; onPick: (p: ProductSearchRow) => void }) {
+  const { results, loading } = useProductSearch(query);
+  if (!query.trim()) return null;
+  if (loading) return <div style={{ fontSize: 12, color: C.textLight, padding: "8px 4px" }}>Searching…</div>;
+  if (results.length === 0) return null;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden", background: C.surface }}>
+      {results.map((p, i) => (
+        <button key={p.id} type="button" onClick={() => onPick(p)}
+          style={{ display: "flex", alignItems: "center", gap: 10, padding: 8, background: "transparent", border: "none", borderTop: i === 0 ? "none" : `1px solid ${C.border}`, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}>
+          <div style={{ width: 40, height: 40, borderRadius: 6, background: p.image_url ? `#F5F0EB url(${p.image_url}) center/cover no-repeat` : "#F5F0EB", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 18 }}>
+            {!p.image_url && "🧴"}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
+            <div style={{ fontSize: 10, color: C.textLight, marginTop: 2 }}>
+              {p.brand}{p.category ? ` · ${p.category}` : ""}
+            </div>
+          </div>
+          {p.price != null && <div style={{ fontSize: 11, fontWeight: 700, color: C.ink }}>${Number(p.price).toFixed(2)}</div>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: string; defaultCategory?: string; onClose: () => void; onSaved: (it: ShelfItem) => void }) {
+  const [query, setQuery] = useState("");
+  const [manual, setManual] = useState(false);
+  const [picked, setPicked] = useState<ProductSearchRow | null>(null);
   const [name, setName] = useState("");
   const [brand, setBrand] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [productId, setProductId] = useState<string | null>(null);
   const [category, setCategory] = useState(defaultCategory && SHELF_CATEGORIES.includes(defaultCategory) ? defaultCategory : (defaultCategory ?? "Cleanser"));
   const [emoji, setEmoji] = useState("🧴");
   const [match, setMatch] = useState<Match>("good");
@@ -647,6 +711,21 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
 
   const allCats = Array.from(new Set([...SHELF_CATEGORIES, ...(defaultCategory ? [defaultCategory] : [])]));
 
+  const onPick = (p: ProductSearchRow) => {
+    setPicked(p);
+    setName(p.name);
+    setBrand(p.brand);
+    setImageUrl(p.image_url);
+    setProductId(p.id);
+    if (p.category && allCats.includes(p.category)) setCategory(p.category);
+    setQuery("");
+    setManual(true);
+  };
+
+  const reset = () => {
+    setPicked(null); setName(""); setBrand(""); setImageUrl(null); setProductId(null); setManual(false);
+  };
+
   const save = async () => {
     setErr(null);
     if (!name.trim()) { setErr("Product name is required"); return; }
@@ -654,17 +733,19 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
     try {
       const payload = {
         user_id: userId,
+        product_id: productId,
         product_name: name.trim(),
         brand: brand.trim() || null,
         category,
         emoji: emoji.trim() || "🧴",
         match,
+        image_url: imageUrl,
         is_top_pick: isTopPick,
         is_public: true,
       };
       const { data, error } = await supabase.from("shelf_items" as any).insert(payload).select().single();
       if (error) throw error;
-      const row = (data as any) ?? { id: crypto.randomUUID(), product_id: null, ...payload };
+      const row = (data as any) ?? { id: crypto.randomUUID(), ...payload };
       onSaved({
         id: row.id,
         product_id: row.product_id ?? null,
@@ -674,6 +755,7 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
         emoji: row.emoji,
         match: row.match,
         is_top_pick: row.is_top_pick,
+        image_url: row.image_url ?? null,
       } as ShelfItem);
     } catch (e: any) {
       setErr(e?.message ?? "Failed to save");
@@ -701,14 +783,49 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
     <Sheet onClose={onClose}>
       <div style={{ fontSize: 18, fontWeight: 800, color: C.ink, marginBottom: 16 }}>Add to Shelf</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <div>
-          <label style={labelStyle}>Product name</label>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. CeraVe Foaming Cleanser" style={inputStyle} />
-        </div>
-        <div>
-          <label style={labelStyle}>Brand</label>
-          <input value={brand} onChange={e => setBrand(e.target.value)} placeholder="e.g. CeraVe" style={inputStyle} />
-        </div>
+        {!manual && (
+          <>
+            <div>
+              <label style={labelStyle}>Search products</label>
+              <input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Search products..." style={inputStyle} />
+            </div>
+            <ProductSearchList query={query} onPick={onPick} />
+            <button type="button" onClick={() => setManual(true)}
+              style={{ background: "transparent", border: "none", color: C.textMid, fontSize: 12, fontWeight: 600, textDecoration: "underline", cursor: "pointer", alignSelf: "flex-start", padding: 0 }}>
+              Not finding it? Add manually
+            </button>
+          </>
+        )}
+        {manual && (
+          <>
+            {picked && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 8, border: `1px solid ${C.border}`, borderRadius: 8, background: C.surface }}>
+                <div style={{ width: 44, height: 44, borderRadius: 6, background: imageUrl ? `#F5F0EB url(${imageUrl}) center/cover no-repeat` : "#F5F0EB", flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.ink }}>{name}</div>
+                  <div style={{ fontSize: 10, color: C.textLight }}>{brand}</div>
+                </div>
+                <button type="button" onClick={reset} style={{ background: "transparent", border: "none", color: C.textLight, cursor: "pointer", fontSize: 11, textDecoration: "underline" }}>Change</button>
+              </div>
+            )}
+            {!picked && (
+              <>
+                <div>
+                  <label style={labelStyle}>Product name</label>
+                  <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. CeraVe Foaming Cleanser" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Brand</label>
+                  <input value={brand} onChange={e => setBrand(e.target.value)} placeholder="e.g. CeraVe" style={inputStyle} />
+                </div>
+                <button type="button" onClick={() => setManual(false)}
+                  style={{ background: "transparent", border: "none", color: C.textMid, fontSize: 12, fontWeight: 600, textDecoration: "underline", cursor: "pointer", alignSelf: "flex-start", padding: 0 }}>
+                  ← Back to search
+                </button>
+              </>
+            )}
+          </>
+        )}
         <div>
           <label style={labelStyle}>Category</label>
           <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
@@ -797,7 +914,7 @@ function SavedTab({ userId }: { userId: string | null }) {
     try { await supabase.from("saved_products" as any).delete().eq("id", rowId); } catch {}
   };
 
-  const addToShelf = async (p: { id: string; name: string; brand: string | null; category: string | null; emoji: string | null; match: Match | null }) => {
+  const addToShelf = async (p: { id: string; name: string; brand: string | null; category: string | null; emoji: string | null; match: Match | null; image_url?: string | null }) => {
     if (!userId) return;
     try {
       await supabase.from("shelf_items" as any).insert({
@@ -808,7 +925,9 @@ function SavedTab({ userId }: { userId: string | null }) {
         brand: p.brand,
         emoji: p.emoji,
         match: p.match ?? "good",
+        image_url: p.image_url ?? null,
         is_top_pick: false,
+        is_public: true,
       });
     } catch {}
   };
@@ -948,7 +1067,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
       try {
         const { data } = await supabase
           .from("gift_wishlist" as any)
-          .select("id,product_id,product_name,brand,category,emoji,affiliate_url,affiliate_store,type")
+          .select("id,product_id,product_name,brand,category,emoji,affiliate_url,affiliate_store,type,image_url")
           .eq("user_id", userId)
           .order("created_at", { ascending: false });
         if (!alive) return;
@@ -1027,8 +1146,8 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {list.map((item) => (
             <div key={item.id} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, overflow: "hidden" }}>
-              <div style={{ height: 75, background: "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
-                {item.emoji ?? "🎁"}
+              <div style={{ height: 75, background: item.image_url ? `#FFFCF8 url(${item.image_url}) center/cover no-repeat` : "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
+                {!item.image_url && (item.emoji ?? "🎁")}
                 <span style={{ position: "absolute", top: 5, right: 5, fontSize: 7, fontWeight: 800, padding: "2px 5px", borderRadius: 99, background: badge.bg, color: badge.color, border: `0.5px solid ${badge.border}` }}>{badge.text}</span>
               </div>
               <div style={{ padding: "7px 8px 8px" }}>
@@ -1164,6 +1283,11 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
 
 // ---------- Tab 4: Skin Chart ----------
 function AddWishlistSheet({ userId, type, onClose, onSaved }: { userId: string; type: "skincare" | "makeup"; onClose: () => void; onSaved: (it: GiftItem) => void }) {
+  const [query, setQuery] = useState("");
+  const [manual, setManual] = useState(false);
+  const [picked, setPicked] = useState<ProductSearchRow | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [productId, setProductId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [brand, setBrand] = useState("");
   const [category, setCategory] = useState("");
@@ -1173,6 +1297,21 @@ function AddWishlistSheet({ userId, type, onClose, onSaved }: { userId: string; 
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  const onPick = (p: ProductSearchRow) => {
+    setPicked(p);
+    setName(p.name);
+    setBrand(p.brand);
+    setCategory(p.category ?? "");
+    setImageUrl(p.image_url);
+    setProductId(p.id);
+    setQuery("");
+    setManual(true);
+  };
+
+  const reset = () => {
+    setPicked(null); setName(""); setBrand(""); setCategory(""); setImageUrl(null); setProductId(null); setManual(false);
+  };
+
   const save = async () => {
     setErr(null);
     if (!name.trim()) { setErr("Product name is required"); return; }
@@ -1180,10 +1319,12 @@ function AddWishlistSheet({ userId, type, onClose, onSaved }: { userId: string; 
     try {
       const payload = {
         user_id: userId,
+        product_id: productId,
         product_name: name.trim(),
         brand: brand.trim() || null,
         category: category.trim() || null,
         emoji: emoji.trim() || "🎁",
+        image_url: imageUrl,
         affiliate_url: url.trim() || null,
         affiliate_store: store.trim() || null,
         type,
@@ -1191,7 +1332,7 @@ function AddWishlistSheet({ userId, type, onClose, onSaved }: { userId: string; 
       };
       const { data, error } = await supabase.from("gift_wishlist" as any).insert(payload).select().single();
       if (error) throw error;
-      const row = (data as any) ?? { id: crypto.randomUUID(), product_id: null, ...payload };
+      const row = (data as any) ?? { id: crypto.randomUUID(), ...payload };
       onSaved({
         id: row.id,
         product_id: row.product_id ?? null,
@@ -1202,6 +1343,7 @@ function AddWishlistSheet({ userId, type, onClose, onSaved }: { userId: string; 
         affiliate_url: row.affiliate_url,
         affiliate_store: row.affiliate_store,
         type: row.type,
+        image_url: row.image_url ?? null,
       });
     } catch (e: any) {
       setErr(e?.message ?? "Failed to save");
@@ -1223,9 +1365,37 @@ function AddWishlistSheet({ userId, type, onClose, onSaved }: { userId: string; 
         <span style={{ fontSize: 9, fontWeight: 800, padding: "3px 8px", borderRadius: 99, background: badge.bg, color: badge.color, border: `0.5px solid ${badge.border}`, textTransform: "uppercase", letterSpacing: 0.4 }}>{badge.text}</span>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <div><label style={labelStyle}>Product name</label><input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Rhode Peptide Lip Tint" style={inputStyle} /></div>
-        <div><label style={labelStyle}>Brand</label><input value={brand} onChange={e => setBrand(e.target.value)} style={inputStyle} /></div>
-        <div><label style={labelStyle}>Category</label><input value={category} onChange={e => setCategory(e.target.value)} placeholder="e.g. Lip, Serum, SPF" style={inputStyle} /></div>
+        {!manual && (
+          <>
+            <div><label style={labelStyle}>Search products</label><input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="Search products..." style={inputStyle} /></div>
+            <ProductSearchList query={query} onPick={onPick} />
+            <button type="button" onClick={() => setManual(true)}
+              style={{ background: "transparent", border: "none", color: "#5C4033", fontSize: 12, fontWeight: 600, textDecoration: "underline", cursor: "pointer", alignSelf: "flex-start", padding: 0 }}>
+              Not finding it? Add manually
+            </button>
+          </>
+        )}
+        {manual && picked && (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 8, border: "1px solid #E8DDD4", borderRadius: 8, background: "#fff" }}>
+            <div style={{ width: 44, height: 44, borderRadius: 6, background: imageUrl ? `#F5F0EB url(${imageUrl}) center/cover no-repeat` : "#F5F0EB", flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#1C0A00" }}>{name}</div>
+              <div style={{ fontSize: 10, color: "#999" }}>{brand}</div>
+            </div>
+            <button type="button" onClick={reset} style={{ background: "transparent", border: "none", color: "#999", cursor: "pointer", fontSize: 11, textDecoration: "underline" }}>Change</button>
+          </div>
+        )}
+        {manual && !picked && (
+          <>
+            <div><label style={labelStyle}>Product name</label><input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Rhode Peptide Lip Tint" style={inputStyle} /></div>
+            <div><label style={labelStyle}>Brand</label><input value={brand} onChange={e => setBrand(e.target.value)} style={inputStyle} /></div>
+            <div><label style={labelStyle}>Category</label><input value={category} onChange={e => setCategory(e.target.value)} placeholder="e.g. Lip, Serum, SPF" style={inputStyle} /></div>
+            <button type="button" onClick={() => setManual(false)}
+              style={{ background: "transparent", border: "none", color: "#5C4033", fontSize: 12, fontWeight: 600, textDecoration: "underline", cursor: "pointer", alignSelf: "flex-start", padding: 0 }}>
+              ← Back to search
+            </button>
+          </>
+        )}
         <div><label style={labelStyle}>Emoji</label><input value={emoji} onChange={e => setEmoji(e.target.value)} maxLength={4} style={{ ...inputStyle, width: 80, textAlign: "center", fontSize: 22 }} /></div>
         <div><label style={labelStyle}>Affiliate link</label><input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://..." style={inputStyle} /></div>
         <div><label style={labelStyle}>Store name</label><input value={store} onChange={e => setStore(e.target.value)} placeholder="e.g. Sephora, Amazon" style={inputStyle} /></div>

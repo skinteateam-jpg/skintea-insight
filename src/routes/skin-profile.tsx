@@ -1181,6 +1181,13 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
         ))}
       </div>
 
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+        <button onClick={() => setAddWish({ type: giftSubTab === "makeup" ? "makeup" : "skincare" })}
+          style={{ padding: "7px 12px", borderRadius: 999, border: "1px solid #1C0A00", background: "#1C0A00", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+          + Add to Wishlist
+        </button>
+      </div>
+
       {giftSubTab === "needs" && (
         <>
           <div style={{ background: "#F0FAF1", border: "0.5px solid #2D7A3A", borderRadius: 8, padding: "8px 12px", display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>

@@ -26,7 +26,6 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TreatmentSlugRouteImport } from './routes/treatment.$slug'
 import { Route as TeaProductsPostIdRouteImport } from './routes/tea-products.$postId'
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
-import { Route as ProductIdRouteImport } from './routes/product.$id'
 import { Route as ClinicsIdRouteImport } from './routes/clinics/$id'
 import { Route as AdminTreatmentsRouteImport } from './routes/admin.treatments'
 
@@ -115,11 +114,6 @@ const ProfileUsernameRoute = ProfileUsernameRouteImport.update({
   path: '/profile/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProductIdRoute = ProductIdRouteImport.update({
-  id: '/product/$id',
-  path: '/product/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ClinicsIdRoute = ClinicsIdRouteImport.update({
   id: '/clinics/$id',
   path: '/clinics/$id',
@@ -146,7 +140,6 @@ export interface FileRoutesByFullPath {
   '/treatment-talk2': typeof TreatmentTalk2Route
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/clinics/$id': typeof ClinicsIdRoute
-  '/product/$id': typeof ProductIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment/$slug': typeof TreatmentSlugRoute
@@ -168,7 +161,6 @@ export interface FileRoutesByTo {
   '/treatment-talk2': typeof TreatmentTalk2Route
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/clinics/$id': typeof ClinicsIdRoute
-  '/product/$id': typeof ProductIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment/$slug': typeof TreatmentSlugRoute
@@ -191,7 +183,6 @@ export interface FileRoutesById {
   '/treatment-talk2': typeof TreatmentTalk2Route
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/clinics/$id': typeof ClinicsIdRoute
-  '/product/$id': typeof ProductIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment/$slug': typeof TreatmentSlugRoute
@@ -215,7 +206,6 @@ export interface FileRouteTypes {
     | '/treatment-talk2'
     | '/admin/treatments'
     | '/clinics/$id'
-    | '/product/$id'
     | '/profile/$username'
     | '/tea-products/$postId'
     | '/treatment/$slug'
@@ -237,7 +227,6 @@ export interface FileRouteTypes {
     | '/treatment-talk2'
     | '/admin/treatments'
     | '/clinics/$id'
-    | '/product/$id'
     | '/profile/$username'
     | '/tea-products/$postId'
     | '/treatment/$slug'
@@ -259,7 +248,6 @@ export interface FileRouteTypes {
     | '/treatment-talk2'
     | '/admin/treatments'
     | '/clinics/$id'
-    | '/product/$id'
     | '/profile/$username'
     | '/tea-products/$postId'
     | '/treatment/$slug'
@@ -282,7 +270,6 @@ export interface RootRouteChildren {
   TreatmentTalk2Route: typeof TreatmentTalk2Route
   AdminTreatmentsRoute: typeof AdminTreatmentsRoute
   ClinicsIdRoute: typeof ClinicsIdRoute
-  ProductIdRoute: typeof ProductIdRoute
   ProfileUsernameRoute: typeof ProfileUsernameRoute
   TreatmentSlugRoute: typeof TreatmentSlugRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -410,13 +397,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/product/$id': {
-      id: '/product/$id'
-      path: '/product/$id'
-      fullPath: '/product/$id'
-      preLoaderRoute: typeof ProductIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/clinics/$id': {
       id: '/clinics/$id'
       path: '/clinics/$id'
@@ -461,7 +441,6 @@ const rootRouteChildren: RootRouteChildren = {
   TreatmentTalk2Route: TreatmentTalk2Route,
   AdminTreatmentsRoute: AdminTreatmentsRoute,
   ClinicsIdRoute: ClinicsIdRoute,
-  ProductIdRoute: ProductIdRoute,
   ProfileUsernameRoute: ProfileUsernameRoute,
   TreatmentSlugRoute: TreatmentSlugRoute,
   AdminIndexRoute: AdminIndexRoute,

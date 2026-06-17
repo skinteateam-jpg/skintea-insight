@@ -914,7 +914,7 @@ function SavedTab({ userId }: { userId: string | null }) {
     try { await supabase.from("saved_products" as any).delete().eq("id", rowId); } catch {}
   };
 
-  const addToShelf = async (p: { id: string; name: string; brand: string | null; category: string | null; emoji: string | null; match: Match | null }) => {
+  const addToShelf = async (p: { id: string; name: string; brand: string | null; category: string | null; emoji: string | null; match: Match | null; image_url?: string | null }) => {
     if (!userId) return;
     try {
       await supabase.from("shelf_items" as any).insert({
@@ -925,6 +925,7 @@ function SavedTab({ userId }: { userId: string | null }) {
         brand: p.brand,
         emoji: p.emoji,
         match: p.match ?? "good",
+        image_url: p.image_url ?? null,
         is_top_pick: false,
         is_public: true,
       });

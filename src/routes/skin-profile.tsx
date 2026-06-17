@@ -83,6 +83,7 @@ export type ShelfItem = {
   emoji: string | null;
   match: Match | null;
   is_top_pick: boolean;
+  image_url: string | null;
 };
 export type SavedProductRow = {
   id: string;
@@ -107,6 +108,7 @@ export type GiftItem = {
   affiliate_url: string | null;
   affiliate_store: string | null;
   type: "skincare" | "makeup";
+  image_url: string | null;
 };
 const SAVED_FILTERS = ["Recently Saved", "Cleanser", "Toner", "Serum", "Moisturizer", "SPF", "Makeup"];
 

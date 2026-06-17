@@ -1201,23 +1201,6 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
             })}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            {placeholderPicks.map(p => (
-              <div key={p.rank} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, overflow: "hidden" }}>
-                <div style={{ height: 70, background: "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
-                  <div style={{ position: "absolute", top: 5, left: 5, width: 16, height: 16, background: "#1C0A00", color: "#FFFCF8", borderRadius: 99, fontSize: 8, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{p.rank}</div>
-                  {p.emoji}
-                </div>
-                <div style={{ padding: "7px 8px 10px" }}>
-                  <div style={{ fontSize: 8, color: "#999" }}>{p.brand}</div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00" }}>{p.name}</div>
-                  <div style={{ fontSize: 10, color: "#A8001C", fontWeight: 800 }}>{p.pct}</div>
-                  <button style={{ background: "#FFF5F5", color: "#A8001C", border: "0.5px solid #A8001C", borderRadius: 6, padding: "4px 8px", fontSize: 8, fontWeight: 700, width: "100%", marginTop: 4, cursor: "pointer" }}>+ Add to wishlist</button>
-                </div>
-              </div>
-            ))}
-          </div>
-
           <div style={{ marginTop: 24, marginBottom: 10, fontSize: 11, fontWeight: 800, color: "#1C0A00", textTransform: "uppercase", letterSpacing: "0.06em" }}>Skincare Wishlist</div>
           {renderWishlist(
             skincareWishlist,

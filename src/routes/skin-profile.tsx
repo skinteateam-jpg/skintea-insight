@@ -922,7 +922,7 @@ function SavedTab({ userId }: { userId: string | null }) {
 
   const flatSaved = savedProducts
     .map(r => r.products ? { rowId: r.id, ...r.products } : null)
-    .filter(Boolean) as Array<{ rowId: string; id: string; name: string; brand: string | null; category: string | null; image_url: string | null; emoji: string | null; match: Match | null }>;
+    .filter(Boolean) as Array<{ rowId: string; id: string; name: string; brand: string | null; category: string | null; image_url: string | null }>;
   const items = active === "Recently Saved" ? flatSaved : flatSaved.filter(s => s.category === active);
 
   const removeSaved = async (rowId: string) => {
@@ -930,7 +930,7 @@ function SavedTab({ userId }: { userId: string | null }) {
     try { await supabase.from("saved_products" as any).delete().eq("id", rowId); } catch {}
   };
 
-  const addToShelf = async (p: { id: string; name: string; brand: string | null; category: string | null; emoji: string | null; match: Match | null; image_url?: string | null }) => {
+  const addToShelf = async (p: { id: string; name: string; brand: string | null; category: string | null; image_url?: string | null }) => {
     if (!userId) return;
     try {
       await supabase.from("shelf_items" as any).insert({
@@ -939,8 +939,8 @@ function SavedTab({ userId }: { userId: string | null }) {
         category: p.category ?? "Other",
         product_name: p.name,
         brand: p.brand,
-        emoji: p.emoji,
-        match: p.match ?? "good",
+        emoji: null,
+        match: "good",
         image_url: p.image_url ?? null,
         is_top_pick: false,
         is_public: true,

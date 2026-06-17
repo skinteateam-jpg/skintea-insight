@@ -560,11 +560,11 @@ function ProductPage() {
         </div>
       )}
 
-      <div style={{ position: "fixed", bottom: 64, left: 0, right: 0, background: "#FFFCF8", borderTop: "1px solid #E8DDD4", padding: "10px 16px", zIndex: 60 }}>
-        <div style={{ maxWidth: 480, margin: "0 auto", display: "flex", gap: 8 }}>
-          <ActionBtn icon="🧴" label={isInShelf ? "On Shelf" : "Add to Shelf"} onClick={handleShelfClick} active={isInShelf} disabled={shelving} />
-          <ActionBtn icon="🎁" label={isInGift ? "On Gift Me" : "Gift Me"} onClick={handleGiftClick} active={isInGift} disabled={gifting} />
-          <ActionBtn icon="🔖" label={isSaved ? "Saved" : "Save"} onClick={handleSaveToggle} active={isSaved} disabled={saving} />
+      <div style={{ position: "fixed", bottom: 64, left: 0, right: 0, background: "#FFFCF8", borderTop: "1px solid #E8DDD4", padding: "6px 14px", zIndex: 60 }}>
+        <div style={{ maxWidth: 480, margin: "0 auto", display: "flex", gap: 6 }}>
+          <ActionBtn icon="🔖" label={isSaved ? "Saved" : "Save"} onClick={handleSaveToggle} active={isSaved} disabled={saving} flex={1.4} />
+          <ActionBtn icon="🧴" label="Add to Shelf" onClick={handleShelfClick} flex={1} />
+          <ActionBtn icon="🎁" label="Gift Me" onClick={handleGiftClick} flex={1} />
         </div>
       </div>
       <BottomNav />

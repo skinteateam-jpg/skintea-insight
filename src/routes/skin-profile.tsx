@@ -837,10 +837,6 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
           </select>
         </div>
         <div>
-          <label style={labelStyle}>Emoji</label>
-          <input value={emoji} onChange={e => setEmoji(e.target.value)} placeholder="🧴" maxLength={4} style={{ ...inputStyle, width: 80, textAlign: "center", fontSize: 22 }} />
-        </div>
-        <div>
           <label style={labelStyle}>Match</label>
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" onClick={() => setMatch("good")} style={pillStyle("good")}>✓ Fits you</button>

@@ -432,6 +432,57 @@ export type Database = {
           },
         ]
       }
+      products: {
+        Row: {
+          brand: string
+          category: string | null
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          is_top_pick: boolean | null
+          name: string
+          price: number | null
+          product_url: string | null
+          skintea_score: number | null
+          source: string | null
+        }
+        Insert: {
+          brand: string
+          category?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          is_top_pick?: boolean | null
+          name: string
+          price?: number | null
+          product_url?: string | null
+          skintea_score?: number | null
+          source?: string | null
+        }
+        Update: {
+          brand?: string
+          category?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          is_top_pick?: boolean | null
+          name?: string
+          price?: number | null
+          product_url?: string | null
+          skintea_score?: number | null
+          source?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

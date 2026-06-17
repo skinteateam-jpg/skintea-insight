@@ -26,7 +26,6 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TreatmentSlugRouteImport } from './routes/treatment.$slug'
 import { Route as TeaProductsPostIdRouteImport } from './routes/tea-products.$postId'
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
-import { Route as ProductsIdRouteImport } from './routes/products.$id'
 import { Route as ProductIdRouteImport } from './routes/product.$id'
 import { Route as ClinicsIdRouteImport } from './routes/clinics/$id'
 import { Route as AdminTreatmentsRouteImport } from './routes/admin.treatments'
@@ -116,11 +115,6 @@ const ProfileUsernameRoute = ProfileUsernameRouteImport.update({
   path: '/profile/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProductsIdRoute = ProductsIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => ProductsRoute,
-} as any)
 const ProductIdRoute = ProductIdRouteImport.update({
   id: '/product/$id',
   path: '/product/$id',
@@ -141,7 +135,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/product-detail': typeof ProductDetailRoute
-  '/products': typeof ProductsRouteWithChildren
+  '/products': typeof ProductsRoute
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
   '/signup': typeof SignupRoute
@@ -153,7 +147,6 @@ export interface FileRoutesByFullPath {
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/clinics/$id': typeof ClinicsIdRoute
   '/product/$id': typeof ProductIdRoute
-  '/products/$id': typeof ProductsIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment/$slug': typeof TreatmentSlugRoute
@@ -164,7 +157,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/product-detail': typeof ProductDetailRoute
-  '/products': typeof ProductsRouteWithChildren
+  '/products': typeof ProductsRoute
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
   '/signup': typeof SignupRoute
@@ -176,7 +169,6 @@ export interface FileRoutesByTo {
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/clinics/$id': typeof ClinicsIdRoute
   '/product/$id': typeof ProductIdRoute
-  '/products/$id': typeof ProductsIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment/$slug': typeof TreatmentSlugRoute
@@ -188,7 +180,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/product-detail': typeof ProductDetailRoute
-  '/products': typeof ProductsRouteWithChildren
+  '/products': typeof ProductsRoute
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
   '/signup': typeof SignupRoute
@@ -200,7 +192,6 @@ export interface FileRoutesById {
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/clinics/$id': typeof ClinicsIdRoute
   '/product/$id': typeof ProductIdRoute
-  '/products/$id': typeof ProductsIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment/$slug': typeof TreatmentSlugRoute
@@ -225,7 +216,6 @@ export interface FileRouteTypes {
     | '/admin/treatments'
     | '/clinics/$id'
     | '/product/$id'
-    | '/products/$id'
     | '/profile/$username'
     | '/tea-products/$postId'
     | '/treatment/$slug'
@@ -248,7 +238,6 @@ export interface FileRouteTypes {
     | '/admin/treatments'
     | '/clinics/$id'
     | '/product/$id'
-    | '/products/$id'
     | '/profile/$username'
     | '/tea-products/$postId'
     | '/treatment/$slug'
@@ -271,7 +260,6 @@ export interface FileRouteTypes {
     | '/admin/treatments'
     | '/clinics/$id'
     | '/product/$id'
-    | '/products/$id'
     | '/profile/$username'
     | '/tea-products/$postId'
     | '/treatment/$slug'
@@ -283,7 +271,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   ProductDetailRoute: typeof ProductDetailRoute
-  ProductsRoute: typeof ProductsRouteWithChildren
+  ProductsRoute: typeof ProductsRoute
   QuizRoute: typeof QuizRoute
   QuizResultRoute: typeof QuizResultRoute
   SignupRoute: typeof SignupRoute
@@ -422,13 +410,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/products/$id': {
-      id: '/products/$id'
-      path: '/$id'
-      fullPath: '/products/$id'
-      preLoaderRoute: typeof ProductsIdRouteImport
-      parentRoute: typeof ProductsRoute
-    }
     '/product/$id': {
       id: '/product/$id'
       path: '/product/$id'
@@ -453,18 +434,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface ProductsRouteChildren {
-  ProductsIdRoute: typeof ProductsIdRoute
-}
-
-const ProductsRouteChildren: ProductsRouteChildren = {
-  ProductsIdRoute: ProductsIdRoute,
-}
-
-const ProductsRouteWithChildren = ProductsRoute._addFileChildren(
-  ProductsRouteChildren,
-)
-
 interface TeaProductsRouteChildren {
   TeaProductsPostIdRoute: typeof TeaProductsPostIdRoute
 }
@@ -481,7 +450,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   ProductDetailRoute: ProductDetailRoute,
-  ProductsRoute: ProductsRouteWithChildren,
+  ProductsRoute: ProductsRoute,
   QuizRoute: QuizRoute,
   QuizResultRoute: QuizResultRoute,
   SignupRoute: SignupRoute,

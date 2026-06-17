@@ -605,7 +605,7 @@ function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks, userId,
               return p.product_id ? (
                 <Link
                   key={p.id}
-                  to="/products/$id"
+                  to="/product/$id"
                   params={{ id: p.product_id }}
                   style={{ ...cardStyle, textDecoration: "none", color: "inherit" }}
                 >

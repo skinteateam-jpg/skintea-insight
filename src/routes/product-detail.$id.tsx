@@ -162,8 +162,27 @@ function ProductPage() {
     return { background: "#FFFCF8", color: "#999", border: "none" };
   }
 
+  function showToast(msg: string) { setToast(msg); window.setTimeout(() => setToast(null), 2200); }
+
+  function handleShelfClick() { if (!userId) { navigate({ to: "/login" }); return; } showToast("Coming soon — add from your profile 🧴"); }
+  function handleGiftClick() { if (!userId) { navigate({ to: "/login" }); return; } showToast("Coming soon — add from your profile 🎁"); }
+
+  async function handleSaveToggle() {
+    if (!userId) { navigate({ to: "/login" }); return; }
+    if (saving) return;
+    setSaving(true);
+    if (!isSaved) {
+      const { error } = await (supabase as any).from("saved_products").insert({ user_id: userId, product_id: id, created_at: new Date().toISOString() });
+      if (!error) setIsSaved(true);
+    } else {
+      const { error } = await (supabase as any).from("saved_products").delete().eq("user_id", userId).eq("product_id", id);
+      if (!error) setIsSaved(false);
+    }
+    setSaving(false);
+  }
+
   return (
-    <main className="min-h-screen" style={{ paddingBottom: "80px", background: "#FFFCF8" }}>
+    <main className="min-h-screen" style={{ paddingBottom: "100px", background: "#FFFCF8" }}>
       <div className="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-20">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
           <button
@@ -480,56 +499,18 @@ function ProductPage() {
         </section>
       </div>
 
-      <div
-        style={{
-          position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: "#FFFCF8",
-          borderTop: "1px solid #E8DDD4",
-          padding: "12px 20px",
-          display: "flex",
-          gap: "12px",
-          zIndex: 50,
-        }}
-      >
-        <button
-          style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "8px",
-            background: "#A8001C",
-            color: "white",
-            borderRadius: "10px",
-            fontSize: "15px",
-            fontWeight: 700,
-            padding: "13px",
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
-          ✏️ Spill the tea
-        </button>
-        <button
-          aria-label="Save"
-          style={{
-            width: "46px",
-            height: "46px",
-            background: "#fff",
-            border: "1px solid #E8DDD4",
-            borderRadius: "10px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#1C0A00",
-            cursor: "pointer",
-          }}
-        >
-          <Bookmark style={{ width: "20px", height: "20px" }} />
-        </button>
+      {toast && (
+        <div style={{ position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)", background: "#1C0A00", color: "#FFFCF8", padding: "10px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600, zIndex: 100, whiteSpace: "nowrap", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
+          {toast}
+        </div>
+      )}
+
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#FFFCF8", borderTop: "1px solid #E8DDD4", padding: "10px 16px", zIndex: 50 }}>
+        <div style={{ maxWidth: 480, margin: "0 auto", display: "flex", gap: 8 }}>
+          <ActionBtn icon="🧴" label="Add to Shelf" onClick={handleShelfClick} />
+          <ActionBtn icon="🎁" label="Gift Me" onClick={handleGiftClick} />
+          <ActionBtn icon="🔖" label={isSaved ? "Saved" : "Save"} onClick={handleSaveToggle} active={isSaved} disabled={saving} />
+        </div>
       </div>
       <BottomNav />
     </main>

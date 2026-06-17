@@ -322,7 +322,7 @@ function SkinProfilePage() {
       />
       <main style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px 80px" }}>
         {tab === "tea" && <TeaTab posts={posts} topPicks={topPicks} loadingPosts={loadingPosts} loadingTopPicks={loadingTopPicks} />}
-        {tab === "shelf" && <ShelfTab shelfItems={shelfItems} topPicks={topPicks} loadingShelf={loadingShelf} loadingTopPicks={loadingTopPicks} userId={userId} onShelfAdded={(it) => setShelfItems(prev => [it, ...prev])} />}
+        {tab === "shelf" && <ShelfTab shelfItems={shelfItems} setShelfItems={setShelfItems} topPicks={topPicks} loadingShelf={loadingShelf} loadingTopPicks={loadingTopPicks} userId={userId} onShelfAdded={(it) => setShelfItems(prev => [it, ...prev])} />}
         {tab === "gift" && <GiftMeTab quizResult={quizResult} userId={userId} />}
         {tab === "saved" && <SavedTab userId={userId} />}
         {tab === "chart" && <ChartTab persona={persona} logs={logs} onAdd={openAddLog} onEdit={(l) => setEditLog(l)} />}
@@ -551,7 +551,8 @@ function PostSheet({ post, onClose }: { post: Post; onClose: () => void }) {
 }
 
 // ---------- Tab 2: My Shelf ----------
-function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks, userId, onShelfAdded }: { shelfItems: ShelfItem[]; topPicks: TopPick[]; loadingShelf: boolean; loadingTopPicks: boolean; userId: string | null; onShelfAdded: (it: ShelfItem) => void }) {
+function ShelfTab({ shelfItems, setShelfItems, topPicks, loadingShelf, loadingTopPicks, userId, onShelfAdded }: { shelfItems: ShelfItem[]; setShelfItems: React.Dispatch<React.SetStateAction<ShelfItem[]>>; topPicks: TopPick[]; loadingShelf: boolean; loadingTopPicks: boolean; userId: string | null; onShelfAdded: (it: ShelfItem) => void }) {
+  const navigate = useNavigate();
   const grouped = useMemo(() => {
     const map = new Map<string, ShelfItem[]>();
     for (const it of shelfItems) {
@@ -573,6 +574,11 @@ function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks, userId,
   const [active, setActive] = useState("All");
   const visible = active === "All" ? grouped : grouped.filter(([c]) => c === active);
   const [addOpen, setAddOpen] = useState<{ category?: string } | null>(null);
+
+  const toggleTopPick = async (itemId: string, current: boolean) => {
+    setShelfItems(prev => prev.map(i => i.id === itemId ? { ...i, is_top_pick: !current } : i));
+    await supabase.from("shelf_items" as any).update({ is_top_pick: !current }).eq("id", itemId);
+  };
 
   return (
     <>
@@ -600,6 +606,14 @@ function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks, userId,
           <div style={{ display: "flex", gap: 10, overflowX: "auto", margin: "0 -16px", padding: "0 16px 8px" }}>
             {items.map((p) => {
               const cardStyle: CSSProperties = { flexShrink: 0, width: 120, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", position: "relative", display: "block" };
+              const starBtn = (
+                <button
+                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleTopPick(p.id, p.is_top_pick); }}
+                  style={{ position: "absolute", top: 6, right: 6, width: 24, height: 24, borderRadius: "50%", background: "#fff", border: "none", boxShadow: "0 1px 3px rgba(0,0,0,0.12)", display: "grid", placeItems: "center", cursor: "pointer", zIndex: 2 }}
+                >
+                  <Star size={12} fill={p.is_top_pick ? "#C9A227" : "transparent"} color={p.is_top_pick ? "#C9A227" : "#999"} />
+                </button>
+              );
               return p.product_id ? (
                 <Link
                   key={p.id}
@@ -608,6 +622,7 @@ function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks, userId,
                   style={{ ...cardStyle, textDecoration: "none", color: "inherit" }}
                 >
                   {p.is_top_pick && <div style={{ position: "absolute", top: 6, left: 6, background: C.gold, color: "#fff", fontSize: 8, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
+                  {starBtn}
                   {p.image_url ? (
                     <div style={{ aspectRatio: "1", background: `#F5F0EB url(${p.image_url}) center/cover no-repeat` }} />
                   ) : (
@@ -622,6 +637,7 @@ function ShelfTab({ shelfItems, topPicks, loadingShelf, loadingTopPicks, userId,
               ) : (
                 <div key={p.id} style={{ ...cardStyle, cursor: "default", textDecoration: "none", color: "inherit" }}>
                   {p.is_top_pick && <div style={{ position: "absolute", top: 6, left: 6, background: C.gold, color: "#fff", fontSize: 8, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
+                  {starBtn}
                   {p.image_url ? (
                     <div style={{ aspectRatio: "1", background: `#F5F0EB url(${p.image_url}) center/cover no-repeat` }} />
                   ) : (

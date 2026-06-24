@@ -816,7 +816,7 @@ function AtAGlance({ slug, changeScore }: { slug: string; changeScore: number | 
       <div style={{ marginTop: 10, background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: ESPRESSO }}>How big is the change?</div>
         <div style={{ fontSize: 9, color: MUTED, marginTop: 2 }}>Compared to other treatments</div>
-        <div style={{ position: "relative", marginTop: 14, marginBottom: 6 }}>
+        <div style={{ position: "relative", marginTop: 12, marginBottom: 8 }}>
           <div style={{ height: 6, borderRadius: 3, background: `linear-gradient(to right, ${BORDER}, ${CRIMSON})` }} />
           <div
             style={{
@@ -832,7 +832,7 @@ function AtAGlance({ slug, changeScore }: { slug: string; changeScore: number | 
             }}
           />
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: MUTED }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 8, color: MUTED }}>
           <span>Subtle</span>
           <span>Noticeable</span>
           <span>Significant</span>
@@ -840,20 +840,20 @@ function AtAGlance({ slug, changeScore }: { slug: string; changeScore: number | 
           <span>Huge</span>
         </div>
         <div className="no-scrollbar" style={{ display: "flex", gap: 6, overflowX: "auto", marginTop: 10 }}>
-          {chips.map((c, i) => {
-            const active = i === activeChip;
+          {chips.map((c) => {
+            const active = c.slugs.includes(slug);
             return (
               <div
                 key={c.label}
                 style={{
                   flexShrink: 0,
-                  fontSize: 11,
-                  fontWeight: 700,
+                  fontSize: 10,
+                  fontWeight: active ? 800 : 700,
                   padding: "5px 10px",
-                  borderRadius: 999,
+                  borderRadius: 6,
                   background: active ? "#FEE8EC" : "#F5EFEC",
-                  border: active ? `0.5px solid ${CRIMSON}` : "0.5px solid transparent",
-                  color: active ? CRIMSON : "#999",
+                  border: active ? "0.5px solid #A8001C" : "0.5px solid transparent",
+                  color: active ? "#A8001C" : "#999",
                   whiteSpace: "nowrap",
                 }}
               >

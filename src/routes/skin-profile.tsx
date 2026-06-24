@@ -461,6 +461,43 @@ function FilterRow({ items, active, onChange }: { items: string[]; active: strin
   );
 }
 
+function GroupedFilterRow({ groups, active, onChange, includeAll = true }: {
+  groups: Array<{ label: string; items: string[] }>;
+  active: string;
+  onChange: (s: string) => void;
+  includeAll?: boolean;
+}) {
+  return (
+    <div style={{ display: "flex", gap: 8, overflowX: "auto", alignItems: "center", margin: "0 -16px", padding: "0 16px 4px" }}>
+      {includeAll && (() => {
+        const on = active === "All";
+        return (
+          <button onClick={() => onChange("All")}
+            style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: "pointer",
+              border: `1px solid ${on ? C.ink : C.border}`, background: on ? C.ink : C.surface, color: on ? "#fff" : C.textMid }}>
+            All
+          </button>
+        );
+      })()}
+      {groups.map((g, gi) => (
+        <div key={gi} style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
+          <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "#A8001C", padding: "0 4px 0 6px", borderLeft: `1px solid ${C.border}` }}>{g.label}</span>
+          {g.items.map(i => {
+            const on = i === active;
+            return (
+              <button key={i} onClick={() => onChange(i)}
+                style={{ flexShrink: 0, padding: "7px 12px", borderRadius: 999, fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+                  border: `1px solid ${on ? C.ink : C.border}`, background: on ? C.ink : C.surface, color: on ? "#fff" : C.textMid }}>
+                {i}
+              </button>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ---------- Skeleton helpers ----------
 function Skel({ h = 14, w = "100%", r = 6, style }: { h?: number; w?: number | string; r?: number; style?: CSSProperties }) {
   return <div style={{ height: h, width: w, background: "#EFEAE3", borderRadius: r, ...style }} />;

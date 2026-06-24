@@ -405,31 +405,40 @@ function TreatmentDetailPage() {
         ))}
       </div>
 
-      {/* 4. What It Is */}
-      <Section label="What It Is">
-        <p style={bodyText}>{treatment.what_it_is}</p>
+      {/* S1. What you can get */}
+      <Section label="What you can get">
+        <WhatYouCanGet text={treatment.who_its_for} />
       </Section>
 
-      {/* 5. How It Works */}
-      <Section label="How It Works">
-        <p style={bodyText}>{treatment.how_it_works}</p>
+      {/* S2. At a glance */}
+      <Section label="At a glance">
+        <AtAGlance slug={treatment.slug} changeScore={treatment.change_score} />
       </Section>
 
-      {/* 6. Who It's For */}
-      <Section label="Who It's For">
-        <p style={bodyText}>{treatment.who_its_for}</p>
-        {matchesSkin && (
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 10, background: "#E8F5E9", color: "#2D7A3A", fontSize: 11, fontWeight: 700, borderRadius: 20, padding: "4px 12px" }}>
-            Good match for your skin ✓
-          </div>
-        )}
+      {/* S3. How long it lasts */}
+      <Section label="How long it lasts">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
+          <NeutralCard label="Results last" value={treatment.sessions_recommended ?? "—"} subtitle="Then fades naturally" />
+          <NeutralCard label="Maintenance" value="Repeat visits" subtitle="To keep results" />
+        </div>
       </Section>
 
-      {/* 7. What People Say */}
-      <Section label="What People Say">
+      {/* S4. Who does this */}
+      <Section label="Who does this">
+        <AgeChart category={treatment.category} />
+      </Section>
+
+      {/* S5. Popular in */}
+      <Section label="Popular in">
+        <CountryChart />
+      </Section>
+
+      {/* S6. What people say */}
+      <Section label="What people say">
         <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
           <StatBar label="Would recommend" pct={treatment.majority_pct ?? 0} />
           <StatBar label="Saw real results" pct={treatment.results_pct ?? 0} />
+          <StatBar label="Would do again" pct={Math.round((treatment.majority_pct ?? 0) * 0.95)} />
         </div>
         {treatment.minority_opinion && (
           <div style={{ marginTop: 12, background: TINT, borderRadius: 8, padding: "10px 12px", borderLeft: `2px solid ${BORDER}` }}>
@@ -441,8 +450,42 @@ function TreatmentDetailPage() {
         )}
       </Section>
 
-      {/* 8. Real Talk */}
-      <Section label="Real Talk">
+      {/* S7. The details (accordion) */}
+      <Section label="The details">
+        <div style={{ marginTop: 8 }}>
+          {[
+            { id: "what", title: "What it is", body: treatment.what_it_is, showMatch: false },
+            { id: "how", title: "How it works", body: treatment.how_it_works, showMatch: false },
+            { id: "who", title: "Who it's for", body: treatment.who_its_for, showMatch: true },
+          ].map((row) => {
+            const open = !!openAcc[row.id];
+            return (
+              <div key={row.id} style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px", marginTop: 6 }}>
+                <button
+                  onClick={() => setOpenAcc((p) => ({ ...p, [row.id]: !p[row.id] }))}
+                  style={{ width: "100%", background: "none", border: "none", padding: 0, display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", color: ESPRESSO, fontSize: 13, fontWeight: 700 }}
+                >
+                  <span>{row.title}</span>
+                  <ChevronDown size={16} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
+                </button>
+                {open && (
+                  <div style={{ marginTop: 8, fontSize: 13, color: ESPRESSO, lineHeight: 1.6 }}>
+                    {row.body ?? "—"}
+                    {row.showMatch && matchesSkin && (
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 10, background: "#E8F5E9", color: "#2D7A3A", fontSize: 11, fontWeight: 700, borderRadius: 20, padding: "4px 12px" }}>
+                        Good match for your skin ✓
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </Section>
+
+      {/* S8. Real talk */}
+      <Section label="Real talk">
         <div style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}`, marginTop: 10 }}>
           {(["tiktok", "instagram", "reddit"] as SocialTab[]).map((t) => {
             const active = socialTab === t;
@@ -520,41 +563,91 @@ function TreatmentDetailPage() {
         )}
       </Section>
 
-      {/* 9. Clinics */}
-      <Section label="Clinics That Offer This">
-        {skinType && (
-          <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>Matched to your {skinType} skin</div>
-        )}
+      {/* S9. Clinics near you */}
+      <Section label="Clinics near you">
+        <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
+          Offering {treatment.name} · your area
+        </div>
         {clinics.length === 0 ? (
-          <div style={{ textAlign: "center", color: MUTED, fontSize: 12, padding: "20px 0" }}>No clinics listed yet for this treatment.</div>
+          <div style={{ textAlign: "center", color: MUTED, fontSize: 12, padding: "20px 0" }}>
+            No clinics listed yet — check back soon.
+          </div>
         ) : (
-          <div className="no-scrollbar" style={{ display: "flex", gap: 10, overflowX: "auto", marginTop: 10, paddingBottom: 4 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
             {clinics.map((c) => (
               <div
                 key={c.id}
                 onClick={() => navigate({ to: "/clinics/$id", params: { id: c.id } })}
-                style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: 12, width: 190, flexShrink: 0, cursor: "pointer" }}
+                style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: 12, cursor: "pointer" }}
               >
-                <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO, marginBottom: 2 }}>{c.name}</div>
-                <div style={{ fontSize: 11, color: MUTED, marginBottom: 6, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO }}>{c.name}</div>
+                  {c.is_open_now && (
+                    <span style={{ fontSize: 9, fontWeight: 800, color: "#2D7A3A", background: "#E8F5E9", padding: "2px 6px", borderRadius: 3, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                      Open
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: MUTED, marginTop: 4, display: "inline-flex", alignItems: "center", gap: 3 }}>
                   <MapPin size={11} />
                   <span>
                     {c.neighborhood ?? ""}
                     {c.distance_miles ? ` · ${c.distance_miles}mi` : ""}
                   </span>
                 </div>
-                {c.price_from != null && (
-                  <div style={{ fontSize: 13, fontWeight: 700, color: CRIMSON }}>From ${c.price_from}</div>
-                )}
-                <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
-                  {c.skintea_score ?? c.trust_score ?? "—"}% recommend
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
+                  <div>
+                    {c.price_from != null && (
+                      <div style={{ fontSize: 13, fontWeight: 800, color: CRIMSON }}>From ${c.price_from}</div>
+                    )}
+                    <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
+                      {c.skintea_score ?? c.trust_score ?? "—"}% recommend
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: CRIMSON }}>Book here →</div>
                 </div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: CRIMSON, marginTop: 8 }}>Book here →</div>
               </div>
             ))}
           </div>
         )}
+        <div
+          onClick={() => navigate({ to: "/clinics" })}
+          style={{ marginTop: 10, fontSize: 11, fontWeight: 700, color: CRIMSON, cursor: "pointer" }}
+        >
+          See all clinics →
+        </div>
       </Section>
+
+      {/* S10. You might also like */}
+      {similar.length > 0 && (
+        <Section label="You might also like">
+          <div className="no-scrollbar" style={{ display: "flex", gap: 8, overflowX: "auto", marginTop: 10, paddingBottom: 4 }}>
+            {similar.map((s) => (
+              <div
+                key={s.id}
+                onClick={() => navigate({ to: "/treatment/$slug", params: { slug: s.slug } })}
+                style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: 10, width: 130, flexShrink: 0, cursor: "pointer" }}
+              >
+                {s.category && (
+                  <div style={{ fontSize: 9, fontWeight: 800, color: CRIMSON, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                    {s.category}
+                  </div>
+                )}
+                <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO, marginTop: 4, lineHeight: 1.25 }}>{s.name}</div>
+                {s.subtitle && (
+                  <div style={{ fontSize: 10, color: MUTED, marginTop: 4, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                    {s.subtitle}
+                  </div>
+                )}
+                {s.average_cost && (
+                  <div style={{ fontSize: 11, color: CRIMSON, marginTop: 6, fontWeight: 700 }}>{s.average_cost}</div>
+                )}
+                <div style={{ fontSize: 10, fontWeight: 800, color: CRIMSON, marginTop: 6 }}>See tea →</div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
 
       {/* 10. Subscription lock */}
       <div style={{ margin: "16px 16px 16px", background: TINT, borderRadius: 12, padding: "20px 16px", textAlign: "center" }}>

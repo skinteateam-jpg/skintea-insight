@@ -265,6 +265,8 @@ function TreatmentDetailPage() {
   const [skinType, setSkinType] = useState("");
   const [socialTab, setSocialTab] = useState<SocialTab>("tiktok");
   const [loading, setLoading] = useState(true);
+  const [similar, setSimilar] = useState<Treatment[]>([]);
+  const [openAcc, setOpenAcc] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -297,6 +299,16 @@ function TreatmentDetailPage() {
             .filter((r: any) => r.clinics)
             .map((r: any) => ({ ...r.clinics, price_from: r.price_from })),
         );
+        if ((t as any).category) {
+          const { data: sim } = await supabase
+            .from("treatments")
+            .select("*")
+            .eq("category", (t as any).category)
+            .neq("slug", slug)
+            .limit(3);
+          if (!alive) return;
+          setSimilar((sim ?? []) as Treatment[]);
+        }
       }
       setLoading(false);
     })();

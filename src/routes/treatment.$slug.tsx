@@ -359,7 +359,8 @@ function TreatmentDetailPage() {
   }, [treatment.downtime]);
 
   return (
-    <div style={{ minHeight: "100vh", background: WARM, color: ESPRESSO, fontFamily: SANS, paddingBottom: 80 }}>
+    <div style={{ minHeight: "100vh", background: WARM, color: ESPRESSO, fontFamily: "'DM Sans', system-ui, sans-serif", paddingBottom: 80 }}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       <style>{`.no-scrollbar::-webkit-scrollbar{display:none}`}</style>
 
       {/* 1. Sticky top bar */}

@@ -307,7 +307,7 @@ function TreatmentDetailPage() {
             .neq("slug", slug)
             .limit(3);
           if (!alive) return;
-          setSimilar((sim ?? []) as Treatment[]);
+          setSimilar((sim ?? []) as unknown as Treatment[]);
         }
       }
       setLoading(false);

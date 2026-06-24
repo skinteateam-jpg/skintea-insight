@@ -675,7 +675,23 @@ function ShelfTab({ shelfItems, setShelfItems, topPicks, loadingShelf, loadingTo
   );
 }
 
-const SHELF_CATEGORIES = ["Cleanser", "Toner", "Serum", "Moisturizer", "SPF", "Face Mask", "Eye Cream", "Sunscreen", "Device", "Treatment", "Other"];
+export const SKINCARE_CATS = ["Cleanser", "Toner", "Serum", "Moisturizer", "Sunscreen", "Face Mask", "Eye Cream", "Other"];
+export const MAKEUP_CATS = ["Foundation & Concealer", "Blush, Bronzer & Highlighter", "Eyeshadow & Liner", "Mascara & Lashes", "Lip Color", "Lip Gloss & Liner", "Brow", "Primer & Setting", "Other Makeup"];
+export const TOP_LEVEL_CATS = ["Skincare", "Makeup", "Perfume", "Body Care", "Device"];
+export const ALL_SHELF_CATS = [...SKINCARE_CATS, ...MAKEUP_CATS, "Perfume", "Body Care", "Device"];
+
+function topLevelFor(cat: string | undefined | null): string {
+  if (!cat) return "Skincare";
+  if (SKINCARE_CATS.includes(cat)) return "Skincare";
+  if (MAKEUP_CATS.includes(cat)) return "Makeup";
+  if (TOP_LEVEL_CATS.includes(cat)) return cat;
+  return "Skincare";
+}
+function defaultSubFor(top: string): string {
+  if (top === "Skincare") return "Cleanser";
+  if (top === "Makeup") return "Lip Color";
+  return top;
+}
 
 type ProductSearchRow = { id: string; name: string; brand: string; category: string | null; image_url: string | null; price: number | null };
 

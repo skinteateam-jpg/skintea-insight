@@ -778,14 +778,11 @@ function AtAGlance({ slug, changeScore }: { slug: string; changeScore: number | 
   const change = changeScore ?? 2;
   const dotPct = Math.max(0, Math.min(100, (change / 5) * 100));
   const chips = [
-    { label: "Hydrafacial / LED", score: 1 },
-    { label: "Botox / Fillers", score: 2 },
-    { label: "Morpheus8", score: 3 },
-    { label: "CO2 Laser", score: 4 },
-    { label: "Rhinoplasty", score: 5 },
+    { label: "Hydrafacial / LED", slugs: ["hydrafacial", "led"] },
+    { label: "Botox / Fillers", slugs: ["botox", "fillers"] },
+    { label: "Morpheus8", slugs: ["morpheus8"] },
+    { label: "CO2 / Rhinoplasty", slugs: ["co2-laser", "rhinoplasty"] },
   ];
-  const isBotoxOrFillers = slug === "botox" || slug === "fillers";
-  const activeChip = isBotoxOrFillers ? 1 : chips.findIndex((c) => c.score === change);
 
   return (
     <div style={{ marginTop: 10 }}>

@@ -1,0 +1,3 @@
+UPDATE public.gift_wishlist gw SET category = p.subcategory FROM public.products p WHERE gw.product_id = p.id AND p.subcategory IS NOT NULL AND (gw.category IS NULL OR gw.category IN ('Skincare','Makeup') OR gw.category <> p.subcategory);
+
+UPDATE public.shelf_items s SET category = p.subcategory FROM public.products p WHERE s.product_id = p.id AND p.subcategory IS NOT NULL AND (s.category IS NULL OR s.category IN ('Skincare','Makeup'));

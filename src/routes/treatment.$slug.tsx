@@ -322,6 +322,15 @@ function TreatmentDetailPage() {
     return treatment.who_its_for.toLowerCase().includes(skinType);
   }, [skinType, treatment]);
 
+  const downtimeDisplay = useMemo(() => {
+    const d = treatment?.downtime ?? "—";
+    if (d.length > 12) {
+      const beforeDash = d.split(/[-–—]/)[0]?.trim();
+      if (beforeDash && beforeDash.length < d.length) return beforeDash;
+    }
+    return d;
+  }, [treatment?.downtime]);
+
   const posts = (treatment && SOCIAL_POSTS[treatment.slug]) ?? SOCIAL_POSTS["prf-injection"];
   const activeVideos =
     socialTab === "tiktok" ? posts.tiktok : socialTab === "instagram" ? posts.instagram : [];
@@ -348,15 +357,6 @@ function TreatmentDetailPage() {
   }
 
   const HeroIcon = pickHeroIcon(treatment.slug);
-
-  const downtimeDisplay = useMemo(() => {
-    const d = treatment.downtime ?? "—";
-    if (d.length > 12) {
-      const beforeDash = d.split(/[-–—]/)[0]?.trim();
-      if (beforeDash && beforeDash.length < d.length) return beforeDash;
-    }
-    return d;
-  }, [treatment.downtime]);
 
   return (
     <div style={{ minHeight: "100vh", background: WARM, color: ESPRESSO, fontFamily: "'DM Sans', system-ui, sans-serif", paddingBottom: 80 }}>

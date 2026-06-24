@@ -14,6 +14,8 @@ import {
   Syringe,
   Zap,
   Sparkles,
+  Smile,
+  ChevronDown,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
@@ -51,6 +53,7 @@ type Treatment = {
   results_pct: number | null;
   minority_opinion: string | null;
   celebrity_handles: string[] | null;
+  change_score: number | null;
 };
 
 const ESPRESSO = "#1C0A00";

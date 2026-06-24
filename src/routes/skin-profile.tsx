@@ -754,14 +754,17 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
   const [brand, setBrand] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [productId, setProductId] = useState<string | null>(null);
-  const [category, setCategory] = useState(defaultCategory && SHELF_CATEGORIES.includes(defaultCategory) ? defaultCategory : (defaultCategory ?? "Other"));
+  const initialTop = topLevelFor(defaultCategory);
+  const initialCategory = defaultCategory && ALL_SHELF_CATS.includes(defaultCategory)
+    ? defaultCategory
+    : defaultSubFor(initialTop);
+  const [topLevel, setTopLevel] = useState<string>(initialTop);
+  const [category, setCategory] = useState<string>(initialCategory);
   const [emoji, setEmoji] = useState("🧴");
   const [match, setMatch] = useState<Match>("good");
   const [isTopPick, setIsTopPick] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-
-  const allCats = Array.from(new Set([...SHELF_CATEGORIES, ...(defaultCategory ? [defaultCategory] : [])]));
 
   const onPick = (p: ProductSearchRow) => {
     setPicked(p);
@@ -769,7 +772,12 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
     setBrand(p.brand);
     setImageUrl(p.image_url);
     setProductId(p.id);
-    if (p.category && allCats.includes(p.category)) setCategory(p.category);
+    if (p.category) {
+      const tl = topLevelFor(p.category);
+      setTopLevel(tl);
+      if (ALL_SHELF_CATS.includes(p.category)) setCategory(p.category);
+      else setCategory(defaultSubFor(tl));
+    }
     setQuery("");
     setManual(true);
   };
@@ -879,11 +887,29 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
           </>
         )}
         <div>
-          <label style={labelStyle}>Category</label>
-          <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
-            {allCats.map(c => <option key={c} value={c}>{c}</option>)}
+          <label style={labelStyle}>Type</label>
+          <select
+            value={topLevel}
+            onChange={e => {
+              const tl = e.target.value;
+              setTopLevel(tl);
+              setCategory(defaultSubFor(tl));
+            }}
+            style={inputStyle}
+          >
+            {TOP_LEVEL_CATS.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
+        {(topLevel === "Skincare" || topLevel === "Makeup") && (
+          <div>
+            <label style={labelStyle}>Category</label>
+            <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
+              {(topLevel === "Skincare" ? SKINCARE_CATS : MAKEUP_CATS).map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div>
           <label style={labelStyle}>Match</label>
           <div style={{ display: "flex", gap: 8 }}>

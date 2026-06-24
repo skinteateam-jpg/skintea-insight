@@ -682,17 +682,88 @@ function TreatmentDetailPage() {
         </Section>
       )}
 
-      {/* 10. Subscription lock */}
-      <div style={{ margin: "16px 16px 16px", background: TINT, borderRadius: 12, padding: "20px 16px", textAlign: "center" }}>
-        <Lock size={20} color={CRIMSON} style={{ marginBottom: 8 }} />
-        <div style={{ fontSize: 14, fontWeight: 800, color: ESPRESSO }}>Real experiences — side effects, costs, regrets</div>
-        <div style={{ fontSize: 12, color: MUTED, marginTop: 4, lineHeight: 1.5, maxWidth: 260, marginLeft: "auto", marginRight: "auto" }}>
-          From real users who did this. Filtered to your skin type.
+      {/* Before & After */}
+      <Section label="Before & After">
+        <div style={{ fontSize: 11, color: MUTED, marginTop: -4, marginBottom: 12 }}>
+          From real users · {treatment.name}{skinType ? ` · ${skinType} skin` : ""}
         </div>
-        <button style={{ marginTop: 12, width: "100%", background: CRIMSON, color: WARM, border: "none", borderRadius: 8, padding: "13px 0", fontSize: 14, fontWeight: 800, cursor: "pointer" }}>
-          Unlock Full Tea — $9.99/mo
-        </button>
-      </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+          {beforeAfters.length === 0 ? (
+            [0, 1].map((i) => (
+              <div key={i} style={{ borderRadius: 10, overflow: "hidden", border: `0.5px solid ${BORDER}`, opacity: i === 1 ? 0.5 : 1, position: "relative" }}>
+                <div style={{ display: "flex" }}>
+                  <div style={{ flex: 1, height: 100, background: "#2A1408", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ fontSize: 8, fontWeight: 800, color: "rgba(255,252,248,0.5)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Before</div>
+                  </div>
+                  <div style={{ flex: 1, height: 100, background: "#1C3020", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ fontSize: 8, fontWeight: 800, color: "rgba(255,252,248,0.5)", textTransform: "uppercase", letterSpacing: "0.06em" }}>After</div>
+                  </div>
+                </div>
+                <div style={{ padding: 8, background: "#fff" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: ESPRESSO }}>🍩 Oily skin · 28</div>
+                  <div style={{ fontSize: 9, color: MUTED, marginTop: 2 }}>1 session · forehead</div>
+                  <div style={{ fontSize: 9, color: "#2D7A3A", fontWeight: 700, marginTop: 4 }}>✓ Would do again</div>
+                </div>
+                {i === 1 && (
+                  <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(4px)", background: "rgba(255,252,248,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ background: "#fff", borderRadius: 8, padding: "8px 10px", textAlign: "center", border: `0.5px solid ${BORDER}` }}>
+                      <div style={{ fontSize: 16, marginBottom: 2 }}>🔒</div>
+                      <div style={{ fontSize: 9, fontWeight: 800, color: ESPRESSO }}>Members only</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            beforeAfters.slice(0, 2).map((ba, i) => (
+              <div key={ba.id} style={{ borderRadius: 10, overflow: "hidden", border: `0.5px solid ${BORDER}`, position: "relative" }}>
+                <div style={{ display: "flex" }}>
+                  <div style={{ flex: 1, height: 100, background: "#2A1408", overflow: "hidden" }}>
+                    {ba.before_url
+                      ? <img src={ba.before_url} alt="Before" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 8, fontWeight: 800, color: "rgba(255,252,248,0.5)", textTransform: "uppercase" }}>Before</span></div>
+                    }
+                  </div>
+                  <div style={{ flex: 1, height: 100, background: "#1C3020", overflow: "hidden" }}>
+                    {ba.after_url
+                      ? <img src={ba.after_url} alt="After" style={{ width: "100%", height: "100%", objectFit: "cover", filter: i >= 1 ? "blur(6px)" : "none" }} />
+                      : <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 8, fontWeight: 800, color: "rgba(255,252,248,0.5)", textTransform: "uppercase" }}>After</span></div>
+                    }
+                  </div>
+                </div>
+                <div style={{ padding: 8, background: "#fff", filter: i >= 1 ? "blur(3px)" : "none" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: ESPRESSO }}>{ba.skin_type ?? "—"} · {ba.age ?? "—"}</div>
+                  <div style={{ fontSize: 9, color: MUTED, marginTop: 2 }}>{ba.sessions ?? "—"}</div>
+                  {ba.outcome && (
+                    <div style={{ fontSize: 9, color: "#2D7A3A", fontWeight: 700, marginTop: 4 }}>✓ {ba.outcome}</div>
+                  )}
+                </div>
+                {i >= 1 && (
+                  <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(4px)", background: "rgba(255,252,248,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ background: "#fff", borderRadius: 8, padding: "8px 10px", textAlign: "center", border: `0.5px solid ${BORDER}` }}>
+                      <div style={{ fontSize: 16, marginBottom: 2 }}>🔒</div>
+                      <div style={{ fontSize: 9, fontWeight: 800, color: ESPRESSO }}>Members only</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        <div style={{ background: TINT, borderRadius: 10, padding: "14px 16px", textAlign: "center" }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO, marginBottom: 4 }}>
+            See real before &amp; afters + side effects, costs, regrets
+          </div>
+          <div style={{ fontSize: 11, color: MUTED, marginBottom: 12, lineHeight: 1.5 }}>
+            Filtered to your skin type. Real people, real results.
+          </div>
+          <button style={{ width: "100%", background: CRIMSON, color: WARM, border: "none", borderRadius: 8, padding: "13px 0", fontSize: 14, fontWeight: 800, cursor: "pointer" }}>
+            Unlock Full Tea — $9.99/mo
+          </button>
+        </div>
+      </Section>
 
       {/* 11. Spacer */}
       <div style={{ height: 80 }} />

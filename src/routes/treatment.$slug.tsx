@@ -775,14 +775,7 @@ function PipBar({ filled, total, color, emptyColor }: { filled: number; total: n
 }
 
 function AtAGlance({ slug, changeScore }: { slug: string; changeScore: number | null }) {
-  const change = changeScore ?? 2;
-  const dotPct = Math.max(0, Math.min(100, (change / 5) * 100));
-  const chips = [
-    { label: "Hydrafacial / LED", slugs: ["hydrafacial", "led"] },
-    { label: "Botox / Fillers", slugs: ["botox", "fillers"] },
-    { label: "Morpheus8", slugs: ["morpheus8"] },
-    { label: "CO2 / Rhinoplasty", slugs: ["co2-laser", "rhinoplasty"] },
-  ];
+  const currentScore = changeScore ?? 2;
 
   return (
     <div style={{ marginTop: 10 }}>

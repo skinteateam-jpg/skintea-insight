@@ -481,7 +481,7 @@ function GroupedFilterRow({ groups, active, onChange, includeAll = true }: {
       })()}
       {groups.map((g, gi) => (
         <div key={gi} style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
-          <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "#A8001C", padding: "0 4px 0 6px", borderLeft: `1px solid ${C.border}` }}>{g.label}</span>
+          <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "#999", padding: "0 4px 0 6px", borderLeft: `1px solid ${C.border}` }}>{g.label}</span>
           {g.items.map(i => {
             const on = i === active;
             return (

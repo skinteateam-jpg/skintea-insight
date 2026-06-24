@@ -699,6 +699,241 @@ function StatBar({ label, pct }: { label: string; pct: number }) {
   );
 }
 
+function WhatYouCanGet({ text }: { text: string | null }) {
+  const icons = [Sparkles, Smile, Droplet, ArrowUp];
+  const parts = useMemo(() => {
+    const raw = (text ?? "")
+      .split(/[.;\n]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const defaults = ["Smoother skin", "Even tone", "More hydration", "A lifted look"];
+    const out: { title: string; subtitle: string }[] = [];
+    for (let i = 0; i < 4; i++) {
+      const src = raw[i];
+      if (src) {
+        const words = src.split(/\s+/);
+        const title = words.slice(0, 3).join(" ");
+        const subtitle = words.slice(3).join(" ") || src;
+        out.push({ title: title.charAt(0).toUpperCase() + title.slice(1), subtitle });
+      } else {
+        out.push({ title: defaults[i], subtitle: "Common reported benefit" });
+      }
+    }
+    return out;
+  }, [text]);
+
+  return (
+    <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+      {parts.map((p, i) => {
+        const Icon = icons[i];
+        return (
+          <div key={i} style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
+            <Icon size={16} color={CRIMSON} />
+            <div style={{ fontSize: 12, fontWeight: 800, color: ESPRESSO, marginTop: 6, lineHeight: 1.25 }}>{p.title}</div>
+            <div style={{ fontSize: 10, color: MUTED, marginTop: 3, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+              {p.subtitle}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function PipBar({ filled, total, color, emptyColor }: { filled: number; total: number; color: string; emptyColor: string }) {
+  return (
+    <div style={{ display: "flex", gap: 4 }}>
+      {Array.from({ length: total }).map((_, i) => (
+        <div key={i} style={{ flex: 1, height: 6, borderRadius: 3, background: i < filled ? color : emptyColor }} />
+      ))}
+    </div>
+  );
+}
+
+function AtAGlance({ slug, changeScore }: { slug: string; changeScore: number | null }) {
+  const change = changeScore ?? 2;
+  const dotPct = Math.max(0, Math.min(100, (change / 5) * 100));
+  const chips = [
+    { label: "Hydrafacial / LED", score: 1 },
+    { label: "Botox / Fillers", score: 2 },
+    { label: "Morpheus8", score: 3 },
+    { label: "CO2 Laser", score: 4 },
+    { label: "Rhinoplasty", score: 5 },
+  ];
+  const isBotoxOrFillers = slug === "botox" || slug === "fillers";
+  const activeChip = isBotoxOrFillers ? 1 : chips.findIndex((c) => c.score === change);
+
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Price rank</div>
+          <PipBar filled={2} total={5} color={ESPRESSO} emptyColor={BORDER} />
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+            <span style={{ fontSize: 9, color: MUTED }}>Budget</span>
+            <span style={{ fontSize: 9, color: MUTED }}>Luxury</span>
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO, marginTop: 6 }}>Mid-range</div>
+          <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Not cheap, not crazy</div>
+        </div>
+        <div style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>How serious</div>
+          <div style={{ display: "flex", gap: 4 }}>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} style={{ flex: 1, height: 6, borderRadius: 3, background: i === 2 || i === 3 ? CRIMSON : BORDER }} />
+            ))}
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+            <span style={{ fontSize: 9, color: MUTED }}>Casual</span>
+            <span style={{ fontSize: 9, color: MUTED }}>Surgery</span>
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO, marginTop: 6 }}>Medical</div>
+          <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Needs a licensed injector</div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 10, background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: ESPRESSO }}>How big is the change?</div>
+        <div style={{ fontSize: 9, color: MUTED, marginTop: 2 }}>Compared to other treatments</div>
+        <div style={{ position: "relative", marginTop: 14, marginBottom: 6 }}>
+          <div style={{ height: 6, borderRadius: 3, background: `linear-gradient(to right, ${BORDER}, ${CRIMSON})` }} />
+          <div
+            style={{
+              position: "absolute",
+              top: -4,
+              left: `calc(${dotPct}% - 7px)`,
+              width: 14,
+              height: 14,
+              borderRadius: "50%",
+              background: CRIMSON,
+              border: `2px solid ${WARM}`,
+              boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
+            }}
+          />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: MUTED }}>
+          <span>Subtle</span>
+          <span>Noticeable</span>
+          <span>Significant</span>
+          <span>Big</span>
+          <span>Huge</span>
+        </div>
+        <div className="no-scrollbar" style={{ display: "flex", gap: 6, overflowX: "auto", marginTop: 10 }}>
+          {chips.map((c, i) => {
+            const active = i === activeChip;
+            return (
+              <div
+                key={c.label}
+                style={{
+                  flexShrink: 0,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "5px 10px",
+                  borderRadius: 999,
+                  background: active ? "#FEE8EC" : "#F5EFEC",
+                  border: active ? `0.5px solid ${CRIMSON}` : "0.5px solid transparent",
+                  color: active ? CRIMSON : "#999",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {c.label}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NeutralCard({ label, value, subtitle }: { label: string; value: string; subtitle: string }) {
+  return (
+    <div style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
+      <div style={{ fontSize: 9, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.1em" }}>{label}</div>
+      <div style={{ fontSize: 14, fontWeight: 800, color: ESPRESSO, marginTop: 6, lineHeight: 1.25 }}>{value}</div>
+      <div style={{ fontSize: 10, color: MUTED, marginTop: 3 }}>{subtitle}</div>
+    </div>
+  );
+}
+
+const AGE_BUCKETS_BY_CATEGORY: Record<string, { label: string; pct: number }[]> = {
+  Injectables: [
+    { label: "20s", pct: 28 },
+    { label: "30s", pct: 45 },
+    { label: "40s", pct: 20 },
+    { label: "50s+", pct: 7 },
+  ],
+};
+const DEFAULT_AGE_BUCKETS = [
+  { label: "20s", pct: 35 },
+  { label: "30s", pct: 38 },
+  { label: "40s", pct: 20 },
+  { label: "50s+", pct: 7 },
+];
+
+function AgeChart({ category }: { category: string | null }) {
+  const buckets = (category && AGE_BUCKETS_BY_CATEGORY[category]) ?? DEFAULT_AGE_BUCKETS;
+  const topIdx = buckets.reduce((best, b, i, arr) => (b.pct > arr[best].pct ? i : best), 0);
+  const max = Math.max(...buckets.map((b) => b.pct));
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {buckets.map((b, i) => {
+          const top = i === topIdx;
+          return (
+            <div key={b.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 48, fontSize: 11, fontWeight: top ? 800 : 600, color: ESPRESSO }}>
+                {b.label}{top ? " 👑" : ""}
+              </div>
+              <div style={{ flex: 1, height: 8, background: "#F0EAE4", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ width: `${(b.pct / max) * 100}%`, height: "100%", background: top ? ESPRESSO : CRIMSON }} />
+              </div>
+              <div style={{ width: 34, textAlign: "right", fontSize: 11, fontWeight: 700, color: ESPRESSO }}>{b.pct}%</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 10, color: MUTED, marginTop: 8 }}>Most popular in your {buckets[topIdx].label}</div>
+    </div>
+  );
+}
+
+const COUNTRIES = [
+  { flag: "🇺🇸", name: "US", pct: 88 },
+  { flag: "🇰🇷", name: "Korea", pct: 74 },
+  { flag: "🇯🇵", name: "Japan", pct: 58 },
+  { flag: "🇨🇳", name: "China", pct: 45 },
+  { flag: "🇪🇺", name: "Europe", pct: 38 },
+  { flag: "🌎", name: "Latin America", pct: 22 },
+];
+
+function CountryChart() {
+  const max = COUNTRIES[0].pct;
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {COUNTRIES.map((c, i) => {
+          const top = i === 0;
+          return (
+            <div key={c.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ minWidth: 120, fontSize: 11, fontWeight: top ? 800 : 600, color: ESPRESSO, display: "flex", alignItems: "center", gap: 4 }}>
+                {top && <span>👑</span>}
+                <span>{c.flag}</span>
+                <span>{c.name}</span>
+              </div>
+              <div style={{ flex: 1, height: 8, background: "#F0EAE4", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ width: `${(c.pct / max) * 100}%`, height: "100%", background: top ? ESPRESSO : CRIMSON }} />
+              </div>
+              <div style={{ width: 34, textAlign: "right", fontSize: 11, fontWeight: 700, color: ESPRESSO }}>{c.pct}%</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 10, color: MUTED, marginTop: 8 }}>Most popular in the US, followed by Korea</div>
+    </div>
+  );
+}
+
 function CelebPill({ handle }: { handle: string }) {
   const [imgError, setImgError] = useState(false);
   const name = CELEB_NAMES[handle] ?? handle;

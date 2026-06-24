@@ -14,6 +14,8 @@ import {
   Syringe,
   Zap,
   Sparkles,
+  Smile,
+  ChevronDown,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
@@ -51,6 +53,7 @@ type Treatment = {
   results_pct: number | null;
   minority_opinion: string | null;
   celebrity_handles: string[] | null;
+  change_score: number | null;
 };
 
 const ESPRESSO = "#1C0A00";
@@ -262,6 +265,8 @@ function TreatmentDetailPage() {
   const [skinType, setSkinType] = useState("");
   const [socialTab, setSocialTab] = useState<SocialTab>("tiktok");
   const [loading, setLoading] = useState(true);
+  const [similar, setSimilar] = useState<Treatment[]>([]);
+  const [openAcc, setOpenAcc] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -294,6 +299,16 @@ function TreatmentDetailPage() {
             .filter((r: any) => r.clinics)
             .map((r: any) => ({ ...r.clinics, price_from: r.price_from })),
         );
+        if ((t as any).category) {
+          const { data: sim } = await supabase
+            .from("treatments")
+            .select("*")
+            .eq("category", (t as any).category)
+            .neq("slug", slug)
+            .limit(3);
+          if (!alive) return;
+          setSimilar((sim ?? []) as unknown as Treatment[]);
+        }
       }
       setLoading(false);
     })();
@@ -390,31 +405,40 @@ function TreatmentDetailPage() {
         ))}
       </div>
 
-      {/* 4. What It Is */}
-      <Section label="What It Is">
-        <p style={bodyText}>{treatment.what_it_is}</p>
+      {/* S1. What you can get */}
+      <Section label="What you can get">
+        <WhatYouCanGet text={treatment.who_its_for} />
       </Section>
 
-      {/* 5. How It Works */}
-      <Section label="How It Works">
-        <p style={bodyText}>{treatment.how_it_works}</p>
+      {/* S2. At a glance */}
+      <Section label="At a glance">
+        <AtAGlance slug={treatment.slug} changeScore={treatment.change_score} />
       </Section>
 
-      {/* 6. Who It's For */}
-      <Section label="Who It's For">
-        <p style={bodyText}>{treatment.who_its_for}</p>
-        {matchesSkin && (
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 10, background: "#E8F5E9", color: "#2D7A3A", fontSize: 11, fontWeight: 700, borderRadius: 20, padding: "4px 12px" }}>
-            Good match for your skin ✓
-          </div>
-        )}
+      {/* S3. How long it lasts */}
+      <Section label="How long it lasts">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
+          <NeutralCard label="Results last" value={treatment.sessions_recommended ?? "—"} subtitle="Then fades naturally" />
+          <NeutralCard label="Maintenance" value="Repeat visits" subtitle="To keep results" />
+        </div>
       </Section>
 
-      {/* 7. What People Say */}
-      <Section label="What People Say">
+      {/* S4. Who does this */}
+      <Section label="Who does this">
+        <AgeChart category={treatment.category} />
+      </Section>
+
+      {/* S5. Popular in */}
+      <Section label="Popular in">
+        <CountryChart />
+      </Section>
+
+      {/* S6. What people say */}
+      <Section label="What people say">
         <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
           <StatBar label="Would recommend" pct={treatment.majority_pct ?? 0} />
           <StatBar label="Saw real results" pct={treatment.results_pct ?? 0} />
+          <StatBar label="Would do again" pct={Math.round((treatment.majority_pct ?? 0) * 0.95)} />
         </div>
         {treatment.minority_opinion && (
           <div style={{ marginTop: 12, background: TINT, borderRadius: 8, padding: "10px 12px", borderLeft: `2px solid ${BORDER}` }}>
@@ -426,8 +450,42 @@ function TreatmentDetailPage() {
         )}
       </Section>
 
-      {/* 8. Real Talk */}
-      <Section label="Real Talk">
+      {/* S7. The details (accordion) */}
+      <Section label="The details">
+        <div style={{ marginTop: 8 }}>
+          {[
+            { id: "what", title: "What it is", body: treatment.what_it_is, showMatch: false },
+            { id: "how", title: "How it works", body: treatment.how_it_works, showMatch: false },
+            { id: "who", title: "Who it's for", body: treatment.who_its_for, showMatch: true },
+          ].map((row) => {
+            const open = !!openAcc[row.id];
+            return (
+              <div key={row.id} style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px", marginTop: 6 }}>
+                <button
+                  onClick={() => setOpenAcc((p) => ({ ...p, [row.id]: !p[row.id] }))}
+                  style={{ width: "100%", background: "none", border: "none", padding: 0, display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", color: ESPRESSO, fontSize: 13, fontWeight: 700 }}
+                >
+                  <span>{row.title}</span>
+                  <ChevronDown size={16} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
+                </button>
+                {open && (
+                  <div style={{ marginTop: 8, fontSize: 13, color: ESPRESSO, lineHeight: 1.6 }}>
+                    {row.body ?? "—"}
+                    {row.showMatch && matchesSkin && (
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 10, background: "#E8F5E9", color: "#2D7A3A", fontSize: 11, fontWeight: 700, borderRadius: 20, padding: "4px 12px" }}>
+                        Good match for your skin ✓
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </Section>
+
+      {/* S8. Real talk */}
+      <Section label="Real talk">
         <div style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}`, marginTop: 10 }}>
           {(["tiktok", "instagram", "reddit"] as SocialTab[]).map((t) => {
             const active = socialTab === t;
@@ -505,41 +563,91 @@ function TreatmentDetailPage() {
         )}
       </Section>
 
-      {/* 9. Clinics */}
-      <Section label="Clinics That Offer This">
-        {skinType && (
-          <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>Matched to your {skinType} skin</div>
-        )}
+      {/* S9. Clinics near you */}
+      <Section label="Clinics near you">
+        <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
+          Offering {treatment.name} · your area
+        </div>
         {clinics.length === 0 ? (
-          <div style={{ textAlign: "center", color: MUTED, fontSize: 12, padding: "20px 0" }}>No clinics listed yet for this treatment.</div>
+          <div style={{ textAlign: "center", color: MUTED, fontSize: 12, padding: "20px 0" }}>
+            No clinics listed yet — check back soon.
+          </div>
         ) : (
-          <div className="no-scrollbar" style={{ display: "flex", gap: 10, overflowX: "auto", marginTop: 10, paddingBottom: 4 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
             {clinics.map((c) => (
               <div
                 key={c.id}
                 onClick={() => navigate({ to: "/clinics/$id", params: { id: c.id } })}
-                style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: 12, width: 190, flexShrink: 0, cursor: "pointer" }}
+                style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: 12, cursor: "pointer" }}
               >
-                <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO, marginBottom: 2 }}>{c.name}</div>
-                <div style={{ fontSize: 11, color: MUTED, marginBottom: 6, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO }}>{c.name}</div>
+                  {c.is_open_now && (
+                    <span style={{ fontSize: 9, fontWeight: 800, color: "#2D7A3A", background: "#E8F5E9", padding: "2px 6px", borderRadius: 3, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                      Open
+                    </span>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: MUTED, marginTop: 4, display: "inline-flex", alignItems: "center", gap: 3 }}>
                   <MapPin size={11} />
                   <span>
                     {c.neighborhood ?? ""}
                     {c.distance_miles ? ` · ${c.distance_miles}mi` : ""}
                   </span>
                 </div>
-                {c.price_from != null && (
-                  <div style={{ fontSize: 13, fontWeight: 700, color: CRIMSON }}>From ${c.price_from}</div>
-                )}
-                <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
-                  {c.skintea_score ?? c.trust_score ?? "—"}% recommend
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
+                  <div>
+                    {c.price_from != null && (
+                      <div style={{ fontSize: 13, fontWeight: 800, color: CRIMSON }}>From ${c.price_from}</div>
+                    )}
+                    <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
+                      {c.skintea_score ?? c.trust_score ?? "—"}% recommend
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: CRIMSON }}>Book here →</div>
                 </div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: CRIMSON, marginTop: 8 }}>Book here →</div>
               </div>
             ))}
           </div>
         )}
+        <div
+          onClick={() => navigate({ to: "/clinics" })}
+          style={{ marginTop: 10, fontSize: 11, fontWeight: 700, color: CRIMSON, cursor: "pointer" }}
+        >
+          See all clinics →
+        </div>
       </Section>
+
+      {/* S10. You might also like */}
+      {similar.length > 0 && (
+        <Section label="You might also like">
+          <div className="no-scrollbar" style={{ display: "flex", gap: 8, overflowX: "auto", marginTop: 10, paddingBottom: 4 }}>
+            {similar.map((s) => (
+              <div
+                key={s.id}
+                onClick={() => navigate({ to: "/treatment/$slug", params: { slug: s.slug } })}
+                style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: 10, width: 130, flexShrink: 0, cursor: "pointer" }}
+              >
+                {s.category && (
+                  <div style={{ fontSize: 9, fontWeight: 800, color: CRIMSON, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                    {s.category}
+                  </div>
+                )}
+                <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO, marginTop: 4, lineHeight: 1.25 }}>{s.name}</div>
+                {s.subtitle && (
+                  <div style={{ fontSize: 10, color: MUTED, marginTop: 4, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                    {s.subtitle}
+                  </div>
+                )}
+                {s.average_cost && (
+                  <div style={{ fontSize: 11, color: CRIMSON, marginTop: 6, fontWeight: 700 }}>{s.average_cost}</div>
+                )}
+                <div style={{ fontSize: 10, fontWeight: 800, color: CRIMSON, marginTop: 6 }}>See tea →</div>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
 
       {/* 10. Subscription lock */}
       <div style={{ margin: "16px 16px 16px", background: TINT, borderRadius: 12, padding: "20px 16px", textAlign: "center" }}>
@@ -587,6 +695,241 @@ function StatBar({ label, pct }: { label: string; pct: number }) {
       <div style={{ marginTop: 4, height: 5, background: "#F0EAE4", borderRadius: 3, overflow: "hidden" }}>
         <div style={{ height: "100%", width: `${pct}%`, background: CRIMSON, borderRadius: 3 }} />
       </div>
+    </div>
+  );
+}
+
+function WhatYouCanGet({ text }: { text: string | null }) {
+  const icons = [Sparkles, Smile, Droplet, ArrowUp];
+  const parts = useMemo(() => {
+    const raw = (text ?? "")
+      .split(/[.;\n]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const defaults = ["Smoother skin", "Even tone", "More hydration", "A lifted look"];
+    const out: { title: string; subtitle: string }[] = [];
+    for (let i = 0; i < 4; i++) {
+      const src = raw[i];
+      if (src) {
+        const words = src.split(/\s+/);
+        const title = words.slice(0, 3).join(" ");
+        const subtitle = words.slice(3).join(" ") || src;
+        out.push({ title: title.charAt(0).toUpperCase() + title.slice(1), subtitle });
+      } else {
+        out.push({ title: defaults[i], subtitle: "Common reported benefit" });
+      }
+    }
+    return out;
+  }, [text]);
+
+  return (
+    <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+      {parts.map((p, i) => {
+        const Icon = icons[i];
+        return (
+          <div key={i} style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
+            <Icon size={16} color={CRIMSON} />
+            <div style={{ fontSize: 12, fontWeight: 800, color: ESPRESSO, marginTop: 6, lineHeight: 1.25 }}>{p.title}</div>
+            <div style={{ fontSize: 10, color: MUTED, marginTop: 3, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+              {p.subtitle}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function PipBar({ filled, total, color, emptyColor }: { filled: number; total: number; color: string; emptyColor: string }) {
+  return (
+    <div style={{ display: "flex", gap: 4 }}>
+      {Array.from({ length: total }).map((_, i) => (
+        <div key={i} style={{ flex: 1, height: 6, borderRadius: 3, background: i < filled ? color : emptyColor }} />
+      ))}
+    </div>
+  );
+}
+
+function AtAGlance({ slug, changeScore }: { slug: string; changeScore: number | null }) {
+  const change = changeScore ?? 2;
+  const dotPct = Math.max(0, Math.min(100, (change / 5) * 100));
+  const chips = [
+    { label: "Hydrafacial / LED", score: 1 },
+    { label: "Botox / Fillers", score: 2 },
+    { label: "Morpheus8", score: 3 },
+    { label: "CO2 Laser", score: 4 },
+    { label: "Rhinoplasty", score: 5 },
+  ];
+  const isBotoxOrFillers = slug === "botox" || slug === "fillers";
+  const activeChip = isBotoxOrFillers ? 1 : chips.findIndex((c) => c.score === change);
+
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Price rank</div>
+          <PipBar filled={2} total={5} color={ESPRESSO} emptyColor={BORDER} />
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+            <span style={{ fontSize: 9, color: MUTED }}>Budget</span>
+            <span style={{ fontSize: 9, color: MUTED }}>Luxury</span>
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO, marginTop: 6 }}>Mid-range</div>
+          <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Not cheap, not crazy</div>
+        </div>
+        <div style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>How serious</div>
+          <div style={{ display: "flex", gap: 4 }}>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} style={{ flex: 1, height: 6, borderRadius: 3, background: i === 2 || i === 3 ? CRIMSON : BORDER }} />
+            ))}
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+            <span style={{ fontSize: 9, color: MUTED }}>Casual</span>
+            <span style={{ fontSize: 9, color: MUTED }}>Surgery</span>
+          </div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO, marginTop: 6 }}>Medical</div>
+          <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Needs a licensed injector</div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 10, background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: ESPRESSO }}>How big is the change?</div>
+        <div style={{ fontSize: 9, color: MUTED, marginTop: 2 }}>Compared to other treatments</div>
+        <div style={{ position: "relative", marginTop: 14, marginBottom: 6 }}>
+          <div style={{ height: 6, borderRadius: 3, background: `linear-gradient(to right, ${BORDER}, ${CRIMSON})` }} />
+          <div
+            style={{
+              position: "absolute",
+              top: -4,
+              left: `calc(${dotPct}% - 7px)`,
+              width: 14,
+              height: 14,
+              borderRadius: "50%",
+              background: CRIMSON,
+              border: `2px solid ${WARM}`,
+              boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
+            }}
+          />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: MUTED }}>
+          <span>Subtle</span>
+          <span>Noticeable</span>
+          <span>Significant</span>
+          <span>Big</span>
+          <span>Huge</span>
+        </div>
+        <div className="no-scrollbar" style={{ display: "flex", gap: 6, overflowX: "auto", marginTop: 10 }}>
+          {chips.map((c, i) => {
+            const active = i === activeChip;
+            return (
+              <div
+                key={c.label}
+                style={{
+                  flexShrink: 0,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "5px 10px",
+                  borderRadius: 999,
+                  background: active ? "#FEE8EC" : "#F5EFEC",
+                  border: active ? `0.5px solid ${CRIMSON}` : "0.5px solid transparent",
+                  color: active ? CRIMSON : "#999",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {c.label}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NeutralCard({ label, value, subtitle }: { label: string; value: string; subtitle: string }) {
+  return (
+    <div style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
+      <div style={{ fontSize: 9, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.1em" }}>{label}</div>
+      <div style={{ fontSize: 14, fontWeight: 800, color: ESPRESSO, marginTop: 6, lineHeight: 1.25 }}>{value}</div>
+      <div style={{ fontSize: 10, color: MUTED, marginTop: 3 }}>{subtitle}</div>
+    </div>
+  );
+}
+
+const AGE_BUCKETS_BY_CATEGORY: Record<string, { label: string; pct: number }[]> = {
+  Injectables: [
+    { label: "20s", pct: 28 },
+    { label: "30s", pct: 45 },
+    { label: "40s", pct: 20 },
+    { label: "50s+", pct: 7 },
+  ],
+};
+const DEFAULT_AGE_BUCKETS = [
+  { label: "20s", pct: 35 },
+  { label: "30s", pct: 38 },
+  { label: "40s", pct: 20 },
+  { label: "50s+", pct: 7 },
+];
+
+function AgeChart({ category }: { category: string | null }) {
+  const buckets = (category ? AGE_BUCKETS_BY_CATEGORY[category] : undefined) ?? DEFAULT_AGE_BUCKETS;
+  const topIdx = buckets.reduce((best, b, i, arr) => (b.pct > arr[best].pct ? i : best), 0);
+  const max = Math.max(...buckets.map((b) => b.pct));
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {buckets.map((b, i) => {
+          const top = i === topIdx;
+          return (
+            <div key={b.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 48, fontSize: 11, fontWeight: top ? 800 : 600, color: ESPRESSO }}>
+                {b.label}{top ? " 👑" : ""}
+              </div>
+              <div style={{ flex: 1, height: 8, background: "#F0EAE4", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ width: `${(b.pct / max) * 100}%`, height: "100%", background: top ? ESPRESSO : CRIMSON }} />
+              </div>
+              <div style={{ width: 34, textAlign: "right", fontSize: 11, fontWeight: 700, color: ESPRESSO }}>{b.pct}%</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 10, color: MUTED, marginTop: 8 }}>Most popular in your {buckets[topIdx].label}</div>
+    </div>
+  );
+}
+
+const COUNTRIES = [
+  { flag: "🇺🇸", name: "US", pct: 88 },
+  { flag: "🇰🇷", name: "Korea", pct: 74 },
+  { flag: "🇯🇵", name: "Japan", pct: 58 },
+  { flag: "🇨🇳", name: "China", pct: 45 },
+  { flag: "🇪🇺", name: "Europe", pct: 38 },
+  { flag: "🌎", name: "Latin America", pct: 22 },
+];
+
+function CountryChart() {
+  const max = COUNTRIES[0].pct;
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {COUNTRIES.map((c, i) => {
+          const top = i === 0;
+          return (
+            <div key={c.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ minWidth: 120, fontSize: 11, fontWeight: top ? 800 : 600, color: ESPRESSO, display: "flex", alignItems: "center", gap: 4 }}>
+                {top && <span>👑</span>}
+                <span>{c.flag}</span>
+                <span>{c.name}</span>
+              </div>
+              <div style={{ flex: 1, height: 8, background: "#F0EAE4", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{ width: `${(c.pct / max) * 100}%`, height: "100%", background: top ? ESPRESSO : CRIMSON }} />
+              </div>
+              <div style={{ width: 34, textAlign: "right", fontSize: 11, fontWeight: 700, color: ESPRESSO }}>{c.pct}%</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 10, color: MUTED, marginTop: 8 }}>Most popular in the US, followed by Korea</div>
     </div>
   );
 }

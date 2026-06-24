@@ -500,6 +500,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          image_urls: string[] | null
           is_active: boolean | null
           is_top_pick: boolean | null
           name: string
@@ -507,6 +508,7 @@ export type Database = {
           product_url: string | null
           skintea_score: number | null
           source: string | null
+          subcategory: string | null
         }
         Insert: {
           brand: string
@@ -516,6 +518,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          image_urls?: string[] | null
           is_active?: boolean | null
           is_top_pick?: boolean | null
           name: string
@@ -523,6 +526,7 @@ export type Database = {
           product_url?: string | null
           skintea_score?: number | null
           source?: string | null
+          subcategory?: string | null
         }
         Update: {
           brand?: string
@@ -532,6 +536,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          image_urls?: string[] | null
           is_active?: boolean | null
           is_top_pick?: boolean | null
           name?: string
@@ -539,6 +544,7 @@ export type Database = {
           product_url?: string | null
           skintea_score?: number | null
           source?: string | null
+          subcategory?: string | null
         }
         Relationships: []
       }

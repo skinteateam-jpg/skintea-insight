@@ -607,8 +607,12 @@ function ShelfTab({ shelfItems, setShelfItems, topPicks, loadingShelf, loadingTo
     return fromShelf.length > 0 ? fromShelf : topPicks;
   }, [shelfItems, topPicks]);
 
-  const cats = ["All", ...grouped.map(([c]) => c)];
   const [active, setActive] = useState("All");
+  const shelfFilterGroups = [
+    { label: "Skincare", items: SKINCARE_CATS },
+    { label: "Makeup", items: MAKEUP_CATS },
+    { label: "Other", items: ["Perfume", "Body Care", "Device"] },
+  ];
   const visible = active === "All" ? grouped : grouped.filter(([c]) => c === active);
   const [addOpen, setAddOpen] = useState<{ category?: string } | null>(null);
 
@@ -626,7 +630,9 @@ function ShelfTab({ shelfItems, setShelfItems, topPicks, loadingShelf, loadingTo
           + Add to Shelf
         </button>
       </div>
-      <div style={{ marginTop: 8 }}><FilterRow items={cats} active={active} onChange={setActive} /></div>
+      <div style={{ marginTop: 8 }}>
+        <GroupedFilterRow groups={shelfFilterGroups} active={active} onChange={setActive} />
+      </div>
       {loadingShelf && shelfItems.length === 0 && (
         <div style={{ marginTop: 24, display: "flex", gap: 10 }}>
           {[0,1,2].map(i => <Skel key={i} h={170} w={120} r={10} />)}

@@ -403,13 +403,27 @@ function TreatmentDetailPage() {
       {/* 3. Quick stats */}
       <div style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}` }}>
         {[
-          { label: "Downtime", value: treatment.downtime ?? "—" },
+          { label: "Downtime", value: downtimeDisplay, truncateOneLine: true },
           { label: "Avg Cost", value: treatment.average_cost ?? "—" },
           { label: "Sessions", value: treatment.sessions_recommended ?? "—" },
           { label: "Best For", value: treatment.best_for_skin ?? "—" },
         ].map((s, i) => (
           <div key={i} style={{ flex: 1, padding: "12px 6px", textAlign: "center", borderRight: i < 3 ? `0.5px solid ${BORDER}` : "none" }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO, lineHeight: 1.3, wordBreak: "break-word" }}>{s.value}</div>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: ESPRESSO,
+                lineHeight: 1.3,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                ...(s.truncateOneLine
+                  ? { whiteSpace: "nowrap", maxWidth: "100%" }
+                  : { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }),
+              }}
+            >
+              {s.value}
+            </div>
             <div style={{ fontSize: 9, color: MUTED, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", marginTop: 3 }}>{s.label}</div>
           </div>
         ))}

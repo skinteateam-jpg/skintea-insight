@@ -1336,7 +1336,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
           <div style={{ marginTop: 24, marginBottom: 10, fontSize: 11, fontWeight: 800, color: "#1C0A00", textTransform: "uppercase", letterSpacing: "0.06em" }}>Skincare Wishlist</div>
           {renderWishlist(
             skincareWishlist,
-            ["All", "Serum", "Moisturizer", "SPF", "Mask"],
+            [{ label: "Skincare", items: SKINCARE_CATS }],
             { bg: "#F0FAF1", color: "#2D7A3A", border: "#2D7A3A", text: "Skin" },
             "+ Add skincare to wishlist",
             "skincare",
@@ -1345,7 +1345,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
           <div style={{ marginTop: 24, marginBottom: 10, fontSize: 11, fontWeight: 800, color: "#1C0A00", textTransform: "uppercase", letterSpacing: "0.06em" }}>Makeup Wishlist</div>
           {renderWishlist(
             makeupWishlist,
-            ["All", "Lip", "Eye", "Base", "Blush"],
+            [{ label: "Makeup", items: MAKEUP_CATS }],
             { bg: "#FFF0F5", color: "#C2185B", border: "#C2185B", text: "Makeup" },
             "+ Add makeup to wishlist",
             "makeup",
@@ -1355,7 +1355,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
 
       {giftSubTab === "skincare" && renderWishlist(
         skincareWishlist,
-        ["All", "Serum", "Moisturizer", "SPF", "Mask"],
+        [{ label: "Skincare", items: SKINCARE_CATS }],
         { bg: "#F0FAF1", color: "#2D7A3A", border: "#2D7A3A", text: "Skin" },
         "+ Add skincare to wishlist",
         "skincare",
@@ -1363,7 +1363,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
 
       {giftSubTab === "makeup" && renderWishlist(
         makeupWishlist,
-        ["All", "Lip", "Eye", "Base", "Blush"],
+        [{ label: "Makeup", items: MAKEUP_CATS }],
         { bg: "#FFF0F5", color: "#C2185B", border: "#C2185B", text: "Makeup" },
         "+ Add makeup to wishlist",
         "makeup",

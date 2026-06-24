@@ -267,6 +267,7 @@ function TreatmentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [similar, setSimilar] = useState<Treatment[]>([]);
   const [openAcc, setOpenAcc] = useState<Record<string, boolean>>({});
+  const [beforeAfters, setBeforeAfters] = useState<any[]>([]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -299,6 +300,14 @@ function TreatmentDetailPage() {
             .filter((r: any) => r.clinics)
             .map((r: any) => ({ ...r.clinics, price_from: r.price_from })),
         );
+        const { data: ba } = await supabase
+          .from("treatment_before_afters" as any)
+          .select("*")
+          .eq("treatment_id", (t as any).id)
+          .eq("is_active", true)
+          .limit(6);
+        if (!alive) return;
+        setBeforeAfters((ba as any[]) ?? []);
         if ((t as any).category) {
           const { data: sim } = await supabase
             .from("treatments")

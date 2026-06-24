@@ -461,6 +461,43 @@ function FilterRow({ items, active, onChange }: { items: string[]; active: strin
   );
 }
 
+function GroupedFilterRow({ groups, active, onChange, includeAll = true }: {
+  groups: Array<{ label: string; items: string[] }>;
+  active: string;
+  onChange: (s: string) => void;
+  includeAll?: boolean;
+}) {
+  return (
+    <div style={{ display: "flex", gap: 8, overflowX: "auto", alignItems: "center", margin: "0 -16px", padding: "0 16px 4px" }}>
+      {includeAll && (() => {
+        const on = active === "All";
+        return (
+          <button onClick={() => onChange("All")}
+            style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: "pointer",
+              border: `1px solid ${on ? C.ink : C.border}`, background: on ? C.ink : C.surface, color: on ? "#fff" : C.textMid }}>
+            All
+          </button>
+        );
+      })()}
+      {groups.map((g, gi) => (
+        <div key={gi} style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
+          <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "#A8001C", padding: "0 4px 0 6px", borderLeft: `1px solid ${C.border}` }}>{g.label}</span>
+          {g.items.map(i => {
+            const on = i === active;
+            return (
+              <button key={i} onClick={() => onChange(i)}
+                style={{ flexShrink: 0, padding: "7px 12px", borderRadius: 999, fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+                  border: `1px solid ${on ? C.ink : C.border}`, background: on ? C.ink : C.surface, color: on ? "#fff" : C.textMid }}>
+                {i}
+              </button>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ---------- Skeleton helpers ----------
 function Skel({ h = 14, w = "100%", r = 6, style }: { h?: number; w?: number | string; r?: number; style?: CSSProperties }) {
   return <div style={{ height: h, width: w, background: "#EFEAE3", borderRadius: r, ...style }} />;
@@ -570,8 +607,12 @@ function ShelfTab({ shelfItems, setShelfItems, topPicks, loadingShelf, loadingTo
     return fromShelf.length > 0 ? fromShelf : topPicks;
   }, [shelfItems, topPicks]);
 
-  const cats = ["All", ...grouped.map(([c]) => c)];
   const [active, setActive] = useState("All");
+  const shelfFilterGroups = [
+    { label: "Skincare", items: SKINCARE_CATS },
+    { label: "Makeup", items: MAKEUP_CATS },
+    { label: "Other", items: ["Perfume", "Body Care", "Device"] },
+  ];
   const visible = active === "All" ? grouped : grouped.filter(([c]) => c === active);
   const [addOpen, setAddOpen] = useState<{ category?: string } | null>(null);
 
@@ -589,7 +630,9 @@ function ShelfTab({ shelfItems, setShelfItems, topPicks, loadingShelf, loadingTo
           + Add to Shelf
         </button>
       </div>
-      <div style={{ marginTop: 8 }}><FilterRow items={cats} active={active} onChange={setActive} /></div>
+      <div style={{ marginTop: 8 }}>
+        <GroupedFilterRow groups={shelfFilterGroups} active={active} onChange={setActive} />
+      </div>
       {loadingShelf && shelfItems.length === 0 && (
         <div style={{ marginTop: 24, display: "flex", gap: 10 }}>
           {[0,1,2].map(i => <Skel key={i} h={170} w={120} r={10} />)}
@@ -675,7 +718,23 @@ function ShelfTab({ shelfItems, setShelfItems, topPicks, loadingShelf, loadingTo
   );
 }
 
-const SHELF_CATEGORIES = ["Cleanser", "Toner", "Serum", "Moisturizer", "SPF", "Face Mask", "Eye Cream", "Sunscreen", "Device", "Treatment", "Other"];
+export const SKINCARE_CATS = ["Cleanser", "Toner", "Serum", "Moisturizer", "Sunscreen", "Face Mask", "Eye Cream", "Other"];
+export const MAKEUP_CATS = ["Foundation & Concealer", "Blush, Bronzer & Highlighter", "Eyeshadow & Liner", "Mascara & Lashes", "Lip Color", "Lip Gloss & Liner", "Brow", "Primer & Setting", "Other Makeup"];
+export const TOP_LEVEL_CATS = ["Skincare", "Makeup", "Perfume", "Body Care", "Device"];
+export const ALL_SHELF_CATS = [...SKINCARE_CATS, ...MAKEUP_CATS, "Perfume", "Body Care", "Device"];
+
+function topLevelFor(cat: string | undefined | null): string {
+  if (!cat) return "Skincare";
+  if (SKINCARE_CATS.includes(cat)) return "Skincare";
+  if (MAKEUP_CATS.includes(cat)) return "Makeup";
+  if (TOP_LEVEL_CATS.includes(cat)) return cat;
+  return "Skincare";
+}
+function defaultSubFor(top: string): string {
+  if (top === "Skincare") return "Cleanser";
+  if (top === "Makeup") return "Lip Color";
+  return top;
+}
 
 type ProductSearchRow = { id: string; name: string; brand: string; category: string | null; image_url: string | null; price: number | null };
 
@@ -738,14 +797,17 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
   const [brand, setBrand] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [productId, setProductId] = useState<string | null>(null);
-  const [category, setCategory] = useState(defaultCategory && SHELF_CATEGORIES.includes(defaultCategory) ? defaultCategory : (defaultCategory ?? "Other"));
+  const initialTop = topLevelFor(defaultCategory);
+  const initialCategory = defaultCategory && ALL_SHELF_CATS.includes(defaultCategory)
+    ? defaultCategory
+    : defaultSubFor(initialTop);
+  const [topLevel, setTopLevel] = useState<string>(initialTop);
+  const [category, setCategory] = useState<string>(initialCategory);
   const [emoji, setEmoji] = useState("🧴");
   const [match, setMatch] = useState<Match>("good");
   const [isTopPick, setIsTopPick] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-
-  const allCats = Array.from(new Set([...SHELF_CATEGORIES, ...(defaultCategory ? [defaultCategory] : [])]));
 
   const onPick = (p: ProductSearchRow) => {
     setPicked(p);
@@ -753,7 +815,12 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
     setBrand(p.brand);
     setImageUrl(p.image_url);
     setProductId(p.id);
-    if (p.category && allCats.includes(p.category)) setCategory(p.category);
+    if (p.category) {
+      const tl = topLevelFor(p.category);
+      setTopLevel(tl);
+      if (ALL_SHELF_CATS.includes(p.category)) setCategory(p.category);
+      else setCategory(defaultSubFor(tl));
+    }
     setQuery("");
     setManual(true);
   };
@@ -863,11 +930,29 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
           </>
         )}
         <div>
-          <label style={labelStyle}>Category</label>
-          <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
-            {allCats.map(c => <option key={c} value={c}>{c}</option>)}
+          <label style={labelStyle}>Type</label>
+          <select
+            value={topLevel}
+            onChange={e => {
+              const tl = e.target.value;
+              setTopLevel(tl);
+              setCategory(defaultSubFor(tl));
+            }}
+            style={inputStyle}
+          >
+            {TOP_LEVEL_CATS.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
+        {(topLevel === "Skincare" || topLevel === "Makeup") && (
+          <div>
+            <label style={labelStyle}>Category</label>
+            <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
+              {(topLevel === "Skincare" ? SKINCARE_CATS : MAKEUP_CATS).map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div>
           <label style={labelStyle}>Match</label>
           <div style={{ display: "flex", gap: 8 }}>
@@ -1151,18 +1236,16 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
 
   const renderWishlist = (
     list: GiftItem[],
-    filters: string[],
+    filterGroups: Array<{ label: string; items: string[] }>,
     badge: { bg: string; color: string; border: string; text: string },
     addText: string,
     wishType: "skincare" | "makeup",
   ) => {
-    const [activeFilter, _setActiveFilter] = [filters[0], (_: string) => {}];
+    const activeFilter = "All";
     return (
       <>
-        <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 12 }}>
-          {filters.map(f => (
-            <button key={f} style={pillStyle(f === activeFilter)}>{f}</button>
-          ))}
+        <div style={{ marginBottom: 12 }}>
+          <GroupedFilterRow groups={filterGroups} active={activeFilter} onChange={() => {}} />
         </div>
         {list.length === 0 ? (
           <div style={{ fontSize: 12, color: "#999", textAlign: "center", padding: "20px 10px", border: "0.5px dashed #E8DDD4", borderRadius: 10 }}>
@@ -1253,7 +1336,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
           <div style={{ marginTop: 24, marginBottom: 10, fontSize: 11, fontWeight: 800, color: "#1C0A00", textTransform: "uppercase", letterSpacing: "0.06em" }}>Skincare Wishlist</div>
           {renderWishlist(
             skincareWishlist,
-            ["All", "Serum", "Moisturizer", "SPF", "Mask"],
+            [{ label: "Skincare", items: SKINCARE_CATS }],
             { bg: "#F0FAF1", color: "#2D7A3A", border: "#2D7A3A", text: "Skin" },
             "+ Add skincare to wishlist",
             "skincare",
@@ -1262,7 +1345,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
           <div style={{ marginTop: 24, marginBottom: 10, fontSize: 11, fontWeight: 800, color: "#1C0A00", textTransform: "uppercase", letterSpacing: "0.06em" }}>Makeup Wishlist</div>
           {renderWishlist(
             makeupWishlist,
-            ["All", "Lip", "Eye", "Base", "Blush"],
+            [{ label: "Makeup", items: MAKEUP_CATS }],
             { bg: "#FFF0F5", color: "#C2185B", border: "#C2185B", text: "Makeup" },
             "+ Add makeup to wishlist",
             "makeup",
@@ -1272,7 +1355,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
 
       {giftSubTab === "skincare" && renderWishlist(
         skincareWishlist,
-        ["All", "Serum", "Moisturizer", "SPF", "Mask"],
+        [{ label: "Skincare", items: SKINCARE_CATS }],
         { bg: "#F0FAF1", color: "#2D7A3A", border: "#2D7A3A", text: "Skin" },
         "+ Add skincare to wishlist",
         "skincare",
@@ -1280,7 +1363,7 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
 
       {giftSubTab === "makeup" && renderWishlist(
         makeupWishlist,
-        ["All", "Lip", "Eye", "Base", "Blush"],
+        [{ label: "Makeup", items: MAKEUP_CATS }],
         { bg: "#FFF0F5", color: "#C2185B", border: "#C2185B", text: "Makeup" },
         "+ Add makeup to wishlist",
         "makeup",

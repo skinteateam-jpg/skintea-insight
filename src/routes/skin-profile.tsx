@@ -950,26 +950,23 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
         )}
         <div>
           <label style={labelStyle}>Type</label>
-          <select
-            value={topLevel}
-            onChange={e => {
-              const tl = e.target.value;
+          <TypePickerRow
+            items={TOP_LEVEL_CATS}
+            active={topLevel}
+            onChange={(tl) => {
               setTopLevel(tl);
               setCategory(defaultSubFor(tl));
             }}
-            style={inputStyle}
-          >
-            {TOP_LEVEL_CATS.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+          />
         </div>
         {(topLevel === "Skincare" || topLevel === "Makeup") && (
           <div>
             <label style={labelStyle}>Category</label>
-            <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
-              {(topLevel === "Skincare" ? SKINCARE_CATS : MAKEUP_CATS).map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+            <TypePickerRow
+              items={topLevel === "Skincare" ? SKINCARE_CATS : MAKEUP_CATS}
+              active={category}
+              onChange={setCategory}
+            />
           </div>
         )}
         <div>

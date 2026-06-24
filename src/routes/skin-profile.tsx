@@ -93,6 +93,7 @@ export type SavedProductRow = {
     name: string;
     brand: string | null;
     category: string | null;
+    subcategory: string | null;
     image_url: string | null;
   } | null;
 };
@@ -755,7 +756,7 @@ function TypePickerRow({ items, active, onChange }: { items: string[]; active: s
   );
 }
 
-type ProductSearchRow = { id: string; name: string; brand: string; category: string | null; image_url: string | null; price: number | null };
+type ProductSearchRow = { id: string; name: string; brand: string; category: string | null; subcategory: string | null; image_url: string | null; price: number | null };
 
 function useProductSearch(query: string) {
   const [results, setResults] = useState<ProductSearchRow[]>([]);
@@ -769,7 +770,7 @@ function useProductSearch(query: string) {
       try {
         const { data } = await supabase
           .from("products")
-          .select("id,name,brand,category,image_url,price")
+          .select("id,name,brand,category,subcategory,image_url,price")
           .eq("is_active", true)
           .or(`name.ilike.%${q}%,brand.ilike.%${q}%`)
           .limit(10);
@@ -798,7 +799,7 @@ function ProductSearchList({ query, onPick }: { query: string; onPick: (p: Produ
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: C.ink, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
             <div style={{ fontSize: 10, color: C.textLight, marginTop: 2 }}>
-              {p.brand}{p.category ? ` · ${p.category}` : ""}
+              {p.brand}{p.subcategory ? ` · ${p.subcategory}` : ""}
             </div>
           </div>
           {p.price != null && <div style={{ fontSize: 11, fontWeight: 700, color: C.ink }}>${Number(p.price).toFixed(2)}</div>}
@@ -834,10 +835,12 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
     setBrand(p.brand);
     setImageUrl(p.image_url);
     setProductId(p.id);
-    if (p.category) {
-      const tl = topLevelFor(p.category);
+    const subcat = (p as any).subcategory ?? p.category;
+    if (subcat) {
+      const tl = topLevelFor(subcat);
       setTopLevel(tl);
-      if (ALL_SHELF_CATS.includes(p.category)) setCategory(p.category);
+      if (ALL_SHELF_CATS.includes(subcat)) setCategory(subcat);
+      else if (p.category) { const tl2 = topLevelFor(p.category); setTopLevel(tl2); setCategory(defaultSubFor(tl2)); }
       else setCategory(defaultSubFor(tl));
     }
     setQuery("");

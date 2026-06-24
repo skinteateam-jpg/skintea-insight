@@ -872,7 +872,7 @@ const DEFAULT_AGE_BUCKETS = [
 ];
 
 function AgeChart({ category }: { category: string | null }) {
-  const buckets = (category && AGE_BUCKETS_BY_CATEGORY[category]) ?? DEFAULT_AGE_BUCKETS;
+  const buckets = (category ? AGE_BUCKETS_BY_CATEGORY[category] : undefined) ?? DEFAULT_AGE_BUCKETS;
   const topIdx = buckets.reduce((best, b, i, arr) => (b.pct > arr[best].pct ? i : best), 0);
   const max = Math.max(...buckets.map((b) => b.pct));
   return (

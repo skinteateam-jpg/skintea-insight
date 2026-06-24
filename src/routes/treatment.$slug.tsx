@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft,
   Share2,
-  Lock,
   Play,
   Eye,
   Heart,

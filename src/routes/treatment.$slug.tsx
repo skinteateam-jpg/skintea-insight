@@ -774,8 +774,7 @@ function PipBar({ filled, total, color, emptyColor }: { filled: number; total: n
   );
 }
 
-function AtAGlance({ slug, changeScore }: { slug: string; changeScore: number | null }) {
-  const currentScore = changeScore ?? 2;
+function AtAGlance({ treatment }: { treatment: Treatment }) {
 
   return (
     <div style={{ marginTop: 10 }}>

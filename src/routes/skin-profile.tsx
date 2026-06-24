@@ -1030,7 +1030,7 @@ function SavedTab({ userId }: { userId: string | null }) {
       try {
         const { data } = await supabase
           .from("saved_products" as any)
-          .select("id, product_id, products(id,name,brand,category,image_url)")
+          .select("id, product_id, products(id,name,brand,category,subcategory,image_url)")
           .eq("user_id", userId)
           .order("created_at", { ascending: false });
         if (alive) setSavedProducts(((data as any[]) ?? []) as SavedProductRow[]);
@@ -1055,7 +1055,7 @@ function SavedTab({ userId }: { userId: string | null }) {
 
   const flatSaved = savedProducts
     .map(r => r.products ? { rowId: r.id, ...r.products } : null)
-    .filter(Boolean) as Array<{ rowId: string; id: string; name: string; brand: string | null; category: string | null; image_url: string | null }>;
+    .filter(Boolean) as Array<{ rowId: string; id: string; name: string; brand: string | null; category: string | null; subcategory: string | null; image_url: string | null }>;
   const items = active === "Recently Saved" ? flatSaved : flatSaved.filter(s => s.category === active);
 
   const removeSaved = async (rowId: string) => {
@@ -1129,7 +1129,7 @@ function SavedTab({ userId }: { userId: string | null }) {
                 )}
                 <div style={{ padding: "10px 10px 0" }}>
                   <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{p.name}</div>
-                  {p.category && <div style={{ fontSize: 10, color: C.textLight, marginTop: 2 }}>{p.category}</div>}
+                  {(p.subcategory || p.category) && <div style={{ fontSize: 10, color: C.textLight, marginTop: 2 }}>{p.subcategory ?? p.category}</div>}
                 </div>
               </Link>
               <div style={{ padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
@@ -1448,7 +1448,7 @@ function AddWishlistSheet({ userId, type, onClose, onSaved }: { userId: string; 
     setPicked(p);
     setName(p.name);
     setBrand(p.brand);
-    setCategory(p.category ?? "");
+    setCategory(p.subcategory ?? p.category ?? "");
     setImageUrl(p.image_url);
     setProductId(p.id);
     setQuery("");

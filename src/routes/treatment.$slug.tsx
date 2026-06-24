@@ -349,8 +349,18 @@ function TreatmentDetailPage() {
 
   const HeroIcon = pickHeroIcon(treatment.slug);
 
+  const downtimeDisplay = useMemo(() => {
+    const d = treatment.downtime ?? "—";
+    if (d.length > 12) {
+      const beforeDash = d.split(/[-–—]/)[0]?.trim();
+      if (beforeDash && beforeDash.length < d.length) return beforeDash;
+    }
+    return d;
+  }, [treatment.downtime]);
+
   return (
-    <div style={{ minHeight: "100vh", background: WARM, color: ESPRESSO, fontFamily: SANS, paddingBottom: 80 }}>
+    <div style={{ minHeight: "100vh", background: WARM, color: ESPRESSO, fontFamily: "'DM Sans', system-ui, sans-serif", paddingBottom: 80 }}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       <style>{`.no-scrollbar::-webkit-scrollbar{display:none}`}</style>
 
       {/* 1. Sticky top bar */}
@@ -393,13 +403,27 @@ function TreatmentDetailPage() {
       {/* 3. Quick stats */}
       <div style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}` }}>
         {[
-          { label: "Downtime", value: treatment.downtime ?? "—" },
+          { label: "Downtime", value: downtimeDisplay, truncateOneLine: true },
           { label: "Avg Cost", value: treatment.average_cost ?? "—" },
           { label: "Sessions", value: treatment.sessions_recommended ?? "—" },
           { label: "Best For", value: treatment.best_for_skin ?? "—" },
         ].map((s, i) => (
           <div key={i} style={{ flex: 1, padding: "12px 6px", textAlign: "center", borderRight: i < 3 ? `0.5px solid ${BORDER}` : "none" }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO, lineHeight: 1.3, wordBreak: "break-word" }}>{s.value}</div>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: ESPRESSO,
+                lineHeight: 1.3,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                ...(s.truncateOneLine
+                  ? { whiteSpace: "nowrap", maxWidth: "100%" }
+                  : { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }),
+              }}
+            >
+              {s.value}
+            </div>
             <div style={{ fontSize: 9, color: MUTED, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em", marginTop: 3 }}>{s.label}</div>
           </div>
         ))}
@@ -754,14 +778,11 @@ function AtAGlance({ slug, changeScore }: { slug: string; changeScore: number | 
   const change = changeScore ?? 2;
   const dotPct = Math.max(0, Math.min(100, (change / 5) * 100));
   const chips = [
-    { label: "Hydrafacial / LED", score: 1 },
-    { label: "Botox / Fillers", score: 2 },
-    { label: "Morpheus8", score: 3 },
-    { label: "CO2 Laser", score: 4 },
-    { label: "Rhinoplasty", score: 5 },
+    { label: "Hydrafacial / LED", slugs: ["hydrafacial", "led"] },
+    { label: "Botox / Fillers", slugs: ["botox", "fillers"] },
+    { label: "Morpheus8", slugs: ["morpheus8"] },
+    { label: "CO2 / Rhinoplasty", slugs: ["co2-laser", "rhinoplasty"] },
   ];
-  const isBotoxOrFillers = slug === "botox" || slug === "fillers";
-  const activeChip = isBotoxOrFillers ? 1 : chips.findIndex((c) => c.score === change);
 
   return (
     <div style={{ marginTop: 10 }}>
@@ -795,7 +816,7 @@ function AtAGlance({ slug, changeScore }: { slug: string; changeScore: number | 
       <div style={{ marginTop: 10, background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: ESPRESSO }}>How big is the change?</div>
         <div style={{ fontSize: 9, color: MUTED, marginTop: 2 }}>Compared to other treatments</div>
-        <div style={{ position: "relative", marginTop: 14, marginBottom: 6 }}>
+        <div style={{ position: "relative", marginTop: 12, marginBottom: 8 }}>
           <div style={{ height: 6, borderRadius: 3, background: `linear-gradient(to right, ${BORDER}, ${CRIMSON})` }} />
           <div
             style={{
@@ -811,7 +832,7 @@ function AtAGlance({ slug, changeScore }: { slug: string; changeScore: number | 
             }}
           />
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: MUTED }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 8, color: MUTED }}>
           <span>Subtle</span>
           <span>Noticeable</span>
           <span>Significant</span>
@@ -819,20 +840,20 @@ function AtAGlance({ slug, changeScore }: { slug: string; changeScore: number | 
           <span>Huge</span>
         </div>
         <div className="no-scrollbar" style={{ display: "flex", gap: 6, overflowX: "auto", marginTop: 10 }}>
-          {chips.map((c, i) => {
-            const active = i === activeChip;
+          {chips.map((c) => {
+            const active = c.slugs.includes(slug);
             return (
               <div
                 key={c.label}
                 style={{
                   flexShrink: 0,
-                  fontSize: 11,
-                  fontWeight: 700,
+                  fontSize: 10,
+                  fontWeight: active ? 800 : 700,
                   padding: "5px 10px",
-                  borderRadius: 999,
+                  borderRadius: 6,
                   background: active ? "#FEE8EC" : "#F5EFEC",
-                  border: active ? `0.5px solid ${CRIMSON}` : "0.5px solid transparent",
-                  color: active ? CRIMSON : "#999",
+                  border: active ? "0.5px solid #A8001C" : "0.5px solid transparent",
+                  color: active ? "#A8001C" : "#999",
                   whiteSpace: "nowrap",
                 }}
               >

@@ -736,6 +736,25 @@ function defaultSubFor(top: string): string {
   return top;
 }
 
+function TypePickerRow({ items, active, onChange }: { items: string[]; active: string; onChange: (s: string) => void }) {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      {items.map(i => {
+        const on = i === active;
+        return (
+          <button key={i} type="button" onClick={() => onChange(i)}
+            style={{ padding: "8px 12px", borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: "pointer",
+              border: `1px solid ${on ? "#1C0A00" : C.border}`,
+              background: on ? "#1C0A00" : C.surface,
+              color: on ? "#fff" : C.textMid }}>
+            {i}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 type ProductSearchRow = { id: string; name: string; brand: string; category: string | null; image_url: string | null; price: number | null };
 
 function useProductSearch(query: string) {

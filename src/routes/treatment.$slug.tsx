@@ -436,7 +436,7 @@ function TreatmentDetailPage() {
 
       {/* S2. At a glance */}
       <Section label="At a glance">
-        <AtAGlance slug={treatment.slug} changeScore={treatment.change_score} />
+        <AtAGlance treatment={treatment} />
       </Section>
 
       {/* S3. How long it lasts */}

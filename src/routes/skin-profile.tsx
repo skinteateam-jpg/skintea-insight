@@ -853,6 +853,19 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
     if (!name.trim()) { setErr("Product name is required"); return; }
     setSaving(true);
     try {
+      if (productId) {
+        const { data: existing } = await (supabase as any)
+          .from("shelf_items")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("product_id", productId)
+          .maybeSingle();
+        if (existing) {
+          setErr("Already on your shelf");
+          setSaving(false);
+          return;
+        }
+      }
       const payload = {
         user_id: userId,
         product_id: productId,
@@ -1050,6 +1063,13 @@ function SavedTab({ userId }: { userId: string | null }) {
   const addToShelf = async (p: { id: string; name: string; brand: string | null; category: string | null; image_url?: string | null }) => {
     if (!userId) return;
     try {
+      const { data: existing } = await (supabase as any)
+        .from("shelf_items")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("product_id", p.id)
+        .maybeSingle();
+      if (existing) return;
       await supabase.from("shelf_items" as any).insert({
         user_id: userId,
         product_id: p.id,
@@ -1441,6 +1461,19 @@ function AddWishlistSheet({ userId, type, onClose, onSaved }: { userId: string; 
     if (!name.trim()) { setErr("Product name is required"); return; }
     setSaving(true);
     try {
+      if (productId) {
+        const { data: existing } = await (supabase as any)
+          .from("gift_wishlist")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("product_id", productId)
+          .maybeSingle();
+        if (existing) {
+          setErr("Already on your wishlist");
+          setSaving(false);
+          return;
+        }
+      }
       const payload = {
         user_id: userId,
         product_id: productId,

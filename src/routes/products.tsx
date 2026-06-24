@@ -43,6 +43,7 @@ type DbProduct = {
   name: string;
   brand: string | null;
   category: string | null;
+  subcategory: string | null;
   price: number | null;
   currency: string | null;
   image_url: string | null;
@@ -64,10 +65,11 @@ type Product = {
   recommend?: number;
   emoji: string;
   image_url?: string | null;
+  subcategory: string | null;
 };
 
-function emojiFor(category: string | null | undefined): string {
-  const c = (category ?? "").toLowerCase();
+function emojiFor(subcategory: string | null | undefined): string {
+  const c = (subcategory ?? "").toLowerCase();
   if (c.includes("serum")) return "🧪";
   if (c.includes("moistur")) return "🫙";
   if (c.includes("cleans")) return "🧼";
@@ -83,9 +85,10 @@ function toProduct(p: DbProduct, opts?: { recommend?: boolean }): Product {
     name: p.name,
     price: p.price != null ? `$${p.price}` : "",
     source: p.source ?? "",
-    emoji: emojiFor(p.category),
+    emoji: emojiFor(p.subcategory),
     image_url: p.image_url,
     recommend: opts?.recommend && p.skintea_score != null ? Math.round(p.skintea_score) : undefined,
+    subcategory: p.subcategory ?? null,
   };
 }
 

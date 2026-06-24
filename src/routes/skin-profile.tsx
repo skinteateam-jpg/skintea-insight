@@ -481,7 +481,7 @@ function GroupedFilterRow({ groups, active, onChange, includeAll = true }: {
       })()}
       {groups.map((g, gi) => (
         <div key={gi} style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
-          <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "#A8001C", padding: "0 4px 0 6px", borderLeft: `1px solid ${C.border}` }}>{g.label}</span>
+          <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "#999", padding: "0 4px 0 6px", borderLeft: `1px solid ${C.border}` }}>{g.label}</span>
           {g.items.map(i => {
             const on = i === active;
             return (
@@ -736,6 +736,25 @@ function defaultSubFor(top: string): string {
   return top;
 }
 
+function TypePickerRow({ items, active, onChange }: { items: string[]; active: string; onChange: (s: string) => void }) {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+      {items.map(i => {
+        const on = i === active;
+        return (
+          <button key={i} type="button" onClick={() => onChange(i)}
+            style={{ padding: "8px 12px", borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: "pointer",
+              border: `1px solid ${on ? "#1C0A00" : C.border}`,
+              background: on ? "#1C0A00" : C.surface,
+              color: on ? "#fff" : C.textMid }}>
+            {i}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 type ProductSearchRow = { id: string; name: string; brand: string; category: string | null; image_url: string | null; price: number | null };
 
 function useProductSearch(query: string) {
@@ -931,26 +950,23 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
         )}
         <div>
           <label style={labelStyle}>Type</label>
-          <select
-            value={topLevel}
-            onChange={e => {
-              const tl = e.target.value;
+          <TypePickerRow
+            items={TOP_LEVEL_CATS}
+            active={topLevel}
+            onChange={(tl) => {
               setTopLevel(tl);
               setCategory(defaultSubFor(tl));
             }}
-            style={inputStyle}
-          >
-            {TOP_LEVEL_CATS.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+          />
         </div>
         {(topLevel === "Skincare" || topLevel === "Makeup") && (
           <div>
             <label style={labelStyle}>Category</label>
-            <select value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
-              {(topLevel === "Skincare" ? SKINCARE_CATS : MAKEUP_CATS).map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+            <TypePickerRow
+              items={topLevel === "Skincare" ? SKINCARE_CATS : MAKEUP_CATS}
+              active={category}
+              onChange={setCategory}
+            />
           </div>
         )}
         <div>

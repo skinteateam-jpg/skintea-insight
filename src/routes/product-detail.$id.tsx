@@ -182,7 +182,7 @@ function ProductPage() {
         product_id: id,
         product_name: productData?.name ?? "Product",
         brand: productData?.brand ?? null,
-        category: productData?.subcategory ?? productData?.category ?? "Other",
+        category: productData?.subcategory ?? "Other",
         image_url: productData?.image_url ?? null,
         is_public: true,
       });
@@ -206,7 +206,7 @@ function ProductPage() {
         product_id: id,
         product_name: productData?.name ?? "Product",
         brand: productData?.brand ?? null,
-        category: productData?.subcategory ?? productData?.category ?? null,
+        category: productData?.subcategory ?? null,
         emoji: "🎁",
         image_url: productData?.image_url ?? null,
         affiliate_url: productData?.product_url ?? null,

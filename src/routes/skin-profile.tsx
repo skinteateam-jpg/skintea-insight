@@ -738,7 +738,7 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
   const [brand, setBrand] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [productId, setProductId] = useState<string | null>(null);
-  const [category, setCategory] = useState(defaultCategory && SHELF_CATEGORIES.includes(defaultCategory) ? defaultCategory : (defaultCategory ?? "Cleanser"));
+  const [category, setCategory] = useState(defaultCategory && SHELF_CATEGORIES.includes(defaultCategory) ? defaultCategory : (defaultCategory ?? "Other"));
   const [emoji, setEmoji] = useState("🧴");
   const [match, setMatch] = useState<Match>("good");
   const [isTopPick, setIsTopPick] = useState(false);

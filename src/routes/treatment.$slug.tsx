@@ -436,7 +436,7 @@ function TreatmentDetailPage() {
 
       {/* S2. At a glance */}
       <Section label="At a glance">
-        <AtAGlance slug={treatment.slug} changeScore={treatment.change_score} />
+        <AtAGlance treatment={treatment} />
       </Section>
 
       {/* S3. How long it lasts */}
@@ -774,15 +774,7 @@ function PipBar({ filled, total, color, emptyColor }: { filled: number; total: n
   );
 }
 
-function AtAGlance({ slug, changeScore }: { slug: string; changeScore: number | null }) {
-  const change = changeScore ?? 2;
-  const dotPct = Math.max(0, Math.min(100, (change / 5) * 100));
-  const chips = [
-    { label: "Hydrafacial / LED", slugs: ["hydrafacial", "led"] },
-    { label: "Botox / Fillers", slugs: ["botox", "fillers"] },
-    { label: "Morpheus8", slugs: ["morpheus8"] },
-    { label: "CO2 / Rhinoplasty", slugs: ["co2-laser", "rhinoplasty"] },
-  ];
+function AtAGlance({ treatment }: { treatment: Treatment }) {
 
   return (
     <div style={{ marginTop: 10 }}>
@@ -813,55 +805,115 @@ function AtAGlance({ slug, changeScore }: { slug: string; changeScore: number | 
         </div>
       </div>
 
-      <div style={{ marginTop: 10, background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
-        <div style={{ fontSize: 12, fontWeight: 800, color: ESPRESSO }}>How big is the change?</div>
-        <div style={{ fontSize: 9, color: MUTED, marginTop: 2 }}>Compared to other treatments</div>
-        <div style={{ position: "relative", marginTop: 12, marginBottom: 8 }}>
-          <div style={{ height: 6, borderRadius: 3, background: `linear-gradient(to right, ${BORDER}, ${CRIMSON})` }} />
-          <div
-            style={{
-              position: "absolute",
-              top: -4,
-              left: `calc(${dotPct}% - 7px)`,
-              width: 14,
-              height: 14,
-              borderRadius: "50%",
-              background: CRIMSON,
-              border: `2px solid ${WARM}`,
-              boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
-            }}
-          />
+      {/* How big is the change */}
+      <div style={{ marginTop: 10, background: "#fff", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: 12 }}>
+
+        <div style={{ fontSize: 14, fontWeight: 800, color: ESPRESSO, marginBottom: 4 }}>How big is the change?</div>
+
+        <div style={{ fontSize: 11, color: MUTED, marginBottom: 14 }}>Compared to other treatments</div>
+
+        {/* Gradient bar with dot */}
+
+        <div style={{ position: "relative", height: 6, background: "linear-gradient(to right, #E8DDD4, #A8001C)", borderRadius: 3, marginBottom: 6 }}>
+
+          <div style={{
+
+            position: "absolute",
+
+            left: `${((treatment.change_score ?? 2) / 5) * 100}%`,
+
+            top: "50%",
+
+            transform: "translate(-50%, -50%)",
+
+            width: 14,
+
+            height: 14,
+
+            borderRadius: "50%",
+
+            background: CRIMSON,
+
+            border: "2px solid #FFFCF8",
+
+            boxShadow: `0 0 0 1.5px ${CRIMSON}`,
+
+          }} />
+
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 8, color: MUTED }}>
-          <span>Subtle</span>
-          <span>Noticeable</span>
-          <span>Significant</span>
-          <span>Big</span>
-          <span>Huge</span>
+
+        {/* 5 labels */}
+
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
+
+          {["Subtle", "Noticeable", "Significant", "Big", "Huge"].map((l) => (
+
+            <div key={l} style={{ fontSize: 9, color: ESPRESSO, fontWeight: 700 }}>{l}</div>
+
+          ))}
+
         </div>
-        <div className="no-scrollbar" style={{ display: "flex", gap: 6, overflowX: "auto", marginTop: 10 }}>
-          {chips.map((c) => {
-            const active = c.slugs.includes(slug);
+
+        {/* Chips */}
+
+        <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }} className="no-scrollbar">
+
+          {[
+
+            { label: "Glow Facial", sub: "Subtle", score: 1.0 },
+
+            { label: "Botox", sub: "Noticeable", score: 2.0 },
+
+            { label: "Skin Tightening", sub: "Significant", score: 3.0 },
+
+            { label: "Laser Resurfacing", sub: "Big", score: 4.0 },
+
+            { label: "Cosmetic Surgery", sub: "Huge", score: 5.0 },
+
+          ].map((chip) => {
+
+            const currentScore = treatment.change_score ?? 2;
+
+            const isActive = Math.abs(currentScore - chip.score) < 0.8;
+
             return (
-              <div
-                key={c.label}
-                style={{
-                  flexShrink: 0,
-                  fontSize: 10,
-                  fontWeight: active ? 800 : 700,
-                  padding: "5px 10px",
-                  borderRadius: 6,
-                  background: active ? "#FEE8EC" : "#F5EFEC",
-                  border: active ? "0.5px solid #A8001C" : "0.5px solid transparent",
-                  color: active ? "#A8001C" : "#999",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {c.label}
+
+              <div key={chip.label} style={{
+
+                flexShrink: 0,
+
+                textAlign: "center",
+
+                fontSize: 10,
+
+                padding: "6px 10px",
+
+                background: isActive ? "#FEE8EC" : "#F5EFEC",
+
+                border: isActive ? `0.5px solid ${CRIMSON}` : "none",
+
+                borderRadius: 6,
+
+                color: isActive ? CRIMSON : ESPRESSO,
+
+                fontWeight: isActive ? 800 : 700,
+
+                lineHeight: 1.5,
+
+              }}>
+
+                {chip.label}
+
+                <span style={{ fontSize: 9, color: isActive ? "#C44060" : MUTED, fontWeight: 400, display: "block" }}>{chip.sub}</span>
+
               </div>
+
             );
+
           })}
+
         </div>
+
       </div>
     </div>
   );

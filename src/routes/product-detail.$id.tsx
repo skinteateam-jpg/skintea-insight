@@ -143,7 +143,7 @@ function ProductPage() {
       setLoading(true);
       const { data } = await supabase
         .from("products")
-        .select("id,name,brand,category,description,image_url,product_url,price,currency,skintea_score")
+        .select("id,name,brand,category,subcategory,description,image_url,product_url,price,currency,skintea_score")
         .eq("id", id)
         .single();
       if (!cancelled) {
@@ -182,7 +182,7 @@ function ProductPage() {
         product_id: id,
         product_name: productData?.name ?? "Product",
         brand: productData?.brand ?? null,
-        category: productData?.category ?? "Other",
+        category: productData?.subcategory ?? productData?.category ?? "Other",
         image_url: productData?.image_url ?? null,
         is_public: true,
       });
@@ -206,7 +206,7 @@ function ProductPage() {
         product_id: id,
         product_name: productData?.name ?? "Product",
         brand: productData?.brand ?? null,
-        category: productData?.category ?? null,
+        category: productData?.subcategory ?? productData?.category ?? null,
         emoji: "🎁",
         image_url: productData?.image_url ?? null,
         affiliate_url: productData?.product_url ?? null,

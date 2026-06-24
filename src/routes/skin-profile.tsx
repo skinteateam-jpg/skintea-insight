@@ -1236,18 +1236,16 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
 
   const renderWishlist = (
     list: GiftItem[],
-    filters: string[],
+    filterGroups: Array<{ label: string; items: string[] }>,
     badge: { bg: string; color: string; border: string; text: string },
     addText: string,
     wishType: "skincare" | "makeup",
   ) => {
-    const [activeFilter, _setActiveFilter] = [filters[0], (_: string) => {}];
+    const activeFilter = "All";
     return (
       <>
-        <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 12 }}>
-          {filters.map(f => (
-            <button key={f} style={pillStyle(f === activeFilter)}>{f}</button>
-          ))}
+        <div style={{ marginBottom: 12 }}>
+          <GroupedFilterRow groups={filterGroups} active={activeFilter} onChange={() => {}} />
         </div>
         {list.length === 0 ? (
           <div style={{ fontSize: 12, color: "#999", textAlign: "center", padding: "20px 10px", border: "0.5px dashed #E8DDD4", borderRadius: 10 }}>

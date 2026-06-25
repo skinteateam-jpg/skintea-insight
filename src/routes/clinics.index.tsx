@@ -141,6 +141,17 @@ function ClinicsPage() {
   useEffect(() => {
     let alive = true;
     (async () => {
+      const { data } = await supabase.from("clinics").select("*").order("trust_score", { ascending: false });
+      if (!alive) return;
+      setClinics((data as unknown as Clinic[]) ?? []);
+      setLoading(false);
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
       const { data } = await supabase
         .from("trending_treatments")
         .select("*")

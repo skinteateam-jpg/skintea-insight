@@ -103,13 +103,13 @@ const TREATMENT_CATEGORIES: { title: string; items: string[] }[] = [
   { title: "Hair Removal", items: ["Underarm", "Arms", "Legs", "Full Body", "VIO", "Face"] },
 ];
 
-const TREATMENT_CHIPS: { emoji: string; label: string; keywords: string[] }[] = [
-  { emoji: "💉", label: "Botox & Fillers", keywords: ["botox", "filler"] },
-  { emoji: "✨", label: "Glow Facial", keywords: ["facial", "hydrafacial"] },
-  { emoji: "🔬", label: "Laser & IPL", keywords: ["laser", "ipl", "lumecca"] },
-  { emoji: "🩺", label: "Morpheus8 / RF", keywords: ["morpheus", "rf", "microneedling"] },
-  { emoji: "💧", label: "Skin Booster", keywords: ["booster", "rejuran", "skinbooster"] },
-  { emoji: "🧖", label: "Korean Facial", keywords: ["korean", "peel", "aqua"] },
+const TRENDING_THIS_MONTH: { emoji: string; label: string; keywords: string[] }[] = [
+  { emoji: "👶", label: "Baby Botox", keywords: ["botox"] },
+  { emoji: "🐟", label: "Salmon DNA", keywords: ["salmon", "pdrn", "rejuran", "skin booster"] },
+  { emoji: "🍋", label: "Lemon Bottle", keywords: ["lemon bottle", "filler", "dissolve"] },
+  { emoji: "💧", label: "Aqua Peel", keywords: ["aqua", "peel", "hydrafacial"] },
+  { emoji: "✨", label: "Glass Skin", keywords: ["glass skin", "facial", "glow"] },
+  { emoji: "🧬", label: "Exosome", keywords: ["exosome", "stem cell", "prp"] },
 ];
 
 function ClinicsPage() {
@@ -198,7 +198,7 @@ function ClinicsPage() {
       );
     }
     if (activeTreatment) {
-      const chip = TREATMENT_CHIPS.find(c => c.label === activeTreatment);
+      const chip = TRENDING_THIS_MONTH.find(c => c.label === activeTreatment);
       if (chip) {
         out = out.filter(c => (c.best_for ?? []).some(b => {
           const bl = b.toLowerCase();
@@ -331,11 +331,14 @@ function ClinicsPage() {
         )}
       </div>
 
-      {/* 3b. Treatment chip row */}
+      {/* 3b. Trending This Month */}
       <div style={{ borderBottom: `0.5px solid ${BORDER}`, padding: "10px 16px 12px", background: WARM_WHITE }}>
-        <div style={{ ...SECTION_LABEL, marginBottom: 8 }}>What do you want done?</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <div style={{ ...SECTION_LABEL }}>🔥 Trending This Month</div>
+          <div style={{ fontSize: 9, color: MUTED, fontWeight: 600 }}>June 2026</div>
+        </div>
         <div className="no-scrollbar" style={{ display: "flex", gap: 8, overflowX: "auto", ...noScrollbar }}>
-          {TREATMENT_CHIPS.map((c) => {
+          {TRENDING_THIS_MONTH.map((c) => {
             const active = activeTreatment === c.label;
             return (
               <button
@@ -343,8 +346,8 @@ function ClinicsPage() {
                 onClick={() => setActiveTreatment(prev => prev === c.label ? null : c.label)}
                 style={{
                   flexShrink: 0,
-                  width: 54,
-                  height: 50,
+                  width: 64,
+                  height: 58,
                   borderRadius: 10,
                   background: active ? SKIN_BG : TAG_BG,
                   border: active ? `1.5px solid ${CRIMSON}` : `0.5px solid ${BORDER}`,
@@ -352,15 +355,15 @@ function ClinicsPage() {
                   flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 2,
+                  gap: 3,
                   cursor: "pointer",
                   fontFamily: "inherit",
-                  padding: 2,
+                  padding: "4px 2px",
                 }}
               >
-                <span style={{ fontSize: 20, lineHeight: 1 }}>{c.emoji}</span>
-                <span style={{ fontSize: 9, fontWeight: 700, color: active ? CRIMSON : ESPRESSO, lineHeight: 1, textAlign: "center" }}>
-                  {c.label.split(" ")[0]}
+                <span style={{ fontSize: 22, lineHeight: 1 }}>{c.emoji}</span>
+                <span style={{ fontSize: 9, fontWeight: 700, color: active ? CRIMSON : ESPRESSO, lineHeight: 1.2, textAlign: "center", whiteSpace: "pre-wrap" }}>
+                  {c.label}
                 </span>
               </button>
             );

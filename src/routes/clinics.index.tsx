@@ -218,7 +218,7 @@ function ClinicsPage() {
       );
     }
     if (activeTreatment) {
-      const chip = TRENDING_THIS_MONTH.find(c => c.label === activeTreatment);
+      const chip = trending.find(c => c.label === activeTreatment);
       if (chip) {
         out = out.filter(c => (c.best_for ?? []).some(b => {
           const bl = b.toLowerCase();
@@ -355,10 +355,10 @@ function ClinicsPage() {
       <div style={{ borderBottom: `0.5px solid ${BORDER}`, padding: "10px 16px 12px", background: WARM_WHITE }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
           <div style={{ ...SECTION_LABEL }}>🔥 Trending This Month</div>
-          <div style={{ fontSize: 9, color: MUTED, fontWeight: 600 }}>June 2026</div>
+          <div style={{ fontSize: 9, color: MUTED, fontWeight: 600 }}>{trendingMonth}</div>
         </div>
         <div className="no-scrollbar" style={{ display: "flex", gap: 8, overflowX: "auto", ...noScrollbar }}>
-          {TRENDING_THIS_MONTH.map((c) => {
+          {trending.map((c) => {
             const active = activeTreatment === c.label;
             return (
               <button

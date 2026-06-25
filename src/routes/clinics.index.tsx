@@ -391,7 +391,7 @@ function ClinicsPage() {
             <button
               key={t.key}
               onClick={() => setSortBy(t.key)}
-              style={{ flexShrink: 0, padding: "10px 14px", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap", background: "transparent", border: "none", color: active ? ESPRESSO : MUTED, borderTop: active ? `2px solid ${CRIMSON}` : "2px solid transparent", borderBottom: "none", cursor: "pointer", fontFamily: "inherit" }}
+              style={{ flexShrink: 0, padding: "10px 14px", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap", background: "transparent", border: "none", color: active ? ESPRESSO : MUTED, borderBottom: active ? `2px solid ${CRIMSON}` : "2px solid transparent", cursor: "pointer", fontFamily: "inherit" }}
             >
               {t.label}
             </button>

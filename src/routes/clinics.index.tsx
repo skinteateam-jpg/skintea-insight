@@ -246,7 +246,7 @@ function ClinicsPage() {
     if (sortBy === "price") out = [...out].sort((a, b) => (a.price_from ?? 9999) - (b.price_from ?? 9999));
     if (sortBy === "verified") out = [...out].sort((a, b) => (b.is_verified ? 1 : 0) - (a.is_verified ? 1 : 0));
     return out;
-  }, [clinics, searchQ, locationQ, activeTreatment, areaFilter, hoursFilter, treatmentFilter, prefFilter, facilityFilter, priceMax, sortBy]);
+  }, [clinics, searchQ, locationQ, activeTreatment, areaFilter, hoursFilter, treatmentFilter, prefFilter, facilityFilter, priceMax, sortBy, trending]);
 
   const heroPickId = useMemo(() => {
     const f = filtered.find(c => (c.skintea_score ?? 0) >= 90 || c.is_featured === true);

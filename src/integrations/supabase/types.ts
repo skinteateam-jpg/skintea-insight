@@ -219,6 +219,7 @@ export type Database = {
           is_featured: boolean | null
           is_open_now: boolean | null
           is_verified: boolean
+          known_for: string | null
           name: string
           neighborhood: string | null
           parking_available: boolean | null
@@ -254,6 +255,7 @@ export type Database = {
           is_featured?: boolean | null
           is_open_now?: boolean | null
           is_verified?: boolean
+          known_for?: string | null
           name: string
           neighborhood?: string | null
           parking_available?: boolean | null
@@ -289,6 +291,7 @@ export type Database = {
           is_featured?: boolean | null
           is_open_now?: boolean | null
           is_verified?: boolean
+          known_for?: string | null
           name?: string
           neighborhood?: string | null
           parking_available?: boolean | null
@@ -1134,6 +1137,39 @@ export type Database = {
           updated_at?: string
           what_it_is?: string | null
           who_its_for?: string | null
+        }
+        Relationships: []
+      }
+      trending_treatments: {
+        Row: {
+          created_at: string | null
+          emoji: string
+          id: string
+          is_active: boolean
+          keywords: string[]
+          label: string
+          month: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string | null
+          emoji: string
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          label: string
+          month: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string | null
+          emoji?: string
+          id?: string
+          is_active?: boolean
+          keywords?: string[]
+          label?: string
+          month?: string
+          sort_order?: number
         }
         Relationships: []
       }

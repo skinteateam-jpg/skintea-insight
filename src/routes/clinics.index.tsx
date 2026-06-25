@@ -67,6 +67,15 @@ type Clinic = {
   membership_available: boolean | null;
 };
 
+type TrendingTreatment = {
+  id: string;
+  emoji: string;
+  label: string;
+  keywords: string[];
+  month: string;
+  sort_order: number;
+};
+
 const SECTION_LABEL: React.CSSProperties = {
   fontSize: 9,
   fontWeight: 800,
@@ -103,14 +112,6 @@ const TREATMENT_CATEGORIES: { title: string; items: string[] }[] = [
   { title: "Hair Removal", items: ["Underarm", "Arms", "Legs", "Full Body", "VIO", "Face"] },
 ];
 
-const TRENDING_THIS_MONTH: { emoji: string; label: string; keywords: string[] }[] = [
-  { emoji: "👶", label: "Baby Botox", keywords: ["botox"] },
-  { emoji: "🐟", label: "Salmon DNA", keywords: ["salmon", "pdrn", "rejuran", "skin booster"] },
-  { emoji: "🍋", label: "Lemon Bottle", keywords: ["lemon bottle", "filler", "dissolve"] },
-  { emoji: "💧", label: "Aqua Peel", keywords: ["aqua", "peel", "hydrafacial"] },
-  { emoji: "✨", label: "Glass Skin", keywords: ["glass skin", "facial", "glow"] },
-  { emoji: "🧬", label: "Exosome", keywords: ["exosome", "stem cell", "prp"] },
-];
 
 function ClinicsPage() {
   const navigate = useNavigate();
@@ -123,6 +124,8 @@ function ClinicsPage() {
   const [sortBy, setSortBy] = useState("nearest");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTreatment, setActiveTreatment] = useState<string | null>(null);
+  const [trending, setTrending] = useState<TrendingTreatment[]>([]);
+  const [trendingMonth, setTrendingMonth] = useState("This Month");
 
   const [areaFilter, setAreaFilter] = useState<string[]>([]);
   const [hoursFilter, setHoursFilter] = useState<string[]>([]);
@@ -142,6 +145,23 @@ function ClinicsPage() {
       if (!alive) return;
       setClinics((data as unknown as Clinic[]) ?? []);
       setLoading(false);
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const { data } = await supabase
+        .from("trending_treatments")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      if (!alive) return;
+      if (data && data.length > 0) {
+        setTrending(data as TrendingTreatment[]);
+        setTrendingMonth((data[0] as TrendingTreatment).month);
+      }
     })();
     return () => { alive = false; };
   }, []);
@@ -198,7 +218,7 @@ function ClinicsPage() {
       );
     }
     if (activeTreatment) {
-      const chip = TRENDING_THIS_MONTH.find(c => c.label === activeTreatment);
+      const chip = trending.find(c => c.label === activeTreatment);
       if (chip) {
         out = out.filter(c => (c.best_for ?? []).some(b => {
           const bl = b.toLowerCase();
@@ -335,10 +355,10 @@ function ClinicsPage() {
       <div style={{ borderBottom: `0.5px solid ${BORDER}`, padding: "10px 16px 12px", background: WARM_WHITE }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
           <div style={{ ...SECTION_LABEL }}>🔥 Trending This Month</div>
-          <div style={{ fontSize: 9, color: MUTED, fontWeight: 600 }}>June 2026</div>
+          <div style={{ fontSize: 9, color: MUTED, fontWeight: 600 }}>{trendingMonth}</div>
         </div>
         <div className="no-scrollbar" style={{ display: "flex", gap: 8, overflowX: "auto", ...noScrollbar }}>
-          {TRENDING_THIS_MONTH.map((c) => {
+          {trending.map((c) => {
             const active = activeTreatment === c.label;
             return (
               <button

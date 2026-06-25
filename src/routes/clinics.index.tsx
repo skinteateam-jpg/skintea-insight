@@ -124,6 +124,8 @@ function ClinicsPage() {
   const [sortBy, setSortBy] = useState("nearest");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTreatment, setActiveTreatment] = useState<string | null>(null);
+  const [trending, setTrending] = useState<TrendingTreatment[]>([]);
+  const [trendingMonth, setTrendingMonth] = useState("This Month");
 
   const [areaFilter, setAreaFilter] = useState<string[]>([]);
   const [hoursFilter, setHoursFilter] = useState<string[]>([]);
@@ -139,10 +141,16 @@ function ClinicsPage() {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const { data } = await supabase.from("clinics").select("*").order("trust_score", { ascending: false });
+      const { data } = await supabase
+        .from("trending_treatments")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
       if (!alive) return;
-      setClinics((data as unknown as Clinic[]) ?? []);
-      setLoading(false);
+      if (data && data.length > 0) {
+        setTrending(data as TrendingTreatment[]);
+        setTrendingMonth((data[0] as TrendingTreatment).month);
+      }
     })();
     return () => { alive = false; };
   }, []);

@@ -67,6 +67,15 @@ type Clinic = {
   membership_available: boolean | null;
 };
 
+type TrendingTreatment = {
+  id: string;
+  emoji: string;
+  label: string;
+  keywords: string[];
+  month: string;
+  sort_order: number;
+};
+
 const SECTION_LABEL: React.CSSProperties = {
   fontSize: 9,
   fontWeight: 800,
@@ -103,14 +112,6 @@ const TREATMENT_CATEGORIES: { title: string; items: string[] }[] = [
   { title: "Hair Removal", items: ["Underarm", "Arms", "Legs", "Full Body", "VIO", "Face"] },
 ];
 
-const TRENDING_THIS_MONTH: { emoji: string; label: string; keywords: string[] }[] = [
-  { emoji: "👶", label: "Baby Botox", keywords: ["botox"] },
-  { emoji: "🐟", label: "Salmon DNA", keywords: ["salmon", "pdrn", "rejuran", "skin booster"] },
-  { emoji: "🍋", label: "Lemon Bottle", keywords: ["lemon bottle", "filler", "dissolve"] },
-  { emoji: "💧", label: "Aqua Peel", keywords: ["aqua", "peel", "hydrafacial"] },
-  { emoji: "✨", label: "Glass Skin", keywords: ["glass skin", "facial", "glow"] },
-  { emoji: "🧬", label: "Exosome", keywords: ["exosome", "stem cell", "prp"] },
-];
 
 function ClinicsPage() {
   const navigate = useNavigate();

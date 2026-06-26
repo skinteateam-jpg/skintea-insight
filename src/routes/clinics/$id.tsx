@@ -122,13 +122,14 @@ function ClinicDetailPage() {
     let alive = true;
     (async () => {
       setLoading(true);
-      const [c, ss, ct, pr, wv, rv] = await Promise.all([
+      const [c, ss, ct, pr, wv, rv, v] = await Promise.all([
         supabase.from("clinics").select("*").eq("id", id).maybeSingle(),
         supabase.from("clinic_skin_scores").select("*").eq("clinic_id", id),
         supabase.from("clinic_treatments").select("*, treatments(id, name)").eq("clinic_id", id),
         supabase.from("clinic_practitioners").select("*").eq("clinic_id", id),
         supabase.from("clinic_who_visited").select("id, user_id, visited_at").eq("clinic_id", id).limit(4),
         supabase.from("clinic_reviews").select("*, treatments(name)").eq("clinic_id", id).order("created_at", { ascending: false }),
+        supabase.from("clinic_videos").select("*").eq("clinic_id", id).eq("is_active", true).order("created_at", { ascending: false }),
       ]);
       if (!alive) return;
       setClinic(c.data);
@@ -138,6 +139,8 @@ function ClinicDetailPage() {
       setPractitioners((pr.data as any) || []);
       setVisitors((wv.data as any) || []);
       setReviews((rv.data as any) || []);
+      setVideos((v.data as any) || []);
+
 
       const tIds = ctData.map((t: CTreatment) => t.treatment_id).filter(Boolean);
       if (tIds.length) {

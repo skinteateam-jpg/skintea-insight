@@ -535,8 +535,8 @@ function ClinicDetailPage() {
         </div>
       </Section>
 
-      {/* 11. Skintea Score by Skin Type */}
-      <Section title="Skintea Score by Skin Type">
+      {/* 11. Works for your skin? */}
+      <Section title="Works for your skin?">
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {["oily", "combination", "dry", "sensitive", "normal"].map((type) => {
             const score = skinScores.find((s) => s.skin_type === type);

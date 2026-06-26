@@ -174,6 +174,56 @@ export type Database = {
           },
         ]
       }
+      clinic_videos: {
+        Row: {
+          author_handle: string
+          caption: string | null
+          clinic_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          likes: number | null
+          platform: string
+          source_url: string
+          thumbnail_url: string | null
+          views: number | null
+        }
+        Insert: {
+          author_handle: string
+          caption?: string | null
+          clinic_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          likes?: number | null
+          platform: string
+          source_url: string
+          thumbnail_url?: string | null
+          views?: number | null
+        }
+        Update: {
+          author_handle?: string
+          caption?: string | null
+          clinic_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          likes?: number | null
+          platform?: string
+          source_url?: string
+          thumbnail_url?: string | null
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_videos_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_who_visited: {
         Row: {
           clinic_id: string | null

@@ -104,6 +104,9 @@ function ClinicDetailPage() {
   const [inquireFor, setInquireFor] = useState<CTreatment | null>(null);
   const [userSkin, setUserSkin] = useState<string | null>(null);
   const [reviewFilter, setReviewFilter] = useState<string>("all");
+  const [videos, setVideos] = useState<any[]>([]);
+  const [activeVideoTab, setActiveVideoTab] = useState<"tiktok" | "instagram">("tiktok");
+
 
   useEffect(() => {
     try {
@@ -119,13 +122,14 @@ function ClinicDetailPage() {
     let alive = true;
     (async () => {
       setLoading(true);
-      const [c, ss, ct, pr, wv, rv] = await Promise.all([
+      const [c, ss, ct, pr, wv, rv, v] = await Promise.all([
         supabase.from("clinics").select("*").eq("id", id).maybeSingle(),
         supabase.from("clinic_skin_scores").select("*").eq("clinic_id", id),
         supabase.from("clinic_treatments").select("*, treatments(id, name)").eq("clinic_id", id),
         supabase.from("clinic_practitioners").select("*").eq("clinic_id", id),
         supabase.from("clinic_who_visited").select("id, user_id, visited_at").eq("clinic_id", id).limit(4),
         supabase.from("clinic_reviews").select("*, treatments(name)").eq("clinic_id", id).order("created_at", { ascending: false }),
+        supabase.from("clinic_videos").select("*").eq("clinic_id", id).eq("is_active", true).order("created_at", { ascending: false }),
       ]);
       if (!alive) return;
       setClinic(c.data);
@@ -135,6 +139,8 @@ function ClinicDetailPage() {
       setPractitioners((pr.data as any) || []);
       setVisitors((wv.data as any) || []);
       setReviews((rv.data as any) || []);
+      setVideos((v.data as any) || []);
+
 
       const tIds = ctData.map((t: CTreatment) => t.treatment_id).filter(Boolean);
       if (tIds.length) {
@@ -493,7 +499,117 @@ function ClinicDetailPage() {
         </div>
       </Section>
 
+      {/* Videos */}
+      <div style={{ padding: "16px", borderBottom: `0.5px solid ${BORDER}` }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: CRIMSON }}>Videos</div>
+          {/* TikTok / Instagram tab switcher */}
+          <div style={{ display: "flex", gap: 0, border: `0.5px solid ${BORDER}`, borderRadius: 6, overflow: "hidden" }}>
+            {(["tiktok", "instagram"] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => setActiveVideoTab(p)}
+                style={{
+                  background: activeVideoTab === p ? ESPRESSO : "transparent",
+                  color: activeVideoTab === p ? WARM_WHITE : MUTED,
+                  border: "none",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  textTransform: "capitalize",
+                  padding: "5px 12px",
+                  cursor: "pointer",
+                }}
+              >
+                {p === "tiktok" ? "TikTok" : "Instagram"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Grid */}
+        {(() => {
+          const filtered = videos.filter((v) => v.platform === activeVideoTab);
+          if (filtered.length === 0) {
+            return (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 0", gap: 8 }}>
+                <Camera size={22} color={MUTED} />
+                <div style={{ fontSize: 12, color: MUTED }}>No videos yet</div>
+              </div>
+            );
+          }
+          return (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {filtered.map((v) => (
+                <a
+                  key={v.id}
+                  href={v.source_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ textDecoration: "none", display: "block", borderRadius: 10, overflow: "hidden", background: ESPRESSO, position: "relative" }}
+                >
+                  {/* Thumbnail */}
+                  <div style={{ width: "100%", aspectRatio: "9/16", position: "relative", overflow: "hidden" }}>
+                    {v.thumbnail_url ? (
+                      <img src={v.thumbnail_url} alt={v.caption ?? ""} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                    ) : (
+                      <div style={{ width: "100%", height: "100%", background: "#2a1408", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Camera size={20} color={MUTED} />
+                      </div>
+                    )}
+                    {/* Play button overlay */}
+                    <div style={{
+                      position: "absolute", inset: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: "rgba(0,0,0,0.18)",
+                    }}>
+                      <div style={{
+                        width: 34, height: 34, borderRadius: 34,
+                        background: "rgba(255,255,255,0.88)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        <div style={{
+                          width: 0, height: 0,
+                          borderTop: "7px solid transparent",
+                          borderBottom: "7px solid transparent",
+                          borderLeft: `12px solid ${ESPRESSO}`,
+                          marginLeft: 3,
+                        }} />
+                      </div>
+                    </div>
+                    {/* Stats overlay top-right */}
+                    {(v.views > 0 || v.likes > 0) && (
+                      <div style={{
+                        position: "absolute", top: 6, right: 6,
+                        display: "flex", gap: 6,
+                      }}>
+                        {v.views > 0 && (
+                          <span style={{ background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 5px", borderRadius: 4 }}>
+                            {v.views >= 1000 ? `${(v.views / 1000).toFixed(0)}k` : v.views}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {/* Caption bar */}
+                  <div style={{ padding: "7px 8px", background: ESPRESSO }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: WARM_WHITE, marginBottom: 2 }}>@{v.author_handle}</div>
+                    {v.caption && (
+                      <div style={{
+                        fontSize: 9, color: "#c0a89a",
+                        overflow: "hidden", display: "-webkit-box",
+                        WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+                      }}>{v.caption}</div>
+                    )}
+                  </div>
+                </a>
+              ))}
+            </div>
+          );
+        })()}
+      </div>
+
       {/* 12. Hours & Location */}
+
       <Section title="Hours & Location">
         <div style={{ display: "flex", flexDirection: "column" }}>
           {[

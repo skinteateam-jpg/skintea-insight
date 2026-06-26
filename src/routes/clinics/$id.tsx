@@ -104,6 +104,9 @@ function ClinicDetailPage() {
   const [inquireFor, setInquireFor] = useState<CTreatment | null>(null);
   const [userSkin, setUserSkin] = useState<string | null>(null);
   const [reviewFilter, setReviewFilter] = useState<string>("all");
+  const [videos, setVideos] = useState<any[]>([]);
+  const [activeVideoTab, setActiveVideoTab] = useState<"tiktok" | "instagram">("tiktok");
+
 
   useEffect(() => {
     try {

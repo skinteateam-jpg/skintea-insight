@@ -267,6 +267,7 @@ function TreatmentDetailPage() {
   const [similar, setSimilar] = useState<Treatment[]>([]);
   const [openAcc, setOpenAcc] = useState<Record<string, boolean>>({});
   const [beforeAfters, setBeforeAfters] = useState<any[]>([]);
+  const [treatmentReviews, setTreatmentReviews] = useState<any[]>([]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -300,13 +301,19 @@ function TreatmentDetailPage() {
             .map((r: any) => ({ ...r.clinics, price_from: r.price_from })),
         );
         const { data: ba } = await supabase
-          .from("treatment_before_afters" as any)
+          .from("treatment_before_afters")
           .select("*")
           .eq("treatment_id", (t as any).id)
           .eq("is_active", true)
           .limit(6);
         if (!alive) return;
         setBeforeAfters((ba as any[]) ?? []);
+        const { data: tr } = await supabase
+          .from("treatment_reviews")
+          .select("*")
+          .eq("treatment_id", (t as any).id);
+        if (!alive) return;
+        setTreatmentReviews((tr as any[]) ?? []);
         if ((t as any).category) {
           const { data: sim } = await supabase
             .from("treatments")
@@ -340,9 +347,39 @@ function TreatmentDetailPage() {
   }, [treatment?.downtime]);
 
   const posts = (treatment && SOCIAL_POSTS[treatment.slug]) ?? SOCIAL_POSTS["prf-injection"];
+  const realTikTok: VideoPost[] = treatmentReviews
+    .filter((r) => r.platform === "tiktok")
+    .map((r) => ({
+      handle: r.author_handle ?? "user",
+      caption: r.content ?? "",
+      views: r.views ? `${r.views}` : "—",
+      likes: r.likes ? `${r.likes}` : "—",
+    }));
+  const realInstagram: VideoPost[] = treatmentReviews
+    .filter((r) => r.platform === "instagram")
+    .map((r) => ({
+      handle: r.author_handle ?? "user",
+      caption: r.content ?? "",
+      views: r.views ? `${r.views}` : "—",
+      likes: r.likes ? `${r.likes}` : "—",
+    }));
+  const realReddit: RedditPost[] = treatmentReviews
+    .filter((r) => r.platform === "reddit")
+    .map((r) => ({
+      subreddit: r.subreddit ?? "r/SkincareAddiction",
+      title: (r.content ?? "").split("\n")[0] || r.content || "—",
+      preview: r.content ?? "—",
+      upvotes: r.upvotes ? `${r.upvotes}` : "—",
+      comments: r.comment_count ?? 0,
+    }));
   const activeVideos =
-    socialTab === "tiktok" ? posts.tiktok : socialTab === "instagram" ? posts.instagram : [];
-  const activeReddit = socialTab === "reddit" ? posts.reddit : [];
+    socialTab === "tiktok"
+      ? (realTikTok.length ? realTikTok : posts.tiktok)
+      : socialTab === "instagram"
+        ? (realInstagram.length ? realInstagram : posts.instagram)
+        : [];
+  const activeReddit =
+    socialTab === "reddit" ? (realReddit.length ? realReddit : posts.reddit) : [];
 
   if (loading) {
     return (

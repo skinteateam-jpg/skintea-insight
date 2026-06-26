@@ -124,7 +124,7 @@ function ClinicDetailPage() {
         supabase.from("clinic_skin_scores").select("*").eq("clinic_id", id),
         supabase.from("clinic_treatments").select("*, treatments(id, name)").eq("clinic_id", id),
         supabase.from("clinic_practitioners").select("*").eq("clinic_id", id),
-        supabase.from("clinic_who_visited").select("*, profiles(name, skin_type)").eq("clinic_id", id).limit(4),
+        supabase.from("clinic_who_visited").select("id, user_id, visited_at").eq("clinic_id", id).limit(4),
         supabase.from("clinic_reviews").select("*, treatments(name)").eq("clinic_id", id).order("created_at", { ascending: false }),
       ]);
       if (!alive) return;
@@ -403,13 +403,12 @@ function ClinicDetailPage() {
             <div style={{ fontSize: 11, color: MUTED }}>No visits logged yet.</div>
           )}
           {visitors.map((v, i) => {
-            const name = v.profiles?.name ?? "User";
-            const st = v.profiles?.skin_type ?? "—";
-            const initials = name.split(" ").map((s: string) => s[0]).slice(0, 2).join("").toUpperCase();
+            const initials = `U${i + 1}`;
+            const st = "—";
             return (
               <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, minWidth: 60 }}>
                 <div style={{ width: 44, height: 44, borderRadius: 44, background: CRIMSON_TINT, color: CRIMSON, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800 }}>{initials}</div>
-                <div style={{ fontSize: 9, color: ESPRESSO, fontWeight: 700 }}>{name}</div>
+                <div style={{ fontSize: 9, color: ESPRESSO, fontWeight: 700 }}>{initials}</div>
                 <div style={{ fontSize: 9, color: MUTED, display: "flex", alignItems: "center", gap: 2 }}>
                   <span>{SKIN_EMOJI[st] ?? ""}</span><span>{st}</span>
                 </div>

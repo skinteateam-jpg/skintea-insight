@@ -119,6 +119,15 @@ function ProductPage() {
   const [gifting, setGifting] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [socialReviews, setSocialReviews] = useState<any[]>([]);
+
+  useEffect(() => {
+    (supabase as any)
+      .from("product_reviews")
+      .select("*")
+      .eq("product_id", id)
+      .then(({ data }: any) => setSocialReviews(data ?? []));
+  }, [id]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -341,8 +350,16 @@ function ProductPage() {
 
             <TabsContent value="tiktok">
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {tiktoks.map((t) => (
-                  <div key={t.user} style={{ background: "#1a2620", borderRadius: 12, overflow: "hidden", aspectRatio: "9/14", position: "relative", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+                {(() => {
+                  const real = socialReviews.filter((r) => r.platform === "tiktok").map((r) => ({
+                    user: r.author_handle ?? "@user",
+                    views: r.views ? `${r.views}` : "—",
+                    likes: r.likes ? `${r.likes}` : "—",
+                    caption: r.content ?? "",
+                  }));
+                  const list = real.length ? real : tiktoks;
+                  return list.map((t, i) => (
+                  <div key={`${t.user}-${i}`} style={{ background: "#1a2620", borderRadius: 12, overflow: "hidden", aspectRatio: "9/14", position: "relative", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
                     <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%, -50%)", width: 36, height: 36, background: "rgba(255,255,255,0.2)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <Play width={14} height={14} color="#fff" fill="#fff" />
                     </div>
@@ -355,14 +372,22 @@ function ProductPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  ));
+                })()}
               </div>
             </TabsContent>
 
             <TabsContent value="instagram">
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {instagrams.map((p) => (
-                  <div key={p.user} style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: "10px 12px" }}>
+                {(() => {
+                  const real = socialReviews.filter((r) => r.platform === "instagram").map((r) => ({
+                    user: r.author_handle ?? "user",
+                    likes: r.likes ? `${r.likes}` : "—",
+                    caption: r.content ?? "",
+                  }));
+                  const list = real.length ? real : instagrams;
+                  return list.map((p, i) => (
+                  <div key={`${p.user}-${i}`} style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: "10px 12px" }}>
                     <div style={{ width: 44, height: 44, background: "#FFFCF8", border: "0.5px solid #E8DDD4", borderRadius: 8, flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: "#1C0A00", marginBottom: 2 }}>@{p.user}</div>
@@ -373,14 +398,23 @@ function ProductPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  ));
+                })()}
               </div>
             </TabsContent>
 
             <TabsContent value="reddit">
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {reddits.map((r) => (
-                  <div key={r.title} style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: "10px 12px" }}>
+                {(() => {
+                  const real = socialReviews.filter((rv) => rv.platform === "reddit").map((rv) => ({
+                    sub: "r/SkincareAddiction",
+                    up: rv.likes ? `${rv.likes}` : "—",
+                    title: (rv.content ?? "").split("\n")[0] || "—",
+                    comments: 0,
+                  }));
+                  const list = real.length ? real : reddits;
+                  return list.map((r, i) => (
+                  <div key={`${r.title}-${i}`} style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: "10px 12px" }}>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0 }}>
                       <ArrowUpCircle width={14} height={14} color="#A8001C" />
                       <span style={{ fontSize: 11, fontWeight: 700, color: "#1C0A00" }}>{r.up}</span>
@@ -393,7 +427,8 @@ function ProductPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                  ));
+                })()}
               </div>
             </TabsContent>
           </Tabs>

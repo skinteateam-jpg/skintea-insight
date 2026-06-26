@@ -303,15 +303,15 @@ function TreatmentDetailPage() {
         const { data: ba } = await supabase
           .from("treatment_before_afters")
           .select("*")
-          .eq("treatment_id", (t as Treatment).id)
+          .eq("treatment_id", (t as any).id)
           .eq("is_active", true)
           .limit(6);
         if (!alive) return;
         setBeforeAfters((ba as any[]) ?? []);
-        const { data: tr } = await (supabase as any)
+        const { data: tr } = await supabase
           .from("treatment_reviews")
           .select("*")
-          .eq("treatment_id", (t as Treatment).id);
+          .eq("treatment_id", (t as any).id);
         if (!alive) return;
         setTreatmentReviews((tr as any[]) ?? []);
         if ((t as any).category) {

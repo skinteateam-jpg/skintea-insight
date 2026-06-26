@@ -323,33 +323,7 @@ function ClinicDetailPage() {
         ))}
       </div>
 
-      {/* 7. Skintea Score by Skin Type */}
-      <Section title="Skintea Score by Skin Type">
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {["oily", "combination", "dry", "sensitive", "normal"].map((type) => {
-            const score = skinScores.find((s) => s.skin_type === type);
-            const pct = score?.recommend_pct ?? 0;
-            const isYou = userSkin === type;
-            return (
-              <div key={type} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 76, fontSize: 12, color: ESPRESSO, display: "flex", alignItems: "center", gap: 6 }}>
-                  <span>{SKIN_EMOJI[type]}</span>
-                  <span style={{ textTransform: "capitalize" }}>{type}</span>
-                </div>
-                <div style={{ flex: 1, height: 5, background: TRACK, borderRadius: 5, overflow: "hidden" }}>
-                  <div style={{ width: `${pct}%`, height: "100%", background: CRIMSON }} />
-                </div>
-                <div style={{ width: 32, fontSize: 11, fontWeight: 700, color: ESPRESSO, textAlign: "right" }}>{pct}%</div>
-                {isYou && (
-                  <span style={{ background: CRIMSON_TINT, color: CRIMSON, fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 4, textTransform: "uppercase" }}>You</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </Section>
-
-      {/* 8. Treatments & Pricing */}
+      {/* 7. Treatments & Pricing */}
       <Section title="Treatments & Pricing">
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {treatments.map((t) => {
@@ -402,104 +376,7 @@ function ClinicDetailPage() {
         </div>
       </Section>
 
-      {/* 9. Who's Been Here */}
-      <Section title="Who's Been Here" right={<button style={{ background: "none", border: "none", color: CRIMSON, fontSize: 10, fontWeight: 700, cursor: "pointer", textTransform: "uppercase" }}>See all</button>}>
-        <div style={{ display: "flex", gap: 14, overflowX: "auto", scrollbarWidth: "none" }}>
-          {visitors.length === 0 && (
-            <div style={{ fontSize: 11, color: MUTED }}>No visits logged yet.</div>
-          )}
-          {visitors.map((v, i) => {
-            const initials = `U${i + 1}`;
-            const st = "—";
-            return (
-              <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, minWidth: 60 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 44, background: CRIMSON_TINT, color: CRIMSON, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800 }}>{initials}</div>
-                <div style={{ fontSize: 9, color: ESPRESSO, fontWeight: 700 }}>{initials}</div>
-                <div style={{ fontSize: 9, color: MUTED, display: "flex", alignItems: "center", gap: 2 }}>
-                  <span>{SKIN_EMOJI[st] ?? ""}</span><span>{st}</span>
-                </div>
-              </div>
-            );
-          })}
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, minWidth: 60, opacity: 0.55 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 44, border: `1px dashed ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Lock size={14} color={MUTED} />
-            </div>
-            <div style={{ fontSize: 9, color: MUTED }}>+more</div>
-            <div style={{ fontSize: 9, color: MUTED }}>Sub only</div>
-          </div>
-        </div>
-      </Section>
-
-      {/* 10. Practitioners */}
-      <Section title="Practitioners">
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {practitioners.map((p) => {
-            const initials = p.name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
-            return (
-              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 42, height: 42, borderRadius: 42, background: BORDER, color: ESPRESSO, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{initials}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: ESPRESSO }}>{p.name}</div>
-                  <div style={{ fontSize: 11, color: MUTED }}>{p.role}</div>
-                </div>
-                {p.specialty && (
-                  <span style={{ background: CRIMSON_TINT, color: CRIMSON, fontSize: 9, fontWeight: 800, padding: "4px 8px", borderRadius: 4, textTransform: "uppercase" }}>{p.specialty}</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </Section>
-
-      {/* 11. Reviews */}
-      <Section title="Reviews" right={
-        <div style={{ display: "flex", gap: 10, fontSize: 11, fontWeight: 700 }}>
-          {userSkin && (
-            <button onClick={() => setReviewFilter(userSkin)} style={{
-              background: "none", border: "none", cursor: "pointer", padding: "2px 0",
-              color: reviewFilter === userSkin ? CRIMSON : MUTED,
-              borderBottom: reviewFilter === userSkin ? `2px solid ${CRIMSON}` : "2px solid transparent",
-              textTransform: "capitalize",
-            }}>{userSkin}</button>
-          )}
-          <button onClick={() => setReviewFilter("all")} style={{
-            background: "none", border: "none", cursor: "pointer", padding: "2px 0",
-            color: reviewFilter === "all" ? CRIMSON : MUTED,
-            borderBottom: reviewFilter === "all" ? `2px solid ${CRIMSON}` : "2px solid transparent",
-          }}>All</button>
-        </div>
-      }>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {filteredReviews.slice(0, 2).map((r) => (
-            <div key={r.id} style={{ background: "#fff", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>Anonymous</div>
-                <div style={{ fontSize: 11, color: MUTED, display: "flex", alignItems: "center", gap: 4 }}>
-                  <span>{SKIN_EMOJI[r.skin_type] ?? ""}</span><span style={{ textTransform: "capitalize" }}>{r.skin_type}</span>
-                </div>
-              </div>
-              {r.treatments?.name && (
-                <span style={{ display: "inline-block", background: CRIMSON_TINT, color: CRIMSON, fontSize: 9, fontWeight: 800, padding: "3px 7px", borderRadius: 4, textTransform: "uppercase", marginBottom: 8 }}>{r.treatments.name}</span>
-              )}
-              <div style={{ fontSize: 12, color: ESPRESSO, lineHeight: 1.55 }}>{r.body}</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 8, fontSize: 11, color: MUTED }}>
-                <Flame size={12} /> {r.agree_count}
-              </div>
-            </div>
-          ))}
-          {filteredReviews.length === 0 && (
-            <div style={{ fontSize: 11, color: MUTED, textAlign: "center", padding: 12 }}>No reviews for this filter yet.</div>
-          )}
-        </div>
-        <div style={{ textAlign: "center", marginTop: 12 }}>
-          <button style={{ background: "none", border: "none", color: CRIMSON, fontSize: 11, fontWeight: 700, textTransform: "uppercase", cursor: "pointer" }}>
-            See all {clinic.review_count} reviews →
-          </button>
-        </div>
-      </Section>
-
-      {/* Videos */}
+      {/* 8. Videos (filmstrip) */}
       <div style={{ padding: "16px", borderBottom: `0.5px solid ${BORDER}` }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: CRIMSON }}>Videos</div>
@@ -608,7 +485,130 @@ function ClinicDetailPage() {
         })()}
       </div>
 
-      {/* 12. Hours & Location */}
+      {/* 9. Who's Been Here */}
+      <Section title="Who's Been Here" right={<button style={{ background: "none", border: "none", color: CRIMSON, fontSize: 10, fontWeight: 700, cursor: "pointer", textTransform: "uppercase" }}>See all</button>}>
+        <div style={{ display: "flex", gap: 14, overflowX: "auto", scrollbarWidth: "none" }}>
+          {visitors.length === 0 && (
+            <div style={{ fontSize: 11, color: MUTED }}>No visits logged yet.</div>
+          )}
+          {visitors.map((v, i) => {
+            const initials = `U${i + 1}`;
+            const st = "—";
+            return (
+              <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, minWidth: 60 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 44, background: CRIMSON_TINT, color: CRIMSON, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800 }}>{initials}</div>
+                <div style={{ fontSize: 9, color: ESPRESSO, fontWeight: 700 }}>{initials}</div>
+                <div style={{ fontSize: 9, color: MUTED, display: "flex", alignItems: "center", gap: 2 }}>
+                  <span>{SKIN_EMOJI[st] ?? ""}</span><span>{st}</span>
+                </div>
+              </div>
+            );
+          })}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, minWidth: 60, opacity: 0.55 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 44, border: `1px dashed ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Lock size={14} color={MUTED} />
+            </div>
+            <div style={{ fontSize: 9, color: MUTED }}>+more</div>
+            <div style={{ fontSize: 9, color: MUTED }}>Sub only</div>
+          </div>
+        </div>
+      </Section>
+
+      {/* 10. Practitioners */}
+      <Section title="Practitioners">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {practitioners.map((p) => {
+            const initials = p.name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
+            return (
+              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 42, background: BORDER, color: ESPRESSO, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{initials}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: ESPRESSO }}>{p.name}</div>
+                  <div style={{ fontSize: 11, color: MUTED }}>{p.role}</div>
+                </div>
+                {p.specialty && (
+                  <span style={{ background: CRIMSON_TINT, color: CRIMSON, fontSize: 9, fontWeight: 800, padding: "4px 8px", borderRadius: 4, textTransform: "uppercase" }}>{p.specialty}</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </Section>
+
+      {/* 11. Skintea Score by Skin Type */}
+      <Section title="Skintea Score by Skin Type">
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {["oily", "combination", "dry", "sensitive", "normal"].map((type) => {
+            const score = skinScores.find((s) => s.skin_type === type);
+            const pct = score?.recommend_pct ?? 0;
+            const isYou = userSkin === type;
+            return (
+              <div key={type} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 76, fontSize: 12, color: ESPRESSO, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span>{SKIN_EMOJI[type]}</span>
+                  <span style={{ textTransform: "capitalize" }}>{type}</span>
+                </div>
+                <div style={{ flex: 1, height: 5, background: TRACK, borderRadius: 5, overflow: "hidden" }}>
+                  <div style={{ width: `${pct}%`, height: "100%", background: CRIMSON }} />
+                </div>
+                <div style={{ width: 32, fontSize: 11, fontWeight: 700, color: ESPRESSO, textAlign: "right" }}>{pct}%</div>
+                {isYou && (
+                  <span style={{ background: CRIMSON_TINT, color: CRIMSON, fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 4, textTransform: "uppercase" }}>You</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </Section>
+
+      {/* 12. Reviews */}
+      <Section title="Reviews" right={
+        <div style={{ display: "flex", gap: 10, fontSize: 11, fontWeight: 700 }}>
+          {userSkin && (
+            <button onClick={() => setReviewFilter(userSkin)} style={{
+              background: "none", border: "none", cursor: "pointer", padding: "2px 0",
+              color: reviewFilter === userSkin ? CRIMSON : MUTED,
+              borderBottom: reviewFilter === userSkin ? `2px solid ${CRIMSON}` : "2px solid transparent",
+              textTransform: "capitalize",
+            }}>{userSkin}</button>
+          )}
+          <button onClick={() => setReviewFilter("all")} style={{
+            background: "none", border: "none", cursor: "pointer", padding: "2px 0",
+            color: reviewFilter === "all" ? CRIMSON : MUTED,
+            borderBottom: reviewFilter === "all" ? `2px solid ${CRIMSON}` : "2px solid transparent",
+          }}>All</button>
+        </div>
+      }>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {filteredReviews.slice(0, 2).map((r) => (
+            <div key={r.id} style={{ background: "#fff", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>Anonymous</div>
+                <div style={{ fontSize: 11, color: MUTED, display: "flex", alignItems: "center", gap: 4 }}>
+                  <span>{SKIN_EMOJI[r.skin_type] ?? ""}</span><span style={{ textTransform: "capitalize" }}>{r.skin_type}</span>
+                </div>
+              </div>
+              {r.treatments?.name && (
+                <span style={{ display: "inline-block", background: CRIMSON_TINT, color: CRIMSON, fontSize: 9, fontWeight: 800, padding: "3px 7px", borderRadius: 4, textTransform: "uppercase", marginBottom: 8 }}>{r.treatments.name}</span>
+              )}
+              <div style={{ fontSize: 12, color: ESPRESSO, lineHeight: 1.55 }}>{r.body}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 8, fontSize: 11, color: MUTED }}>
+                <Flame size={12} /> {r.agree_count}
+              </div>
+            </div>
+          ))}
+          {filteredReviews.length === 0 && (
+            <div style={{ fontSize: 11, color: MUTED, textAlign: "center", padding: 12 }}>No reviews for this filter yet.</div>
+          )}
+        </div>
+        <div style={{ textAlign: "center", marginTop: 12 }}>
+          <button style={{ background: "none", border: "none", color: CRIMSON, fontSize: 11, fontWeight: 700, textTransform: "uppercase", cursor: "pointer" }}>
+            See all {clinic.review_count} reviews →
+          </button>
+        </div>
+      </Section>
+
+      {/* 13. Hours & Location */}
 
       <Section title="Hours & Location">
         <div style={{ display: "flex", flexDirection: "column" }}>
@@ -655,10 +655,10 @@ function ClinicDetailPage() {
         </div>
       </Section>
 
-      {/* 13. Spacer */}
+      {/* 14. Spacer */}
       <div style={{ height: 76 }} />
 
-      {/* 14. Fixed bottom bar */}
+      {/* 15. Fixed bottom bar */}
       <div style={{
         position: "fixed", bottom: 0, left: 0, right: 0,
         background: WARM_WHITE, borderTop: `0.5px solid ${BORDER}`,

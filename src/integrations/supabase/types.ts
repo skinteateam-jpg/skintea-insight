@@ -213,6 +213,10 @@ export type Database = {
           closes_at: string | null
           created_at: string
           distance_miles: number | null
+          google_maps_url: string | null
+          google_place_id: string | null
+          google_rating: number | null
+          google_review_count: number | null
           hours: Json | null
           id: string
           image_url: string | null
@@ -220,6 +224,10 @@ export type Database = {
           is_open_now: boolean | null
           is_verified: boolean
           known_for: string | null
+          last_google_sync: string | null
+          last_website_sync: string | null
+          latitude: number | null
+          longitude: number | null
           name: string
           neighborhood: string | null
           parking_available: boolean | null
@@ -249,6 +257,10 @@ export type Database = {
           closes_at?: string | null
           created_at?: string
           distance_miles?: number | null
+          google_maps_url?: string | null
+          google_place_id?: string | null
+          google_rating?: number | null
+          google_review_count?: number | null
           hours?: Json | null
           id?: string
           image_url?: string | null
@@ -256,6 +268,10 @@ export type Database = {
           is_open_now?: boolean | null
           is_verified?: boolean
           known_for?: string | null
+          last_google_sync?: string | null
+          last_website_sync?: string | null
+          latitude?: number | null
+          longitude?: number | null
           name: string
           neighborhood?: string | null
           parking_available?: boolean | null
@@ -285,6 +301,10 @@ export type Database = {
           closes_at?: string | null
           created_at?: string
           distance_miles?: number | null
+          google_maps_url?: string | null
+          google_place_id?: string | null
+          google_rating?: number | null
+          google_review_count?: number | null
           hours?: Json | null
           id?: string
           image_url?: string | null
@@ -292,6 +312,10 @@ export type Database = {
           is_open_now?: boolean | null
           is_verified?: boolean
           known_for?: string | null
+          last_google_sync?: string | null
+          last_website_sync?: string | null
+          latitude?: number | null
+          longitude?: number | null
           name?: string
           neighborhood?: string | null
           parking_available?: boolean | null
@@ -490,6 +514,53 @@ export type Database = {
             columns: ["treatment_id"]
             isOneToOne: false
             referencedRelation: "treatments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_reviews: {
+        Row: {
+          author_handle: string | null
+          content: string | null
+          created_at: string | null
+          id: string
+          likes: number | null
+          platform: string
+          product_id: string | null
+          sentiment: string | null
+          source_url: string | null
+          views: number | null
+        }
+        Insert: {
+          author_handle?: string | null
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          likes?: number | null
+          platform: string
+          product_id?: string | null
+          sentiment?: string | null
+          source_url?: string | null
+          views?: number | null
+        }
+        Update: {
+          author_handle?: string | null
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          likes?: number | null
+          platform?: string
+          product_id?: string | null
+          sentiment?: string | null
+          source_url?: string | null
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
@@ -940,6 +1011,53 @@ export type Database = {
           },
         ]
       }
+      treatment_before_afters: {
+        Row: {
+          after_url: string | null
+          age: number | null
+          before_url: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          outcome: string | null
+          sessions: string | null
+          skin_type: string | null
+          treatment_id: string | null
+        }
+        Insert: {
+          after_url?: string | null
+          age?: number | null
+          before_url?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          outcome?: string | null
+          sessions?: string | null
+          skin_type?: string | null
+          treatment_id?: string | null
+        }
+        Update: {
+          after_url?: string | null
+          age?: number | null
+          before_url?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          outcome?: string | null
+          sessions?: string | null
+          skin_type?: string | null
+          treatment_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_before_afters_treatment_id_fkey"
+            columns: ["treatment_id"]
+            isOneToOne: false
+            referencedRelation: "treatments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       treatment_influencers: {
         Row: {
           created_at: string
@@ -1061,6 +1179,62 @@ export type Database = {
           },
           {
             foreignKeyName: "treatment_logs_treatment_id_fkey"
+            columns: ["treatment_id"]
+            isOneToOne: false
+            referencedRelation: "treatments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_reviews: {
+        Row: {
+          author_handle: string | null
+          comment_count: number | null
+          content: string | null
+          created_at: string | null
+          id: string
+          likes: number | null
+          platform: string
+          sentiment: string | null
+          source_url: string | null
+          subreddit: string | null
+          treatment_id: string | null
+          upvotes: number | null
+          views: number | null
+        }
+        Insert: {
+          author_handle?: string | null
+          comment_count?: number | null
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          likes?: number | null
+          platform: string
+          sentiment?: string | null
+          source_url?: string | null
+          subreddit?: string | null
+          treatment_id?: string | null
+          upvotes?: number | null
+          views?: number | null
+        }
+        Update: {
+          author_handle?: string | null
+          comment_count?: number | null
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          likes?: number | null
+          platform?: string
+          sentiment?: string | null
+          source_url?: string | null
+          subreddit?: string | null
+          treatment_id?: string | null
+          upvotes?: number | null
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_reviews_treatment_id_fkey"
             columns: ["treatment_id"]
             isOneToOne: false
             referencedRelation: "treatments"

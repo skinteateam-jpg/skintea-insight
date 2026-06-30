@@ -568,6 +568,65 @@ export type Database = {
           },
         ]
       }
+      product_posts: {
+        Row: {
+          agree_count: number | null
+          avatar_url: string | null
+          body: string
+          created_at: string
+          headline: string | null
+          id: string
+          photo_urls: string[] | null
+          product_id: string
+          skin_type: string | null
+          updated_at: string
+          usage_duration: string | null
+          user_id: string
+          username: string | null
+          verdict: string | null
+        }
+        Insert: {
+          agree_count?: number | null
+          avatar_url?: string | null
+          body: string
+          created_at?: string
+          headline?: string | null
+          id?: string
+          photo_urls?: string[] | null
+          product_id: string
+          skin_type?: string | null
+          updated_at?: string
+          usage_duration?: string | null
+          user_id: string
+          username?: string | null
+          verdict?: string | null
+        }
+        Update: {
+          agree_count?: number | null
+          avatar_url?: string | null
+          body?: string
+          created_at?: string
+          headline?: string | null
+          id?: string
+          photo_urls?: string[] | null
+          product_id?: string
+          skin_type?: string | null
+          updated_at?: string
+          usage_duration?: string | null
+          user_id?: string
+          username?: string | null
+          verdict?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_posts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_reviews: {
         Row: {
           author_handle: string | null
@@ -674,6 +733,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           email: string | null
           id: string
@@ -687,6 +747,7 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -700,6 +761,7 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           email?: string | null
           id?: string

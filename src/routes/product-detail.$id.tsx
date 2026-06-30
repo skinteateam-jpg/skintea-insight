@@ -139,6 +139,10 @@ const reddits = [
 function ProductPage() {
   const { id } = Route.useParams();
   const [tab, setTab] = useState("tiktok");
+  const [pageTab, setPageTab] = useState<"product" | "tea">("product");
+  const [teaPosts, setTeaPosts] = useState<any[]>([]);
+  const [teaFilter, setTeaFilter] = useState<string>("all");
+  const [, setTeaLoading] = useState(false);
   const [showAllIngredients, setShowAllIngredients] = useState(false);
   const navigate = useNavigate();
   const search = useSearch({ strict: false }) as { from?: string; postId?: string } | undefined;
@@ -164,6 +168,23 @@ function ProductPage() {
       .select("*")
       .eq("product_id", id)
       .then(({ data }: any) => setSocialReviews(data ?? []));
+  }, [id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setTeaLoading(true);
+    (supabase as any)
+      .from("product_posts")
+      .select("*")
+      .eq("product_id", id)
+      .order("agree_count", { ascending: false })
+      .then(({ data }: any) => {
+        if (!cancelled) {
+          setTeaPosts(data ?? []);
+          setTeaLoading(false);
+        }
+      });
+    return () => { cancelled = true; };
   }, [id]);
 
   useEffect(() => {
@@ -343,6 +364,49 @@ function ProductPage() {
         </div>
       </div>
 
+      {/* Tab switcher */}
+      <div style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}`, background: WARM_WHITE }}>
+        {(["product", "tea"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setPageTab(t)}
+            style={{
+              flex: 1, padding: "11px 0", background: "transparent", border: "none",
+              borderBottom: pageTab === t ? `2px solid ${CRIMSON}` : "2px solid transparent",
+              fontSize: 13, fontWeight: pageTab === t ? 700 : 500,
+              color: pageTab === t ? ESPRESSO : MUTED,
+              cursor: "pointer", fontFamily: "inherit",
+            }}
+          >
+            {t === "product" ? "Product" : (
+              <span>Tea {teaPosts.length > 0 && <span style={{ fontSize: 10, color: CRIMSON, fontWeight: 700, marginLeft: 3 }}>{teaPosts.length}</span>}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {pageTab === "tea" && (
+        <TeaTab
+          posts={teaPosts}
+          filter={teaFilter}
+          setFilter={setTeaFilter}
+          userSkinType={userSkinType}
+          userId={userId}
+          productId={id}
+          onPostAdded={() => {
+            (supabase as any)
+              .from("product_posts")
+              .select("*")
+              .eq("product_id", id)
+              .order("agree_count", { ascending: false })
+              .then(({ data }: any) => setTeaPosts(data ?? []));
+          }}
+          navigate={navigate}
+        />
+      )}
+
+      {pageTab === "product" && (
+      <>
       {/* 3. Stats row */}
       <div style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}` }}>
         {[
@@ -653,6 +717,8 @@ function ProductPage() {
         <span style={{ background: CRIMSON, color: WARM_WHITE, fontSize: 11, fontWeight: 700, padding: "3px 12px", borderRadius: 20 }}>{confidence}</span>
         <span style={{ fontSize: 11, color: MUTED, lineHeight: 1.4 }}>Based on 1,200+ posts across TikTok, Instagram, and Reddit</span>
       </div>
+      </>
+      )}
 
       {toast && (
         <div style={{ position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)", background: ESPRESSO, color: WARM_WHITE, padding: "10px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600, zIndex: 100, whiteSpace: "nowrap", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
@@ -676,5 +742,221 @@ function ActionBtn({ icon, label, onClick, active, disabled }: { icon: string; l
       <span style={{ fontSize: 18 }}>{icon}</span>
       <span>{label}</span>
     </button>
+  );
+}
+
+function TeaTab({
+  posts, filter, setFilter, userSkinType, userId, productId, onPostAdded, navigate,
+}: {
+  posts: any[];
+  filter: string;
+  setFilter: (f: string) => void;
+  userSkinType: string | null;
+  userId: string | null;
+  productId: string;
+  onPostAdded: () => void;
+  navigate: any;
+}) {
+  const [showForm, setShowForm] = useState(false);
+  const [formHeadline, setFormHeadline] = useState("");
+  const [formBody, setFormBody] = useState("");
+  const [formVerdict, setFormVerdict] = useState("");
+  const [formDuration, setFormDuration] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const CHARS: Record<string, { emoji: string; name: string }> = {
+    oily: { emoji: "🧈", name: "The Butter Girl" },
+    dry: { emoji: "🫙", name: "The Cracker" },
+    combination: { emoji: "🥯", name: "The Everything Bagel" },
+    normal: { emoji: "🥛", name: "The Glass of Milk" },
+    sensitive: { emoji: "🍑", name: "The Peach" },
+  };
+  const TYPE_LABEL: Record<string, string> = {
+    oily: "Oily skin", dry: "Dry skin", combination: "Combination skin",
+    normal: "Normal skin", sensitive: "Sensitive skin",
+  };
+  const VERDICTS = ["Repurchased", "Would buy again", "On the fence", "Wouldn't repurchase"];
+  const skinTypes = ["oily", "sensitive", "combination", "normal", "dry"];
+  const filtered = filter === "all" ? posts : posts.filter((p) => p.skin_type === filter);
+
+  function formatDate(iso: string) {
+    const d = new Date(iso);
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
+    if (diff < 86400) return "today";
+    if (diff < 172800) return "yesterday";
+    if (diff < 604800) return `${Math.floor(diff / 86400)} days ago`;
+    if (diff < 2592000) return `${Math.floor(diff / 604800)} weeks ago`;
+    return `${Math.floor(diff / 2592000)} months ago`;
+  }
+
+  async function handleSubmit() {
+    if (!userId) { navigate({ to: "/login" }); return; }
+    if (!formBody.trim()) return;
+    setSubmitting(true);
+    const { data: profile } = await (supabase as any)
+      .from("profiles")
+      .select("username, avatar_url, skin_type")
+      .eq("user_id", userId)
+      .maybeSingle();
+    await (supabase as any).from("product_posts").insert({
+      product_id: productId,
+      user_id: userId,
+      username: profile?.username ?? null,
+      avatar_url: profile?.avatar_url ?? null,
+      skin_type: profile?.skin_type ?? userSkinType ?? null,
+      headline: formHeadline.trim() || null,
+      body: formBody.trim(),
+      verdict: formVerdict || null,
+      usage_duration: formDuration.trim() || null,
+      photo_urls: [],
+      agree_count: 0,
+    });
+    setSubmitting(false);
+    setShowForm(false);
+    setFormHeadline(""); setFormBody(""); setFormVerdict(""); setFormDuration("");
+    onPostAdded();
+  }
+
+  return (
+    <div>
+      <div style={{ padding: "12px 16px", borderBottom: `0.5px solid #E8DDD4`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ fontSize: 12, color: "#999999" }}>{posts.length} posts about this product</span>
+        <button
+          onClick={() => (userId ? setShowForm(true) : navigate({ to: "/login" }))}
+          style={{ background: "#1C0A00", color: "#FFFCF8", border: "none", borderRadius: 20, padding: "7px 14px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", display: "flex", alignItems: "center", gap: 4 }}
+        >
+          + Post tea
+        </button>
+      </div>
+
+      <div style={{ display: "flex", gap: 6, padding: "10px 16px", borderBottom: `0.5px solid #E8DDD4`, overflowX: "auto" }}>
+        {["all", ...skinTypes].map((f) => {
+          const active = filter === f;
+          const ch = f !== "all" ? CHARS[f] : null;
+          return (
+            <button key={f} onClick={() => setFilter(f)} style={{
+              flex: "none", background: active ? "#1C0A00" : "transparent",
+              color: active ? "#FFFCF8" : "#1C0A00",
+              border: `0.5px solid ${active ? "#1C0A00" : "#E8DDD4"}`,
+              borderRadius: 20, padding: "6px 12px", fontSize: 11,
+              fontWeight: active ? 700 : 400, cursor: "pointer", fontFamily: "inherit",
+            }}>
+              {f === "all" ? "All" : `${ch?.emoji} ${ch?.name?.split(" ")[1] ?? f}`}
+            </button>
+          );
+        })}
+      </div>
+
+      {showForm && (
+        <div style={{ padding: 16, borderBottom: `0.5px solid #E8DDD4`, background: "#FFFCF8" }}>
+          <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#A8001C", marginBottom: 12 }}>Post your tea</div>
+          <input placeholder="Headline (optional)" value={formHeadline} onChange={(e) => setFormHeadline(e.target.value)}
+            style={{ width: "100%", padding: "9px 12px", border: `0.5px solid #E8DDD4`, borderRadius: 8, fontSize: 13, fontFamily: "inherit", marginBottom: 8, boxSizing: "border-box", background: "white", color: "#1C0A00" }} />
+          <textarea placeholder="What's the tea? Be honest — the good and the bad." value={formBody} onChange={(e) => setFormBody(e.target.value)} rows={4}
+            style={{ width: "100%", padding: "9px 12px", border: `0.5px solid #E8DDD4`, borderRadius: 8, fontSize: 13, fontFamily: "inherit", marginBottom: 8, boxSizing: "border-box", resize: "none", background: "white", color: "#1C0A00" }} />
+          <input placeholder="How long have you used it? (e.g. 3 months)" value={formDuration} onChange={(e) => setFormDuration(e.target.value)}
+            style={{ width: "100%", padding: "9px 12px", border: `0.5px solid #E8DDD4`, borderRadius: 8, fontSize: 13, fontFamily: "inherit", marginBottom: 8, boxSizing: "border-box", background: "white", color: "#1C0A00" }} />
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+            {VERDICTS.map((v) => (
+              <button key={v} onClick={() => setFormVerdict(v === formVerdict ? "" : v)} style={{
+                background: formVerdict === v ? "#FEE8EC" : "transparent",
+                color: formVerdict === v ? "#A8001C" : "#555",
+                border: `0.5px solid ${formVerdict === v ? "#A8001C" : "#E8DDD4"}`,
+                borderRadius: 20, padding: "5px 11px", fontSize: 11, fontWeight: formVerdict === v ? 700 : 400,
+                cursor: "pointer", fontFamily: "inherit",
+              }}>{v}</button>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => setShowForm(false)} style={{ flex: 1, padding: "10px", background: "transparent", border: `0.5px solid #E8DDD4`, borderRadius: 10, fontSize: 13, cursor: "pointer", fontFamily: "inherit", color: "#999999" }}>Cancel</button>
+            <button onClick={handleSubmit} disabled={!formBody.trim() || submitting} style={{ flex: 2, padding: "10px", background: "#A8001C", color: "#FFFCF8", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", opacity: !formBody.trim() ? 0.5 : 1 }}>
+              {submitting ? "Posting…" : "Post tea"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
+        <div style={{ padding: "40px 16px", textAlign: "center" }}>
+          <div style={{ fontSize: 13, color: "#999999" }}>No posts yet{filter !== "all" ? " for this skin type" : ""}.</div>
+          <div style={{ fontSize: 12, color: "#C8BDB8", marginTop: 4 }}>Be the first to post your tea.</div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {filtered.map((post) => {
+            const ch = post.skin_type ? CHARS[post.skin_type] : null;
+            const isUserType = userSkinType && post.skin_type === userSkinType;
+            const initials = (post.username ?? "U").replace("@", "").slice(0, 2).toUpperCase();
+            return (
+              <div key={post.id} style={{ padding: "14px 16px", borderBottom: `0.5px solid #E8DDD4` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  {post.avatar_url ? (
+                    <img src={post.avatar_url} alt="" style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                  ) : (
+                    <div style={{ width: 38, height: 38, borderRadius: "50%", background: "#E8DDD4", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: "#999999", flexShrink: 0 }}>{initials}</div>
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: "#1C0A00" }}>
+                        {post.username ? `@${post.username}` : "Anonymous"}
+                      </span>
+                      {ch && (
+                        <span style={{
+                          display: "inline-flex", alignItems: "center", gap: 3,
+                          background: isUserType ? "#FEE8EC" : "#F5EFEC",
+                          color: isUserType ? "#A8001C" : "#555555",
+                          fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 20,
+                        }}>
+                          {ch.emoji} {ch.name}
+                        </span>
+                      )}
+                      {post.skin_type && (
+                        <span style={{ fontSize: 9, color: "#bbbbbb", fontWeight: 400 }}>
+                          {TYPE_LABEL[post.skin_type]}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 10, color: "#999999", marginTop: 3 }}>
+                      {formatDate(post.created_at)}{post.usage_duration ? ` · ${post.usage_duration}` : ""}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: post.agree_count > 10 ? "#A8001C" : "#999999", fontWeight: post.agree_count > 10 ? 600 : 400, flexShrink: 0 }}>
+                    🔥 {post.agree_count}
+                  </div>
+                </div>
+                {post.photo_urls && post.photo_urls.length > 0 && (
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: post.photo_urls.length === 1 ? "1fr" : "repeat(3, minmax(0, 1fr))",
+                    gap: 3, marginBottom: 10, borderRadius: 8, overflow: "hidden",
+                  }}>
+                    {post.photo_urls.slice(0, 3).map((url: string, i: number) => (
+                      <div key={i} style={{ position: "relative", aspectRatio: "1", overflow: "hidden" }}>
+                        <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                        {i === 2 && post.photo_urls.length > 3 && (
+                          <div style={{ position: "absolute", inset: 0, background: "rgba(28,10,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <span style={{ color: "#FFFCF8", fontSize: 13, fontWeight: 700 }}>+{post.photo_urls.length - 3}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {post.headline && (
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#1C0A00", marginBottom: 4, lineHeight: 1.3 }}>{post.headline}</div>
+                )}
+                <div style={{ fontSize: 12, color: "#444444", lineHeight: 1.6 }}>{post.body}</div>
+                {post.verdict && (
+                  <div style={{ marginTop: 8 }}>
+                    <span style={{ fontSize: 10, background: "#FEE8EC", color: "#A8001C", padding: "3px 9px", borderRadius: 20, fontWeight: 600 }}>{post.verdict}</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }

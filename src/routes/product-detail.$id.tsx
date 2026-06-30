@@ -717,6 +717,8 @@ function ProductPage() {
         <span style={{ background: CRIMSON, color: WARM_WHITE, fontSize: 11, fontWeight: 700, padding: "3px 12px", borderRadius: 20 }}>{confidence}</span>
         <span style={{ fontSize: 11, color: MUTED, lineHeight: 1.4 }}>Based on 1,200+ posts across TikTok, Instagram, and Reddit</span>
       </div>
+      </>
+      )}
 
       {toast && (
         <div style={{ position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)", background: ESPRESSO, color: WARM_WHITE, padding: "10px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600, zIndex: 100, whiteSpace: "nowrap", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>

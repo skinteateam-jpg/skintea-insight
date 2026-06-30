@@ -307,7 +307,7 @@ function ProductPage() {
   };
 
   return (
-    <main className="min-h-screen" style={{ paddingBottom: 120, background: WARM_WHITE, fontFamily: "'DM Sans', sans-serif" }}>
+    <main className="min-h-screen" style={{ paddingTop: 52, paddingBottom: 120, background: WARM_WHITE, fontFamily: "'DM Sans', sans-serif" }}>
       {/* 1. Sticky top bar */}
       <div style={{ position: "sticky", top: 0, zIndex: 50, background: WARM_WHITE, borderBottom: `0.5px solid ${BORDER}`, padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <button onClick={backTo} aria-label="Back" style={{ background: "transparent", border: "none", color: ESPRESSO, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, padding: 0 }}>

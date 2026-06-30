@@ -364,6 +364,49 @@ function ProductPage() {
         </div>
       </div>
 
+      {/* Tab switcher */}
+      <div style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}`, background: WARM_WHITE }}>
+        {(["product", "tea"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setPageTab(t)}
+            style={{
+              flex: 1, padding: "11px 0", background: "transparent", border: "none",
+              borderBottom: pageTab === t ? `2px solid ${CRIMSON}` : "2px solid transparent",
+              fontSize: 13, fontWeight: pageTab === t ? 700 : 500,
+              color: pageTab === t ? ESPRESSO : MUTED,
+              cursor: "pointer", fontFamily: "inherit",
+            }}
+          >
+            {t === "product" ? "Product" : (
+              <span>Tea {teaPosts.length > 0 && <span style={{ fontSize: 10, color: CRIMSON, fontWeight: 700, marginLeft: 3 }}>{teaPosts.length}</span>}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {pageTab === "tea" && (
+        <TeaTab
+          posts={teaPosts}
+          filter={teaFilter}
+          setFilter={setTeaFilter}
+          userSkinType={userSkinType}
+          userId={userId}
+          productId={id}
+          onPostAdded={() => {
+            (supabase as any)
+              .from("product_posts")
+              .select("*")
+              .eq("product_id", id)
+              .order("agree_count", { ascending: false })
+              .then(({ data }: any) => setTeaPosts(data ?? []));
+          }}
+          navigate={navigate}
+        />
+      )}
+
+      {pageTab === "product" && (
+      <>
       {/* 3. Stats row */}
       <div style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}` }}>
         {[

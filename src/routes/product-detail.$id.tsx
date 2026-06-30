@@ -1,16 +1,56 @@
-import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Heart, MessageCircle, Play, Share2, ArrowUpCircle, ExternalLink, ChevronDown, Pencil, Bookmark, ArrowLeft } from "lucide-react";
-import { Link } from "@tanstack/react-router";
-import { ProductChat } from "@/components/ProductChat";
-import BottomNav from "@/components/BottomNav";
+import type { ReactNode, CSSProperties } from "react";
+import { Heart, MessageCircle, Play, Share2, ArrowUpCircle, ExternalLink, ArrowLeft, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+
+const ESPRESSO = "#1C0A00";
+const CRIMSON = "#A8001C";
+const WARM_WHITE = "#FFFCF8";
+const BORDER = "#E8DDD4";
+const MUTED = "#999999";
+const CRIMSON_TINT = "#FEE8EC";
+const CREAM_TINT = "#F5EFEC";
+const TRACK = "#F0EAE4";
+
+const SECTION_LABEL: CSSProperties = {
+  fontSize: 9,
+  fontWeight: 800,
+  letterSpacing: "0.14em",
+  textTransform: "uppercase",
+  color: CRIMSON,
+};
+
+const SKIN_CHARACTERS: Record<string, { emoji: string; name: string }> = {
+  oily: { emoji: "🧈", name: "The Butter Girl" },
+  dry: { emoji: "🫙", name: "The Cracker" },
+  combination: { emoji: "🥯", name: "The Everything Bagel" },
+  normal: { emoji: "🥛", name: "The Glass of Milk" },
+  sensitive: { emoji: "🍑", name: "The Peach" },
+};
+
+const SKIN_ORDER = ["oily", "sensitive", "combination", "normal", "dry"] as const;
+const SKIN_PCT: Record<string, number> = { oily: 92, sensitive: 88, combination: 79, normal: 76, dry: 41 };
+
+const AGE_ORDER: { key: string; label: string; sub: string; pct: number }[] = [
+  { key: "teens", label: "Teens", sub: "13–19", pct: 72 },
+  { key: "20s", label: "20s", sub: "20–29", pct: 88 },
+  { key: "30s", label: "30s", sub: "30–39", pct: 94 },
+  { key: "40s", label: "40s", sub: "40–49", pct: 91 },
+  { key: "50s+", label: "50s+", sub: "50 and up", pct: 84 },
+];
+
+function Section({ title, right, children }: { title: string; right?: ReactNode; children: ReactNode }) {
+  return (
+    <div style={{ padding: 16, borderBottom: `0.5px solid ${BORDER}` }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={SECTION_LABEL}>{title}</div>
+        {right}
+      </div>
+      {children}
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/product-detail/$id")({
   component: ProductPage,
@@ -26,13 +66,6 @@ export const Route = createFileRoute("/product-detail/$id")({
   }),
 });
 
-const product = {
-  name: "Moisturizing Cream",
-  brand: "CeraVe",
-  category: "Moisturizer",
-  tagline: "Daily face and body cream for normal to dry skin, with ceramides and hyaluronic acid.",
-};
-
 const tiktoks = [
   { user: "@skinwithliv", views: "1.2M", likes: "184K", caption: "My HG winter moisturizer for 3 years straight 🧴" },
   { user: "@dermdoctor", views: "890K", likes: "92K", caption: "Why dermatologists keep recommending this one." },
@@ -44,14 +77,6 @@ const instagrams = [
   { user: "skincare.notes", likes: "12.4K", caption: "Texture check: thick but melts in. Zero pilling." },
   { user: "thatcleangirl", likes: "8.9K", caption: "My winter barrier reset routine ✨" },
   { user: "derm.maria", likes: "21.1K", caption: "Ceramides 1, 3 and 6-II — here's why that matters." },
-];
-
-const ageRatings = [
-  { label: "Teens", sub: "13–19", value: 72 },
-  { label: "20s", sub: "20–29", value: 88 },
-  { label: "30s", sub: "30–39", value: 94 },
-  { label: "40s", sub: "40–49", value: 91 },
-  { label: "50s+", sub: "50 and up", value: 84 },
 ];
 
 const keyIngredients: { name: string; match: Record<string, "good" | "watch" | "neutral"> }[] = [
@@ -85,12 +110,11 @@ const fullIngredients: { name: string; match: Record<string, "good" | "watch" | 
   { name: "Ethylhexylglycerin", match: {} },
 ];
 
-const affiliates = [
-  { name: "Sephora", url: "https://www.sephora.com" },
+const STORE_LINKS = [
   { name: "Amazon", url: "https://www.amazon.com" },
+  { name: "Sephora", url: "https://www.sephora.com" },
   { name: "Ulta", url: "https://www.ulta.com" },
-  { name: "LTK", url: "https://www.shopltk.com" },
-  { name: "Rakuten", url: "https://www.rakuten.com" },
+  { name: "YesStyle", url: "https://www.yesstyle.com" },
 ];
 
 const reddits = [
@@ -109,6 +133,7 @@ function ProductPage() {
   const fromPost = search?.from === "post";
   const fromPostId = search?.postId;
   const [userSkinType, setUserSkinType] = useState<string | null>(null);
+  const [userAgeBracket, setUserAgeBracket] = useState<string | null>(null);
   const [productData, setProductData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
@@ -145,6 +170,7 @@ function ProductPage() {
 
   useEffect(() => {
     setUserSkinType(localStorage.getItem("skintea_skin_type") || null);
+    setUserAgeBracket(localStorage.getItem("skintea_age_bracket") || null);
   }, []);
   useEffect(() => {
     let cancelled = false;
@@ -165,18 +191,18 @@ function ProductPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen" style={{ background: "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <main className="min-h-screen" style={{ background: WARM_WHITE, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <p style={{ fontSize: 12, color: "#999" }}>Loading…</p>
       </main>
     );
   }
 
   function getIngredientStyle(ing: { name: string; match: Record<string, "good" | "watch" | "neutral"> }) {
-    if (!userSkinType) return { background: "#FFFCF8", color: "#999", border: "none" };
+    if (!userSkinType) return { background: WARM_WHITE, color: MUTED, border: "none", label: "Neutral" as const, status: "neutral" as const };
     const status = ing.match[userSkinType] || "neutral";
-    if (status === "good") return { background: "#F0FAF1", color: "#2D7A3A", border: "0.5px solid #2D7A3A", fontWeight: 600 };
-    if (status === "watch") return { background: "#FFF5F5", color: "#A8001C", border: "0.5px solid #A8001C", fontWeight: 500 };
-    return { background: "#FFFCF8", color: "#999", border: "none" };
+    if (status === "good") return { background: "#F0FAF1", color: "#2D7A3A", border: "0.5px solid #2D7A3A", fontWeight: 600, label: "Great for you" as const, status };
+    if (status === "watch") return { background: "#FFF5F5", color: CRIMSON, border: `0.5px solid ${CRIMSON}`, fontWeight: 600, label: "Watch" as const, status };
+    return { background: WARM_WHITE, color: MUTED, border: "none", label: "Neutral" as const, status };
   }
 
   function showToast(msg: string) { setToast(msg); window.setTimeout(() => setToast(null), 2200); }
@@ -245,479 +271,363 @@ function ProductPage() {
     setSaving(false);
   }
 
+  const reviewCount = socialReviews.length;
+  const reviewCountLabel = reviewCount >= 1000 ? `${(reviewCount / 1000).toFixed(1)}k` : `${reviewCount || "2.4k"}`;
+  const recommendPct = productData?.skintea_score ?? 78;
+  const confidence = reviewCount > 500 ? "High" : reviewCount >= 100 ? "Medium" : "Low";
+  const skintea = productData?.skintea_score ?? "—";
+
+  const backTo = () => {
+    if (fromPost && fromPostId) navigate({ to: "/tea-products/$postId", params: { postId: fromPostId } });
+    else navigate({ to: "/products" });
+  };
+
   return (
-    <main className="min-h-screen" style={{ paddingBottom: "170px", background: "#FFFCF8" }}>
-      <div className="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-20">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
-          <button
-            onClick={() => {
-              if (fromPost && fromPostId) {
-                navigate({ to: "/tea-products/$postId", params: { postId: fromPostId } });
-              } else {
-                navigate({ to: "/products" });
-              }
-            }}
-            aria-label="Back"
-            style={{ background: "transparent", border: "none", color: "#1C0A00", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, padding: 0 }}
-          >
-            <ArrowLeft size={16} />
-            <span>{fromPost ? "Back to post" : "Products"}</span>
-          </button>
-          <div style={{ textAlign: "right" }}>
-            <Link to="/" style={{ textDecoration: "none", display: "block", lineHeight: 1 }}>
-              <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 22, color: "#1C0A00" }}>Skin</span>
-              <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 22, color: "#A8001C" }}>tea</span>
-            </Link>
-            <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "#999999", marginTop: 3 }}>
-              Got Skintea? Spill it.
-            </div>
-          </div>
-        </div>
-        {/* Header */}
-        <header style={{ marginBottom: 0, paddingBottom: 20, borderBottom: "0.5px solid #E8DDD4" }}>
-          <div style={{ width: "100%", height: 180, background: "#FFFCF8", border: "0.5px solid #E8DDD4", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14 }}>
-            {productData?.image_url ? (
-              <img src={productData.image_url} alt={productData?.name ?? ""} style={{ maxHeight: 160, maxWidth: "100%", objectFit: "contain" }} />
-            ) : (
-              <div style={{ width: 56, height: 76, background: "#E8DDD4", borderRadius: 8 }} />
-            )}
-          </div>
-          <div style={{ fontSize: 10, color: "#A8001C", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 3 }}>
-            <span style={{ color: "#A8001C" }}>{productData?.brand} · {productData?.category}</span>
-          </div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1C0A00", lineHeight: 1.1, marginBottom: 6, marginTop: 4 }}>
-            {productData?.name}
-          </h1>
-          <p style={{ fontSize: 12, color: "#999", lineHeight: 1.6, marginBottom: 14 }}>
-            {productData?.description}
-          </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-            {affiliates.map((a, i) => (
-              <a
-                key={a.name}
-                href={a.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                  padding: "6px 13px",
-                  borderRadius: 99,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  textDecoration: "none",
-                  background: i === 0 ? "#1C0A00" : "transparent",
-                  color: i === 0 ? "#FFFCF8" : "#1C0A00",
-                  border: i === 0 ? "none" : "0.5px solid #E8DDD4",
-                }}
-              >
-                {a.name} <ExternalLink width={10} height={10} />
-              </a>
-            ))}
-          </div>
-        </header>
+    <main className="min-h-screen" style={{ paddingBottom: 120, background: WARM_WHITE }}>
+      {/* 1. Sticky top bar */}
+      <div style={{ position: "sticky", top: 0, zIndex: 10, background: WARM_WHITE, borderBottom: `0.5px solid ${BORDER}`, padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <button onClick={backTo} aria-label="Back" style={{ background: "transparent", border: "none", color: ESPRESSO, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, padding: 0 }}>
+          <ArrowLeft size={16} />
+          <span>{fromPost ? "Back" : "Products"}</span>
+        </button>
+        <Link to="/" style={{ textDecoration: "none", lineHeight: 1 }}>
+          <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 20, color: ESPRESSO }}>Skin</span>
+          <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 20, color: CRIMSON }}>tea</span>
+        </Link>
+        <div style={{ width: 40 }} />
+      </div>
 
-        {/* Content Aggregation */}
-        <section className="mb-16">
-          <h2 style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#999", marginBottom: 14 }}>
-            What people are saying
-          </h2>
-          <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className="mb-6 grid grid-cols-3" style={{ background: "transparent", padding: 0, borderBottom: "0.5px solid #E8DDD4", gap: 0, width: "100%", height: "auto", borderRadius: 0 }}>
-              {(["tiktok", "instagram", "reddit"] as const).map((v) => {
-                const active = tab === v;
-                return (
-                  <TabsTrigger
-                    key={v}
-                    value={v}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      borderBottom: active ? "2px solid #A8001C" : "2px solid transparent",
-                      borderRadius: 0,
-                      boxShadow: "none",
-                      padding: "8px 4px",
-                      color: active ? "#1C0A00" : "#999",
-                      fontWeight: active ? 700 : 400,
-                    }}
-                  >
-                    {v === "tiktok" ? "TikTok" : v === "instagram" ? "Instagram" : "Reddit"}
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
-
-            <TabsContent value="tiktok">
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {(() => {
-                  const real = socialReviews.filter((r) => r.platform === "tiktok").map((r) => ({
-                    user: r.author_handle ?? "@user",
-                    views: r.views ? `${r.views}` : "—",
-                    likes: r.likes ? `${r.likes}` : "—",
-                    caption: r.content ?? "",
-                  }));
-                  const list = real.length ? real : tiktoks;
-                  return list.map((t, i) => (
-                  <div key={`${t.user}-${i}`} style={{ background: "#1a2620", borderRadius: 12, overflow: "hidden", aspectRatio: "9/14", position: "relative", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-                    <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%, -50%)", width: 36, height: 36, background: "rgba(255,255,255,0.2)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Play width={14} height={14} color="#fff" fill="#fff" />
-                    </div>
-                    <div style={{ padding: "8px 10px 10px", background: "linear-gradient(to top, rgba(0,0,0,0.8), transparent)" }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#fff", marginBottom: 2 }}>{t.user}</div>
-                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.75)", lineHeight: 1.35, marginBottom: 5, overflow: "hidden", WebkitLineClamp: 2, display: "-webkit-box", WebkitBoxOrient: "vertical" }}>{t.caption}</div>
-                      <div style={{ display: "flex", gap: 10, fontSize: 9, color: "rgba(255,255,255,0.6)" }}>
-                        <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Play width={9} height={9} /> {t.views}</span>
-                        <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Heart width={9} height={9} /> {t.likes}</span>
-                      </div>
-                    </div>
-                  </div>
-                  ));
-                })()}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="instagram">
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {(() => {
-                  const real = socialReviews.filter((r) => r.platform === "instagram").map((r) => ({
-                    user: r.author_handle ?? "user",
-                    likes: r.likes ? `${r.likes}` : "—",
-                    caption: r.content ?? "",
-                  }));
-                  const list = real.length ? real : instagrams;
-                  return list.map((p, i) => (
-                  <div key={`${p.user}-${i}`} style={{ display: "flex", alignItems: "center", gap: 12, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: "10px 12px" }}>
-                    <div style={{ width: 44, height: 44, background: "#FFFCF8", border: "0.5px solid #E8DDD4", borderRadius: 8, flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "#1C0A00", marginBottom: 2 }}>@{p.user}</div>
-                      <div style={{ fontSize: 11, color: "#999", lineHeight: 1.4, marginBottom: 4, WebkitLineClamp: 2, display: "-webkit-box", WebkitBoxOrient: "vertical", overflow: "hidden" }}>{p.caption}</div>
-                      <div style={{ display: "flex", gap: 12, fontSize: 10, color: "#bbb", alignItems: "center" }}>
-                        <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Heart width={10} height={10} /> {p.likes}</span>
-                        <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Share2 width={10} height={10} /></span>
-                      </div>
-                    </div>
-                  </div>
-                  ));
-                })()}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="reddit">
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {(() => {
-                  const real = socialReviews.filter((rv) => rv.platform === "reddit").map((rv) => ({
-                    sub: "r/SkincareAddiction",
-                    up: rv.likes ? `${rv.likes}` : "—",
-                    title: (rv.content ?? "").split("\n")[0] || "—",
-                    comments: 0,
-                  }));
-                  const list = real.length ? real : reddits;
-                  return list.map((r, i) => (
-                  <div key={`${r.title}-${i}`} style={{ display: "flex", alignItems: "flex-start", gap: 12, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: "10px 12px" }}>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0 }}>
-                      <ArrowUpCircle width={14} height={14} color="#A8001C" />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#1C0A00" }}>{r.up}</span>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 9, fontWeight: 700, color: "#A8001C", marginBottom: 2, textTransform: "uppercase", letterSpacing: "0.06em" }}>{r.sub}</div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: "#1C0A00", lineHeight: 1.4, marginBottom: 4 }}>{r.title}</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "#bbb" }}>
-                        <MessageCircle width={10} height={10} /> {r.comments} comments
-                      </div>
-                    </div>
-                  </div>
-                  ));
-                })()}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </section>
-
-        {/* AI Summary */}
-        <section className="mb-16">
-          <h2 style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#999", marginBottom: 14 }}>
-            Summary
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <OpinionCard
-              label="Majority"
-              percent={78}
-              barColor="#A8001C"
-              sentence="Strengthens the skin barrier within a few weeks."
-            />
-            <OpinionCard
-              label="Minority"
-              percent={22}
-              barColor="#C8BDB8"
-              sentence="Feels heavy and may pill under sunscreen."
-            />
+      {/* 2. Product hero */}
+      <div style={{ width: "100%", height: 280, background: ESPRESSO, position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {productData?.image_url ? (
+          <img src={productData.image_url} alt={productData?.name ?? ""} style={{ objectFit: "contain", maxHeight: 220, maxWidth: "70%" }} />
+        ) : (
+          <div style={{ width: 120, height: 160, background: "rgba(232,221,212,0.07)", borderRadius: 12, border: "1px solid rgba(232,221,212,0.1)" }} />
+        )}
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "16px 18px 20px", background: "linear-gradient(transparent, #1C0A00)" }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: CRIMSON, fontWeight: 700 }}>
+            {productData?.brand}{productData?.category ? ` · ${productData.category}` : ""}
           </div>
-          <div className="mt-3 rounded-xl px-4 py-3" style={{ background: "#FFFCF8" }}>
-            <p className="text-xs font-medium text-muted-foreground">Why opinions differ</p>
-            <p className="mt-1 text-sm text-foreground">
-              Skin type and climate shape the experience more than the formula itself.
-            </p>
-          </div>
-        </section>
-
-        {/* Fit Summary */}
-        <section className="mb-16">
-          <h2 style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#999", marginBottom: 14 }}>
-            Is it for you?
-          </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <FitCard
-              variant="yes"
-              title="YES — works well"
-              items={[
-                { label: "Dry skin", strength: 3 },
-                { label: "Sensitive skin", strength: 3 },
-                { label: "Compromised barrier", strength: 2 },
-                { label: "Eczema-prone", strength: 2 },
-              ]}
-            />
-            <FitCard
-              variant="skip"
-              title="SKIP — may not work"
-              items={[
-                { label: "Very oily skin", strength: 3 },
-                { label: "Acne-prone (fungal)", strength: 3 },
-                { label: "Humid climates", strength: 1 },
-                { label: "Dislikes rich textures", strength: 2 },
-              ]}
-            />
-          </div>
-          <div style={{ display: "flex", gap: "16px", marginTop: "12px", fontSize: "11px", color: "#999" }}>
-            <LegendItem strength={3} label="Strong match" />
-            <LegendItem strength={2} label="Moderate" />
-            <LegendItem strength={1} label="Mild" />
-          </div>
-        </section>
-
-        <ProductChat />
-
-        {/* Ratings by Age */}
-        <section className="mb-16">
-          <h2 style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#999", marginBottom: 14 }}>
-            Ratings by Age
-          </h2>
-          <Card className="p-6 shadow-sm">
-            <div className="space-y-5">
-              {ageRatings.map((a) => (
-                <div key={a.label}>
-                  <div className="mb-2 flex items-baseline justify-between">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-sm font-semibold text-foreground">{a.label}</span>
-                      <span className="text-xs text-muted-foreground">{a.sub}</span>
-                    </div>
-                    <span className="text-sm font-medium" style={{ color: "#A8001C" }}>{a.value}%</span>
-                  </div>
-                  <Progress value={a.value} className="h-2 [&>div]:bg-[#1C0A00]" style={{ background: "#FFFCF8" }} />
-                </div>
-              ))}
-            </div>
-          </Card>
-        </section>
-
-        {/* Key Ingredients */}
-        <section className="mb-16">
-          <div className="mb-5 flex items-center justify-between">
-            <h2 style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#999", margin: 0 }}>
-              Key Ingredients
-            </h2>
-            {userSkinType && (
-              <span style={{ fontSize: "11px", background: "#FFFCF8", border: "0.5px solid #A8001C", color: "#A8001C", borderRadius: "20px", padding: "3px 10px", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                {userSkinType} skin active
-              </span>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {keyIngredients.map((ing) => (
-              <Badge
-                key={ing.name}
-                variant="secondary"
-                className="rounded-full px-3 py-1.5 text-sm font-medium"
-                style={getIngredientStyle(ing)}
-              >
-                {ing.name}
-              </Badge>
-            ))}
-          </div>
-          {userSkinType && (
-            <div style={{ marginTop: "12px", background: "#FDF8F5", border: "0.5px solid #E8DDD4", borderRadius: "10px", padding: "10px 14px" }}>
-              <p style={{ margin: 0, fontSize: "12px", color: "#1C0A00" }}>
-                <span style={{ color: "#2D7A3A", fontWeight: 600 }}>Green = great for your skin type.</span> <span style={{ color: "#A8001C", fontWeight: 600 }}>Red = use with caution.</span>
-              </p>
-            </div>
+          <div style={{ fontSize: 19, fontWeight: 700, color: WARM_WHITE, lineHeight: 1.25, marginTop: 4 }}>{productData?.name}</div>
+          {productData?.subcategory && (
+            <div style={{ fontSize: 12, color: "rgba(232,221,212,0.4)", marginTop: 2 }}>{productData.subcategory}</div>
           )}
-          <Collapsible open={showAllIngredients} onOpenChange={setShowAllIngredients} className="mt-5">
-            <CollapsibleTrigger className="flex items-center gap-1.5 text-sm font-medium transition hover:opacity-70" style={{ color: "#A8001C" }}>
-              {showAllIngredients ? "Hide" : "Full ingredient list"}
-              <ChevronDown className={`h-4 w-4 transition-transform ${showAllIngredients ? "rotate-180" : ""}`} />
-            </CollapsibleTrigger>
-            <CollapsibleContent className="mt-4">
-              <Card className="p-5 shadow-sm">
-                <div className="flex flex-wrap gap-2">
-                  {fullIngredients.map((ing) => (
-                    <span
-                      key={ing.name}
-                      style={{ ...getIngredientStyle(ing), fontSize: "12px", borderRadius: "4px", padding: "3px 8px", display: "inline-block" }}
-                    >
-                      {ing.name}
-                    </span>
-                  ))}
-                </div>
-              </Card>
-            </CollapsibleContent>
-          </Collapsible>
-        </section>
+        </div>
+      </div>
 
-        {/* Confidence */}
-        <section className="border-t border-border pt-10">
-          <h2 style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#999", marginBottom: 14 }}>
-            Confidence Level
-          </h2>
-          <div className="flex flex-col items-start gap-2">
-            <Badge className="rounded-full px-4 py-1.5 text-sm font-medium" style={{ background: "#A8001C", color: "#FFFFFF" }}>
-              High
-            </Badge>
-            <p className="text-sm text-muted-foreground">
-              Based on 1,200+ posts and consistent sentiment across all three platforms over the past 12 months.
-            </p>
+      {/* 3. Stats row */}
+      <div style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}` }}>
+        {[
+          { val: `${recommendPct}%`, label: "Recommend", color: ESPRESSO },
+          { val: reviewCountLabel, label: "Reviews", color: ESPRESSO },
+          { val: confidence, label: "Confidence", color: ESPRESSO },
+          { val: `${skintea}`, label: "Skintea", color: CRIMSON },
+        ].map((s, i, arr) => (
+          <div key={s.label} style={{ flex: 1, padding: "13px 0", textAlign: "center", borderRight: i < arr.length - 1 ? `0.5px solid ${BORDER}` : "none" }}>
+            <div style={{ fontSize: 19, fontWeight: 800, color: s.color }}>{s.val}</div>
+            <div style={{ fontSize: 9, textTransform: "uppercase", color: MUTED, letterSpacing: "0.08em", marginTop: 2 }}>{s.label}</div>
           </div>
-        </section>
+        ))}
+      </div>
+
+      {/* 4. Price + buy links */}
+      <div style={{ padding: "10px 14px", borderBottom: `0.5px solid ${BORDER}`, display: "flex", alignItems: "center", gap: 8, overflowX: "auto" }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: ESPRESSO, flex: "none" }}>{productData?.price ?? "—"}</span>
+        <span style={{ color: MUTED, flex: "none" }}>·</span>
+        {productData?.product_url && (
+          <a href={productData.product_url} target="_blank" rel="noopener noreferrer" style={{ flex: "none", background: ESPRESSO, color: WARM_WHITE, borderRadius: 20, padding: "6px 13px", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", gap: 4, textDecoration: "none" }}>
+            Shop <ExternalLink width={10} height={10} />
+          </a>
+        )}
+        {STORE_LINKS.map((s) => (
+          <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer" style={{ flex: "none", background: "transparent", color: ESPRESSO, border: `0.5px solid ${BORDER}`, borderRadius: 20, padding: "6px 13px", fontSize: 11, display: "flex", alignItems: "center", gap: 4, textDecoration: "none" }}>
+            {s.name} <ExternalLink width={10} height={10} />
+          </a>
+        ))}
+      </div>
+
+      {/* 5. What people say */}
+      <Section title="What people say">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+          {[
+            { label: "Majority", pct: 78, color: CRIMSON, sentence: "Strengthens the skin barrier within a few weeks." },
+            { label: "Minority", pct: 22, color: "#C8BDB8", sentence: "Feels heavy and may pill under sunscreen." },
+          ].map((c) => (
+            <div key={c.label} style={{ background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 12, padding: 14 }}>
+              <div style={{ fontSize: 11, color: MUTED, marginBottom: 4 }}>{c.label}</div>
+              <div style={{ fontSize: 30, fontWeight: 700, color: ESPRESSO, lineHeight: 1 }}>{c.pct}%</div>
+              <div style={{ height: 3, background: BORDER, borderRadius: 2, margin: "8px 0", overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${c.pct}%`, background: c.color }} />
+              </div>
+              <div style={{ fontSize: 12, color: ESPRESSO, lineHeight: 1.5 }}>{c.sentence}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ background: WARM_WHITE, border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 13px", marginTop: 10 }}>
+          <div style={{ fontSize: 10, color: MUTED, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>Why opinions differ</div>
+          <div style={{ fontSize: 12, color: ESPRESSO, lineHeight: 1.55, marginTop: 4 }}>Skin type and climate shape the experience more than the formula itself.</div>
+        </div>
+      </Section>
+
+      {/* 6. Works for you */}
+      <Section title="Works for you">
+        <div style={{ fontSize: 11, color: MUTED, marginBottom: 12, paddingLeft: 11 }}>Skin type</div>
+        {SKIN_ORDER.map((key) => {
+          const c = SKIN_CHARACTERS[key];
+          const pct = SKIN_PCT[key];
+          const me = userSkinType === key;
+          if (me) {
+            return (
+              <div key={key} style={{ background: "#FFF5F7", border: `1px solid ${CRIMSON}`, borderRadius: 10, padding: "10px 12px", marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, color: CRIMSON, fontWeight: 700, fontSize: 13 }}>
+                    <span>{c.emoji}</span><span>{c.name}</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ background: CRIMSON, color: WARM_WHITE, fontSize: 10, padding: "2px 8px", borderRadius: 20, fontWeight: 600 }}>You</span>
+                    <span style={{ color: CRIMSON, fontWeight: 700, fontSize: 13 }}>{pct}%</span>
+                  </div>
+                </div>
+                <div style={{ height: 4, background: "rgba(168,0,28,0.12)", borderRadius: 3, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${pct}%`, background: CRIMSON }} />
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div key={key} style={{ padding: "8px 12px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#555", fontSize: 12 }}>
+                  <span>{c.emoji}</span><span>{c.name}</span>
+                </div>
+                <span style={{ color: "#888", fontSize: 12 }}>{pct}%</span>
+              </div>
+              <div style={{ height: 4, background: BORDER, borderRadius: 3, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${pct}%`, background: "#D4C8C2" }} />
+              </div>
+            </div>
+          );
+        })}
+        <div style={{ height: "0.5px", background: BORDER, margin: "4px 0 16px" }} />
+        <div style={{ fontSize: 11, color: MUTED, marginBottom: 12 }}>Age group</div>
+        {AGE_ORDER.map((a) => {
+          const me = userAgeBracket === a.key;
+          if (me) {
+            return (
+              <div key={a.key} style={{ background: "#FFF5F7", border: `1px solid ${CRIMSON}`, borderRadius: 10, padding: "10px 12px", marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                  <div style={{ color: CRIMSON, fontWeight: 700, fontSize: 13 }}>{a.label} <span style={{ color: CRIMSON, fontWeight: 400, fontSize: 11, marginLeft: 4 }}>{a.sub}</span></div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ background: CRIMSON, color: WARM_WHITE, fontSize: 10, padding: "2px 8px", borderRadius: 20, fontWeight: 600 }}>You</span>
+                    <span style={{ color: CRIMSON, fontWeight: 700, fontSize: 13 }}>{a.pct}%</span>
+                  </div>
+                </div>
+                <div style={{ height: 4, background: "rgba(168,0,28,0.12)", borderRadius: 3, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${a.pct}%`, background: CRIMSON }} />
+                </div>
+              </div>
+            );
+          }
+          return (
+            <div key={a.key} style={{ padding: "8px 12px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                <div style={{ color: "#555", fontSize: 12 }}>{a.label} <span style={{ color: "#888", fontSize: 11, marginLeft: 4 }}>{a.sub}</span></div>
+                <span style={{ color: "#888", fontSize: 12 }}>{a.pct}%</span>
+              </div>
+              <div style={{ height: 4, background: BORDER, borderRadius: 3, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${a.pct}%`, background: "#D4C8C2" }} />
+              </div>
+            </div>
+          );
+        })}
+        {!userAgeBracket && (
+          <div style={{ background: WARM_WHITE, border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 13px", display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+            <Info size={15} color={MUTED} />
+            <div style={{ fontSize: 11, color: MUTED }}>
+              Age highlight comes from your profile.{" "}
+              <span onClick={() => navigate({ to: "/skin-profile" })} style={{ color: CRIMSON, fontWeight: 600, cursor: "pointer" }}>Add your age →</span>
+            </div>
+          </div>
+        )}
+      </Section>
+
+      {/* 7. Is it for you? */}
+      <Section title="Is it for you?">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+          {([
+            { variant: "yes" as const, header: "Yes — works well", items: [
+              { label: "Dry skin", strength: 3 },
+              { label: "Sensitive skin", strength: 3 },
+              { label: "Compromised barrier", strength: 2 },
+              { label: "Eczema-prone", strength: 2 },
+            ] },
+            { variant: "skip" as const, header: "Skip — may not work", items: [
+              { label: "Very oily skin", strength: 3 },
+              { label: "Acne-prone (fungal)", strength: 3 },
+              { label: "Humid climates", strength: 1 },
+              { label: "Rich textures", strength: 2 },
+            ] },
+          ]).map((card) => {
+            const dotColor = card.variant === "yes" ? "#2D7A3A" : CRIMSON;
+            return (
+              <div key={card.variant} style={{ background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 12, padding: 14 }}>
+                <div style={{ fontSize: 10, color: dotColor, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 10 }}>{card.header}</div>
+                {card.items.map((it) => (
+                  <div key={it.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <span style={{ fontSize: 12, color: ESPRESSO }}>{it.label}</span>
+                    <div style={{ display: "flex", gap: 3 }}>
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: i <= it.strength ? dotColor : BORDER }} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </Section>
+
+      {/* 8. Key ingredients */}
+      <Section title="Key ingredients">
+        <div>
+          {keyIngredients.map((ing, i) => {
+            const st = getIngredientStyle(ing);
+            return (
+              <div key={ing.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: i < keyIngredients.length - 1 ? `0.5px solid ${BORDER}` : "none" }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: ESPRESSO }}>{ing.name}</div>
+                  <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Ingredient</div>
+                </div>
+                <span style={{ background: st.background, color: st.color, border: st.border, fontSize: 10, padding: "3px 10px", borderRadius: 20, fontWeight: 600 }}>{st.label}</span>
+              </div>
+            );
+          })}
+        </div>
+        <button onClick={() => setShowAllIngredients((v) => !v)} style={{ background: "transparent", border: "none", color: CRIMSON, fontSize: 12, fontWeight: 600, marginTop: 12, padding: 0, cursor: "pointer" }}>
+          Full ingredient list {showAllIngredients ? "▴" : "▾"}
+        </button>
+        {showAllIngredients && (
+          <div style={{ marginTop: 10, fontSize: 12, color: ESPRESSO, lineHeight: 1.7 }}>
+            {fullIngredients.map((i) => i.name).join(", ")}
+          </div>
+        )}
+      </Section>
+
+      {/* 9. What people are saying */}
+      <Section title="What people are saying">
+        <div style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}`, marginBottom: 12 }}>
+          {(["tiktok", "instagram", "reddit"] as const).map((v) => {
+            const active = tab === v;
+            return (
+              <button key={v} onClick={() => setTab(v)} style={{ flex: 1, background: "transparent", border: "none", borderBottom: active ? `2px solid ${CRIMSON}` : "2px solid transparent", padding: "8px 4px", color: active ? ESPRESSO : MUTED, fontWeight: active ? 700 : 500, fontSize: 12, cursor: "pointer" }}>
+                {v === "tiktok" ? "TikTok" : v === "instagram" ? "Instagram" : "Reddit"}
+              </button>
+            );
+          })}
+        </div>
+        {tab === "tiktok" && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+            {(() => {
+              const real = socialReviews.filter((r) => r.platform === "tiktok").map((r) => ({
+                user: r.author_handle ?? "@user",
+                views: r.views ? `${r.views}` : "—",
+                likes: r.likes ? `${r.likes}` : "—",
+                caption: r.content ?? "",
+              }));
+              const list = real.length ? real : tiktoks;
+              return list.map((t, i) => (
+                <div key={`${t.user}-${i}`} style={{ background: "#1a2620", borderRadius: 12, overflow: "hidden", aspectRatio: "9/16", position: "relative" }}>
+                  <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%, -50%)", width: 36, height: 36, background: "rgba(255,255,255,0.2)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Play width={14} height={14} color="#fff" fill="#fff" />
+                  </div>
+                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "8px 10px", background: "linear-gradient(to top, rgba(0,0,0,0.85), transparent)" }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{t.user}</div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.7)", marginTop: 2, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{t.caption}</div>
+                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", marginTop: 3 }}>{t.views} views</div>
+                  </div>
+                </div>
+              ));
+            })()}
+          </div>
+        )}
+        {tab === "instagram" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {(() => {
+              const real = socialReviews.filter((r) => r.platform === "instagram").map((r) => ({
+                user: r.author_handle ?? "user",
+                likes: r.likes ? `${r.likes}` : "—",
+                caption: r.content ?? "",
+              }));
+              const list = real.length ? real : instagrams;
+              return list.map((p, i) => (
+                <div key={`${p.user}-${i}`} style={{ background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>@{p.user}</div>
+                  <div style={{ fontSize: 11, color: "#555", lineHeight: 1.4, marginTop: 3 }}>{p.caption}</div>
+                  <div style={{ display: "flex", gap: 12, fontSize: 10, color: "#bbb", marginTop: 6, alignItems: "center" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Heart width={10} height={10} /> {p.likes}</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Share2 width={10} height={10} /></span>
+                  </div>
+                </div>
+              ));
+            })()}
+          </div>
+        )}
+        {tab === "reddit" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {(() => {
+              const real = socialReviews.filter((rv) => rv.platform === "reddit").map((rv) => ({
+                sub: "r/SkincareAddiction",
+                up: rv.likes ? `${rv.likes}` : "—",
+                title: (rv.content ?? "").split("\n")[0] || "—",
+                comments: 0,
+              }));
+              const list = real.length ? real : reddits;
+              return list.map((r, i) => (
+                <div key={`${r.title}-${i}`} style={{ display: "flex", gap: 12, background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                    <ArrowUpCircle width={14} height={14} color={CRIMSON} />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: ESPRESSO }}>{r.up}</span>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: CRIMSON, textTransform: "uppercase", letterSpacing: "0.06em" }}>{r.sub}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: ESPRESSO, lineHeight: 1.4, marginTop: 2 }}>{r.title}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "#bbb", marginTop: 4 }}>
+                      <MessageCircle width={10} height={10} /> {r.comments} comments
+                    </div>
+                  </div>
+                </div>
+              ));
+            })()}
+          </div>
+        )}
+      </Section>
+
+      {/* 10. Confidence strip */}
+      <div style={{ padding: "14px 16px", background: WARM_WHITE, border: `0.5px solid ${BORDER}`, borderRadius: 10, margin: "12px 16px 8px", display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ background: CRIMSON, color: WARM_WHITE, fontSize: 11, fontWeight: 700, padding: "3px 12px", borderRadius: 20 }}>{confidence}</span>
+        <span style={{ fontSize: 11, color: MUTED, lineHeight: 1.4 }}>Based on 1,200+ posts across TikTok, Instagram, and Reddit</span>
       </div>
 
       {toast && (
-        <div style={{ position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)", background: "#1C0A00", color: "#FFFCF8", padding: "10px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600, zIndex: 100, whiteSpace: "nowrap", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
+        <div style={{ position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)", background: ESPRESSO, color: WARM_WHITE, padding: "10px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600, zIndex: 100, whiteSpace: "nowrap", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
           {toast}
         </div>
       )}
 
-      <div style={{ position: "fixed", bottom: 64, left: 0, right: 0, background: "#FFFCF8", borderTop: "1px solid #E8DDD4", padding: "10px 16px", zIndex: 60 }}>
-        <div style={{ maxWidth: 480, margin: "0 auto", display: "flex", gap: 8 }}>
-          <ActionBtn icon="🧴" label={isInShelf ? "On Shelf" : "Add to Shelf"} onClick={handleShelfClick} active={isInShelf} disabled={shelving} />
-          <ActionBtn icon="🎁" label={isInGift ? "On Gift Me" : "Gift Me"} onClick={handleGiftClick} active={isInGift} disabled={gifting} />
-          <ActionBtn icon="🔖" label={isSaved ? "Saved" : "Save"} onClick={handleSaveToggle} active={isSaved} disabled={saving} />
-        </div>
+      {/* 11. Bottom action bar */}
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: WARM_WHITE, borderTop: `0.5px solid ${BORDER}`, padding: "12px 16px 24px", zIndex: 60, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+        <ActionBtn icon="🧴" label={isInShelf ? "On Shelf" : "Add to Shelf"} onClick={handleShelfClick} active={isInShelf} disabled={shelving} />
+        <ActionBtn icon="🎁" label={isInGift ? "On Gift Me" : "Gift Me"} onClick={handleGiftClick} active={isInGift} disabled={gifting} />
+        <ActionBtn icon="🔖" label={isSaved ? "Saved" : "Save"} onClick={handleSaveToggle} active={isSaved} disabled={saving} />
       </div>
-      <BottomNav />
     </main>
-  );
-}
-
-function OpinionCard({
-  label,
-  percent,
-  barColor,
-  sentence,
-}: {
-  label: string;
-  percent: number;
-  barColor: string;
-  sentence: string;
-}) {
-  return (
-    <Card className="border border-border bg-background p-5 shadow-none">
-      <div className="flex items-baseline justify-between">
-        <span className="text-sm font-medium text-muted-foreground">{label}</span>
-      </div>
-      <div className="mt-2 text-4xl font-bold tracking-tight text-foreground">{percent}%</div>
-      <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
-        <div className="h-full" style={{ width: `${percent}%`, background: barColor }} />
-      </div>
-      <p className="mt-4 text-sm text-foreground">{sentence}</p>
-    </Card>
-  );
-}
-
-function Dots({
-  strength,
-  color,
-}: {
-  strength: number;
-  color: "yes" | "skip" | "grey";
-}) {
-  const fill = color === "yes" ? "#2D7A3A" : color === "skip" ? "#A8001C" : "#E8DDD4";
-  return (
-    <div style={{ display: "flex", gap: "3px", alignItems: "center" }}>
-      {[1, 2, 3].map((i) => (
-        <div
-          key={i}
-          style={{
-            width: "8px",
-            height: "8px",
-            borderRadius: "50%",
-            display: "inline-block",
-            background: i <= strength ? fill : "#E8DDD4",
-            border: "none",
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-function FitCard({
-  variant,
-  title,
-  items,
-}: {
-  variant: "yes" | "skip";
-  title: string;
-  items: { label: string; strength: number }[];
-}) {
-  const labelColor = variant === "yes" ? "#2D7A3A" : "#A8001C";
-  return (
-    <div
-      style={{
-        background: "white",
-        border: "0.5px solid #E8DDD4",
-        borderRadius: "12px",
-        padding: "16px 20px",
-      }}
-    >
-      <div
-        style={{
-          color: labelColor,
-          fontSize: "12px",
-          fontWeight: 500,
-          marginBottom: "12px",
-        }}
-      >
-        {title}
-      </div>
-      {items.map((it) => (
-        <div
-          key={it.label}
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "8px",
-          }}
-        >
-          <span style={{ fontSize: "13px", color: "#333333" }}>{it.label}</span>
-          <Dots strength={it.strength} color={variant} />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function LegendItem({ strength, label }: { strength: number; label: string }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-      <Dots strength={strength} color="grey" />
-      <span>{label}</span>
-    </div>
   );
 }
 
 function ActionBtn({ icon, label, onClick, active, disabled }: { icon: string; label: string; onClick: () => void; active?: boolean; disabled?: boolean }) {
   return (
-    <button onClick={onClick} disabled={disabled} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "8px 4px", background: active ? "#1C0A00" : "transparent", color: active ? "#FFFCF8" : "#1C0A00", border: `1px solid ${active ? "#1C0A00" : "#E8DDD4"}`, borderRadius: 10, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.6 : 1, fontFamily: "inherit" }}>
+    <button onClick={onClick} disabled={disabled} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "10px 4px", background: active ? ESPRESSO : "transparent", color: active ? WARM_WHITE : ESPRESSO, border: active ? "none" : `0.5px solid ${BORDER}`, borderRadius: 10, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.6 : 1, fontFamily: "inherit" }}>
       <span style={{ fontSize: 18 }}>{icon}</span>
       <span>{label}</span>
     </button>

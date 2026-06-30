@@ -330,13 +330,15 @@ function ProductPage() {
             <div style={{ width: 100, height: 140, background: "#F0EAE4", borderRadius: 12 }} />
           )}
         </div>
-        <div style={{ background: "#1C0A00", padding: "14px 18px 18px" }}>
-          <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: CRIMSON, fontWeight: 700 }}>
+        <div style={{ background: "#FFFCF8", padding: "14px 16px 16px", borderBottom: `0.5px solid ${BORDER}` }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: CRIMSON, fontWeight: 700, marginBottom: 4 }}>
             {productData?.brand}{productData?.category ? ` · ${productData.category}` : ""}
           </div>
-          <div style={{ fontSize: 19, fontWeight: 700, color: WARM_WHITE, lineHeight: 1.25, marginTop: 4 }}>{productData?.name}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: ESPRESSO, lineHeight: 1.25, marginBottom: productData?.subcategory ? 3 : 0 }}>
+            {productData?.name}
+          </div>
           {productData?.subcategory && (
-            <div style={{ fontSize: 12, color: "rgba(232,221,212,0.4)", marginTop: 2 }}>{productData.subcategory}</div>
+            <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{productData.subcategory}</div>
           )}
         </div>
       </div>

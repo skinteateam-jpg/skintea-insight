@@ -40,6 +40,14 @@ const AGE_ORDER: { key: string; label: string; sub: string; pct: number }[] = [
   { key: "50s+", label: "50s+", sub: "50 and up", pct: 84 },
 ];
 
+const SKIN_TYPE_LABEL: Record<string, string> = {
+  oily: "Oily skin",
+  dry: "Dry skin",
+  combination: "Combination skin",
+  normal: "Normal skin",
+  sensitive: "Sensitive skin",
+};
+
 function Section({ title, right, children }: { title: string; right?: ReactNode; children: ReactNode }) {
   return (
     <div style={{ padding: 16, borderBottom: `0.5px solid ${BORDER}` }}>
@@ -62,6 +70,10 @@ export const Route = createFileRoute("/product-detail/$id")({
         content:
           "Real opinions from TikTok, Instagram and Reddit, summarized by AI.",
       },
+    ],
+    links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" },
     ],
   }),
 });
@@ -169,7 +181,19 @@ function ProductPage() {
   }, [id]);
 
   useEffect(() => {
-    setUserSkinType(localStorage.getItem("skintea_skin_type") || null);
+    try {
+      const raw = localStorage.getItem("skintea.quizResult");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const st = parsed?.skinType?.toLowerCase() ?? null;
+        setUserSkinType(st);
+        if (st) localStorage.setItem("skintea_skin_type", st);
+      } else {
+        setUserSkinType(localStorage.getItem("skintea_skin_type") || null);
+      }
+    } catch {
+      setUserSkinType(localStorage.getItem("skintea_skin_type") || null);
+    }
     setUserAgeBracket(localStorage.getItem("skintea_age_bracket") || null);
   }, []);
   useEffect(() => {
@@ -283,9 +307,9 @@ function ProductPage() {
   };
 
   return (
-    <main className="min-h-screen" style={{ paddingBottom: 120, background: WARM_WHITE }}>
+    <main className="min-h-screen" style={{ paddingBottom: 120, background: WARM_WHITE, fontFamily: "'DM Sans', sans-serif" }}>
       {/* 1. Sticky top bar */}
-      <div style={{ position: "sticky", top: 0, zIndex: 10, background: WARM_WHITE, borderBottom: `0.5px solid ${BORDER}`, padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 50, background: WARM_WHITE, borderBottom: `0.5px solid ${BORDER}`, padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <button onClick={backTo} aria-label="Back" style={{ background: "transparent", border: "none", color: ESPRESSO, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, padding: 0 }}>
           <ArrowLeft size={16} />
           <span>{fromPost ? "Back" : "Products"}</span>
@@ -298,13 +322,15 @@ function ProductPage() {
       </div>
 
       {/* 2. Product hero */}
-      <div style={{ width: "100%", height: 280, background: ESPRESSO, position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        {productData?.image_url ? (
-          <img src={productData.image_url} alt={productData?.name ?? ""} style={{ objectFit: "contain", maxHeight: 220, maxWidth: "70%" }} />
-        ) : (
-          <div style={{ width: 120, height: 160, background: "rgba(232,221,212,0.07)", borderRadius: 12, border: "1px solid rgba(232,221,212,0.1)" }} />
-        )}
-        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "16px 18px 20px", background: "linear-gradient(transparent, #1C0A00)" }}>
+      <div style={{ width: "100%", position: "relative" }}>
+        <div style={{ width: "100%", background: "#FFFCF8", borderBottom: `0.5px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 260, overflow: "hidden" }}>
+          {productData?.image_url ? (
+            <img src={productData.image_url} alt={productData?.name ?? ""} style={{ maxHeight: 240, maxWidth: "80%", objectFit: "contain", display: "block" }} />
+          ) : (
+            <div style={{ width: 100, height: 140, background: "#F0EAE4", borderRadius: 12 }} />
+          )}
+        </div>
+        <div style={{ background: "#1C0A00", padding: "14px 18px 18px" }}>
           <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: CRIMSON, fontWeight: 700 }}>
             {productData?.brand}{productData?.category ? ` · ${productData.category}` : ""}
           </div>
@@ -332,7 +358,9 @@ function ProductPage() {
 
       {/* 4. Price + buy links */}
       <div style={{ padding: "10px 14px", borderBottom: `0.5px solid ${BORDER}`, display: "flex", alignItems: "center", gap: 8, overflowX: "auto" }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: ESPRESSO, flex: "none" }}>{productData?.price ?? "—"}</span>
+        <span style={{ fontSize: 14, fontWeight: 800, color: ESPRESSO, flex: "none" }}>
+          {productData?.price ? `$${productData.price}` : "—"}
+        </span>
         <span style={{ color: MUTED, flex: "none" }}>·</span>
         {productData?.product_url && (
           <a href={productData.product_url} target="_blank" rel="noopener noreferrer" style={{ flex: "none", background: ESPRESSO, color: WARM_WHITE, borderRadius: 20, padding: "6px 13px", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", gap: 4, textDecoration: "none" }}>
@@ -381,7 +409,7 @@ function ProductPage() {
               <div key={key} style={{ background: "#FFF5F7", border: `1px solid ${CRIMSON}`, borderRadius: 10, padding: "10px 12px", marginBottom: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, color: CRIMSON, fontWeight: 700, fontSize: 13 }}>
-                    <span>{c.emoji}</span><span>{c.name}</span>
+                    <span>{c.emoji}</span><span>{c.name} <span style={{ fontWeight: 400, fontSize: 11, color: "rgba(168,0,28,0.7)" }}>({SKIN_TYPE_LABEL[key]})</span></span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ background: CRIMSON, color: WARM_WHITE, fontSize: 10, padding: "2px 8px", borderRadius: 20, fontWeight: 600 }}>You</span>
@@ -398,7 +426,7 @@ function ProductPage() {
             <div key={key} style={{ padding: "8px 12px" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#555", fontSize: 12 }}>
-                  <span>{c.emoji}</span><span>{c.name}</span>
+                  <span>{c.emoji}</span><span>{c.name} <span style={{ fontWeight: 400, fontSize: 11, color: "#aaa" }}>({SKIN_TYPE_LABEL[key]})</span></span>
                 </div>
                 <span style={{ color: "#888", fontSize: 12 }}>{pct}%</span>
               </div>
@@ -490,17 +518,32 @@ function ProductPage() {
 
       {/* 8. Key ingredients */}
       <Section title="Key ingredients">
-        <div>
-          {keyIngredients.map((ing, i) => {
+        {userSkinType && (
+          <div style={{ fontSize: 11, color: "#555", marginBottom: 10 }}>
+            <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#2D7A3A", marginRight: 5, verticalAlign: "middle" }} />Good for you
+            <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#A8001C", marginRight: 5, marginLeft: 12, verticalAlign: "middle" }} />Watch
+            <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#E8DDD4", marginRight: 5, marginLeft: 12, verticalAlign: "middle" }} />Neutral
+          </div>
+        )}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+          {keyIngredients.map((ing) => {
             const st = getIngredientStyle(ing);
             return (
-              <div key={ing.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: i < keyIngredients.length - 1 ? `0.5px solid ${BORDER}` : "none" }}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: ESPRESSO }}>{ing.name}</div>
-                  <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Ingredient</div>
-                </div>
-                <span style={{ background: st.background, color: st.color, border: st.border, fontSize: 10, padding: "3px 10px", borderRadius: 20, fontWeight: 600 }}>{st.label}</span>
-              </div>
+              <span
+                key={ing.name}
+                style={{
+                  background: st.background,
+                  color: st.color,
+                  border: st.border ?? `0.5px solid ${BORDER}`,
+                  fontSize: 12,
+                  fontWeight: st.status === "good" ? 600 : 400,
+                  padding: "5px 12px",
+                  borderRadius: 20,
+                  display: "inline-block",
+                }}
+              >
+                {ing.name}
+              </span>
             );
           })}
         </div>

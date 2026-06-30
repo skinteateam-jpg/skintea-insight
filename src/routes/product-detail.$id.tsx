@@ -139,6 +139,10 @@ const reddits = [
 function ProductPage() {
   const { id } = Route.useParams();
   const [tab, setTab] = useState("tiktok");
+  const [pageTab, setPageTab] = useState<"product" | "tea">("product");
+  const [teaPosts, setTeaPosts] = useState<any[]>([]);
+  const [teaFilter, setTeaFilter] = useState<string>("all");
+  const [, setTeaLoading] = useState(false);
   const [showAllIngredients, setShowAllIngredients] = useState(false);
   const navigate = useNavigate();
   const search = useSearch({ strict: false }) as { from?: string; postId?: string } | undefined;
@@ -164,6 +168,23 @@ function ProductPage() {
       .select("*")
       .eq("product_id", id)
       .then(({ data }: any) => setSocialReviews(data ?? []));
+  }, [id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setTeaLoading(true);
+    (supabase as any)
+      .from("product_posts")
+      .select("*")
+      .eq("product_id", id)
+      .order("agree_count", { ascending: false })
+      .then(({ data }: any) => {
+        if (!cancelled) {
+          setTeaPosts(data ?? []);
+          setTeaLoading(false);
+        }
+      });
+    return () => { cancelled = true; };
   }, [id]);
 
   useEffect(() => {

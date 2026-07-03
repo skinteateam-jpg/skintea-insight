@@ -295,6 +295,7 @@ function HomePage() {
         </div>
       </div>
 
+      <Footer />
       <BottomNav />
     </div>
   );

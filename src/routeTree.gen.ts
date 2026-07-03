@@ -18,7 +18,9 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as QuizResultRouteImport } from './routes/quiz-result'
 import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as ProductsRouteImport } from './routes/products'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ClinicsIndexRouteImport } from './routes/clinics.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
@@ -74,9 +76,19 @@ const ProductsRoute = ProductsRouteImport.update({
   path: '/products',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -127,7 +139,9 @@ const AdminTreatmentsRoute = AdminTreatmentsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRoute
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
@@ -148,7 +162,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRoute
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
@@ -170,7 +186,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRoute
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
@@ -193,7 +211,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/login'
+    | '/privacy'
     | '/products'
     | '/quiz'
     | '/quiz-result'
@@ -214,7 +234,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/login'
+    | '/privacy'
     | '/products'
     | '/quiz'
     | '/quiz-result'
@@ -235,7 +257,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about'
     | '/login'
+    | '/privacy'
     | '/products'
     | '/quiz'
     | '/quiz-result'
@@ -257,7 +281,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   LoginRoute: typeof LoginRoute
+  PrivacyRoute: typeof PrivacyRoute
   ProductsRoute: typeof ProductsRoute
   QuizRoute: typeof QuizRoute
   QuizResultRoute: typeof QuizResultRoute
@@ -341,11 +367,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -428,7 +468,9 @@ const TeaProductsRouteWithChildren = TeaProductsRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   LoginRoute: LoginRoute,
+  PrivacyRoute: PrivacyRoute,
   ProductsRoute: ProductsRoute,
   QuizRoute: QuizRoute,
   QuizResultRoute: QuizResultRoute,

@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Bell, Search } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import Footer from "@/components/Footer";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -294,6 +295,7 @@ function HomePage() {
         </div>
       </div>
 
+      <Footer />
       <BottomNav />
     </div>
   );

@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
+import AppFrame from "@/components/AppFrame";
 import { Search, SlidersHorizontal, Map, Bell, MapPin, Sparkles, X } from "lucide-react";
 import { IconBookmark } from "@tabler/icons-react";
 
@@ -280,6 +281,7 @@ function ClinicsPage() {
   const skinTypeDisplay = skinType ? skinType.charAt(0).toUpperCase() + skinType.slice(1) : "";
 
   return (
+    <AppFrame>
     <div style={{ background: WARM_WHITE, minHeight: "100vh", fontFamily: "system-ui, -apple-system, sans-serif", paddingBottom: 80 }}>
       <style>{`.no-scrollbar::-webkit-scrollbar{display:none}`}</style>
       <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet" />
@@ -589,6 +591,7 @@ function ClinicsPage() {
         </div>
       )}
     </div>
+  </AppFrame>
   );
 }
 

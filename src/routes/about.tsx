@@ -6,7 +6,7 @@ export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
       { title: "About — Skintea" },
-      { name: "description", content: "Why Skintea exists: honest skincare decisions built from real experiences." },
+      { name: "description", content: "Why Skintea exists: real experiences, honest numbers, no gatekeeping." },
     ],
   }),
   component: AboutPage,
@@ -60,14 +60,38 @@ function AboutPage() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <p style={{ fontSize: 15, color: ESPRESSO, lineHeight: 1.7, margin: 0 }}>
-            Skintea started because skincare advice online is dishonest. Influencers get paid to recommend products. Reviews are cherry-picked. Nobody tells you the products that didn't work, or the treatments that went wrong.
+            When I see a pretty girl — or a celebrity with insane skin — I want to know everything. What she puts on her face. How she does her makeup. What she's actually using, not what she says she's using.
           </p>
 
           <p style={{ fontSize: 15, color: ESPRESSO, lineHeight: 1.7, margin: 0 }}>
-            Skintea pulls real experiences from TikTok, Reddit, and reviews, and turns them into clear numbers: who this actually worked for, who it didn't, and why. No sponsored placements. No cherry-picking. Just the tea.
+            And some of it is gatekept. Treatments. Procedures. The real routine behind the "I just drink water and sleep 8 hours" answer.
           </p>
 
           <p style={{ fontSize: 15, color: ESPRESSO, lineHeight: 1.7, margin: 0 }}>
+            Here's the thing: no one is that pretty by accident. Genetics get you a starting point — the rest is effort, money, and information most people don't share. So why do we let each other believe it's just genetic? Why is asking "what did you get done" still awkward?
+          </p>
+
+          <p style={{ fontSize: 15, color: ESPRESSO, lineHeight: 1.7, margin: 0 }}>
+            I don't think it should be. Girls should be able to tell girls what worked, what didn't, what was worth it and what wasn't. That's not vanity — that's just information, and keeping each other out of it doesn't protect anyone. It's 2026. Anyone can look however they want, try any style, any look — a "type" you've never touched included. That's the fun part. Trying, sharing, getting prettier together should feel like a privilege, not a secret.
+          </p>
+
+          <p style={{ fontSize: 15, color: ESPRESSO, lineHeight: 1.7, margin: 0 }}>
+            The problem is beauty information is everywhere and nowhere. TikTok, Reddit, fifteen beauty accounts, none of them agree, all of them filtered. I didn't want fifteen sources. I wanted one place with the real answer — what actually worked, what didn't, and for who.
+          </p>
+
+          <p style={{ fontSize: 15, color: ESPRESSO, lineHeight: 1.7, margin: 0 }}>
+            That's Skintea. Real experiences from TikTok, Reddit, and reviews, structured into one honest answer: majority opinion, minority opinion, and the treatments people usually keep quiet about.
+          </p>
+
+          <p style={{ fontSize: 15, color: ESPRESSO, lineHeight: 1.7, margin: 0 }}>
+            No gatekeeping. No pretending it's genetic. Just the tea.
+          </p>
+
+          <p style={{ fontSize: 15, color: ESPRESSO, lineHeight: 1.7, fontStyle: "italic", margin: "6px 0 0" }}>
+            This isn't me telling you what to use. It's every girl who tried it before you, put in one place.
+          </p>
+
+          <p style={{ fontSize: 15, color: ESPRESSO, lineHeight: 1.7, margin: "8px 0 0" }}>
             Founded by Chinami Akada.
           </p>
         </div>

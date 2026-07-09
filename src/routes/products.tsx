@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Search, Bookmark, ChevronRight, X } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
+import AppFrame from "@/components/AppFrame";
 
 export const Route = createFileRoute("/products")({
   component: ProductsPage,
@@ -201,6 +202,7 @@ function ProductsPage() {
   }, [activeCategory]);
 
   return (
+    <AppFrame>
     <div style={{ background: C.bg, minHeight: "100vh", color: C.espresso }}>
       <div style={{ maxWidth: 390, margin: "0 auto", background: C.bg }}>
         {/* 1. Top bar */}
@@ -530,6 +532,7 @@ function ProductsPage() {
       )}
       <BottomNav />
     </div>
+  </AppFrame>
   );
 }
 

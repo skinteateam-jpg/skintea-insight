@@ -242,33 +242,8 @@ function HomePage() {
       {/* TREATMENT SPOTLIGHT */}
       <SectionHeader title="💉 Treatment Spotlight" />
       <div style={{ margin: "0 16px", background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 16, padding: 18 }}>
-        <div style={{ color: "#A8001C", fontSize: 9, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase" }}>
-          This week · Botox
-        </div>
-        <div style={{ color: "#1C0A00", fontSize: 20, fontWeight: 700, marginTop: 4 }}>Forehead + 11s</div>
-        <div style={{ color: "#999999", fontSize: 12, marginTop: 2 }}>
-          412 real experiences · no clinic bias
-        </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-          {[
-            { v: "78%", l: "would do again" },
-            { v: "$520", l: "avg cost" },
-            { v: "10d", l: "to kick in" },
-          ].map((s) => (
-            <div
-              key={s.l}
-              style={{
-                flex: 1,
-                background: "#FFFCF8",
-                border: "0.5px solid #E8DDD4",
-                borderRadius: 10,
-                padding: "10px 14px",
-              }}
-            >
-              <div style={{ color: "#1C0A00", fontSize: 18, fontWeight: 700 }}>{s.v}</div>
-              <div style={{ color: "#999999", fontSize: 10 }}>{s.l}</div>
-            </div>
-          ))}
+        <div style={{ fontSize: 13, color: "#999", lineHeight: 1.6 }}>
+          Real treatment data — cost, downtime, results — rolls out here as reviews come in. No fabricated numbers, ever.
         </div>
       </div>
 

@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Bell, Search } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Footer from "@/components/Footer";
+import AppFrame from "@/components/AppFrame";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -29,6 +30,7 @@ function HomePage() {
   void navigate;
 
   return (
+    <AppFrame>
     <div style={{ background: C.cream, minHeight: "100vh", paddingBottom: 80, overflowX: "hidden" }}>
       <style>{`.no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{scrollbar-width:none}`}</style>
 
@@ -298,6 +300,7 @@ function HomePage() {
       <Footer />
       <BottomNav />
     </div>
+  </AppFrame>
   );
 }
 

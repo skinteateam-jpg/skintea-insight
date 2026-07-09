@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
 import { Pencil, Plus, Lock, Star, X, Bookmark, Link2, Download, ArrowUp, ArrowDown, Heart, ArrowRight } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import AppFrame from "@/components/AppFrame";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
 
@@ -311,6 +312,7 @@ function SkinProfilePage() {
   const persona = PERSONAS[activeSkinType] || PERSONAS[USER.skinType];
 
   return (
+    <AppFrame>
     <div style={{ background: C.bg, minHeight: "100vh", color: C.ink, fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
       <Header
         persona={persona}
@@ -346,6 +348,7 @@ function SkinProfilePage() {
       )}
       <BottomNav />
     </div>
+  </AppFrame>
   );
 }
 

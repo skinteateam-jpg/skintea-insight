@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import BottomNav from "@/components/BottomNav";
+import AppFrame from "@/components/AppFrame";
 import { TeaProductsContent } from "./tea-products";
 import { TreatmentTalkContent } from "./treatment-talk2";
 import { SurgeryTalkContent } from "./surgery-talk";
@@ -33,6 +34,7 @@ function TeaPage() {
   const [tab, setTab] = useState<Tab>("product");
 
   return (
+    <AppFrame>
     <div style={{ background: CREAM, minHeight: "100vh", fontFamily: "'DM Sans', sans-serif", paddingBottom: 80 }}>
       <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
@@ -91,5 +93,6 @@ function TeaPage() {
 
       <BottomNav />
     </div>
+  </AppFrame>
   );
 }

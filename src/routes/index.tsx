@@ -1,8 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Bell, Search } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import Footer from "@/components/Footer";
 import AppFrame from "@/components/AppFrame";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -25,9 +27,57 @@ const C = {
 
 const CATEGORIES = ["All", "Products", "Treatments", "Surgery", "Clinics", "Ranking"];
 
+const SUBCATEGORIES = ["Cleanser", "Serum", "Moisturizer", "Sunscreen", "Toner", "Treatment"];
+
+type DbProduct = {
+  id: string;
+  name: string;
+  brand: string | null;
+  image_url: string | null;
+};
+
+type DbClinic = {
+  id: string;
+  name: string;
+  neighborhood: string | null;
+  image_url: string | null;
+  best_for: string[] | null;
+};
+
 function HomePage() {
   const navigate = useNavigate();
   void navigate;
+
+  const [products, setProducts] = useState<DbProduct[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [clinics, setClinics] = useState<DbClinic[]>([]);
+  const [clinicsLoading, setClinicsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [{ data: p }, { data: c }] = await Promise.all([
+        supabase
+          .from("products")
+          .select("id,name,brand,image_url")
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+          .limit(6),
+        supabase
+          .from("clinics")
+          .select("id,name,neighborhood,image_url,best_for")
+          .limit(4),
+      ]);
+      if (cancelled) return;
+      setProducts((p ?? []) as DbProduct[]);
+      setProductsLoading(false);
+      setClinics((c ?? []) as DbClinic[]);
+      setClinicsLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <AppFrame>
@@ -87,92 +137,106 @@ function HomePage() {
         </div>
       </div>
 
-      {/* TRENDING TEA */}
-      <SectionHeader title="🔥 Trending Tea" linkTo="/tea" />
+      {/* NEW ON SKINTEA */}
+      <SectionHeader title="✨ New on Skintea" linkTo="/products" />
       <div className="no-scrollbar" style={{ overflowX: "auto", padding: "0 16px" }}>
         <div style={{ display: "flex", gap: 10, width: "max-content" }}>
-          <TrendingCard tag="PRODUCT" pct="78%" sub="recommend · oily skin" name="CeraVe Moisturizing Cream" spills="412 spills" />
-          <TrendingCard tag="TREATMENT" pct="64%" sub="would do again · Botox" name="Forehead Botox real talk" spills="189 spills" />
-          <TrendingCard tag="SURGERY" pct="71%" sub="no regrets · Rhinoplasty" name="Nose job month 3 update" spills="244 spills" />
+          {productsLoading ? (
+            [0, 1, 2].map((i) => (
+              <div
+                key={i}
+                style={{
+                  minWidth: 150,
+                  background: "#fff",
+                  border: `0.5px solid ${C.border}`,
+                  borderRadius: 12,
+                  padding: 12,
+                }}
+              >
+                <div style={{ width: "100%", height: 100, background: C.warm, borderRadius: 8 }} />
+                <div style={{ height: 10, width: "60%", background: C.warm, borderRadius: 4, marginTop: 10 }} />
+                <div style={{ height: 12, width: "90%", background: C.warm, borderRadius: 4, marginTop: 6 }} />
+              </div>
+            ))
+          ) : products.length === 0 ? (
+            <EmptyCard />
+          ) : (
+            products.map((p) => (
+              <Link
+                key={p.id}
+                to="/product-detail/$id"
+                params={{ id: p.id }}
+                style={{ textDecoration: "none" }}
+              >
+                <div
+                  style={{
+                    minWidth: 150,
+                    background: "#fff",
+                    border: `0.5px solid ${C.border}`,
+                    borderRadius: 12,
+                    padding: 12,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "100%",
+                      height: 100,
+                      background: C.warm,
+                      borderRadius: 8,
+                      overflow: "hidden",
+                      display: "grid",
+                      placeItems: "center",
+                    }}
+                  >
+                    {p.image_url ? (
+                      <img
+                        src={p.image_url}
+                        alt={p.name}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                    ) : (
+                      <span style={{ fontSize: 28 }}>🧴</span>
+                    )}
+                  </div>
+                  {p.brand && (
+                    <div style={{ color: C.muted, fontSize: 10, marginTop: 10, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>
+                      {p.brand}
+                    </div>
+                  )}
+                  <div style={{ color: C.espresso, fontSize: 13, fontWeight: 700, marginTop: 4, lineHeight: 1.3 }}>
+                    {p.name}
+                  </div>
+                </div>
+              </Link>
+            ))
+          )}
         </div>
       </div>
 
-      {/* RANKING */}
-      <SectionHeader title="🏆 This Week's Ranking" linkTo="/products" />
-      <div
-        style={{
-          margin: "0 16px",
-          background: "#fff",
-          border: `1px solid ${C.border}`,
-          borderRadius: 14,
-          overflow: "hidden",
-        }}
-      >
-        {[
-          { r: 1, brand: "CeraVe", name: "Moisturizing Cream", pct: "94%" },
-          { r: 2, brand: "The Ordinary", name: "Niacinamide 10%", pct: "88%" },
-          { r: 3, brand: "Dr. Jart+", name: "Barrier Cream", pct: "82%" },
-        ].map((it, i) => (
-          <div
-            key={it.r}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: "12px 14px",
-              borderTop: i === 0 ? "none" : "0.5px solid #F0EAE4",
-            }}
-          >
-            <div style={{ color: C.crimson, fontWeight: 800, width: 16 }}>{it.r}</div>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: C.warm }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, color: C.muted }}>{it.brand}</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: C.espresso }}>{it.name}</div>
-            </div>
-            <div style={{ color: C.crimson, fontWeight: 700, fontSize: 14 }}>{it.pct}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* LATEST TEA */}
-      <SectionHeader title="Latest Tea" linkTo="/tea" />
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "0 16px" }}>
-        <FeedCard
-          emoji="🍩"
-          avatarBg="#FCE7B3"
-          name="Glazed Donut"
-          meta="oily skin · 2m ago"
-          badge="✨ Review"
-          body="This niacinamide is the only thing keeping my t-zone alive. Two weeks in and shine is genuinely down 50%."
-          pills={[
-            { label: "Oily skin", value: "68% recommend" },
-            { label: "Dry skin", value: "41% recommend" },
-          ]}
-        />
-        <FeedCard
-          emoji="🏜️"
-          avatarBg="#DCE9F5"
-          name="Desert Girl"
-          meta="dry skin · Botox · 14m ago"
-          badge="💉 Treatment"
-          body="Took 10 full days to kick in. I almost asked for a touch-up too early. Don't do that."
-          pills={[
-            { label: "Cost", value: "$520" },
-            { label: "Would do again", value: "78%" },
-          ]}
-        />
-        <FeedCard
-          emoji="🌸"
-          avatarBg="#F8DCE8"
-          name="Main Character"
-          meta="sensitive · Seoul · 1h ago"
-          badge="🔪 Surgery"
-          body="I thought fixing my nose would fix my confidence. It did — but I had to grieve my old face first."
-          pills={[
-            { label: "No regrets", value: "71%" },
-            { label: "Recovery", value: "3 weeks" },
-          ]}
-        />
+      {/* BROWSE BY CATEGORY */}
+      <SectionHeader title="Browse by category" linkTo="/products" />
+      <div className="no-scrollbar" style={{ overflowX: "auto", padding: "0 16px" }}>
+        <div style={{ display: "flex", gap: 8, width: "max-content" }}>
+          {SUBCATEGORIES.map((sc) => (
+            <Link
+              key={sc}
+              to="/products"
+              style={{
+                background: "#fff",
+                color: C.espresso,
+                border: `1px solid ${C.border}`,
+                borderRadius: 99,
+                padding: "8px 16px",
+                fontSize: 12,
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+                textDecoration: "none",
+              }}
+            >
+              {sc}
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* TREATMENT SPOTLIGHT */}
@@ -209,11 +273,62 @@ function HomePage() {
       </div>
 
       {/* CLINICS */}
-      <SectionHeader title="🏥 Clinics" linkTo="/clinics" />
+      <SectionHeader title="🏥 Clinics near LA" linkTo="/clinics" />
       <div className="no-scrollbar" style={{ overflowX: "auto", padding: "0 16px" }}>
         <div style={{ display: "flex", gap: 10, width: "max-content" }}>
-          <ClinicCard name="Glow Clinic LA" loc="West Hollywood · 0.8mi" tags={["Botox", "Fillers", "Rejuran"]} />
-          <ClinicCard name="SkinBar Beverly" loc="Beverly Hills · 1.2mi" tags={["Laser", "Morpheus8"]} />
+          {clinicsLoading ? (
+            [0, 1].map((i) => (
+              <div
+                key={i}
+                style={{
+                  minWidth: 200,
+                  background: "#fff",
+                  border: `0.5px solid ${C.border}`,
+                  borderRadius: 14,
+                  padding: 14,
+                }}
+              >
+                <div style={{ width: "100%", height: 80, background: C.warm, borderRadius: 10 }} />
+                <div style={{ height: 12, width: "70%", background: C.warm, borderRadius: 4, marginTop: 10 }} />
+                <div style={{ height: 10, width: "50%", background: C.warm, borderRadius: 4, marginTop: 6 }} />
+              </div>
+            ))
+          ) : clinics.length === 0 ? (
+            <EmptyCard />
+          ) : (
+            clinics.map((c) => (
+              <Link
+                key={c.id}
+                to="/clinics/$id"
+                params={{ id: c.id }}
+                style={{ textDecoration: "none" }}
+              >
+                <ClinicCard
+                  name={c.name}
+                  loc={c.neighborhood ?? ""}
+                  tags={(c.best_for ?? []).slice(0, 3)}
+                  imageUrl={c.image_url}
+                />
+              </Link>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* HONEST DATA NOTE */}
+      <div style={{ padding: "12px 16px 0" }}>
+        <div
+          style={{
+            background: "#fff",
+            border: `0.5px solid ${C.border}`,
+            borderRadius: 12,
+            padding: 12,
+            fontSize: 11,
+            color: "#999",
+            lineHeight: 1.5,
+          }}
+        >
+          Product ratings and majority/minority breakdowns roll out here as real reviews come in from TikTok, Reddit, and community spills.
         </div>
       </div>
 
@@ -304,6 +419,25 @@ function HomePage() {
   );
 }
 
+function EmptyCard() {
+  return (
+    <div
+      style={{
+        minWidth: 200,
+        background: "#fff",
+        border: `0.5px solid ${C.border}`,
+        borderRadius: 12,
+        padding: 20,
+        color: C.muted,
+        fontSize: 12,
+        textAlign: "center",
+      }}
+    >
+      More coming soon
+    </div>
+  );
+}
+
 function SectionHeader({ title, linkTo }: { title: string; linkTo?: string }) {
   return (
     <div
@@ -327,93 +461,7 @@ function SectionHeader({ title, linkTo }: { title: string; linkTo?: string }) {
   );
 }
 
-function TrendingCard({ tag, pct, sub, name, spills }: { tag: string; pct: string; sub: string; name: string; spills: string }) {
-  return (
-    <div style={{ minWidth: 160, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 14, padding: 14 }}>
-      <div style={{ color: "#A8001C", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" }}>{tag}</div>
-      <div style={{ color: "#1C0A00", fontSize: 22, fontWeight: 800, marginTop: 8 }}>{pct}</div>
-      <div style={{ color: "#999999", fontSize: 10, marginTop: 2 }}>{sub}</div>
-      <div style={{ color: "#1C0A00", fontSize: 13, fontWeight: 700, marginTop: 10, lineHeight: 1.3 }}>{name}</div>
-      <div style={{ color: "#999999", fontSize: 10, marginTop: 6 }}>{spills}</div>
-    </div>
-  );
-}
-
-function FeedCard({
-  emoji,
-  avatarBg,
-  name,
-  meta,
-  badge,
-  body,
-  pills,
-}: {
-  emoji: string;
-  avatarBg: string;
-  name: string;
-  meta: string;
-  badge: string;
-  body: string;
-  pills: { label: string; value: string }[];
-}) {
-  return (
-    <div style={{ background: "#fff", border: `0.5px solid ${C.border}`, borderRadius: 14, padding: 14 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 99,
-              background: avatarBg,
-              display: "grid",
-              placeItems: "center",
-              fontSize: 18,
-            }}
-          >
-            {emoji}
-          </div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: C.espresso }}>{name}</div>
-            <div style={{ fontSize: 11, color: C.muted }}>{meta}</div>
-          </div>
-        </div>
-        <div
-          style={{
-            background: C.warm,
-            border: `1px solid ${C.border}`,
-            borderRadius: 99,
-            padding: "4px 10px",
-            fontSize: 10,
-            fontWeight: 600,
-            color: C.espresso,
-          }}
-        >
-          {badge}
-        </div>
-      </div>
-      <div style={{ fontSize: 13, color: "#3A2E28", lineHeight: 1.6, marginTop: 10 }}>{body}</div>
-      <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-        {pills.map((p) => (
-          <div
-            key={p.label}
-            style={{
-              background: C.warm,
-              borderRadius: 8,
-              padding: "6px 10px",
-              fontSize: 11,
-              color: C.espresso,
-            }}
-          >
-            {p.label} <span style={{ color: C.crimson, fontWeight: 700 }}>{p.value}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ClinicCard({ name, loc, tags }: { name: string; loc: string; tags: string[] }) {
+function ClinicCard({ name, loc, tags, imageUrl }: { name: string; loc: string; tags: string[]; imageUrl?: string | null }) {
   return (
     <div
       style={{
@@ -424,7 +472,11 @@ function ClinicCard({ name, loc, tags }: { name: string; loc: string; tags: stri
         padding: 14,
       }}
     >
-      <div style={{ width: "100%", height: 80, background: C.warm, borderRadius: 10 }} />
+      <div style={{ width: "100%", height: 80, background: C.warm, borderRadius: 10, overflow: "hidden" }}>
+        {imageUrl && (
+          <img src={imageUrl} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        )}
+      </div>
       <div style={{ fontSize: 13, fontWeight: 700, color: C.espresso, marginTop: 10 }}>{name}</div>
       <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{loc}</div>
       <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>

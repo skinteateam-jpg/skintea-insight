@@ -243,7 +243,7 @@ function HomePage() {
       <SectionHeader title="💉 Treatment Spotlight" />
       <div style={{ margin: "0 16px", background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 16, padding: 18 }}>
         <div style={{ fontSize: 13, color: "#999", lineHeight: 1.6 }}>
-          Real treatment data — cost, downtime, results — rolls out here as reviews come in. No fabricated numbers, ever.
+          Real treatment data rolls out here as reviews come in. No fabricated numbers.
         </div>
       </div>
 

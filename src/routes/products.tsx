@@ -152,14 +152,24 @@ function ProductsPage() {
     let cancelled = false;
     (async () => {
       setLoading(true);
+      // NOTE: skintea_score is currently NULL on all rows, so ranking by it
+      // returns an arbitrary single-brand slice. Until real scores land, we
+      // fetch a recent pool and shuffle client-side for a representative mix.
+      // To re-enable ranking later, swap the order() back to:
+      //   .order("skintea_score", { ascending: false, nullsFirst: false }).limit(9)
       const { data } = await supabase
         .from("products")
         .select("*")
         .eq("is_active", true)
-        .order("skintea_score", { ascending: false, nullsFirst: false })
-        .limit(9);
+        .order("created_at", { ascending: false })
+        .limit(60);
       if (!cancelled) {
-        setItems((data ?? []) as DbProduct[]);
+        const pool = [...((data ?? []) as DbProduct[])];
+        for (let i = pool.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [pool[i], pool[j]] = [pool[j], pool[i]];
+        }
+        setItems(pool.slice(0, 9));
         setLoading(false);
       }
     })();

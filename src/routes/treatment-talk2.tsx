@@ -43,6 +43,8 @@ const MUTED = "#999999";
 // Hardcoded fallback — used while loading and if the fetch fails or returns empty
 const FALLBACK_TREATMENT_NAMES = [
   "Botox",
+  "Hydrafacial",
+  "IPL Photofacial",
   "Juvelook",
   "Rejuran",
   "Fillers",
@@ -51,7 +53,9 @@ const FALLBACK_TREATMENT_NAMES = [
   "Morpheus8",
   "Skin Boosters",
   "Laser",
+  "Laser Resurfacing",
   "Peels",
+  "PRF Injection",
   "RF Microneedling",
   "PRP",
   "Sculptra",

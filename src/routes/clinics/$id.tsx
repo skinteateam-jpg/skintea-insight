@@ -31,7 +31,7 @@ type CTreatment = {
   price_from: number | null;
   price_unit: string | null;
   treatment_id: string;
-  treatments: { id: string; name: string } | null;
+  treatments: { id: string; name: string; slug: string | null } | null;
 };
 type Influencer = {
   id: string;
@@ -125,7 +125,7 @@ function ClinicDetailPage() {
       const [c, ss, ct, pr, wv, rv, v] = await Promise.all([
         supabase.from("clinics").select("*").eq("id", id).maybeSingle(),
         supabase.from("clinic_skin_scores").select("*").eq("clinic_id", id),
-        supabase.from("clinic_treatments").select("*, treatments(id, name)").eq("clinic_id", id),
+        supabase.from("clinic_treatments").select("*, treatments(id, name, slug)").eq("clinic_id", id),
         supabase.from("clinic_practitioners").select("*").eq("clinic_id", id),
         supabase.from("clinic_who_visited").select("id, user_id, visited_at").eq("clinic_id", id).limit(4),
         supabase.from("clinic_reviews").select("*, treatments(name)").eq("clinic_id", id).order("created_at", { ascending: false }),
@@ -362,13 +362,15 @@ function ClinicDetailPage() {
                   {tInf.length > 3 && (
                     <span style={{ fontSize: 10, color: MUTED }}>+{tInf.length - 3} more</span>
                   )}
-                  <button onClick={() => { const slug = tName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''); navigate({ to: "/treatment/$slug" as any, params: { slug } as any }).catch(() => {}); }} style={{
-                    background: "none", border: "none", color: CRIMSON,
-                    fontSize: 10, fontWeight: 700, cursor: "pointer",
-                    display: "inline-flex", alignItems: "center", gap: 4, padding: 0,
-                  }}>
-                    <FileText size={11} /> What is {tName}?
-                  </button>
+                  {t.treatments?.slug && (
+                    <button onClick={() => { navigate({ to: "/treatment/$slug", params: { slug: t.treatments!.slug! } }).catch(() => {}); }} style={{
+                      background: "none", border: "none", color: CRIMSON,
+                      fontSize: 10, fontWeight: 700, cursor: "pointer",
+                      display: "inline-flex", alignItems: "center", gap: 4, padding: 0,
+                    }}>
+                      <FileText size={11} /> What is {tName}?
+                    </button>
+                  )}
                 </div>
               </div>
             );

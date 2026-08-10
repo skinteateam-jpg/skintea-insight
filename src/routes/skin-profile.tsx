@@ -168,7 +168,6 @@ function SkinProfilePage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [logs, setLogs] = useState<TLog[]>([]);
   const [editLog, setEditLog] = useState<TLog | "new" | null>(null);
-  const [debugMsg, setDebugMsg] = useState<string>("init");
 
   // Live data
   const [topPicks, setTopPicks] = useState<TopPick[]>([]);
@@ -183,10 +182,16 @@ function SkinProfilePage() {
       const raw = localStorage.getItem("skintea.quizResult");
       if (raw) setQuizResult(JSON.parse(raw));
     } catch {}
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
       setUserId(user?.id ?? null);
-    })();
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id ?? null);
+    });
+
+    return () => { subscription.unsubscribe(); };
   }, []);
 
   // Top picks (global) — load once
@@ -252,15 +257,12 @@ function SkinProfilePage() {
   }, [userId]);
 
   const reloadLogs = async () => {
-    if (!userId) { setDebugMsg("no user"); return; }
-    const { data, error } = await supabase
+    if (!userId) return;
+    const { data } = await supabase
       .from("treatment_logs")
       .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
-    console.log("[skin-profile] treatment_logs query", { userId, data, error });
-    if (error) setDebugMsg(`error: ${error.message}`);
-    else setDebugMsg(`user ${userId.slice(0,8)} · ${data?.length ?? 0} log(s)`);
     const rows = ((data as any[]) ?? []) as TLog[];
     setLogs(rows);
     // Backfill missing treatment_slug — by treatment_id when present, otherwise by name
@@ -321,7 +323,6 @@ function SkinProfilePage() {
         logs={logs}
         onTogglePublic={togglePublic}
         onAddLog={openAddLog}
-        debugMsg={debugMsg}
       />
       <main style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px 80px" }}>
         {tab === "tea" && <TeaTab posts={posts} topPicks={topPicks} loadingPosts={loadingPosts} loadingTopPicks={loadingTopPicks} />}
@@ -353,14 +354,13 @@ function SkinProfilePage() {
 }
 
 // ---------- Header ----------
-function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog, debugMsg }: {
+function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog }: {
   persona: typeof PERSONAS[SkinType];
   tab: Tab;
   setTab: (t: Tab) => void;
   logs: TLog[];
   onTogglePublic: (id: string, next: boolean) => void;
   onAddLog: () => void;
-  debugMsg?: string;
 }) {
   const tabs: Array<{ id: Tab; icon: string; label: string; private?: boolean }> = [
     { id: "tea", icon: "☕", label: "The Tea" },
@@ -401,7 +401,7 @@ function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog, debugMsg
         </div>
 
         {/* WHAT I'VE DONE strip */}
-        <WhatIveDoneStrip logs={logs} onTogglePublic={onTogglePublic} onAdd={onAddLog} debugMsg={debugMsg} />
+        <WhatIveDoneStrip logs={logs} onTogglePublic={onTogglePublic} onAdd={onAddLog} />
 
         <div style={{ overflowX: "auto", scrollbarWidth: "none", margin: "16px -16px 0", padding: "0 16px" }}>
           <div style={{ display: "flex", width: "max-content" }}>
@@ -1802,12 +1802,11 @@ function Sheet({ children, onClose }: { children: ReactNode; onClose: () => void
 }
 
 // ---------- What I've Done strip ----------
-function WhatIveDoneStrip({ logs, onTogglePublic, onAdd, debugMsg }: { logs: TLog[]; onTogglePublic: (id: string, next: boolean) => void; onAdd: () => void; debugMsg?: string }) {
+function WhatIveDoneStrip({ logs, onTogglePublic, onAdd }: { logs: TLog[]; onTogglePublic: (id: string, next: boolean) => void; onAdd: () => void }) {
   return (
     <div style={{ marginTop: 16 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
         <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "#A8001C" }}>What I've Done</div>
-        {debugMsg && <div style={{ fontSize: 9, color: "#999", fontWeight: 600 }}>{debugMsg}</div>}
       </div>
       <div style={{ display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", margin: "0 -16px", padding: "0 16px 4px" }}>
         {logs.map(l => (
@@ -1849,23 +1848,19 @@ function TreatmentNameLink({ name, slug, style }: { name: string; slug: string |
     e.preventDefault();
     e.stopPropagation();
     let s = resolvedSlug;
-    console.log("[TreatmentNameLink] click", { name, initialSlug: slug, resolvedSlug });
     if (!s && name) {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("treatments")
         .select("slug")
         .ilike("name", name)
         .maybeSingle();
-      console.log("[TreatmentNameLink] lookup by name", { name, data, error });
       s = (data as any)?.slug ?? null;
       if (s) setResolvedSlug(s);
     }
     if (!s && name) {
       // Last-resort: slugify the name and let /treatment/$slug handle not-found gracefully
       s = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-      console.log("[TreatmentNameLink] fallback slugified", { name, s });
     }
-    console.log("[TreatmentNameLink] navigating to", s);
     if (s) navigate({ to: "/treatment/$slug", params: { slug: s } });
   };
 

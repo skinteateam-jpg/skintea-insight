@@ -401,8 +401,8 @@ function QuizResultPage() {
               {(TREATMENT_DATA[skinTypeKey] ?? TREATMENT_DATA["oily"]).slice(0, 4).map((t) => (
                 <div
                   key={t.name}
-                  onClick={() => navigate({ to: "/treatment/$slug", params: { slug: t.name.toLowerCase().replace(/\s+/g, "-") } })}
-                  style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 14, overflow: "hidden", cursor: "pointer" }}
+                  onClick={() => { if (t.slug) navigate({ to: "/treatment/$slug", params: { slug: t.slug } }); }}
+                  style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 14, overflow: "hidden", cursor: t.slug ? "pointer" : "default" }}
                 >
                   <div style={{ background: "#1C0A00", padding: "10px 10px 8px" }}>
                     <div style={{ fontSize: 22, marginBottom: 6 }}>{t.emoji}</div>
@@ -417,7 +417,11 @@ function QuizResultPage() {
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00" }}>{t.cost}</div>
-                      <div style={{ width: 22, height: 22, background: "#1C0A00", borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#FFFCF8", fontWeight: 800 }}>→</div>
+                      {t.slug ? (
+                        <div style={{ width: 22, height: 22, background: "#1C0A00", borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#FFFCF8", fontWeight: 800 }}>→</div>
+                      ) : (
+                        <div style={{ fontSize: 8, color: "#bbb", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Coming soon</div>
+                      )}
                     </div>
                   </div>
                   <div style={{ borderTop: "0.5px solid #F0E8E0", padding: "5px 10px", display: "flex", alignItems: "center", gap: 5 }}>

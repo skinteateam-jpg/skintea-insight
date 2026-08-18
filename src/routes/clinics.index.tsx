@@ -249,9 +249,8 @@ function ClinicsPage() {
     return out;
   }, [clinics, searchQ, locationQ, activeTreatment, areaFilter, hoursFilter, treatmentFilter, prefFilter, facilityFilter, priceMax, sortBy]);
 
-  const heroPickId = useMemo(() => {
-    const f = filtered.find(c => (c.skintea_score ?? 0) >= 90 || c.is_featured === true);
-    return f?.id ?? null;
+  const heroPickIds = useMemo(() => {
+    return new Set(filtered.filter(c => (c.skintea_score ?? 0) >= 90 || c.is_featured === true).map(c => c.id));
   }, [filtered]);
 
   const removeFilter = (val: string) => {

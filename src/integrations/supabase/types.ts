@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      celebrity_mentions: {
+        Row: {
+          active: boolean
+          celeb_name: string
+          created_at: string
+          id: string
+          quote: string
+          source_name: string
+          source_url: string
+          source_year: number | null
+          treatment_id: string
+        }
+        Insert: {
+          active?: boolean
+          celeb_name: string
+          created_at?: string
+          id?: string
+          quote: string
+          source_name: string
+          source_url: string
+          source_year?: number | null
+          treatment_id: string
+        }
+        Update: {
+          active?: boolean
+          celeb_name?: string
+          created_at?: string
+          id?: string
+          quote?: string
+          source_name?: string
+          source_url?: string
+          source_year?: number | null
+          treatment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "celebrity_mentions_treatment_id_fkey"
+            columns: ["treatment_id"]
+            isOneToOne: false
+            referencedRelation: "treatments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_practitioners: {
         Row: {
           clinic_id: string | null

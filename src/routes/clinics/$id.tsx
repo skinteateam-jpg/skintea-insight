@@ -402,6 +402,7 @@ function ClinicDetailPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {treatments.map((t) => {
             const tInf = influencers.filter((i) => i.treatment_id === t.treatment_id);
+            const tCelebs = celebMentions.filter((c) => c.treatment_id === t.treatment_id);
             const tName = t.treatments?.name ?? "Treatment";
             return (
               <div key={t.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -446,6 +447,30 @@ function ClinicDetailPage() {
                     </button>
                   )}
                 </div>
+                {/* Sourced celebrity mentions — on-record quotes only */}
+                {tCelebs.map((cm) => (
+                  <div key={cm.id} style={{
+                    marginLeft: 44, background: CREAM_TINT, borderRadius: 8,
+                    padding: "10px 12px", borderLeft: `2px solid ${CRIMSON}`,
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: ESPRESSO }}>{cm.celeb_name}</span>
+                      <span style={{
+                        fontSize: 8, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase",
+                        color: CRIMSON, background: CRIMSON_TINT, borderRadius: 20, padding: "2px 6px",
+                      }}>On the record</span>
+                    </div>
+                    <div style={{ fontSize: 11, lineHeight: 1.5, color: ESPRESSO, fontStyle: "italic" }}>
+                      “{cm.quote}”
+                    </div>
+                    <a href={cm.source_url} target="_blank" rel="noopener noreferrer" style={{
+                      display: "inline-block", marginTop: 6, fontSize: 10, fontWeight: 700,
+                      color: CRIMSON, textDecoration: "none",
+                    }}>
+                      {cm.source_name}{cm.source_year ? `, ${cm.source_year}` : ""} ↗
+                    </a>
+                  </div>
+                ))}
               </div>
             );
           })}

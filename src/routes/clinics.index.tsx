@@ -444,7 +444,7 @@ function ClinicsPage() {
           </div>
         ) : (
           filtered.map((c) => {
-            const isHero = c.id === heroPickId;
+            const isHero = heroPickIds.has(c.id);
             const open = () => navigate({ to: "/clinics/$id", params: { id: c.id } }).catch(() => {});
             return isHero ? (
               <HeroCard key={c.id} clinic={c} onOpen={open} isSaved={savedClinics.includes(c.id)} onToggleSave={() => toggleSaveClinic(c.id)} />

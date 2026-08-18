@@ -295,7 +295,7 @@ function QuizPage() {
         <div style={{ maxWidth: 560, margin: "0 auto" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
             <div>
-              <Link to="/product-detail" style={{ textDecoration: "none", display: "block", lineHeight: 1 }}>
+              <Link to="/" style={{ textDecoration: "none", display: "block", lineHeight: 1 }}>
                 <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 18, color: "#1C0A00" }}>Skin</span>
                 <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 18, color: "#A8001C" }}>tea</span>
               </Link>

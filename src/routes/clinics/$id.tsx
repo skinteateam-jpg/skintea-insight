@@ -669,19 +669,20 @@ function ClinicDetailPage() {
       </Section>
 
       {/* 13. Hours & Location */}
-
       <Section title="Hours & Location">
         <div style={{ display: "flex", flexDirection: "column" }}>
-          {[
-            { label: "Mon – Fri", value: clinic.hours?.mon_fri },
-            { label: "Saturday", value: clinic.hours?.sat },
-            { label: "Sunday", value: clinic.hours?.sun },
-          ].map((h, i) => (
+          {groupHours(clinic.hours).map((h, i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `0.5px solid ${BORDER}`, fontSize: 12 }}>
               <span style={{ color: MUTED }}>{h.label}</span>
-              <span style={{ color: ESPRESSO, fontWeight: 600 }}>{h.value ?? "—"}</span>
+              <span style={{ color: ESPRESSO, fontWeight: 600 }}>{h.hours}</span>
             </div>
           ))}
+          {groupHours(clinic.hours).length === 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontSize: 12, color: MUTED }}>
+              <span>Hours</span>
+              <span>—</span>
+            </div>
+          )}
         </div>
         {clinic.is_open_now && (
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, fontSize: 12 }}>
@@ -714,6 +715,7 @@ function ClinicDetailPage() {
           }}>{clinic.parking_is_free ? "Free" : "Paid"}</span>
         </div>
       </Section>
+
 
       {/* 14. Spacer */}
       <div style={{ height: 76 }} />

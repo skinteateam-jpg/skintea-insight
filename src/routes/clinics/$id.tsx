@@ -42,6 +42,15 @@ type Influencer = {
   profile_url: string | null;
 };
 type Practitioner = { id: string; name: string; role: string; specialty: string };
+type CelebMention = {
+  id: string;
+  treatment_id: string;
+  celeb_name: string;
+  quote: string;
+  source_name: string;
+  source_url: string;
+  source_year: number | null;
+};
 type Review = {
   id: string; skin_type: string; body: string; agree_count: number;
   treatment_id: string | null;
@@ -151,6 +160,7 @@ function ClinicDetailPage() {
   const [skinScores, setSkinScores] = useState<SkinScore[]>([]);
   const [treatments, setTreatments] = useState<CTreatment[]>([]);
   const [influencers, setInfluencers] = useState<Influencer[]>([]);
+  const [celebMentions, setCelebMentions] = useState<CelebMention[]>([]);
   const [practitioners, setPractitioners] = useState<Practitioner[]>([]);
   const [visitors, setVisitors] = useState<any[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -204,6 +214,12 @@ function ClinicDetailPage() {
       if (tIds.length) {
         const inf = await supabase.from("treatment_influencers").select("*").in("treatment_id", tIds);
         if (alive) setInfluencers((inf.data as any) || []);
+        const cm = await supabase
+          .from("celebrity_mentions")
+          .select("*")
+          .in("treatment_id", tIds)
+          .eq("active", true);
+        if (alive) setCelebMentions((cm.data as any) || []);
       }
       setLoading(false);
     })();

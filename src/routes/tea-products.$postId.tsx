@@ -361,7 +361,7 @@ function PostDetailPage() {
                 </p>
               </div>
               <button
-                onClick={() => navigate({ to: "/product-detail", search: { from: "post", postId: post.id } })}
+                onClick={() => navigate({ to: "/product-detail/$id", params: { id: post.products[0].id }, search: { from: "post", postId: post.id } })}
                 style={{
                   background: "#1C0A00",
                   color: "#FFFCF8",
@@ -446,7 +446,7 @@ function PostDetailPage() {
                       <div style={{ marginTop: 8 }}>
                         {post.products[i] ? (
                           <div
-                            onClick={(e) => { e.stopPropagation(); navigate({ to: "/product-detail", search: { from: "post", postId: post.id } }); }}
+                          onClick={(e) => { e.stopPropagation(); navigate({ to: "/product-detail/$id", params: { id: post.products[i].id }, search: { from: "post", postId: post.id } }); }}
                             style={{
                               background: "#FFFCF8",
                               border: "0.5px solid #E8DDD4",
@@ -475,7 +475,7 @@ function PostDetailPage() {
                           </div>
                         ) : (
                           <div
-                            onClick={(e) => { e.stopPropagation(); navigate({ to: "/product-detail", search: { from: "post", postId: post.id } }); }}
+                            onClick={(e) => { e.stopPropagation(); navigate({ to: "/products" }); }}
                             style={{
                               display: "inline-flex",
                               alignItems: "center",
@@ -662,7 +662,7 @@ function PostDetailPage() {
                 Product mentioned
               </div>
               <div
-                onClick={() => navigate({ to: "/product-detail", search: { from: "post", postId: post.id } })}
+                onClick={() => navigate({ to: "/product-detail/$id", params: { id: post.products[0].id }, search: { from: "post", postId: post.id } })}
                 style={{
                   display: "flex", alignItems: "center", gap: 10,
                   background: "#f5f0ea", border: "0.5px solid #e0d8d0",

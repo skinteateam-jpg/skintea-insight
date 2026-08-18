@@ -249,9 +249,8 @@ function ClinicsPage() {
     return out;
   }, [clinics, searchQ, locationQ, activeTreatment, areaFilter, hoursFilter, treatmentFilter, prefFilter, facilityFilter, priceMax, sortBy]);
 
-  const heroPickId = useMemo(() => {
-    const f = filtered.find(c => (c.skintea_score ?? 0) >= 90 || c.is_featured === true);
-    return f?.id ?? null;
+  const heroPickIds = useMemo(() => {
+    return new Set(filtered.filter(c => (c.skintea_score ?? 0) >= 90 || c.is_featured === true).map(c => c.id));
   }, [filtered]);
 
   const removeFilter = (val: string) => {
@@ -445,7 +444,7 @@ function ClinicsPage() {
           </div>
         ) : (
           filtered.map((c) => {
-            const isHero = c.id === heroPickId;
+            const isHero = heroPickIds.has(c.id);
             const open = () => navigate({ to: "/clinics/$id", params: { id: c.id } }).catch(() => {});
             return isHero ? (
               <HeroCard key={c.id} clinic={c} onOpen={open} isSaved={savedClinics.includes(c.id)} onToggleSave={() => toggleSaveClinic(c.id)} />

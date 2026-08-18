@@ -48,6 +48,64 @@ type Review = {
   treatments: { name: string } | null;
 };
 
+type HoursEntry = { day: string; hours: string };
+const DAY_ORDER = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const DAY_SHORT: Record<string, string> = {
+  Monday: "Mon", Tuesday: "Tue", Wednesday: "Wed", Thursday: "Thu",
+  Friday: "Fri", Saturday: "Sat", Sunday: "Sun",
+};
+
+function groupHours(hours: any): { label: string; hours: string }[] {
+  if (!Array.isArray(hours)) return [];
+  const entries = hours
+    .filter((h): h is HoursEntry => h && typeof h.day === "string" && typeof h.hours === "string")
+    .sort((a, b) => DAY_ORDER.indexOf(a.day) - DAY_ORDER.indexOf(b.day));
+  if (entries.length === 0) return [];
+
+  const groups: { days: string[]; hours: string }[] = [];
+  let current: { days: string[]; hours: string } | null = null;
+
+  for (const e of entries) {
+    if (!current || current.hours !== e.hours) {
+      current = { days: [e.day], hours: e.hours };
+      groups.push(current);
+    } else {
+      current.days.push(e.day);
+    }
+  }
+
+  return groups.map((g) => ({ label: formatDayGroup(g.days), hours: g.hours }));
+}
+
+function formatDayGroup(days: string[]): string {
+  if (days.length === 1) return DAY_SHORT[days[0]] ?? days[0];
+  if (days.length === 7) return "Mon–Sun";
+
+  const sorted = [...days].sort((a, b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
+  const indices = sorted.map((d) => DAY_ORDER.indexOf(d));
+  const isConsecutive = indices.every((idx, i) => i === 0 || idx === indices[i - 1] + 1);
+  if (isConsecutive) {
+    return `${DAY_SHORT[sorted[0]]}–${DAY_SHORT[sorted[sorted.length - 1]]}`;
+  }
+
+  const runs: string[][] = [];
+  let run: string[] = [sorted[0]];
+  for (let i = 1; i < sorted.length; i++) {
+    if (DAY_ORDER.indexOf(sorted[i]) === DAY_ORDER.indexOf(sorted[i - 1]) + 1) {
+      run.push(sorted[i]);
+    } else {
+      runs.push(run);
+      run = [sorted[i]];
+    }
+  }
+  runs.push(run);
+
+  return runs
+    .map((r) => (r.length === 1 ? DAY_SHORT[r[0]] : `${DAY_SHORT[r[0]]}–${DAY_SHORT[r[r.length - 1]]}`))
+    .join(", ");
+}
+
+
 const SECTION_LABEL: React.CSSProperties = {
   fontSize: 9, fontWeight: 800, letterSpacing: "0.14em",
   textTransform: "uppercase", color: CRIMSON,
@@ -611,19 +669,20 @@ function ClinicDetailPage() {
       </Section>
 
       {/* 13. Hours & Location */}
-
       <Section title="Hours & Location">
         <div style={{ display: "flex", flexDirection: "column" }}>
-          {[
-            { label: "Mon – Fri", value: clinic.hours?.mon_fri },
-            { label: "Saturday", value: clinic.hours?.sat },
-            { label: "Sunday", value: clinic.hours?.sun },
-          ].map((h, i) => (
+          {groupHours(clinic.hours).map((h, i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `0.5px solid ${BORDER}`, fontSize: 12 }}>
               <span style={{ color: MUTED }}>{h.label}</span>
-              <span style={{ color: ESPRESSO, fontWeight: 600 }}>{h.value ?? "—"}</span>
+              <span style={{ color: ESPRESSO, fontWeight: 600 }}>{h.hours}</span>
             </div>
           ))}
+          {groupHours(clinic.hours).length === 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontSize: 12, color: MUTED }}>
+              <span>Hours</span>
+              <span>—</span>
+            </div>
+          )}
         </div>
         {clinic.is_open_now && (
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, fontSize: 12 }}>
@@ -656,6 +715,7 @@ function ClinicDetailPage() {
           }}>{clinic.parking_is_free ? "Free" : "Paid"}</span>
         </div>
       </Section>
+
 
       {/* 14. Spacer */}
       <div style={{ height: 76 }} />

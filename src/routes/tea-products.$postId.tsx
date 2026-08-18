@@ -361,7 +361,7 @@ function PostDetailPage() {
                 </p>
               </div>
               <button
-                onClick={() => navigate({ to: "/product-detail", search: { from: "post", postId: post.id } })}
+                onClick={() => navigate({ to: "/product-detail/$id", params: { id: post.products[0].id }, search: { from: "post", postId: post.id } })}
                 style={{
                   background: "#1C0A00",
                   color: "#FFFCF8",

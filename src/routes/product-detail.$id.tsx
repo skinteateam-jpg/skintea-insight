@@ -137,6 +137,12 @@ const reddits = [
   { sub: "r/Skincare_Addiction", up: "512", title: "Unpopular: it broke me out. Anyone else?", comments: 246, source_url: null },
 ];
 
+function extractTikTokVideoId(url: string | null): string | null {
+  if (!url) return null;
+  const match = url.match(/\/video\/(\d+)/);
+  return match ? match[1] : null;
+}
+
 function ProductPage() {
   const { id } = Route.useParams();
   const [tab, setTab] = useState("tiktok");
@@ -164,6 +170,7 @@ function ProductPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [socialReviews, setSocialReviews] = useState<any[]>([]);
+  const [activeTikTokEmbed, setActiveTikTokEmbed] = useState<string | null>(null); // stores source_url
 
   useEffect(() => {
     if (!productData) return;
@@ -176,6 +183,19 @@ function ProductPage() {
       .or(orFilter)
       .then(({ data }: any) => setSocialReviews(data ?? []));
   }, [id, productData]);
+
+  useEffect(() => {
+    if (!activeTikTokEmbed) return;
+    const existing = document.getElementById("tiktok-embed-script");
+    if (existing) {
+      existing.remove();
+    }
+    const script = document.createElement("script");
+    script.id = "tiktok-embed-script";
+    script.async = true;
+    script.src = "https://www.tiktok.com/embed.js";
+    document.body.appendChild(script);
+  }, [activeTikTokEmbed]);
 
   useEffect(() => {
     let cancelled = false;
@@ -735,9 +755,13 @@ function ProductPage() {
                   </div>
                 );
                 return t.source_url ? (
-                  <a key={`${t.user}-${i}`} href={t.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                  <button
+                    key={`${t.user}-${i}`}
+                    onClick={() => setActiveTikTokEmbed(t.source_url)}
+                    style={{ textDecoration: "none", border: "none", padding: 0, background: "none", cursor: "pointer", display: "block", width: "100%" }}
+                  >
                     {card}
-                  </a>
+                  </button>
                 ) : (
                   <div key={`${t.user}-${i}`}>{card}</div>
                 );
@@ -828,6 +852,33 @@ function ProductPage() {
       {toast && (
         <div style={{ position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)", background: ESPRESSO, color: WARM_WHITE, padding: "10px 16px", borderRadius: 999, fontSize: 13, fontWeight: 600, zIndex: 100, whiteSpace: "nowrap", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
           {toast}
+        </div>
+      )}
+
+      {activeTikTokEmbed && (
+        <div
+          onClick={() => setActiveTikTokEmbed(null)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 340, width: "100%", maxHeight: "85vh", overflowY: "auto", borderRadius: 12, background: "#fff" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 8px 0" }}>
+              <button
+                onClick={() => setActiveTikTokEmbed(null)}
+                style={{ background: "transparent", border: "none", fontSize: 20, color: "#1C0A00", cursor: "pointer", padding: 4, lineHeight: 1 }}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <blockquote
+              className="tiktok-embed"
+              cite={activeTikTokEmbed}
+              data-video-id={extractTikTokVideoId(activeTikTokEmbed) ?? undefined}
+              style={{ maxWidth: 325, minWidth: 260, margin: "0 auto" }}
+            >
+              <section></section>
+            </blockquote>
+          </div>
         </div>
       )}
 

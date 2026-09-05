@@ -755,9 +755,13 @@ function ProductPage() {
                   </div>
                 );
                 return t.source_url ? (
-                  <a key={`${t.user}-${i}`} href={t.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                  <button
+                    key={`${t.user}-${i}`}
+                    onClick={() => setActiveTikTokEmbed(t.source_url)}
+                    style={{ textDecoration: "none", border: "none", padding: 0, background: "none", cursor: "pointer", display: "block", width: "100%" }}
+                  >
                     {card}
-                  </a>
+                  </button>
                 ) : (
                   <div key={`${t.user}-${i}`}>{card}</div>
                 );

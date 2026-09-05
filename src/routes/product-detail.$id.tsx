@@ -166,12 +166,16 @@ function ProductPage() {
   const [socialReviews, setSocialReviews] = useState<any[]>([]);
 
   useEffect(() => {
+    if (!productData) return;
+    const orFilter = productData.product_family_name
+      ? `product_id.eq.${id},product_family_name.eq.${productData.product_family_name}`
+      : `product_id.eq.${id}`;
     (supabase as any)
       .from("social_review_tags")
       .select("*")
-      .eq("product_id", id)
+      .or(orFilter)
       .then(({ data }: any) => setSocialReviews(data ?? []));
-  }, [id]);
+  }, [id, productData]);
 
   useEffect(() => {
     let cancelled = false;

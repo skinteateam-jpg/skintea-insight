@@ -79,17 +79,18 @@ export const Route = createFileRoute("/product-detail/$id")({
 });
 
 const tiktoks = [
-  { user: "@skinwithliv", views: "1.2M", likes: "184K", caption: "My HG winter moisturizer for 3 years straight 🧴" },
-  { user: "@dermdoctor", views: "890K", likes: "92K", caption: "Why dermatologists keep recommending this one." },
-  { user: "@glowby.mei", views: "430K", likes: "61K", caption: "Drugstore vs luxury — this beats them all." },
-  { user: "@routine.daily", views: "210K", likes: "27K", caption: "Day 30 of using only CeraVe — results." },
+  { user: "@skinwithliv", views: "1.2M", likes: "184K", caption: "My HG winter moisturizer for 3 years straight 🧴", source_url: null },
+  { user: "@dermdoctor", views: "890K", likes: "92K", caption: "Why dermatologists keep recommending this one.", source_url: null },
+  { user: "@glowby.mei", views: "430K", likes: "61K", caption: "Drugstore vs luxury — this beats them all.", source_url: null },
+  { user: "@routine.daily", views: "210K", likes: "27K", caption: "Day 30 of using only CeraVe — results.", source_url: null },
 ];
 
 const instagrams = [
-  { user: "skincare.notes", likes: "12.4K", caption: "Texture check: thick but melts in. Zero pilling." },
-  { user: "thatcleangirl", likes: "8.9K", caption: "My winter barrier reset routine ✨" },
-  { user: "derm.maria", likes: "21.1K", caption: "Ceramides 1, 3 and 6-II — here's why that matters." },
+  { user: "skincare.notes", likes: "12.4K", caption: "Texture check: thick but melts in. Zero pilling.", source_url: null },
+  { user: "thatcleangirl", likes: "8.9K", caption: "My winter barrier reset routine ✨", source_url: null },
+  { user: "derm.maria", likes: "21.1K", caption: "Ceramides 1, 3 and 6-II — here's why that matters.", source_url: null },
 ];
+
 
 const keyIngredients: { name: string; match: Record<string, "good" | "watch" | "neutral"> }[] = [
   { name: "Ceramide NP", match: { dry: "good", sensitive: "good", oily: "neutral", combination: "neutral" } },
@@ -130,10 +131,10 @@ const STORE_LINKS = [
 ];
 
 const reddits = [
-  { sub: "r/SkincareAddiction", up: "2.4k", title: "CeraVe Moisturizing Cream finally fixed my barrier", comments: 312 },
-  { sub: "r/30PlusSkinCare", up: "1.1k", title: "Mature skin review after 6 months of daily use", comments: 184 },
-  { sub: "r/AsianBeauty", up: "684", title: "Layering CeraVe under sunscreen — pilling thoughts?", comments: 97 },
-  { sub: "r/Skincare_Addiction", up: "512", title: "Unpopular: it broke me out. Anyone else?", comments: 246 },
+  { sub: "r/SkincareAddiction", up: "2.4k", title: "CeraVe Moisturizing Cream finally fixed my barrier", comments: 312, source_url: null },
+  { sub: "r/30PlusSkinCare", up: "1.1k", title: "Mature skin review after 6 months of daily use", comments: 184, source_url: null },
+  { sub: "r/AsianBeauty", up: "684", title: "Layering CeraVe under sunscreen — pilling thoughts?", comments: 97, source_url: null },
+  { sub: "r/Skincare_Addiction", up: "512", title: "Unpopular: it broke me out. Anyone else?", comments: 246, source_url: null },
 ];
 
 function ProductPage() {
@@ -164,7 +165,7 @@ function ProductPage() {
 
   useEffect(() => {
     (supabase as any)
-      .from("product_reviews")
+      .from("social_review_tags")
       .select("*")
       .eq("product_id", id)
       .then(({ data }: any) => setSocialReviews(data ?? []));
@@ -643,20 +644,30 @@ function ProductPage() {
                 views: r.views ? `${r.views}` : "—",
                 likes: r.likes ? `${r.likes}` : "—",
                 caption: r.content ?? "",
+                source_url: r.source_url ?? null,
               }));
               const list = real.length ? real : tiktoks;
-              return list.map((t, i) => (
-                <div key={`${t.user}-${i}`} style={{ background: "#1a2620", borderRadius: 12, overflow: "hidden", aspectRatio: "9/16", position: "relative" }}>
-                  <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%, -50%)", width: 36, height: 36, background: "rgba(255,255,255,0.2)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Play width={14} height={14} color="#fff" fill="#fff" />
+              return list.map((t, i) => {
+                const card = (
+                  <div style={{ background: "#1a2620", borderRadius: 12, overflow: "hidden", aspectRatio: "9/16", position: "relative" }}>
+                    <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%, -50%)", width: 36, height: 36, background: "rgba(255,255,255,0.2)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Play width={14} height={14} color="#fff" fill="#fff" />
+                    </div>
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "8px 10px", background: "linear-gradient(to top, rgba(0,0,0,0.85), transparent)" }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{t.user}</div>
+                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.7)", marginTop: 2, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{t.caption}</div>
+                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", marginTop: 3 }}>{t.views} views</div>
+                    </div>
                   </div>
-                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "8px 10px", background: "linear-gradient(to top, rgba(0,0,0,0.85), transparent)" }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{t.user}</div>
-                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.7)", marginTop: 2, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{t.caption}</div>
-                    <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", marginTop: 3 }}>{t.views} views</div>
-                  </div>
-                </div>
-              ));
+                );
+                return t.source_url ? (
+                  <a key={`${t.user}-${i}`} href={t.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                    {card}
+                  </a>
+                ) : (
+                  <div key={`${t.user}-${i}`}>{card}</div>
+                );
+              });
             })()}
           </div>
         )}
@@ -667,18 +678,28 @@ function ProductPage() {
                 user: r.author_handle ?? "user",
                 likes: r.likes ? `${r.likes}` : "—",
                 caption: r.content ?? "",
+                source_url: r.source_url ?? null,
               }));
               const list = real.length ? real : instagrams;
-              return list.map((p, i) => (
-                <div key={`${p.user}-${i}`} style={{ background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>@{p.user}</div>
-                  <div style={{ fontSize: 11, color: "#555", lineHeight: 1.4, marginTop: 3 }}>{p.caption}</div>
-                  <div style={{ display: "flex", gap: 12, fontSize: 10, color: "#bbb", marginTop: 6, alignItems: "center" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Heart width={10} height={10} /> {p.likes}</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Share2 width={10} height={10} /></span>
+              return list.map((p, i) => {
+                const card = (
+                  <div style={{ background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>@{p.user}</div>
+                    <div style={{ fontSize: 11, color: "#555", lineHeight: 1.4, marginTop: 3 }}>{p.caption}</div>
+                    <div style={{ display: "flex", gap: 12, fontSize: 10, color: "#bbb", marginTop: 6, alignItems: "center" }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Heart width={10} height={10} /> {p.likes}</span>
+                      <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Share2 width={10} height={10} /></span>
+                    </div>
                   </div>
-                </div>
-              ));
+                );
+                return p.source_url ? (
+                  <a key={`${p.user}-${i}`} href={p.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                    {card}
+                  </a>
+                ) : (
+                  <div key={`${p.user}-${i}`}>{card}</div>
+                );
+              });
             })()}
           </div>
         )}
@@ -686,27 +707,37 @@ function ProductPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {(() => {
               const real = socialReviews.filter((rv) => rv.platform === "reddit").map((rv) => ({
-                sub: "r/SkincareAddiction",
+                sub: rv.subreddit ? `r/${rv.subreddit}` : "r/SkincareAddiction",
                 up: rv.likes ? `${rv.likes}` : "—",
                 title: (rv.content ?? "").split("\n")[0] || "—",
-                comments: 0,
+                comments: rv.comment_count ?? 0,
+                source_url: rv.source_url ?? null,
               }));
               const list = real.length ? real : reddits;
-              return list.map((r, i) => (
-                <div key={`${r.title}-${i}`} style={{ display: "flex", gap: 12, background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                    <ArrowUpCircle width={14} height={14} color={CRIMSON} />
-                    <span style={{ fontSize: 11, fontWeight: 700, color: ESPRESSO }}>{r.up}</span>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: CRIMSON, textTransform: "uppercase", letterSpacing: "0.06em" }}>{r.sub}</div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: ESPRESSO, lineHeight: 1.4, marginTop: 2 }}>{r.title}</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "#bbb", marginTop: 4 }}>
-                      <MessageCircle width={10} height={10} /> {r.comments} comments
+              return list.map((r, i) => {
+                const card = (
+                  <div style={{ display: "flex", gap: 12, background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                      <ArrowUpCircle width={14} height={14} color={CRIMSON} />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: ESPRESSO }}>{r.up}</span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: CRIMSON, textTransform: "uppercase", letterSpacing: "0.06em" }}>{r.sub}</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: ESPRESSO, lineHeight: 1.4, marginTop: 2 }}>{r.title}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "#bbb", marginTop: 4 }}>
+                        <MessageCircle width={10} height={10} /> {r.comments} comments
+                      </div>
                     </div>
                   </div>
-                </div>
-              ));
+                );
+                return r.source_url ? (
+                  <a key={`${r.title}-${i}`} href={r.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                    {card}
+                  </a>
+                ) : (
+                  <div key={`${r.title}-${i}`}>{card}</div>
+                );
+              });
             })()}
           </div>
         )}

@@ -470,11 +470,11 @@ function ProductPage() {
       {/* 4. Price + buy links */}
       <div style={{ padding: "10px 14px", borderBottom: `0.5px solid ${BORDER}`, display: "flex", alignItems: "center", gap: 8, overflowX: "auto" }}>
         <span style={{ fontSize: 14, fontWeight: 800, color: ESPRESSO, flex: "none" }}>
-          {productData?.price ? `$${productData.price}` : "—"}
+          {activeProduct?.price ? `$${activeProduct.price}` : "—"}
         </span>
         <span style={{ color: MUTED, flex: "none" }}>·</span>
-        {productData?.product_url && (
-          <a href={productData.product_url} target="_blank" rel="noopener noreferrer" style={{ flex: "none", background: ESPRESSO, color: WARM_WHITE, borderRadius: 20, padding: "6px 13px", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", gap: 4, textDecoration: "none" }}>
+        {activeProduct?.product_url && (
+          <a href={activeProduct.product_url} target="_blank" rel="noopener noreferrer" style={{ flex: "none", background: ESPRESSO, color: WARM_WHITE, borderRadius: 20, padding: "6px 13px", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", gap: 4, textDecoration: "none" }}>
             Shop <ExternalLink width={10} height={10} />
           </a>
         )}

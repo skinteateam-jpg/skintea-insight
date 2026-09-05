@@ -855,6 +855,33 @@ function ProductPage() {
         </div>
       )}
 
+      {activeTikTokEmbed && (
+        <div
+          onClick={() => setActiveTikTokEmbed(null)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 340, width: "100%", maxHeight: "85vh", overflowY: "auto", borderRadius: 12, background: "#fff" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 8px 0" }}>
+              <button
+                onClick={() => setActiveTikTokEmbed(null)}
+                style={{ background: "transparent", border: "none", fontSize: 20, color: "#1C0A00", cursor: "pointer", padding: 4, lineHeight: 1 }}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <blockquote
+              className="tiktok-embed"
+              cite={activeTikTokEmbed}
+              data-video-id={extractTikTokVideoId(activeTikTokEmbed) ?? undefined}
+              style={{ maxWidth: 325, minWidth: 260, margin: "0 auto" }}
+            >
+              <section></section>
+            </blockquote>
+          </div>
+        </div>
+      )}
+
       {/* 11. Bottom action bar */}
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: WARM_WHITE, borderTop: `0.5px solid ${BORDER}`, padding: "12px 16px 24px", zIndex: 60, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
         <ActionBtn icon="🧴" label={isInShelf ? "On Shelf" : "Add to Shelf"} onClick={handleShelfClick} active={isInShelf} disabled={shelving} />

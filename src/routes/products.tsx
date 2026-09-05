@@ -184,7 +184,7 @@ function ProductsPage() {
         .order("created_at", { ascending: false })
         .limit(60);
       if (!cancelled) {
-        const pool = [...((data ?? []) as DbProduct[])];
+        const pool = dedupByFamily((data ?? []) as DbProduct[]);
         for (let i = pool.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -211,7 +211,7 @@ function ProductsPage() {
         .eq("is_active", true)
         .or(`name.ilike.%${q}%,brand.ilike.%${q}%`)
         .limit(20);
-      setSearchResults((data ?? []) as DbProduct[]);
+      setSearchResults(dedupByFamily((data ?? []) as DbProduct[]));
     }, 300);
     return () => window.clearTimeout(t);
   }, [searchQuery]);
@@ -331,7 +331,7 @@ function ProductsPage() {
                   <div style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", color: C.textLight, letterSpacing: "0.04em" }}>
                     {r.brand}
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.espresso }}>{r.name}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.espresso }}>{r.product_family_name ?? r.name}</div>
                   {r.price != null && (
                     <div style={{ fontSize: 12, fontWeight: 800, color: C.espresso, marginTop: 2 }}>${r.price}</div>
                   )}

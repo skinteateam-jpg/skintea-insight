@@ -152,6 +152,8 @@ function ProductPage() {
   const [userSkinType, setUserSkinType] = useState<string | null>(null);
   const [userAgeBracket, setUserAgeBracket] = useState<string | null>(null);
   const [productData, setProductData] = useState<any>(null);
+  const [activeProduct, setActiveProduct] = useState<any>(null);
+  const [shadeOptions, setShadeOptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -224,11 +226,25 @@ function ProductPage() {
       setLoading(true);
       const { data } = await supabase
         .from("products")
-        .select("id,name,brand,category,subcategory,description,image_url,product_url,price,currency,skintea_score")
+        .select("id,name,brand,category,subcategory,description,image_url,product_url,price,currency,skintea_score,product_family_name,shade_name")
         .eq("id", id)
         .single();
       if (!cancelled) {
         setProductData(data);
+        setActiveProduct(data);
+        if (data?.product_family_name && data?.brand) {
+          const { data: siblings } = await supabase
+            .from("products")
+            .select("id,name,brand,category,subcategory,description,image_url,product_url,price,currency,skintea_score,product_family_name,shade_name")
+            .eq("product_family_name", data.product_family_name)
+            .eq("brand", data.brand)
+            .order("shade_name", { ascending: true });
+          if (!cancelled) {
+            setShadeOptions(siblings ?? []);
+          }
+        } else {
+          setShadeOptions([]);
+        }
         setLoading(false);
       }
     })();
@@ -346,21 +362,49 @@ function ProductPage() {
       {/* 2. Product hero */}
       <div style={{ width: "100%", position: "relative" }}>
         <div style={{ width: "100%", background: "#FFFCF8", borderBottom: `0.5px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 260, overflow: "hidden" }}>
-          {productData?.image_url ? (
-            <img src={productData.image_url} alt={productData?.name ?? ""} style={{ maxHeight: 240, maxWidth: "80%", objectFit: "contain", display: "block" }} />
+          {activeProduct?.image_url ? (
+            <img src={activeProduct.image_url} alt={activeProduct?.name ?? ""} style={{ maxHeight: 240, maxWidth: "80%", objectFit: "contain", display: "block" }} />
           ) : (
             <div style={{ width: 100, height: 140, background: "#F0EAE4", borderRadius: 12 }} />
           )}
         </div>
         <div style={{ background: "#FFFCF8", padding: "14px 16px 16px", borderBottom: `0.5px solid ${BORDER}` }}>
           <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: CRIMSON, fontWeight: 700, marginBottom: 4 }}>
-            {productData?.brand}{productData?.category ? ` · ${productData.category}` : ""}
+            {activeProduct?.brand}{activeProduct?.category ? ` · ${activeProduct.category}` : ""}
           </div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: ESPRESSO, lineHeight: 1.25, marginBottom: productData?.subcategory ? 3 : 0 }}>
-            {productData?.name}
+          <div style={{ fontSize: 20, fontWeight: 800, color: ESPRESSO, lineHeight: 1.25, marginBottom: activeProduct?.subcategory ? 3 : 0 }}>
+            {activeProduct?.name}
           </div>
-          {productData?.subcategory && (
-            <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{productData.subcategory}</div>
+          {activeProduct?.subcategory && (
+            <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{activeProduct.subcategory}</div>
+          )}
+          {shadeOptions.length > 1 && (
+            <div style={{ display: "flex", gap: 8, marginTop: 10, overflowX: "auto", paddingBottom: 2 }}>
+              {shadeOptions.map((shade) => {
+                const selected = shade.id === activeProduct?.id;
+                return (
+                  <button
+                    key={shade.id}
+                    onClick={() => setActiveProduct(shade)}
+                    style={{
+                      flex: "0 0 auto",
+                      background: "transparent",
+                      border: `1px solid ${selected ? CRIMSON : ESPRESSO}`,
+                      color: selected ? CRIMSON : ESPRESSO,
+                      borderRadius: 20,
+                      padding: "5px 12px",
+                      fontSize: 11,
+                      fontWeight: selected ? 700 : 500,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {shade.shade_name ?? shade.name}
+                  </button>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>
@@ -426,11 +470,11 @@ function ProductPage() {
       {/* 4. Price + buy links */}
       <div style={{ padding: "10px 14px", borderBottom: `0.5px solid ${BORDER}`, display: "flex", alignItems: "center", gap: 8, overflowX: "auto" }}>
         <span style={{ fontSize: 14, fontWeight: 800, color: ESPRESSO, flex: "none" }}>
-          {productData?.price ? `$${productData.price}` : "—"}
+          {activeProduct?.price ? `$${activeProduct.price}` : "—"}
         </span>
         <span style={{ color: MUTED, flex: "none" }}>·</span>
-        {productData?.product_url && (
-          <a href={productData.product_url} target="_blank" rel="noopener noreferrer" style={{ flex: "none", background: ESPRESSO, color: WARM_WHITE, borderRadius: 20, padding: "6px 13px", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", gap: 4, textDecoration: "none" }}>
+        {activeProduct?.product_url && (
+          <a href={activeProduct.product_url} target="_blank" rel="noopener noreferrer" style={{ flex: "none", background: ESPRESSO, color: WARM_WHITE, borderRadius: 20, padding: "6px 13px", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", gap: 4, textDecoration: "none" }}>
             Shop <ExternalLink width={10} height={10} />
           </a>
         )}

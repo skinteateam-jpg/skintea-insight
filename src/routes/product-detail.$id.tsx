@@ -707,27 +707,37 @@ function ProductPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {(() => {
               const real = socialReviews.filter((rv) => rv.platform === "reddit").map((rv) => ({
-                sub: "r/SkincareAddiction",
+                sub: rv.subreddit ? `r/${rv.subreddit}` : "r/SkincareAddiction",
                 up: rv.likes ? `${rv.likes}` : "—",
                 title: (rv.content ?? "").split("\n")[0] || "—",
-                comments: 0,
+                comments: rv.comment_count ?? 0,
+                source_url: rv.source_url ?? null,
               }));
               const list = real.length ? real : reddits;
-              return list.map((r, i) => (
-                <div key={`${r.title}-${i}`} style={{ display: "flex", gap: 12, background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                    <ArrowUpCircle width={14} height={14} color={CRIMSON} />
-                    <span style={{ fontSize: 11, fontWeight: 700, color: ESPRESSO }}>{r.up}</span>
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: CRIMSON, textTransform: "uppercase", letterSpacing: "0.06em" }}>{r.sub}</div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: ESPRESSO, lineHeight: 1.4, marginTop: 2 }}>{r.title}</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "#bbb", marginTop: 4 }}>
-                      <MessageCircle width={10} height={10} /> {r.comments} comments
+              return list.map((r, i) => {
+                const card = (
+                  <div style={{ display: "flex", gap: 12, background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                      <ArrowUpCircle width={14} height={14} color={CRIMSON} />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: ESPRESSO }}>{r.up}</span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: CRIMSON, textTransform: "uppercase", letterSpacing: "0.06em" }}>{r.sub}</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: ESPRESSO, lineHeight: 1.4, marginTop: 2 }}>{r.title}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "#bbb", marginTop: 4 }}>
+                        <MessageCircle width={10} height={10} /> {r.comments} comments
+                      </div>
                     </div>
                   </div>
-                </div>
-              ));
+                );
+                return r.source_url ? (
+                  <a key={`${r.title}-${i}`} href={r.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                    {card}
+                  </a>
+                ) : (
+                  <div key={`${r.title}-${i}`}>{card}</div>
+                );
+              });
             })()}
           </div>
         )}

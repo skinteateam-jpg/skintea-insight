@@ -172,6 +172,7 @@ function ProductPage() {
   const [socialReviews, setSocialReviews] = useState<any[]>([]);
   const [activeTikTokEmbed, setActiveTikTokEmbed] = useState<string | null>(null); // stores source_url
   const [tiktokThumbnails, setTiktokThumbnails] = useState<Record<string, string>>({});
+  const [heroIndex, setHeroIndex] = useState(0);
 
   useEffect(() => {
     if (!productData) return;

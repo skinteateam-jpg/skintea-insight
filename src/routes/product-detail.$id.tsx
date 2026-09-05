@@ -185,6 +185,19 @@ function ProductPage() {
   }, [id, productData]);
 
   useEffect(() => {
+    if (!activeTikTokEmbed) return;
+    const existing = document.getElementById("tiktok-embed-script");
+    if (existing) {
+      existing.remove();
+    }
+    const script = document.createElement("script");
+    script.id = "tiktok-embed-script";
+    script.async = true;
+    script.src = "https://www.tiktok.com/embed.js";
+    document.body.appendChild(script);
+  }, [activeTikTokEmbed]);
+
+  useEffect(() => {
     let cancelled = false;
     setTeaLoading(true);
     (supabase as any)

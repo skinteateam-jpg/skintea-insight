@@ -279,7 +279,7 @@ function ProductPage() {
         if (data?.product_family_name && data?.brand) {
           const { data: siblings } = await supabase
             .from("products")
-            .select("id,name,brand,category,subcategory,description,image_url,product_url,price,currency,skintea_score,product_family_name,shade_name")
+            .select("id,name,brand,category,subcategory,description,image_url,image_urls,product_url,price,currency,skintea_score,product_family_name,shade_name")
             .eq("product_family_name", data.product_family_name)
             .eq("brand", data.brand)
             .order("shade_name", { ascending: true });

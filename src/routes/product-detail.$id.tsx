@@ -678,18 +678,28 @@ function ProductPage() {
                 user: r.author_handle ?? "user",
                 likes: r.likes ? `${r.likes}` : "—",
                 caption: r.content ?? "",
+                source_url: r.source_url ?? null,
               }));
               const list = real.length ? real : instagrams;
-              return list.map((p, i) => (
-                <div key={`${p.user}-${i}`} style={{ background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>@{p.user}</div>
-                  <div style={{ fontSize: 11, color: "#555", lineHeight: 1.4, marginTop: 3 }}>{p.caption}</div>
-                  <div style={{ display: "flex", gap: 12, fontSize: 10, color: "#bbb", marginTop: 6, alignItems: "center" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Heart width={10} height={10} /> {p.likes}</span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Share2 width={10} height={10} /></span>
+              return list.map((p, i) => {
+                const card = (
+                  <div style={{ background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>@{p.user}</div>
+                    <div style={{ fontSize: 11, color: "#555", lineHeight: 1.4, marginTop: 3 }}>{p.caption}</div>
+                    <div style={{ display: "flex", gap: 12, fontSize: 10, color: "#bbb", marginTop: 6, alignItems: "center" }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Heart width={10} height={10} /> {p.likes}</span>
+                      <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Share2 width={10} height={10} /></span>
+                    </div>
                   </div>
-                </div>
-              ));
+                );
+                return p.source_url ? (
+                  <a key={`${p.user}-${i}`} href={p.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                    {card}
+                  </a>
+                ) : (
+                  <div key={`${p.user}-${i}`}>{card}</div>
+                );
+              });
             })()}
           </div>
         )}

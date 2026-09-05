@@ -199,6 +199,24 @@ function ProductPage() {
   }, [activeTikTokEmbed]);
 
   useEffect(() => {
+    const urls = socialReviews.filter((r) => r.platform === "tiktok" && r.source_url).map((r) => r.source_url as string);
+    const toFetch = Array.from(new Set(urls)).filter((u) => !(u in tiktokThumbnails));
+    if (toFetch.length === 0) return;
+    toFetch.forEach(async (u) => {
+      try {
+        const res = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(u)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.thumbnail_url) {
+          setTiktokThumbnails((prev) => ({ ...prev, [u]: data.thumbnail_url }));
+        }
+      } catch {
+        // silently ignore — card falls back to the dark placeholder
+      }
+    });
+  }, [socialReviews]);
+
+  useEffect(() => {
     let cancelled = false;
     setTeaLoading(true);
     (supabase as any)

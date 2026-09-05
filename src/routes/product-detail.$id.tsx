@@ -166,12 +166,16 @@ function ProductPage() {
   const [socialReviews, setSocialReviews] = useState<any[]>([]);
 
   useEffect(() => {
+    if (!productData) return;
+    const orFilter = productData.product_family_name
+      ? `product_id.eq.${id},product_family_name.eq.${productData.product_family_name}`
+      : `product_id.eq.${id}`;
     (supabase as any)
       .from("social_review_tags")
       .select("*")
-      .eq("product_id", id)
+      .or(orFilter)
       .then(({ data }: any) => setSocialReviews(data ?? []));
-  }, [id]);
+  }, [id, productData]);
 
   useEffect(() => {
     let cancelled = false;
@@ -344,6 +348,24 @@ function ProductPage() {
     else navigate({ to: "/products" });
   };
 
+  const taggedReviews = socialReviews.filter((r) => r.sentiment === "positive" || r.sentiment === "negative" || r.sentiment === "mixed");
+  const posCount = taggedReviews.filter((r) => r.sentiment === "positive").length;
+  const negCount = taggedReviews.filter((r) => r.sentiment === "negative").length;
+  const mixedCount = taggedReviews.filter((r) => r.sentiment === "mixed").length;
+  const sentimentTotal = posCount + negCount + mixedCount;
+  const hasEnoughSentimentData = sentimentTotal >= 10;
+  const majorityIsPositive = posCount >= negCount;
+  const majorityCount = majorityIsPositive ? posCount : negCount;
+  const minorityCount = majorityIsPositive ? negCount : posCount;
+  const majorityPct = sentimentTotal > 0 ? Math.round((majorityCount / sentimentTotal) * 100) : 0;
+  const minorityPct = 100 - majorityPct;
+  function topQuote(sentiment: string) {
+    const matches = taggedReviews.filter((r) => r.sentiment === sentiment).sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
+    return matches[0]?.content ?? null;
+  }
+  const majorityQuote = topQuote(majorityIsPositive ? "positive" : "negative");
+  const minorityQuote = topQuote(majorityIsPositive ? "negative" : "positive");
+
   return (
     <main className="min-h-screen" style={{ paddingTop: 52, paddingBottom: 120, background: WARM_WHITE, fontFamily: "'DM Sans', sans-serif" }}>
       {/* 1. Sticky top bar */}
@@ -487,25 +509,33 @@ function ProductPage() {
 
       {/* 5. What people say */}
       <Section title="What people say">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
-          {[
-            { label: "Majority", pct: 78, color: CRIMSON, sentence: "Strengthens the skin barrier within a few weeks." },
-            { label: "Minority", pct: 22, color: "#C8BDB8", sentence: "Feels heavy and may pill under sunscreen." },
-          ].map((c) => (
-            <div key={c.label} style={{ background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 12, padding: 14 }}>
-              <div style={{ fontSize: 11, color: MUTED, marginBottom: 4 }}>{c.label}</div>
-              <div style={{ fontSize: 30, fontWeight: 700, color: ESPRESSO, lineHeight: 1 }}>{c.pct}%</div>
-              <div style={{ height: 3, background: BORDER, borderRadius: 2, margin: "8px 0", overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${c.pct}%`, background: c.color }} />
-              </div>
-              <div style={{ fontSize: 12, color: ESPRESSO, lineHeight: 1.5 }}>{c.sentence}</div>
+        {hasEnoughSentimentData ? (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
+              {[
+                { label: majorityIsPositive ? "Recommend" : "Don't recommend", pct: majorityPct, color: CRIMSON, sentence: majorityQuote ?? "Based on tagged social posts." },
+                { label: majorityIsPositive ? "Don't recommend" : "Recommend", pct: minorityPct, color: "#C8BDB8", sentence: minorityQuote ?? "Based on tagged social posts." },
+              ].map((c) => (
+                <div key={c.label} style={{ background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 12, padding: 14 }}>
+                  <div style={{ fontSize: 11, color: MUTED, marginBottom: 4 }}>{c.label}</div>
+                  <div style={{ fontSize: 30, fontWeight: 700, color: ESPRESSO, lineHeight: 1 }}>{c.pct}%</div>
+                  <div style={{ height: 3, background: BORDER, borderRadius: 2, margin: "8px 0", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${c.pct}%`, background: c.color }} />
+                  </div>
+                  <div style={{ fontSize: 12, color: ESPRESSO, lineHeight: 1.5 }}>{c.sentence}</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div style={{ background: WARM_WHITE, border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 13px", marginTop: 10 }}>
-          <div style={{ fontSize: 10, color: MUTED, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>Why opinions differ</div>
-          <div style={{ fontSize: 12, color: ESPRESSO, lineHeight: 1.55, marginTop: 4 }}>Skin type and climate shape the experience more than the formula itself.</div>
-        </div>
+            <div style={{ background: WARM_WHITE, border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 13px", marginTop: 10 }}>
+              <div style={{ fontSize: 10, color: MUTED, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>Sample size</div>
+              <div style={{ fontSize: 12, color: ESPRESSO, lineHeight: 1.55, marginTop: 4 }}>Based on {sentimentTotal} tagged social posts{mixedCount > 0 ? ` (${mixedCount} mixed)` : ""}. Early data — treat as directional, not definitive.</div>
+            </div>
+          </>
+        ) : (
+          <div style={{ background: WARM_WHITE, border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "14px 13px" }}>
+            <div style={{ fontSize: 12, color: ESPRESSO, lineHeight: 1.55 }}>Not enough tagged social data yet for this product. Check back soon — we're actively collecting real reviews from TikTok, Instagram, and Reddit.</div>
+          </div>
+        )}
       </Section>
 
       {/* 6. Works for you */}

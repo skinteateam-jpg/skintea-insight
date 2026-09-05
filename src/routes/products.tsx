@@ -55,6 +55,8 @@ type DbProduct = {
   skintea_score: number | null;
   source: string | null;
   created_at: string | null;
+  product_family_name: string | null;
+  shade_name: string | null;
 };
 
 type Product = {
@@ -83,7 +85,7 @@ function toProduct(p: DbProduct, opts?: { recommend?: boolean }): Product {
   return {
     id: p.id,
     brand: p.brand ?? "",
-    name: p.name,
+    name: p.product_family_name ?? p.name,
     price: p.price != null ? `$${p.price}` : "",
     source: p.source ?? "",
     emoji: emojiFor(p.subcategory),
@@ -91,6 +93,24 @@ function toProduct(p: DbProduct, opts?: { recommend?: boolean }): Product {
     recommend: opts?.recommend && p.skintea_score != null ? Math.round(p.skintea_score) : undefined,
     subcategory: p.subcategory ?? null,
   };
+}
+
+function dedupByFamily(rows: DbProduct[]): DbProduct[] {
+  const groups = new Map<string, DbProduct[]>();
+  for (const row of rows) {
+    const key = row.product_family_name ?? row.id;
+    const arr = groups.get(key);
+    if (arr) arr.push(row);
+    else groups.set(key, [row]);
+  }
+  return Array.from(groups.values()).map((group) => {
+    if (group.length === 1) return group[0];
+    const withShade = group.filter((r) => r.shade_name);
+    if (withShade.length) {
+      return withShade.sort((a, b) => (a.shade_name ?? "").localeCompare(b.shade_name ?? ""))[0];
+    }
+    return group[0];
+  });
 }
 
 const CATEGORIES = ["All", "Skincare", "Base Makeup", "Makeup", "Lip", "SPF"] as const;

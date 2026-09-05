@@ -348,6 +348,24 @@ function ProductPage() {
     else navigate({ to: "/products" });
   };
 
+  const taggedReviews = socialReviews.filter((r) => r.sentiment === "positive" || r.sentiment === "negative" || r.sentiment === "mixed");
+  const posCount = taggedReviews.filter((r) => r.sentiment === "positive").length;
+  const negCount = taggedReviews.filter((r) => r.sentiment === "negative").length;
+  const mixedCount = taggedReviews.filter((r) => r.sentiment === "mixed").length;
+  const sentimentTotal = posCount + negCount + mixedCount;
+  const hasEnoughSentimentData = sentimentTotal >= 10;
+  const majorityIsPositive = posCount >= negCount;
+  const majorityCount = majorityIsPositive ? posCount : negCount;
+  const minorityCount = majorityIsPositive ? negCount : posCount;
+  const majorityPct = sentimentTotal > 0 ? Math.round((majorityCount / sentimentTotal) * 100) : 0;
+  const minorityPct = 100 - majorityPct;
+  function topQuote(sentiment: string) {
+    const matches = taggedReviews.filter((r) => r.sentiment === sentiment).sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
+    return matches[0]?.content ?? null;
+  }
+  const majorityQuote = topQuote(majorityIsPositive ? "positive" : "negative");
+  const minorityQuote = topQuote(majorityIsPositive ? "negative" : "positive");
+
   return (
     <main className="min-h-screen" style={{ paddingTop: 52, paddingBottom: 120, background: WARM_WHITE, fontFamily: "'DM Sans', sans-serif" }}>
       {/* 1. Sticky top bar */}

@@ -218,6 +218,10 @@ function ProductPage() {
   }, [socialReviews]);
 
   useEffect(() => {
+    setHeroIndex(0);
+  }, [activeProduct?.id]);
+
+  useEffect(() => {
     let cancelled = false;
     setTeaLoading(true);
     (supabase as any)

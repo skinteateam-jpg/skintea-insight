@@ -752,7 +752,16 @@ function ProductPage() {
         {tab === "tiktok" && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
             {(() => {
-              const real = socialReviews.filter((r) => r.platform === "tiktok").map((r) => ({
+              const tiktokRows = socialReviews.filter((r) => r.platform === "tiktok");
+              const bestPerVideo = new Map<string, typeof tiktokRows[number]>();
+              for (const r of tiktokRows) {
+                const key = r.source_url ?? r.id;
+                const existing = bestPerVideo.get(key);
+                if (!existing || (r.likes ?? 0) > (existing.likes ?? 0)) {
+                  bestPerVideo.set(key, r);
+                }
+              }
+              const real = Array.from(bestPerVideo.values()).map((r) => ({
                 user: r.author_handle ?? "@user",
                 views: r.views ? `${r.views}` : "—",
                 likes: r.likes ? `${r.likes}` : "—",

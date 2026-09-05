@@ -164,7 +164,7 @@ function ProductPage() {
 
   useEffect(() => {
     (supabase as any)
-      .from("product_reviews")
+      .from("social_review_tags")
       .select("*")
       .eq("product_id", id)
       .then(({ data }: any) => setSocialReviews(data ?? []));

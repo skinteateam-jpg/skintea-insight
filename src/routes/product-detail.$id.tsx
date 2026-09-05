@@ -137,6 +137,12 @@ const reddits = [
   { sub: "r/Skincare_Addiction", up: "512", title: "Unpopular: it broke me out. Anyone else?", comments: 246, source_url: null },
 ];
 
+function extractTikTokVideoId(url: string | null): string | null {
+  if (!url) return null;
+  const match = url.match(/\/video\/(\d+)/);
+  return match ? match[1] : null;
+}
+
 function ProductPage() {
   const { id } = Route.useParams();
   const [tab, setTab] = useState("tiktok");
@@ -164,6 +170,7 @@ function ProductPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [socialReviews, setSocialReviews] = useState<any[]>([]);
+  const [activeTikTokEmbed, setActiveTikTokEmbed] = useState<string | null>(null); // stores source_url
 
   useEffect(() => {
     if (!productData) return;

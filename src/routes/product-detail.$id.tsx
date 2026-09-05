@@ -152,6 +152,8 @@ function ProductPage() {
   const [userSkinType, setUserSkinType] = useState<string | null>(null);
   const [userAgeBracket, setUserAgeBracket] = useState<string | null>(null);
   const [productData, setProductData] = useState<any>(null);
+  const [activeProduct, setActiveProduct] = useState<any>(null);
+  const [shadeOptions, setShadeOptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
   const [saving, setSaving] = useState(false);

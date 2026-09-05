@@ -79,17 +79,18 @@ export const Route = createFileRoute("/product-detail/$id")({
 });
 
 const tiktoks = [
-  { user: "@skinwithliv", views: "1.2M", likes: "184K", caption: "My HG winter moisturizer for 3 years straight 🧴" },
-  { user: "@dermdoctor", views: "890K", likes: "92K", caption: "Why dermatologists keep recommending this one." },
-  { user: "@glowby.mei", views: "430K", likes: "61K", caption: "Drugstore vs luxury — this beats them all." },
-  { user: "@routine.daily", views: "210K", likes: "27K", caption: "Day 30 of using only CeraVe — results." },
+  { user: "@skinwithliv", views: "1.2M", likes: "184K", caption: "My HG winter moisturizer for 3 years straight 🧴", source_url: null },
+  { user: "@dermdoctor", views: "890K", likes: "92K", caption: "Why dermatologists keep recommending this one.", source_url: null },
+  { user: "@glowby.mei", views: "430K", likes: "61K", caption: "Drugstore vs luxury — this beats them all.", source_url: null },
+  { user: "@routine.daily", views: "210K", likes: "27K", caption: "Day 30 of using only CeraVe — results.", source_url: null },
 ];
 
 const instagrams = [
-  { user: "skincare.notes", likes: "12.4K", caption: "Texture check: thick but melts in. Zero pilling." },
-  { user: "thatcleangirl", likes: "8.9K", caption: "My winter barrier reset routine ✨" },
-  { user: "derm.maria", likes: "21.1K", caption: "Ceramides 1, 3 and 6-II — here's why that matters." },
+  { user: "skincare.notes", likes: "12.4K", caption: "Texture check: thick but melts in. Zero pilling.", source_url: null },
+  { user: "thatcleangirl", likes: "8.9K", caption: "My winter barrier reset routine ✨", source_url: null },
+  { user: "derm.maria", likes: "21.1K", caption: "Ceramides 1, 3 and 6-II — here's why that matters.", source_url: null },
 ];
+
 
 const keyIngredients: { name: string; match: Record<string, "good" | "watch" | "neutral"> }[] = [
   { name: "Ceramide NP", match: { dry: "good", sensitive: "good", oily: "neutral", combination: "neutral" } },

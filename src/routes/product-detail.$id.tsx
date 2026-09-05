@@ -171,6 +171,7 @@ function ProductPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [socialReviews, setSocialReviews] = useState<any[]>([]);
   const [activeTikTokEmbed, setActiveTikTokEmbed] = useState<string | null>(null); // stores source_url
+  const [tiktokThumbnails, setTiktokThumbnails] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!productData) return;

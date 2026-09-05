@@ -226,11 +226,25 @@ function ProductPage() {
       setLoading(true);
       const { data } = await supabase
         .from("products")
-        .select("id,name,brand,category,subcategory,description,image_url,product_url,price,currency,skintea_score")
+        .select("id,name,brand,category,subcategory,description,image_url,product_url,price,currency,skintea_score,product_family_name,shade_name")
         .eq("id", id)
         .single();
       if (!cancelled) {
         setProductData(data);
+        setActiveProduct(data);
+        if (data?.product_family_name && data?.brand) {
+          const { data: siblings } = await supabase
+            .from("products")
+            .select("id,name,brand,category,subcategory,description,image_url,product_url,price,currency,skintea_score,product_family_name,shade_name")
+            .eq("product_family_name", data.product_family_name)
+            .eq("brand", data.brand)
+            .order("shade_name", { ascending: true });
+          if (!cancelled) {
+            setShadeOptions(siblings ?? []);
+          }
+        } else {
+          setShadeOptions([]);
+        }
         setLoading(false);
       }
     })();

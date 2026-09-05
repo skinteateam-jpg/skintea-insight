@@ -172,6 +172,7 @@ function ProductPage() {
   const [socialReviews, setSocialReviews] = useState<any[]>([]);
   const [activeTikTokEmbed, setActiveTikTokEmbed] = useState<string | null>(null); // stores source_url
   const [tiktokThumbnails, setTiktokThumbnails] = useState<Record<string, string>>({});
+  const [heroIndex, setHeroIndex] = useState(0);
 
   useEffect(() => {
     if (!productData) return;
@@ -215,6 +216,10 @@ function ProductPage() {
       }
     });
   }, [socialReviews]);
+
+  useEffect(() => {
+    setHeroIndex(0);
+  }, [activeProduct?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -269,7 +274,7 @@ function ProductPage() {
       setLoading(true);
       const { data } = await supabase
         .from("products")
-        .select("id,name,brand,category,subcategory,description,image_url,product_url,price,currency,skintea_score,product_family_name,shade_name")
+        .select("id,name,brand,category,subcategory,description,image_url,image_urls,product_url,price,currency,skintea_score,product_family_name,shade_name")
         .eq("id", id)
         .single();
       if (!cancelled) {
@@ -278,7 +283,7 @@ function ProductPage() {
         if (data?.product_family_name && data?.brand) {
           const { data: siblings } = await supabase
             .from("products")
-            .select("id,name,brand,category,subcategory,description,image_url,product_url,price,currency,skintea_score,product_family_name,shade_name")
+            .select("id,name,brand,category,subcategory,description,image_url,image_urls,product_url,price,currency,skintea_score,product_family_name,shade_name")
             .eq("product_family_name", data.product_family_name)
             .eq("brand", data.brand)
             .order("shade_name", { ascending: true });
@@ -422,13 +427,48 @@ function ProductPage() {
 
       {/* 2. Product hero */}
       <div style={{ width: "100%", position: "relative" }}>
-        <div style={{ width: "100%", background: "#FFFCF8", borderBottom: `0.5px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 260, overflow: "hidden" }}>
-          {activeProduct?.image_url ? (
-            <img src={activeProduct.image_url} alt={activeProduct?.name ?? ""} style={{ maxHeight: 240, maxWidth: "80%", objectFit: "contain", display: "block" }} />
-          ) : (
-            <div style={{ width: 100, height: 140, background: "#F0EAE4", borderRadius: 12 }} />
-          )}
-        </div>
+        {(() => {
+          const galleryImages = Array.isArray(activeProduct?.image_urls) && activeProduct.image_urls.length > 0
+            ? activeProduct.image_urls.filter((u: any) => typeof u === "string" && u)
+            : activeProduct?.image_url
+            ? [activeProduct.image_url]
+            : [];
+          const showGallery = galleryImages.length > 1;
+          return (
+            <>
+              <div style={{ width: "100%", background: "#FFFCF8", borderBottom: `0.5px solid ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center", minHeight: 260, overflow: "hidden", position: "relative" }}>
+                {galleryImages.length === 0 ? (
+                  <div style={{ width: 100, height: 140, background: "#F0EAE4", borderRadius: 12 }} />
+                ) : showGallery ? (
+                  <div
+                    key={activeProduct?.id}
+                    onScroll={(e) => {
+                      const el = e.currentTarget;
+                      const idx = Math.round(el.scrollLeft / el.clientWidth);
+                      setHeroIndex(idx);
+                    }}
+                    style={{ display: "flex", width: "100%", minHeight: 260, overflowX: "auto", scrollSnapType: "x mandatory", scrollbarWidth: "none" }}
+                  >
+                    {galleryImages.map((src: string, idx: number) => (
+                      <div key={idx} style={{ width: "100%", flex: "0 0 100%", scrollSnapAlign: "start", display: "flex", alignItems: "center", justifyContent: "center", minHeight: 260 }}>
+                        <img src={src} alt={`${activeProduct?.name ?? ""} ${idx + 1}`} style={{ maxHeight: 240, maxWidth: "80%", objectFit: "contain", display: "block" }} />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <img src={galleryImages[0]} alt={activeProduct?.name ?? ""} style={{ maxHeight: 240, maxWidth: "80%", objectFit: "contain", display: "block" }} />
+                )}
+                {showGallery && (
+                  <div style={{ position: "absolute", bottom: 10, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 6, zIndex: 10 }}>
+                    {galleryImages.map((_: string, idx: number) => (
+                      <div key={idx} style={{ width: 6, height: 6, borderRadius: "50%", background: idx === heroIndex ? CRIMSON : "rgba(28,10,0,0.25)" }} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          );
+        })()}
         <div style={{ background: "#FFFCF8", padding: "14px 16px 16px", borderBottom: `0.5px solid ${BORDER}` }}>
           <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: CRIMSON, fontWeight: 700, marginBottom: 4 }}>
             {activeProduct?.brand}{activeProduct?.category ? ` · ${activeProduct.category}` : ""}

@@ -270,7 +270,7 @@ function ProductPage() {
       setLoading(true);
       const { data } = await supabase
         .from("products")
-        .select("id,name,brand,category,subcategory,description,image_url,product_url,price,currency,skintea_score,product_family_name,shade_name")
+        .select("id,name,brand,category,subcategory,description,image_url,image_urls,product_url,price,currency,skintea_score,product_family_name,shade_name")
         .eq("id", id)
         .single();
       if (!cancelled) {

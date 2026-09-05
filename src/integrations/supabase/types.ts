@@ -671,53 +671,6 @@ export type Database = {
           },
         ]
       }
-      product_reviews: {
-        Row: {
-          author_handle: string | null
-          content: string | null
-          created_at: string | null
-          id: string
-          likes: number | null
-          platform: string
-          product_id: string | null
-          sentiment: string | null
-          source_url: string | null
-          views: number | null
-        }
-        Insert: {
-          author_handle?: string | null
-          content?: string | null
-          created_at?: string | null
-          id?: string
-          likes?: number | null
-          platform: string
-          product_id?: string | null
-          sentiment?: string | null
-          source_url?: string | null
-          views?: number | null
-        }
-        Update: {
-          author_handle?: string | null
-          content?: string | null
-          created_at?: string | null
-          id?: string
-          likes?: number | null
-          platform?: string
-          product_id?: string | null
-          sentiment?: string | null
-          source_url?: string | null
-          views?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "product_reviews_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       products: {
         Row: {
           brand: string
@@ -729,10 +682,13 @@ export type Database = {
           image_url: string | null
           image_urls: string[] | null
           is_active: boolean | null
+          is_priority_review_target: boolean | null
           is_top_pick: boolean | null
           name: string
           price: number | null
+          product_family_name: string | null
           product_url: string | null
+          shade_name: string | null
           skintea_score: number | null
           source: string | null
           subcategory: string | null
@@ -747,10 +703,13 @@ export type Database = {
           image_url?: string | null
           image_urls?: string[] | null
           is_active?: boolean | null
+          is_priority_review_target?: boolean | null
           is_top_pick?: boolean | null
           name: string
           price?: number | null
+          product_family_name?: string | null
           product_url?: string | null
+          shade_name?: string | null
           skintea_score?: number | null
           source?: string | null
           subcategory?: string | null
@@ -765,10 +724,13 @@ export type Database = {
           image_url?: string | null
           image_urls?: string[] | null
           is_active?: boolean | null
+          is_priority_review_target?: boolean | null
           is_top_pick?: boolean | null
           name?: string
           price?: number | null
+          product_family_name?: string | null
           product_url?: string | null
+          shade_name?: string | null
           skintea_score?: number | null
           source?: string | null
           subcategory?: string | null
@@ -951,6 +913,83 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "shelf_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_review_tags: {
+        Row: {
+          author_handle: string | null
+          comment_id: string | null
+          confidence: string | null
+          content: string | null
+          created_at: string | null
+          id: string
+          likes: number | null
+          platform: string
+          post_created_utc: string | null
+          post_id: string | null
+          product_family_name: string | null
+          product_id: string | null
+          quote: string | null
+          sentiment: string | null
+          skin_type: string | null
+          source_query_type: string | null
+          source_url: string | null
+          subreddit: string | null
+          tagged_at: string | null
+          views: number | null
+        }
+        Insert: {
+          author_handle?: string | null
+          comment_id?: string | null
+          confidence?: string | null
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          likes?: number | null
+          platform: string
+          post_created_utc?: string | null
+          post_id?: string | null
+          product_family_name?: string | null
+          product_id?: string | null
+          quote?: string | null
+          sentiment?: string | null
+          skin_type?: string | null
+          source_query_type?: string | null
+          source_url?: string | null
+          subreddit?: string | null
+          tagged_at?: string | null
+          views?: number | null
+        }
+        Update: {
+          author_handle?: string | null
+          comment_id?: string | null
+          confidence?: string | null
+          content?: string | null
+          created_at?: string | null
+          id?: string
+          likes?: number | null
+          platform?: string
+          post_created_utc?: string | null
+          post_id?: string | null
+          product_family_name?: string | null
+          product_id?: string | null
+          quote?: string | null
+          sentiment?: string | null
+          skin_type?: string | null
+          source_query_type?: string | null
+          source_url?: string | null
+          subreddit?: string | null
+          tagged_at?: string | null
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_review_tags_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
@@ -1529,12 +1568,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1558,11 +1597,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1583,11 +1622,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1608,11 +1647,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1625,11 +1664,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

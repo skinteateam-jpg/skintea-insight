@@ -761,8 +761,9 @@ function ProductPage() {
               }));
               const list = real.length ? real : tiktoks;
               return list.map((t, i) => {
+                const thumb = t.source_url ? tiktokThumbnails[t.source_url] : undefined;
                 const card = (
-                  <div style={{ background: "#1a2620", borderRadius: 12, overflow: "hidden", aspectRatio: "9/16", position: "relative" }}>
+                  <div style={{ background: thumb ? `#1a2620 url(${thumb}) center/cover no-repeat` : "#1a2620", borderRadius: 12, overflow: "hidden", aspectRatio: "9/16", position: "relative" }}>
                     <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%, -50%)", width: 36, height: 36, background: "rgba(255,255,255,0.2)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <Play width={14} height={14} color="#fff" fill="#fff" />
                     </div>

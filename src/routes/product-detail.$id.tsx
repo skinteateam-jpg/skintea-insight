@@ -415,6 +415,30 @@ function ProductPage() {
   const majorityQuote = topQuote(majorityIsPositive ? "positive" : "negative");
   const minorityQuote = topQuote(majorityIsPositive ? "negative" : "positive");
 
+  const redditItems = (() => {
+    const rows = socialReviews.filter(
+      (r) => r.platform === "reddit" && ["positive", "negative", "mixed"].includes(r.sentiment),
+    );
+    const byUrl = new Map<string, any>();
+    for (const r of rows) {
+      const key = r.source_url ?? r.id;
+      if (!byUrl.has(key)) byUrl.set(key, r);
+    }
+    return Array.from(byUrl.values())
+      .sort((a, b) => {
+        const ra = CONFIDENCE_RANK[String(a.confidence ?? "").toLowerCase()] ?? 0;
+        const rb = CONFIDENCE_RANK[String(b.confidence ?? "").toLowerCase()] ?? 0;
+        if (rb !== ra) return rb - ra;
+        return new Date(b.tagged_at ?? 0).getTime() - new Date(a.tagged_at ?? 0).getTime();
+      })
+      .slice(0, 6);
+  })();
+
+  const availableSocialTabs = (["tiktok", "instagram", "reddit"] as const).filter((p) =>
+    p === "reddit" ? redditItems.length > 0 : socialReviews.some((r) => r.platform === p),
+  );
+  const effectiveTab = availableSocialTabs.includes(tab as any) ? tab : availableSocialTabs[0];
+
   return (
     <main className="min-h-screen" style={{ paddingTop: 52, paddingBottom: 120, background: WARM_WHITE, fontFamily: "'DM Sans', sans-serif" }}>
       {/* 1. Sticky top bar */}

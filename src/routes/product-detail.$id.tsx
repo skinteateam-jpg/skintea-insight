@@ -78,18 +78,6 @@ export const Route = createFileRoute("/product-detail/$id")({
   }),
 });
 
-const tiktoks = [
-  { user: "@skinwithliv", views: "1.2M", likes: "184K", caption: "My HG winter moisturizer for 3 years straight 🧴", source_url: null },
-  { user: "@dermdoctor", views: "890K", likes: "92K", caption: "Why dermatologists keep recommending this one.", source_url: null },
-  { user: "@glowby.mei", views: "430K", likes: "61K", caption: "Drugstore vs luxury — this beats them all.", source_url: null },
-  { user: "@routine.daily", views: "210K", likes: "27K", caption: "Day 30 of using only CeraVe — results.", source_url: null },
-];
-
-const instagrams = [
-  { user: "skincare.notes", likes: "12.4K", caption: "Texture check: thick but melts in. Zero pilling.", source_url: null },
-  { user: "thatcleangirl", likes: "8.9K", caption: "My winter barrier reset routine ✨", source_url: null },
-  { user: "derm.maria", likes: "21.1K", caption: "Ceramides 1, 3 and 6-II — here's why that matters.", source_url: null },
-];
 
 
 const keyIngredients: { name: string; match: Record<string, "good" | "watch" | "neutral"> }[] = [
@@ -130,12 +118,29 @@ const STORE_LINKS = [
   { name: "YesStyle", url: "https://www.yesstyle.com" },
 ];
 
-const reddits = [
-  { sub: "r/SkincareAddiction", up: "2.4k", title: "CeraVe Moisturizing Cream finally fixed my barrier", comments: 312, source_url: null },
-  { sub: "r/30PlusSkinCare", up: "1.1k", title: "Mature skin review after 6 months of daily use", comments: 184, source_url: null },
-  { sub: "r/AsianBeauty", up: "684", title: "Layering CeraVe under sunscreen — pilling thoughts?", comments: 97, source_url: null },
-  { sub: "r/Skincare_Addiction", up: "512", title: "Unpopular: it broke me out. Anyone else?", comments: 246, source_url: null },
-];
+const CONFIDENCE_RANK: Record<string, number> = { high: 3, medium: 2, low: 1 };
+
+const REDDIT_SENTIMENT_META: Record<string, { color: string; label: string }> = {
+  positive: { color: "#2D7A3A", label: "Positive" },
+  negative: { color: "#A8001C", label: "Negative" },
+  mixed: { color: "#8A7268", label: "Mixed" },
+};
+
+const SKIN_TYPE_PILL: Record<string, string> = {
+  oily: "🧈",
+  dry: "🫙",
+  combination: "🥯",
+  normal: "🥛",
+  sensitive: "🍑",
+};
+
+function subredditFromUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const m = url.match(/\/r\/([^/]+)\//);
+  return m ? m[1] : null;
+}
+
+
 
 function extractTikTokVideoId(url: string | null): string | null {
   if (!url) return null;
@@ -409,6 +414,30 @@ function ProductPage() {
   }
   const majorityQuote = topQuote(majorityIsPositive ? "positive" : "negative");
   const minorityQuote = topQuote(majorityIsPositive ? "negative" : "positive");
+
+  const redditItems = (() => {
+    const rows = socialReviews.filter(
+      (r) => r.platform === "reddit" && ["positive", "negative", "mixed"].includes(r.sentiment),
+    );
+    const byUrl = new Map<string, any>();
+    for (const r of rows) {
+      const key = r.source_url ?? r.id;
+      if (!byUrl.has(key)) byUrl.set(key, r);
+    }
+    return Array.from(byUrl.values())
+      .sort((a, b) => {
+        const ra = CONFIDENCE_RANK[String(a.confidence ?? "").toLowerCase()] ?? 0;
+        const rb = CONFIDENCE_RANK[String(b.confidence ?? "").toLowerCase()] ?? 0;
+        if (rb !== ra) return rb - ra;
+        return new Date(b.tagged_at ?? 0).getTime() - new Date(a.tagged_at ?? 0).getTime();
+      })
+      .slice(0, 6);
+  })();
+
+  const availableSocialTabs = (["tiktok", "instagram", "reddit"] as const).filter((p) =>
+    p === "reddit" ? redditItems.length > 0 : socialReviews.some((r) => r.platform === p),
+  );
+  const effectiveTab = availableSocialTabs.includes(tab as any) ? tab : availableSocialTabs[0];
 
   return (
     <main className="min-h-screen" style={{ paddingTop: 52, paddingBottom: 120, background: WARM_WHITE, fontFamily: "'DM Sans', sans-serif" }}>
@@ -778,10 +807,11 @@ function ProductPage() {
       </Section>
 
       {/* 9. What people are saying */}
+      {availableSocialTabs.length > 0 && (
       <Section title="What people are saying">
         <div style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}`, marginBottom: 12 }}>
-          {(["tiktok", "instagram", "reddit"] as const).map((v) => {
-            const active = tab === v;
+          {availableSocialTabs.map((v) => {
+            const active = effectiveTab === v;
             return (
               <button key={v} onClick={() => setTab(v)} style={{ flex: 1, background: "transparent", border: "none", borderBottom: active ? `2px solid ${CRIMSON}` : "2px solid transparent", padding: "8px 4px", color: active ? ESPRESSO : MUTED, fontWeight: active ? 700 : 500, fontSize: 12, cursor: "pointer" }}>
                 {v === "tiktok" ? "TikTok" : v === "instagram" ? "Instagram" : "Reddit"}
@@ -789,7 +819,7 @@ function ProductPage() {
             );
           })}
         </div>
-        {tab === "tiktok" && (
+        {effectiveTab === "tiktok" && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
             {(() => {
               const tiktokRows = socialReviews.filter((r) => r.platform === "tiktok");
@@ -801,14 +831,13 @@ function ProductPage() {
                   bestPerVideo.set(key, r);
                 }
               }
-              const real = Array.from(bestPerVideo.values()).map((r) => ({
+              const list = Array.from(bestPerVideo.values()).map((r) => ({
                 user: r.author_handle ?? "@user",
                 views: r.views ? `${r.views}` : "—",
                 likes: r.likes ? `${r.likes}` : "—",
                 caption: r.content ?? "",
-                source_url: r.source_url ?? null,
+                source_url: (r.source_url ?? null) as string | null,
               }));
-              const list = real.length ? real : tiktoks;
               return list.map((t, i) => {
                 const thumb = t.source_url ? tiktokThumbnails[t.source_url] : undefined;
                 const card = (
@@ -838,16 +867,15 @@ function ProductPage() {
             })()}
           </div>
         )}
-        {tab === "instagram" && (
+        {effectiveTab === "instagram" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {(() => {
-              const real = socialReviews.filter((r) => r.platform === "instagram").map((r) => ({
+              const list = socialReviews.filter((r) => r.platform === "instagram").map((r) => ({
                 user: r.author_handle ?? "user",
                 likes: r.likes ? `${r.likes}` : "—",
                 caption: r.content ?? "",
-                source_url: r.source_url ?? null,
+                source_url: (r.source_url ?? null) as string | null,
               }));
-              const list = real.length ? real : instagrams;
               return list.map((p, i) => {
                 const card = (
                   <div style={{ background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
@@ -870,45 +898,55 @@ function ProductPage() {
             })()}
           </div>
         )}
-        {tab === "reddit" && (
+        {effectiveTab === "reddit" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {(() => {
-              const real = socialReviews.filter((rv) => rv.platform === "reddit").map((rv) => ({
-                sub: rv.subreddit ? `r/${rv.subreddit}` : "r/SkincareAddiction",
-                up: rv.likes ? `${rv.likes}` : "—",
-                title: (rv.content ?? "").split("\n")[0] || "—",
-                comments: rv.comment_count ?? 0,
-                source_url: rv.source_url ?? null,
-              }));
-              const list = real.length ? real : reddits;
-              return list.map((r, i) => {
-                const card = (
-                  <div style={{ display: "flex", gap: 12, background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                      <ArrowUpCircle width={14} height={14} color={CRIMSON} />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: ESPRESSO }}>{r.up}</span>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 9, fontWeight: 700, color: CRIMSON, textTransform: "uppercase", letterSpacing: "0.06em" }}>{r.sub}</div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: ESPRESSO, lineHeight: 1.4, marginTop: 2 }}>{r.title}</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "#bbb", marginTop: 4 }}>
-                        <MessageCircle width={10} height={10} /> {r.comments} comments
-                      </div>
-                    </div>
+            {redditItems.map((rv, i) => {
+              const sub = rv.subreddit ?? subredditFromUrl(rv.source_url);
+              const meta = REDDIT_SENTIMENT_META[rv.sentiment as string];
+              const skinEmoji = rv.skin_type ? SKIN_TYPE_PILL[String(rv.skin_type).toLowerCase()] : undefined;
+              const card = (
+                <div style={{ background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                    {sub ? (
+                      <span style={{ fontSize: 9, fontWeight: 700, color: CRIMSON, textTransform: "uppercase", letterSpacing: "0.06em" }}>r/{sub}</span>
+                    ) : <span />}
+                    {meta && (
+                      <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: meta.color, display: "inline-block" }} />
+                        <span style={{ fontSize: 10, color: meta.color }}>{meta.label}</span>
+                      </span>
+                    )}
                   </div>
-                );
-                return r.source_url ? (
-                  <a key={`${r.title}-${i}`} href={r.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
-                    {card}
-                  </a>
-                ) : (
-                  <div key={`${r.title}-${i}`}>{card}</div>
-                );
-              });
-            })()}
+                  <div style={{ fontSize: 12, color: ESPRESSO, lineHeight: 1.55, marginTop: 6 }}>{rv.content}</div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 8 }}>
+                    {skinEmoji ? (
+                      <span style={{ fontSize: 10, background: "#F5EFEC", color: "#5F5E5A", borderRadius: 999, padding: "2px 8px" }}>
+                        {skinEmoji} {String(rv.skin_type).charAt(0).toUpperCase() + String(rv.skin_type).slice(1)}
+                      </span>
+                    ) : <span />}
+                    <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 10, color: "#999" }}>
+                      View on Reddit <ExternalLink width={10} height={10} />
+                    </span>
+                  </div>
+                </div>
+              );
+              return (
+                <a key={`${rv.source_url ?? rv.id}-${i}`} href={rv.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                  {card}
+                </a>
+              );
+            })}
+            {redditItems.length > 0 && (
+              <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>
+                {redditItems.length} {redditItems.length === 1 ? "quote" : "quotes"} pulled from Reddit threads. Unedited.
+              </div>
+            )}
           </div>
         )}
       </Section>
+      )}
+
+
 
       {/* 10. Confidence strip */}
       <div style={{ padding: "14px 16px", background: WARM_WHITE, border: `0.5px solid ${BORDER}`, borderRadius: 10, margin: "12px 16px 8px", display: "flex", alignItems: "center", gap: 10 }}>

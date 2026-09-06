@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { ReactNode, CSSProperties } from "react";
-import { Heart, MessageCircle, Play, Share2, ArrowUpCircle, ExternalLink, ArrowLeft, Info } from "lucide-react";
+import { Heart, Play, Share2, ExternalLink, ArrowLeft, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const ESPRESSO = "#1C0A00";
@@ -419,19 +419,19 @@ function ProductPage() {
     const rows = socialReviews.filter(
       (r) => r.platform === "reddit" && ["positive", "negative", "mixed"].includes(r.sentiment),
     );
-    const byUrl = new Map<string, any>();
-    for (const r of rows) {
-      const key = r.source_url ?? r.id;
-      if (!byUrl.has(key)) byUrl.set(key, r);
+    const sorted = rows.sort((a, b) => {
+      const ra = CONFIDENCE_RANK[String(a.confidence ?? "").toLowerCase()] ?? 0;
+      const rb = CONFIDENCE_RANK[String(b.confidence ?? "").toLowerCase()] ?? 0;
+      if (rb !== ra) return rb - ra;
+      return new Date(b.tagged_at ?? 0).getTime() - new Date(a.tagged_at ?? 0).getTime();
+    });
+    const byQuote = new Map<string, any>();
+    for (const r of sorted) {
+      const raw = r.content;
+      const key = raw && typeof raw === "string" && raw.trim().length > 0 ? raw.trim().toLowerCase() : r.id;
+      if (!byQuote.has(key)) byQuote.set(key, r);
     }
-    return Array.from(byUrl.values())
-      .sort((a, b) => {
-        const ra = CONFIDENCE_RANK[String(a.confidence ?? "").toLowerCase()] ?? 0;
-        const rb = CONFIDENCE_RANK[String(b.confidence ?? "").toLowerCase()] ?? 0;
-        if (rb !== ra) return rb - ra;
-        return new Date(b.tagged_at ?? 0).getTime() - new Date(a.tagged_at ?? 0).getTime();
-      })
-      .slice(0, 6);
+    return Array.from(byQuote.values()).slice(0, 6);
   })();
 
   const availableSocialTabs = (["tiktok", "instagram", "reddit"] as const).filter((p) =>
@@ -931,7 +931,7 @@ function ProductPage() {
                 </div>
               );
               return (
-                <a key={`${rv.source_url ?? rv.id}-${i}`} href={rv.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                <a key={rv.id} href={rv.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
                   {card}
                 </a>
               );

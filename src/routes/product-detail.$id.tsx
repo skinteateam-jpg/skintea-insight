@@ -922,7 +922,7 @@ function ProductPage() {
       </Section>
       )}
 
-      </Section>
+
 
       {/* 10. Confidence strip */}
       <div style={{ padding: "14px 16px", background: WARM_WHITE, border: `0.5px solid ${BORDER}`, borderRadius: 10, margin: "12px 16px 8px", display: "flex", alignItems: "center", gap: 10 }}>

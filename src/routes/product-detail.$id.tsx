@@ -433,10 +433,6 @@ function ProductPage() {
     return Array.from(byQuote.values()).slice(0, 6);
   })();
 
-  const availableSocialTabs = (["tiktok", "instagram", "reddit"] as const).filter((p) =>
-    p === "reddit" ? redditItems.length > 0 : socialReviews.some((r) => r.platform === p),
-  );
-  const effectiveTab = availableSocialTabs.includes(tab as any) ? tab : availableSocialTabs[0];
 
   return (
     <main className="min-h-screen" style={{ paddingTop: 52, paddingBottom: 120, background: WARM_WHITE, fontFamily: "'DM Sans', sans-serif" }}>

@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { ReactNode, CSSProperties } from "react";
-import { Heart, Play, Share2, ExternalLink, ArrowLeft, Info } from "lucide-react";
+import { Heart, Play, Share2, ExternalLink, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const ESPRESSO = "#1C0A00";
@@ -30,14 +30,13 @@ const SKIN_CHARACTERS: Record<string, { emoji: string; name: string }> = {
 };
 
 const SKIN_ORDER = ["oily", "sensitive", "combination", "normal", "dry"] as const;
-const SKIN_PCT: Record<string, number> = { oily: 92, sensitive: 88, combination: 79, normal: 76, dry: 41 };
 
-const AGE_ORDER: { key: string; label: string; sub: string; pct: number }[] = [
-  { key: "teens", label: "Teens", sub: "13–19", pct: 72 },
-  { key: "20s", label: "20s", sub: "20–29", pct: 88 },
-  { key: "30s", label: "30s", sub: "30–39", pct: 94 },
-  { key: "40s", label: "40s", sub: "40–49", pct: 91 },
-  { key: "50s+", label: "50s+", sub: "50 and up", pct: 84 },
+const AGE_ORDER: { key: string; label: string; sub: string }[] = [
+  { key: "teens", label: "Teens", sub: "13–19" },
+  { key: "20s", label: "20s", sub: "20–29" },
+  { key: "30s", label: "30s", sub: "30–39" },
+  { key: "40s", label: "40s", sub: "40–49" },
+  { key: "50s+", label: "50s+", sub: "50 and up" },
 ];
 
 const SKIN_TYPE_LABEL: Record<string, string> = {
@@ -56,6 +55,15 @@ function Section({ title, right, children }: { title: string; right?: ReactNode;
         {right}
       </div>
       {children}
+    </div>
+  );
+}
+
+function DataPending({ children }: { children: ReactNode }) {
+  return (
+    <div style={{ border: `1px dashed ${BORDER}`, borderRadius: 10, padding: "12px 13px", background: WARM_WHITE }}>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: MUTED, marginBottom: 5 }}>Not enough data yet</div>
+      <div style={{ fontSize: 11.5, color: MUTED, lineHeight: 1.55 }}>{children}</div>
     </div>
   );
 }
@@ -80,36 +88,6 @@ export const Route = createFileRoute("/product-detail/$id")({
 
 
 
-const keyIngredients: { name: string; match: Record<string, "good" | "watch" | "neutral"> }[] = [
-  { name: "Ceramide NP", match: { dry: "good", sensitive: "good", oily: "neutral", combination: "neutral" } },
-  { name: "Ceramide AP", match: { dry: "good", sensitive: "good", oily: "neutral", combination: "neutral" } },
-  { name: "Ceramide EOP", match: { dry: "good", sensitive: "good", oily: "neutral", combination: "neutral" } },
-  { name: "Hyaluronic Acid", match: { dry: "good", sensitive: "good", oily: "watch", combination: "watch" } },
-  { name: "Niacinamide", match: { oily: "good", combination: "good", dry: "neutral", sensitive: "watch" } },
-  { name: "Cholesterol", match: { dry: "good", sensitive: "good", oily: "watch", combination: "neutral" } },
-  { name: "Phytosphingosine", match: { sensitive: "good", dry: "good", oily: "neutral", combination: "neutral" } },
-];
-
-const fullIngredients: { name: string; match: Record<string, "good" | "watch" | "neutral"> }[] = [
-  { name: "Purified Water", match: {} },
-  { name: "Glycerin", match: { dry: "good", sensitive: "good", oily: "neutral", combination: "neutral" } },
-  { name: "Caprylic/Capric Triglyceride", match: { dry: "good", oily: "watch", combination: "neutral", sensitive: "neutral" } },
-  { name: "Cetearyl Alcohol", match: { dry: "good", oily: "watch", sensitive: "neutral", combination: "neutral" } },
-  { name: "Ceramide NP", match: { dry: "good", sensitive: "good", oily: "neutral", combination: "neutral" } },
-  { name: "Ceramide AP", match: { dry: "good", sensitive: "good", oily: "neutral", combination: "neutral" } },
-  { name: "Ceramide EOP", match: { dry: "good", sensitive: "good", oily: "neutral", combination: "neutral" } },
-  { name: "Carbomer", match: {} },
-  { name: "Dimethicone", match: { dry: "good", sensitive: "good", oily: "watch", combination: "watch" } },
-  { name: "Sodium Hyaluronate", match: { dry: "good", sensitive: "good", oily: "watch", combination: "neutral" } },
-  { name: "Cholesterol", match: { dry: "good", sensitive: "good", oily: "watch", combination: "neutral" } },
-  { name: "Phenoxyethanol", match: {} },
-  { name: "Disodium EDTA", match: {} },
-  { name: "Phytosphingosine", match: { sensitive: "good", dry: "good", oily: "neutral", combination: "neutral" } },
-  { name: "Tocopherol", match: { dry: "good", sensitive: "good", oily: "neutral", combination: "neutral" } },
-  { name: "Niacinamide", match: { oily: "good", combination: "good", dry: "neutral", sensitive: "watch" } },
-  { name: "Xanthan Gum", match: {} },
-  { name: "Ethylhexylglycerin", match: {} },
-];
 
 const STORE_LINKS = [
   { name: "Amazon", url: "https://www.amazon.com" },
@@ -154,7 +132,7 @@ function ProductPage() {
   const [teaPosts, setTeaPosts] = useState<any[]>([]);
   const [teaFilter, setTeaFilter] = useState<string>("all");
   const [, setTeaLoading] = useState(false);
-  const [showAllIngredients, setShowAllIngredients] = useState(false);
+  
   const navigate = useNavigate();
   const search = useSearch({ strict: false }) as { from?: string; postId?: string } | undefined;
   const fromPost = search?.from === "post";
@@ -311,13 +289,6 @@ function ProductPage() {
     );
   }
 
-  function getIngredientStyle(ing: { name: string; match: Record<string, "good" | "watch" | "neutral"> }) {
-    if (!userSkinType) return { background: WARM_WHITE, color: MUTED, border: "none", label: "Neutral" as const, status: "neutral" as const };
-    const status = ing.match[userSkinType] || "neutral";
-    if (status === "good") return { background: "#F0FAF1", color: "#2D7A3A", border: "0.5px solid #2D7A3A", fontWeight: 600, label: "Great for you" as const, status };
-    if (status === "watch") return { background: "#FFF5F5", color: CRIMSON, border: `0.5px solid ${CRIMSON}`, fontWeight: 600, label: "Watch" as const, status };
-    return { background: WARM_WHITE, color: MUTED, border: "none", label: "Neutral" as const, status };
-  }
 
   function showToast(msg: string) { setToast(msg); window.setTimeout(() => setToast(null), 2200); }
 
@@ -386,8 +357,19 @@ function ProductPage() {
   }
 
   const reviewCount = socialReviews.length;
-  const reviewCountLabel = reviewCount >= 1000 ? `${(reviewCount / 1000).toFixed(1)}k` : `${reviewCount || "2.4k"}`;
-  const recommendPct = productData?.skintea_score ?? 78;
+  const reviewCountLabel = reviewCount >= 1000 ? `${(reviewCount / 1000).toFixed(1)}k` : reviewCount === 0 ? "—" : `${reviewCount}`;
+  const recommendPct = productData?.skintea_score ?? null;
+
+  const skinTypePct: Record<string, number | null> = {};
+  for (const st of SKIN_ORDER) {
+    const rows = socialReviews.filter(
+      (r) => String(r.skin_type).toLowerCase() === st && (r.sentiment === "positive" || r.sentiment === "negative")
+    );
+    if (rows.length < 10) { skinTypePct[st] = null; continue; }
+    const pos = rows.filter((r) => r.sentiment === "positive").length;
+    skinTypePct[st] = Math.round((pos / rows.length) * 100);
+  }
+  const anySkinPct = SKIN_ORDER.some((st) => skinTypePct[st] !== null);
   const confidence = reviewCount > 500 ? "High" : reviewCount >= 100 ? "Medium" : "Low";
   const skintea = productData?.skintea_score ?? "—";
 
@@ -580,7 +562,7 @@ function ProductPage() {
       {/* 3. Stats row */}
       <div style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}` }}>
         {[
-          { val: `${recommendPct}%`, label: "Recommend", color: ESPRESSO },
+          { val: recommendPct === null ? "—" : `${recommendPct}%`, label: "Recommend", color: ESPRESSO },
           { val: reviewCountLabel, label: "Reviews", color: ESPRESSO },
           { val: confidence, label: "Confidence", color: ESPRESSO },
           { val: `${skintea}`, label: "Skintea", color: CRIMSON },
@@ -646,159 +628,107 @@ function ProductPage() {
         <div style={{ fontSize: 11, color: MUTED, marginBottom: 12, paddingLeft: 11 }}>Skin type</div>
         {SKIN_ORDER.map((key) => {
           const c = SKIN_CHARACTERS[key];
-          const pct = SKIN_PCT[key];
+          const pct = skinTypePct[key];
+          const has = pct !== null && pct !== undefined;
           const me = userSkinType === key;
           if (me) {
             return (
-              <div key={key} style={{ background: "#FFF5F7", border: `1px solid ${CRIMSON}`, borderRadius: 10, padding: "10px 12px", marginBottom: 8 }}>
+              <div key={key} style={{ background: "#FFF5F7", border: `1px solid ${CRIMSON}`, borderRadius: 10, padding: "10px 12px", marginBottom: 8, opacity: has ? 1 : 0.55 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, color: CRIMSON, fontWeight: 700, fontSize: 13 }}>
                     <span>{c.emoji}</span><span>{c.name} <span style={{ fontWeight: 400, fontSize: 11, color: "rgba(168,0,28,0.7)" }}>({SKIN_TYPE_LABEL[key]})</span></span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ background: CRIMSON, color: WARM_WHITE, fontSize: 10, padding: "2px 8px", borderRadius: 20, fontWeight: 600 }}>You</span>
-                    <span style={{ color: CRIMSON, fontWeight: 700, fontSize: 13 }}>{pct}%</span>
+                    <span style={{ color: CRIMSON, fontWeight: 700, fontSize: 13 }}>{has ? `${pct}%` : "—"}</span>
                   </div>
                 </div>
                 <div style={{ height: 4, background: "rgba(168,0,28,0.12)", borderRadius: 3, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${pct}%`, background: CRIMSON }} />
+                  <div style={{ height: "100%", width: `${has ? pct : 0}%`, background: CRIMSON }} />
                 </div>
               </div>
             );
           }
           return (
-            <div key={key} style={{ padding: "8px 12px" }}>
+            <div key={key} style={{ padding: "8px 12px", opacity: has ? 1 : 0.55 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#555", fontSize: 12 }}>
                   <span>{c.emoji}</span><span>{c.name} <span style={{ fontWeight: 400, fontSize: 11, color: "#aaa" }}>({SKIN_TYPE_LABEL[key]})</span></span>
                 </div>
-                <span style={{ color: "#888", fontSize: 12 }}>{pct}%</span>
+                <span style={{ color: "#888", fontSize: 12 }}>{has ? `${pct}%` : "—"}</span>
               </div>
               <div style={{ height: 4, background: BORDER, borderRadius: 3, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${pct}%`, background: "#D4C8C2" }} />
+                <div style={{ height: "100%", width: `${has ? pct : 0}%`, background: "#D4C8C2" }} />
               </div>
             </div>
           );
         })}
-        <div style={{ height: "0.5px", background: BORDER, margin: "4px 0 16px" }} />
+        {!anySkinPct && (
+          <div style={{ marginTop: 10 }}>
+            <DataPending>This will show the % of people with each skin type who recommend this product. Needs at least 10 tagged posts per skin type — we're still collecting.</DataPending>
+          </div>
+        )}
+        <div style={{ height: "0.5px", background: BORDER, margin: "16px 0 16px" }} />
         <div style={{ fontSize: 11, color: MUTED, marginBottom: 12 }}>Age group</div>
         {AGE_ORDER.map((a) => {
           const me = userAgeBracket === a.key;
           if (me) {
             return (
-              <div key={a.key} style={{ background: "#FFF5F7", border: `1px solid ${CRIMSON}`, borderRadius: 10, padding: "10px 12px", marginBottom: 8 }}>
+              <div key={a.key} style={{ background: "#FFF5F7", border: `1px solid ${CRIMSON}`, borderRadius: 10, padding: "10px 12px", marginBottom: 8, opacity: 0.55 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                   <div style={{ color: CRIMSON, fontWeight: 700, fontSize: 13 }}>{a.label} <span style={{ color: CRIMSON, fontWeight: 400, fontSize: 11, marginLeft: 4 }}>{a.sub}</span></div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ background: CRIMSON, color: WARM_WHITE, fontSize: 10, padding: "2px 8px", borderRadius: 20, fontWeight: 600 }}>You</span>
-                    <span style={{ color: CRIMSON, fontWeight: 700, fontSize: 13 }}>{a.pct}%</span>
+                    <span style={{ color: CRIMSON, fontWeight: 700, fontSize: 13 }}>—</span>
                   </div>
                 </div>
                 <div style={{ height: 4, background: "rgba(168,0,28,0.12)", borderRadius: 3, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: `${a.pct}%`, background: CRIMSON }} />
+                  <div style={{ height: "100%", width: "0%", background: CRIMSON }} />
                 </div>
               </div>
             );
           }
           return (
-            <div key={a.key} style={{ padding: "8px 12px" }}>
+            <div key={a.key} style={{ padding: "8px 12px", opacity: 0.55 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                 <div style={{ color: "#555", fontSize: 12 }}>{a.label} <span style={{ color: "#888", fontSize: 11, marginLeft: 4 }}>{a.sub}</span></div>
-                <span style={{ color: "#888", fontSize: 12 }}>{a.pct}%</span>
+                <span style={{ color: "#888", fontSize: 12 }}>—</span>
               </div>
               <div style={{ height: 4, background: BORDER, borderRadius: 3, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${a.pct}%`, background: "#D4C8C2" }} />
+                <div style={{ height: "100%", width: "0%", background: "#D4C8C2" }} />
               </div>
             </div>
           );
         })}
-        {!userAgeBracket && (
-          <div style={{ background: WARM_WHITE, border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 13px", display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
-            <Info size={15} color={MUTED} />
-            <div style={{ fontSize: 11, color: MUTED }}>
-              Age highlight comes from your profile.{" "}
-              <span onClick={() => navigate({ to: "/skin-profile" })} style={{ color: CRIMSON, fontWeight: 600, cursor: "pointer" }}>Add your age →</span>
-            </div>
-          </div>
-        )}
+        <div style={{ marginTop: 10 }}>
+          <DataPending>This will show recommend rates by age group. We don't collect reviewer age yet.</DataPending>
+        </div>
       </Section>
 
       {/* 7. Is it for you? */}
       <Section title="Is it for you?">
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
           {([
-            { variant: "yes" as const, header: "Yes — works well", items: [
-              { label: "Dry skin", strength: 3 },
-              { label: "Sensitive skin", strength: 3 },
-              { label: "Compromised barrier", strength: 2 },
-              { label: "Eczema-prone", strength: 2 },
-            ] },
-            { variant: "skip" as const, header: "Skip — may not work", items: [
-              { label: "Very oily skin", strength: 3 },
-              { label: "Acne-prone (fungal)", strength: 3 },
-              { label: "Humid climates", strength: 1 },
-              { label: "Rich textures", strength: 2 },
-            ] },
+            { variant: "yes" as const, header: "Yes — works well", body: "Who this works for — pending enough tagged reviews." },
+            { variant: "skip" as const, header: "Skip — may not work", body: "Who should skip it — pending enough tagged reviews." },
           ]).map((card) => {
             const dotColor = card.variant === "yes" ? "#2D7A3A" : CRIMSON;
             return (
               <div key={card.variant} style={{ background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 12, padding: 14 }}>
                 <div style={{ fontSize: 10, color: dotColor, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 10 }}>{card.header}</div>
-                {card.items.map((it) => (
-                  <div key={it.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                    <span style={{ fontSize: 12, color: ESPRESSO }}>{it.label}</span>
-                    <div style={{ display: "flex", gap: 3 }}>
-                      {[1, 2, 3].map((i) => (
-                        <div key={i} style={{ width: 7, height: 7, borderRadius: "50%", background: i <= it.strength ? dotColor : BORDER }} />
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                <div style={{ fontSize: 11.5, color: MUTED, lineHeight: 1.55 }}>{card.body}</div>
               </div>
             );
           })}
+        </div>
+        <div style={{ marginTop: 10 }}>
+          <DataPending>This will summarize who this product works for and who should skip it, generated from tagged skin-type sentiment.</DataPending>
         </div>
       </Section>
 
       {/* 8. Key ingredients */}
       <Section title="Key ingredients">
-        {userSkinType && (
-          <div style={{ fontSize: 11, color: "#555", marginBottom: 10 }}>
-            <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#2D7A3A", marginRight: 5, verticalAlign: "middle" }} />Good for you
-            <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#A8001C", marginRight: 5, marginLeft: 12, verticalAlign: "middle" }} />Watch
-            <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#E8DDD4", marginRight: 5, marginLeft: 12, verticalAlign: "middle" }} />Neutral
-          </div>
-        )}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-          {keyIngredients.map((ing) => {
-            const st = getIngredientStyle(ing);
-            return (
-              <span
-                key={ing.name}
-                style={{
-                  background: st.background,
-                  color: st.color,
-                  border: st.border ?? `0.5px solid ${BORDER}`,
-                  fontSize: 12,
-                  fontWeight: st.status === "good" ? 600 : 400,
-                  padding: "5px 12px",
-                  borderRadius: 20,
-                  display: "inline-block",
-                }}
-              >
-                {ing.name}
-              </span>
-            );
-          })}
-        </div>
-        <button onClick={() => setShowAllIngredients((v) => !v)} style={{ background: "transparent", border: "none", color: CRIMSON, fontSize: 12, fontWeight: 600, marginTop: 12, padding: 0, cursor: "pointer" }}>
-          Full ingredient list {showAllIngredients ? "▴" : "▾"}
-        </button>
-        {showAllIngredients && (
-          <div style={{ marginTop: 10, fontSize: 12, color: ESPRESSO, lineHeight: 1.7 }}>
-            {fullIngredients.map((i) => i.name).join(", ")}
-          </div>
-        )}
+        <DataPending>This will show the full ingredient list, flagged green or red against your skin type. Ingredient data hasn't been added to the catalog yet.</DataPending>
       </Section>
 
       {/* 9. What people are saying */}
@@ -946,10 +876,12 @@ function ProductPage() {
 
 
       {/* 10. Confidence strip */}
+      {socialReviews.length > 0 && (
       <div style={{ padding: "14px 16px", background: WARM_WHITE, border: `0.5px solid ${BORDER}`, borderRadius: 10, margin: "12px 16px 8px", display: "flex", alignItems: "center", gap: 10 }}>
         <span style={{ background: CRIMSON, color: WARM_WHITE, fontSize: 11, fontWeight: 700, padding: "3px 12px", borderRadius: 20 }}>{confidence}</span>
-        <span style={{ fontSize: 11, color: MUTED, lineHeight: 1.4 }}>Based on 1,200+ posts across TikTok, Instagram, and Reddit</span>
+        <span style={{ fontSize: 11, color: MUTED, lineHeight: 1.4 }}>Based on {socialReviews.length} posts collected across TikTok, Instagram, and Reddit</span>
       </div>
+      )}
       </>
       )}
 

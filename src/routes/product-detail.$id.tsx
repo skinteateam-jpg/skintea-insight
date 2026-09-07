@@ -150,7 +150,6 @@ function extractTikTokVideoId(url: string | null): string | null {
 
 function ProductPage() {
   const { id } = Route.useParams();
-  const [tab, setTab] = useState("tiktok");
   const [pageTab, setPageTab] = useState<"product" | "tea">("product");
   const [teaPosts, setTeaPosts] = useState<any[]>([]);
   const [teaFilter, setTeaFilter] = useState<string>("all");

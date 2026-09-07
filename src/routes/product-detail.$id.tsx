@@ -802,144 +802,146 @@ function ProductPage() {
       </Section>
 
       {/* 9. What people are saying */}
-      {availableSocialTabs.length > 0 && (
-      <Section title="What people are saying">
-        <div style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}`, marginBottom: 12 }}>
-          {availableSocialTabs.map((v) => {
-            const active = effectiveTab === v;
-            return (
-              <button key={v} onClick={() => setTab(v)} style={{ flex: 1, background: "transparent", border: "none", borderBottom: active ? `2px solid ${CRIMSON}` : "2px solid transparent", padding: "8px 4px", color: active ? ESPRESSO : MUTED, fontWeight: active ? 700 : 500, fontSize: 12, cursor: "pointer" }}>
-                {v === "tiktok" ? "TikTok" : v === "instagram" ? "Instagram" : "Reddit"}
-              </button>
-            );
-          })}
-        </div>
-        {effectiveTab === "tiktok" && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
-            {(() => {
-              const tiktokRows = socialReviews.filter((r) => r.platform === "tiktok");
-              const bestPerVideo = new Map<string, typeof tiktokRows[number]>();
-              for (const r of tiktokRows) {
-                const key = r.source_url ?? r.id;
-                const existing = bestPerVideo.get(key);
-                if (!existing || (r.likes ?? 0) > (existing.likes ?? 0)) {
-                  bestPerVideo.set(key, r);
-                }
-              }
-              const list = Array.from(bestPerVideo.values()).map((r) => ({
-                user: r.author_handle ?? "@user",
-                views: r.views ? `${r.views}` : "—",
-                likes: r.likes ? `${r.likes}` : "—",
-                caption: r.content ?? "",
-                source_url: (r.source_url ?? null) as string | null,
-              }));
-              return list.map((t, i) => {
-                const thumb = t.source_url ? tiktokThumbnails[t.source_url] : undefined;
-                const card = (
-                  <div style={{ background: thumb ? `#1a2620 url(${thumb}) center/cover no-repeat` : "#1a2620", borderRadius: 12, overflow: "hidden", aspectRatio: "9/16", position: "relative" }}>
-                    <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%, -50%)", width: 36, height: 36, background: "rgba(255,255,255,0.2)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Play width={14} height={14} color="#fff" fill="#fff" />
-                    </div>
-                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "8px 10px", background: "linear-gradient(to top, rgba(0,0,0,0.85), transparent)" }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{t.user}</div>
-                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.7)", marginTop: 2, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{t.caption}</div>
-                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", marginTop: 3 }}>{t.views} views</div>
-                    </div>
-                  </div>
-                );
-                return t.source_url ? (
-                  <button
-                    key={`${t.user}-${i}`}
-                    onClick={() => setActiveTikTokEmbed(t.source_url)}
-                    style={{ textDecoration: "none", border: "none", padding: 0, background: "none", cursor: "pointer", display: "block", width: "100%" }}
-                  >
-                    {card}
-                  </button>
-                ) : (
-                  <div key={`${t.user}-${i}`}>{card}</div>
-                );
-              });
-            })()}
-          </div>
-        )}
-        {effectiveTab === "instagram" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {(() => {
-              const list = socialReviews.filter((r) => r.platform === "instagram").map((r) => ({
-                user: r.author_handle ?? "user",
-                likes: r.likes ? `${r.likes}` : "—",
-                caption: r.content ?? "",
-                source_url: (r.source_url ?? null) as string | null,
-              }));
-              return list.map((p, i) => {
-                const card = (
-                  <div style={{ background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>@{p.user}</div>
-                    <div style={{ fontSize: 11, color: "#555", lineHeight: 1.4, marginTop: 3 }}>{p.caption}</div>
-                    <div style={{ display: "flex", gap: 12, fontSize: 10, color: "#bbb", marginTop: 6, alignItems: "center" }}>
-                      <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Heart width={10} height={10} /> {p.likes}</span>
-                      <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Share2 width={10} height={10} /></span>
-                    </div>
-                  </div>
-                );
-                return p.source_url ? (
-                  <a key={`${p.user}-${i}`} href={p.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
-                    {card}
-                  </a>
-                ) : (
-                  <div key={`${p.user}-${i}`}>{card}</div>
-                );
-              });
-            })()}
-          </div>
-        )}
-        {effectiveTab === "reddit" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {redditItems.map((rv, i) => {
-              const sub = rv.subreddit ?? subredditFromUrl(rv.source_url);
-              const meta = REDDIT_SENTIMENT_META[rv.sentiment as string];
-              const skinEmoji = rv.skin_type ? SKIN_TYPE_PILL[String(rv.skin_type).toLowerCase()] : undefined;
-              const card = (
-                <div style={{ background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                    {sub ? (
-                      <span style={{ fontSize: 9, fontWeight: 700, color: CRIMSON, textTransform: "uppercase", letterSpacing: "0.06em" }}>r/{sub}</span>
-                    ) : <span />}
-                    {meta && (
-                      <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: meta.color, display: "inline-block" }} />
-                        <span style={{ fontSize: 10, color: meta.color }}>{meta.label}</span>
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 12, color: ESPRESSO, lineHeight: 1.55, marginTop: 6 }}>{rv.content}</div>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 8 }}>
-                    {skinEmoji ? (
-                      <span style={{ fontSize: 10, background: "#F5EFEC", color: "#5F5E5A", borderRadius: 999, padding: "2px 8px" }}>
-                        {skinEmoji} {String(rv.skin_type).charAt(0).toUpperCase() + String(rv.skin_type).slice(1)}
-                      </span>
-                    ) : <span />}
-                    <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 10, color: "#999" }}>
-                      View on Reddit <ExternalLink width={10} height={10} />
-                    </span>
-                  </div>
+      {(() => {
+        const tiktokRows = socialReviews.filter((r) => r.platform === "tiktok");
+        const instagramRows = socialReviews.filter((r) => r.platform === "instagram");
+        const hasAny = tiktokRows.length > 0 || instagramRows.length > 0 || redditItems.length > 0;
+        if (!hasAny) return null;
+        return (
+          <Section title="What people are saying">
+            {tiktokRows.length > 0 && (
+              <div style={{ paddingBottom: 12, marginBottom: 12, borderBottom: (instagramRows.length > 0 || redditItems.length > 0) ? `0.5px solid ${BORDER}` : undefined }}>
+                <div style={{ ...SECTION_LABEL, marginBottom: 10 }}>What TikTok says</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+                  {(() => {
+                    const bestPerVideo = new Map<string, typeof tiktokRows[number]>();
+                    for (const r of tiktokRows) {
+                      const key = r.source_url ?? r.id;
+                      const existing = bestPerVideo.get(key);
+                      if (!existing || (r.likes ?? 0) > (existing.likes ?? 0)) {
+                        bestPerVideo.set(key, r);
+                      }
+                    }
+                    const list = Array.from(bestPerVideo.values()).map((r) => ({
+                      user: r.author_handle ?? "@user",
+                      views: r.views ? `${r.views}` : "—",
+                      likes: r.likes ? `${r.likes}` : "—",
+                      caption: r.content ?? "",
+                      source_url: (r.source_url ?? null) as string | null,
+                    }));
+                    return list.map((t, i) => {
+                      const thumb = t.source_url ? tiktokThumbnails[t.source_url] : undefined;
+                      const card = (
+                        <div style={{ background: thumb ? `#1a2620 url(${thumb}) center/cover no-repeat` : "#1a2620", borderRadius: 12, overflow: "hidden", aspectRatio: "9/16", position: "relative" }}>
+                          <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%, -50%)", width: 36, height: 36, background: "rgba(255,255,255,0.2)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Play width={14} height={14} color="#fff" fill="#fff" />
+                          </div>
+                          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "8px 10px", background: "linear-gradient(to top, rgba(0,0,0,0.85), transparent)" }}>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{t.user}</div>
+                            <div style={{ fontSize: 9, color: "rgba(255,255,255,0.7)", marginTop: 2, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{t.caption}</div>
+                            <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", marginTop: 3 }}>{t.views} views</div>
+                          </div>
+                        </div>
+                      );
+                      return t.source_url ? (
+                        <button
+                          key={`${t.user}-${i}`}
+                          onClick={() => setActiveTikTokEmbed(t.source_url)}
+                          style={{ textDecoration: "none", border: "none", padding: 0, background: "none", cursor: "pointer", display: "block", width: "100%" }}
+                        >
+                          {card}
+                        </button>
+                      ) : (
+                        <div key={`${t.user}-${i}`}>{card}</div>
+                      );
+                    });
+                  })()}
                 </div>
-              );
-              return (
-                <a key={rv.id} href={rv.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
-                  {card}
-                </a>
-              );
-            })}
-            {redditItems.length > 0 && (
-              <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>
-                {redditItems.length} {redditItems.length === 1 ? "quote" : "quotes"} pulled from Reddit threads. Unedited.
               </div>
             )}
-          </div>
-        )}
-      </Section>
-      )}
+            {instagramRows.length > 0 && (
+              <div style={{ paddingBottom: 12, marginBottom: 12, borderBottom: redditItems.length > 0 ? `0.5px solid ${BORDER}` : undefined }}>
+                <div style={{ ...SECTION_LABEL, marginBottom: 10 }}>What Instagram says</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {(() => {
+                    const list = instagramRows.map((r) => ({
+                      user: r.author_handle ?? "user",
+                      likes: r.likes ? `${r.likes}` : "—",
+                      caption: r.content ?? "",
+                      source_url: (r.source_url ?? null) as string | null,
+                    }));
+                    return list.map((p, i) => {
+                      const card = (
+                        <div style={{ background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>@{p.user}</div>
+                          <div style={{ fontSize: 11, color: "#555", lineHeight: 1.4, marginTop: 3 }}>{p.caption}</div>
+                          <div style={{ display: "flex", gap: 12, fontSize: 10, color: "#bbb", marginTop: 6, alignItems: "center" }}>
+                            <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Heart width={10} height={10} /> {p.likes}</span>
+                            <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Share2 width={10} height={10} /></span>
+                          </div>
+                        </div>
+                      );
+                      return p.source_url ? (
+                        <a key={`${p.user}-${i}`} href={p.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                          {card}
+                        </a>
+                      ) : (
+                        <div key={`${p.user}-${i}`}>{card}</div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+            )}
+            {redditItems.length > 0 && (
+              <div>
+                <div style={{ ...SECTION_LABEL, marginBottom: 10 }}>What Reddit says</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {redditItems.map((rv, i) => {
+                    const sub = rv.subreddit ?? subredditFromUrl(rv.source_url);
+                    const meta = REDDIT_SENTIMENT_META[rv.sentiment as string];
+                    const skinEmoji = rv.skin_type ? SKIN_TYPE_PILL[String(rv.skin_type).toLowerCase()] : undefined;
+                    const card = (
+                      <div style={{ background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                          {sub ? (
+                            <span style={{ fontSize: 9, fontWeight: 700, color: CRIMSON, textTransform: "uppercase", letterSpacing: "0.06em" }}>r/{sub}</span>
+                          ) : <span />}
+                          {meta && (
+                            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: meta.color, display: "inline-block" }} />
+                              <span style={{ fontSize: 10, color: meta.color }}>{meta.label}</span>
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 12, color: ESPRESSO, lineHeight: 1.55, marginTop: 6 }}>{rv.content}</div>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 8 }}>
+                          {skinEmoji ? (
+                            <span style={{ fontSize: 10, background: "#F5EFEC", color: "#5F5E5A", borderRadius: 999, padding: "2px 8px" }}>
+                              {skinEmoji} {String(rv.skin_type).charAt(0).toUpperCase() + String(rv.skin_type).slice(1)}
+                            </span>
+                          ) : <span />}
+                          <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 10, color: "#999" }}>
+                            View on Reddit <ExternalLink width={10} height={10} />
+                          </span>
+                        </div>
+                      </div>
+                    );
+                    return (
+                      <a key={rv.id} href={rv.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                        {card}
+                      </a>
+                    );
+                  })}
+                  <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>
+                    {redditItems.length} {redditItems.length === 1 ? "quote" : "quotes"} pulled from Reddit threads. Unedited.
+                  </div>
+                </div>
+              </div>
+            )}
+          </Section>
+        );
+      })()}
 
 
 

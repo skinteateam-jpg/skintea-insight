@@ -155,6 +155,7 @@ function ProductPage() {
   const [activeTikTokEmbed, setActiveTikTokEmbed] = useState<string | null>(null); // stores source_url
   const [tiktokThumbnails, setTiktokThumbnails] = useState<Record<string, string>>({});
   const [heroIndex, setHeroIndex] = useState(0);
+  const [showAllIngredients, setShowAllIngredients] = useState(false);
 
   useEffect(() => {
     if (!productData) return;
@@ -256,7 +257,7 @@ function ProductPage() {
       setLoading(true);
       const { data } = await supabase
         .from("products")
-        .select("id,name,brand,category,subcategory,description,image_url,image_urls,product_url,price,currency,skintea_score,product_family_name,shade_name")
+        .select("id,name,brand,category,subcategory,description,image_url,image_urls,product_url,price,currency,skintea_score,product_family_name,shade_name,ingredients,key_ingredients")
         .eq("id", id)
         .single();
       if (!cancelled) {
@@ -265,7 +266,7 @@ function ProductPage() {
         if (data?.product_family_name && data?.brand) {
           const { data: siblings } = await supabase
             .from("products")
-            .select("id,name,brand,category,subcategory,description,image_url,image_urls,product_url,price,currency,skintea_score,product_family_name,shade_name")
+            .select("id,name,brand,category,subcategory,description,image_url,image_urls,product_url,price,currency,skintea_score,product_family_name,shade_name,ingredients,key_ingredients")
             .eq("product_family_name", data.product_family_name)
             .eq("brand", data.brand)
             .order("shade_name", { ascending: true });

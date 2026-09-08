@@ -682,38 +682,42 @@ function ProductPage() {
         <div style={{ height: "0.5px", background: BORDER, margin: "16px 0 16px" }} />
         <div style={{ fontSize: 11, color: MUTED, marginBottom: 12 }}>Age group</div>
         {AGE_ORDER.map((a) => {
+          const pct = ageBracketPct[a.key];
+          const has = pct !== null && pct !== undefined;
           const me = userAgeBracket === a.key;
           if (me) {
             return (
-              <div key={a.key} style={{ background: "#FFF5F7", border: `1px solid ${CRIMSON}`, borderRadius: 10, padding: "10px 12px", marginBottom: 8, opacity: 0.55 }}>
+              <div key={a.key} style={{ background: "#FFF5F7", border: `1px solid ${CRIMSON}`, borderRadius: 10, padding: "10px 12px", marginBottom: 8, opacity: has ? 1 : 0.55 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                   <div style={{ color: CRIMSON, fontWeight: 700, fontSize: 13 }}>{a.label} <span style={{ color: CRIMSON, fontWeight: 400, fontSize: 11, marginLeft: 4 }}>{a.sub}</span></div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ background: CRIMSON, color: WARM_WHITE, fontSize: 10, padding: "2px 8px", borderRadius: 20, fontWeight: 600 }}>You</span>
-                    <span style={{ color: CRIMSON, fontWeight: 700, fontSize: 13 }}>—</span>
+                    <span style={{ color: CRIMSON, fontWeight: 700, fontSize: 13 }}>{has ? `${pct}%` : "—"}</span>
                   </div>
                 </div>
                 <div style={{ height: 4, background: "rgba(168,0,28,0.12)", borderRadius: 3, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: "0%", background: CRIMSON }} />
+                  <div style={{ height: "100%", width: `${has ? pct : 0}%`, background: CRIMSON }} />
                 </div>
               </div>
             );
           }
           return (
-            <div key={a.key} style={{ padding: "8px 12px", opacity: 0.55 }}>
+            <div key={a.key} style={{ padding: "8px 12px", opacity: has ? 1 : 0.55 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                 <div style={{ color: "#555", fontSize: 12 }}>{a.label} <span style={{ color: "#888", fontSize: 11, marginLeft: 4 }}>{a.sub}</span></div>
-                <span style={{ color: "#888", fontSize: 12 }}>—</span>
+                <span style={{ color: "#888", fontSize: 12 }}>{has ? `${pct}%` : "—"}</span>
               </div>
               <div style={{ height: 4, background: BORDER, borderRadius: 3, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: "0%", background: "#D4C8C2" }} />
+                <div style={{ height: "100%", width: `${has ? pct : 0}%`, background: "#D4C8C2" }} />
               </div>
             </div>
           );
         })}
-        <div style={{ marginTop: 10 }}>
-          <DataPending>This will show recommend rates by age group. We don't collect reviewer age yet.</DataPending>
-        </div>
+        {!anyAgePct && (
+          <div style={{ marginTop: 10 }}>
+            <DataPending>This will show recommend rates by age group. Needs at least 10 tagged posts per age group — we're still collecting.</DataPending>
+          </div>
+        )}
       </Section>
 
       {/* 7. Is it for you? */}

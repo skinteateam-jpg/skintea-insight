@@ -155,6 +155,7 @@ function ProductPage() {
   const [activeTikTokEmbed, setActiveTikTokEmbed] = useState<string | null>(null); // stores source_url
   const [tiktokThumbnails, setTiktokThumbnails] = useState<Record<string, string>>({});
   const [heroIndex, setHeroIndex] = useState(0);
+  const [showAllIngredients, setShowAllIngredients] = useState(false);
 
   useEffect(() => {
     if (!productData) return;
@@ -256,7 +257,7 @@ function ProductPage() {
       setLoading(true);
       const { data } = await supabase
         .from("products")
-        .select("id,name,brand,category,subcategory,description,image_url,image_urls,product_url,price,currency,skintea_score,product_family_name,shade_name")
+        .select("id,name,brand,category,subcategory,description,image_url,image_urls,product_url,price,currency,skintea_score,product_family_name,shade_name,ingredients,key_ingredients")
         .eq("id", id)
         .single();
       if (!cancelled) {
@@ -265,7 +266,7 @@ function ProductPage() {
         if (data?.product_family_name && data?.brand) {
           const { data: siblings } = await supabase
             .from("products")
-            .select("id,name,brand,category,subcategory,description,image_url,image_urls,product_url,price,currency,skintea_score,product_family_name,shade_name")
+            .select("id,name,brand,category,subcategory,description,image_url,image_urls,product_url,price,currency,skintea_score,product_family_name,shade_name,ingredients,key_ingredients")
             .eq("product_family_name", data.product_family_name)
             .eq("brand", data.brand)
             .order("shade_name", { ascending: true });
@@ -370,6 +371,16 @@ function ProductPage() {
     skinTypePct[st] = Math.round((pos / rows.length) * 100);
   }
   const anySkinPct = SKIN_ORDER.some((st) => skinTypePct[st] !== null);
+  const ageBracketPct: Record<string, number | null> = {};
+  for (const a of AGE_ORDER) {
+    const rows = socialReviews.filter(
+      (r) => String(r.age_bracket).toLowerCase() === a.key && (r.sentiment === "positive" || r.sentiment === "negative")
+    );
+    if (rows.length < 10) { ageBracketPct[a.key] = null; continue; }
+    const pos = rows.filter((r) => r.sentiment === "positive").length;
+    ageBracketPct[a.key] = Math.round((pos / rows.length) * 100);
+  }
+  const anyAgePct = AGE_ORDER.some((a) => ageBracketPct[a.key] !== null);
   const confidence = reviewCount > 500 ? "High" : reviewCount >= 100 ? "Medium" : "Low";
   const skintea = productData?.skintea_score ?? "—";
 
@@ -671,38 +682,42 @@ function ProductPage() {
         <div style={{ height: "0.5px", background: BORDER, margin: "16px 0 16px" }} />
         <div style={{ fontSize: 11, color: MUTED, marginBottom: 12 }}>Age group</div>
         {AGE_ORDER.map((a) => {
+          const pct = ageBracketPct[a.key];
+          const has = pct !== null && pct !== undefined;
           const me = userAgeBracket === a.key;
           if (me) {
             return (
-              <div key={a.key} style={{ background: "#FFF5F7", border: `1px solid ${CRIMSON}`, borderRadius: 10, padding: "10px 12px", marginBottom: 8, opacity: 0.55 }}>
+              <div key={a.key} style={{ background: "#FFF5F7", border: `1px solid ${CRIMSON}`, borderRadius: 10, padding: "10px 12px", marginBottom: 8, opacity: has ? 1 : 0.55 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                   <div style={{ color: CRIMSON, fontWeight: 700, fontSize: 13 }}>{a.label} <span style={{ color: CRIMSON, fontWeight: 400, fontSize: 11, marginLeft: 4 }}>{a.sub}</span></div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ background: CRIMSON, color: WARM_WHITE, fontSize: 10, padding: "2px 8px", borderRadius: 20, fontWeight: 600 }}>You</span>
-                    <span style={{ color: CRIMSON, fontWeight: 700, fontSize: 13 }}>—</span>
+                    <span style={{ color: CRIMSON, fontWeight: 700, fontSize: 13 }}>{has ? `${pct}%` : "—"}</span>
                   </div>
                 </div>
                 <div style={{ height: 4, background: "rgba(168,0,28,0.12)", borderRadius: 3, overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: "0%", background: CRIMSON }} />
+                  <div style={{ height: "100%", width: `${has ? pct : 0}%`, background: CRIMSON }} />
                 </div>
               </div>
             );
           }
           return (
-            <div key={a.key} style={{ padding: "8px 12px", opacity: 0.55 }}>
+            <div key={a.key} style={{ padding: "8px 12px", opacity: has ? 1 : 0.55 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                 <div style={{ color: "#555", fontSize: 12 }}>{a.label} <span style={{ color: "#888", fontSize: 11, marginLeft: 4 }}>{a.sub}</span></div>
-                <span style={{ color: "#888", fontSize: 12 }}>—</span>
+                <span style={{ color: "#888", fontSize: 12 }}>{has ? `${pct}%` : "—"}</span>
               </div>
               <div style={{ height: 4, background: BORDER, borderRadius: 3, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: "0%", background: "#D4C8C2" }} />
+                <div style={{ height: "100%", width: `${has ? pct : 0}%`, background: "#D4C8C2" }} />
               </div>
             </div>
           );
         })}
-        <div style={{ marginTop: 10 }}>
-          <DataPending>This will show recommend rates by age group. We don't collect reviewer age yet.</DataPending>
-        </div>
+        {!anyAgePct && (
+          <div style={{ marginTop: 10 }}>
+            <DataPending>This will show recommend rates by age group. Needs at least 10 tagged posts per age group — we're still collecting.</DataPending>
+          </div>
+        )}
       </Section>
 
       {/* 7. Is it for you? */}
@@ -728,7 +743,40 @@ function ProductPage() {
 
       {/* 8. Key ingredients */}
       <Section title="Key ingredients">
-        <DataPending>This will show the full ingredient list, flagged green or red against your skin type. Ingredient data hasn't been added to the catalog yet.</DataPending>
+        {(() => {
+          const keyList = ((activeProduct?.key_ingredients ?? []).filter((x: any) => typeof x === "string" && x.trim().length > 0) as string[]);
+          const fullList = ((activeProduct?.ingredients ?? []).filter((x: any) => typeof x === "string" && x.trim().length > 0) as string[]);
+          if (keyList.length === 0 && fullList.length === 0) {
+            return <DataPending>This will show the full ingredient list, flagged green or red against your skin type. Ingredient data hasn't been added to the catalog yet.</DataPending>;
+          }
+          return (
+            <div>
+              {keyList.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: fullList.length > 0 ? 10 : 0 }}>
+                  {keyList.map((ing) => (
+                    <span key={ing} style={{ background: WARM_WHITE, color: MUTED, border: `0.5px solid ${BORDER}`, fontSize: 12, padding: "5px 12px", borderRadius: 20 }}>{ing}</span>
+                  ))}
+                </div>
+              )}
+              {fullList.length > 0 && (
+                <>
+                  <button
+                    onClick={() => setShowAllIngredients((v) => !v)}
+                    style={{ background: "transparent", border: "none", padding: 0, color: CRIMSON, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    Full ingredient list {showAllIngredients ? "▴" : "▾"}
+                  </button>
+                  {showAllIngredients && (
+                    <div style={{ fontSize: 12, color: ESPRESSO, lineHeight: 1.7, marginTop: 8 }}>
+                      {fullList.join(", ")}
+                    </div>
+                  )}
+                </>
+              )}
+              <div style={{ fontSize: 10, color: MUTED, marginTop: 10 }}>Skin-type flagging coming once ingredient matching is built.</div>
+            </div>
+          );
+        })()}
       </Section>
 
       {/* 9. What people are saying */}

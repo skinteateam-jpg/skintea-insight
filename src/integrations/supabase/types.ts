@@ -681,9 +681,11 @@ export type Database = {
           id: string
           image_url: string | null
           image_urls: string[] | null
+          ingredients: string[] | null
           is_active: boolean | null
           is_priority_review_target: boolean | null
           is_top_pick: boolean | null
+          key_ingredients: string[] | null
           name: string
           price: number | null
           product_family_name: string | null
@@ -702,9 +704,11 @@ export type Database = {
           id?: string
           image_url?: string | null
           image_urls?: string[] | null
+          ingredients?: string[] | null
           is_active?: boolean | null
           is_priority_review_target?: boolean | null
           is_top_pick?: boolean | null
+          key_ingredients?: string[] | null
           name: string
           price?: number | null
           product_family_name?: string | null
@@ -723,9 +727,11 @@ export type Database = {
           id?: string
           image_url?: string | null
           image_urls?: string[] | null
+          ingredients?: string[] | null
           is_active?: boolean | null
           is_priority_review_target?: boolean | null
           is_top_pick?: boolean | null
+          key_ingredients?: string[] | null
           name?: string
           price?: number | null
           product_family_name?: string | null
@@ -922,6 +928,7 @@ export type Database = {
       }
       social_review_tags: {
         Row: {
+          age_bracket: string | null
           author_handle: string | null
           comment_id: string | null
           confidence: string | null
@@ -944,6 +951,7 @@ export type Database = {
           views: number | null
         }
         Insert: {
+          age_bracket?: string | null
           author_handle?: string | null
           comment_id?: string | null
           confidence?: string | null
@@ -966,6 +974,7 @@ export type Database = {
           views?: number | null
         }
         Update: {
+          age_bracket?: string | null
           author_handle?: string | null
           comment_id?: string | null
           confidence?: string | null

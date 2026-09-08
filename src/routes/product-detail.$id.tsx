@@ -743,7 +743,40 @@ function ProductPage() {
 
       {/* 8. Key ingredients */}
       <Section title="Key ingredients">
-        <DataPending>This will show the full ingredient list, flagged green or red against your skin type. Ingredient data hasn't been added to the catalog yet.</DataPending>
+        {(() => {
+          const keyList = ((activeProduct?.key_ingredients ?? []).filter((x: any) => typeof x === "string" && x.trim().length > 0) as string[]);
+          const fullList = ((activeProduct?.ingredients ?? []).filter((x: any) => typeof x === "string" && x.trim().length > 0) as string[]);
+          if (keyList.length === 0 && fullList.length === 0) {
+            return <DataPending>This will show the full ingredient list, flagged green or red against your skin type. Ingredient data hasn't been added to the catalog yet.</DataPending>;
+          }
+          return (
+            <div>
+              {keyList.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: fullList.length > 0 ? 10 : 0 }}>
+                  {keyList.map((ing) => (
+                    <span key={ing} style={{ background: WARM_WHITE, color: MUTED, border: `0.5px solid ${BORDER}`, fontSize: 12, padding: "5px 12px", borderRadius: 20 }}>{ing}</span>
+                  ))}
+                </div>
+              )}
+              {fullList.length > 0 && (
+                <>
+                  <button
+                    onClick={() => setShowAllIngredients((v) => !v)}
+                    style={{ background: "transparent", border: "none", padding: 0, color: CRIMSON, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    Full ingredient list {showAllIngredients ? "▴" : "▾"}
+                  </button>
+                  {showAllIngredients && (
+                    <div style={{ fontSize: 12, color: ESPRESSO, lineHeight: 1.7, marginTop: 8 }}>
+                      {fullList.join(", ")}
+                    </div>
+                  )}
+                </>
+              )}
+              <div style={{ fontSize: 10, color: MUTED, marginTop: 10 }}>Skin-type flagging coming once ingredient matching is built.</div>
+            </div>
+          );
+        })()}
       </Section>
 
       {/* 9. What people are saying */}

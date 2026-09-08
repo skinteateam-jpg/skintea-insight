@@ -156,6 +156,7 @@ function ProductPage() {
   const [tiktokThumbnails, setTiktokThumbnails] = useState<Record<string, string>>({});
   const [heroIndex, setHeroIndex] = useState(0);
   const [showAllIngredients, setShowAllIngredients] = useState(false);
+  const [tab, setTab] = useState<"tiktok" | "instagram" | "reddit">("tiktok");
 
   useEffect(() => {
     if (!productData) return;

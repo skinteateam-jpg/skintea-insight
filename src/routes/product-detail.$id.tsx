@@ -371,6 +371,16 @@ function ProductPage() {
     skinTypePct[st] = Math.round((pos / rows.length) * 100);
   }
   const anySkinPct = SKIN_ORDER.some((st) => skinTypePct[st] !== null);
+  const ageBracketPct: Record<string, number | null> = {};
+  for (const a of AGE_ORDER) {
+    const rows = socialReviews.filter(
+      (r) => String(r.age_bracket).toLowerCase() === a.key && (r.sentiment === "positive" || r.sentiment === "negative")
+    );
+    if (rows.length < 10) { ageBracketPct[a.key] = null; continue; }
+    const pos = rows.filter((r) => r.sentiment === "positive"length;
+    ageBracketPct[a.key] = Math.round((pos / rows.length) * 100);
+  }
+  const anyAgePct = AGE_ORDER.some((a) => ageBracketPct[a.key] !== null);
   const confidence = reviewCount > 500 ? "High" : reviewCount >= 100 ? "Medium" : "Low";
   const skintea = productData?.skintea_score ?? "—";
 

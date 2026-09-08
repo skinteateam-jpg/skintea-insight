@@ -427,6 +427,8 @@ function ProductPage() {
     return Array.from(byQuote.values()).slice(0, 6);
   })();
 
+  const tiktokRows = socialReviews.filter((r) => r.platform === "tiktok");
+  const instagramRows = socialReviews.filter((r) => r.platform === "instagram");
 
   return (
     <main className="min-h-screen" style={{ paddingTop: 52, paddingBottom: 120, background: WARM_WHITE, fontFamily: "'DM Sans', sans-serif" }}>

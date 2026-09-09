@@ -1556,7 +1556,45 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      distinct_product_subcategories: {
+        Args: never
+        Returns: {
+          category: string
+          subcategory: string
+        }[]
+      }
+      random_active_products: {
+        Args: { p_category?: string; p_limit?: number; p_subcategory?: string }
+        Returns: {
+          brand: string
+          category: string | null
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          image_urls: string[] | null
+          ingredients: string[] | null
+          is_active: boolean | null
+          is_priority_review_target: boolean | null
+          is_top_pick: boolean | null
+          key_ingredients: string[] | null
+          name: string
+          price: number | null
+          product_family_name: string | null
+          product_url: string | null
+          shade_name: string | null
+          skintea_score: number | null
+          source: string | null
+          subcategory: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "products"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
     }
     Enums: {
       post_outcome: "would_again" | "modified" | "wouldnt"

@@ -154,26 +154,15 @@ function ProductsPage() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      // NOTE: skintea_score is currently NULL on all rows, so ranking by it
-      // returns an arbitrary single-brand slice. Until real scores land, we
-      // fetch a recent pool and shuffle client-side for a representative mix.
-      // To re-enable ranking later, swap the order() back to:
-      //   .order("skintea_score", { ascending: false, nullsFirst: false }).limit(9)
-      let query = supabase
-        .from("products")
-        .select("*")
-        .eq("is_active", true)
-        .order("created_at", { ascending: false })
-        .limit(60);
-      if (activeCategory !== "All") query = query.eq("category", activeCategory);
-      if (activeSubcategory) query = query.eq("subcategory", activeSubcategory);
-      const { data } = await query;
+      // Randomised server-side (ORDER BY random()) so a bulk import of a single
+      // brand can never dominate the ranking pool.
+      const { data } = await supabase.rpc("random_active_products", {
+        p_category: activeCategory === "All" ? null : activeCategory,
+        p_subcategory: activeSubcategory,
+        p_limit: 60,
+      });
       if (!cancelled) {
         const pool = dedupByFamily((data ?? []) as DbProduct[]);
-        for (let i = pool.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [pool[i], pool[j]] = [pool[j], pool[i]];
-        }
         setItems(pool.slice(0, 9));
         setLoading(false);
       }
@@ -186,10 +175,7 @@ function ProductsPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("products")
-        .select("category,subcategory")
-        .eq("is_active", true);
+      const { data } = await supabase.rpc("distinct_product_subcategories");
       if (cancelled) return;
       const groups = new Map<string, Set<string>>();
       for (const row of (data ?? []) as { category: string | null; subcategory: string | null }[]) {

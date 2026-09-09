@@ -13,6 +13,8 @@ const CRIMSON_TINT = "#FEE8EC";
 const CREAM_TINT = "#F5EFEC";
 const TRACK = "#F0EAE4";
 
+const MAKEUP_CATEGORIES = new Set(["Face", "Cheek", "Eye", "Lip"]);
+
 const SECTION_LABEL: CSSProperties = {
   fontSize: 9,
   fontWeight: 800,
@@ -321,8 +323,8 @@ function ProductPage() {
     if (gifting) return;
     setGifting(true);
     if (!isInGift) {
-      const cat = (productData?.category ?? "").toLowerCase();
-      const type = cat.includes("makeup") ? "makeup" : "skincare";
+      const cat = productData?.category ?? "";
+      const type = MAKEUP_CATEGORIES.has(cat) ? "makeup" : "skincare";
       const { error } = await (supabase as any).from("gift_wishlist").insert({
         user_id: userId,
         product_id: id,

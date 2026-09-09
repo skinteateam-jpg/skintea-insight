@@ -74,10 +74,25 @@ type Product = {
 function emojiFor(subcategory: string | null | undefined): string {
   const c = (subcategory ?? "").toLowerCase();
   if (c.includes("serum")) return "🧪";
-  if (c.includes("moistur")) return "🫙";
+  if (c.includes("moistur") || c.includes("cream") || c.includes("balm") || c.includes("mask")) return "🫙";
   if (c.includes("cleans")) return "🧼";
-  if (c.includes("toner")) return "💦";
+  if (c.includes("toner") || c.includes("mist")) return "💦";
   if (c.includes("spf") || c.includes("sun")) return "☀️";
+  if (c.includes("tint")) return "💋";
+  if (c.includes("gloss")) return "✨";
+  if (c.includes("liner")) return "✏️";
+  if (c.includes("lipstick")) return "💄";
+  if (c.includes("foundation") || c.includes("cushion")) return "🧴";
+  if (c.includes("primer")) return "🎨";
+  if (c.includes("powder") || c.includes("setting")) return "💨";
+  if (c.includes("blush")) return "🌸";
+  if (c.includes("bronzer")) return "🟫";
+  if (c.includes("highlighter")) return "✨";
+  if (c.includes("mascara")) return "👀";
+  if (c.includes("perfume") || c.includes("fragrance")) return "🌹";
+  if (c.includes("brush") || c.includes("device") || c.includes("accessory") || c.includes("spatula") || c.includes("bag") || c.includes("apparel")) return "🛠️";
+  if (c.includes("body")) return "🧴";
+  if (c.includes("eye cream") || c.includes("eye patch")) return "👁️";
   return "🧴";
 }
 

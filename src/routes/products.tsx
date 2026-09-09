@@ -414,27 +414,52 @@ function ProductsPage() {
         </div>
 
         {/* 4. Ranking sections */}
-        <RankingSection
-          title="Soaring"
-          icon="🔥"
-          products={soaring}
-          onSave={() => setShowLogin(true)}
-          trendingBadge
-          loading={loading}
-        />
-        <RankingSection
-          title="TikTok Ranking"
-          products={tiktokRanking}
-          onSave={() => setShowLogin(true)}
-          loading={loading}
-        />
-        <RankingSection
-          title="Highest Recommended"
-          products={highestRecommended}
-          onSave={() => setShowLogin(true)}
-          showRecommend
-          loading={loading}
-        />
+        {thinResult ? (
+          flatItems.length > 0 && (
+            <section style={{ padding: "16px 16px 8px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                {flatItems.map((p, idx) => (
+                  <ProductCard
+                    key={p.id}
+                    product={p}
+                    rank={idx + 1}
+                    onSave={() => setShowLogin(true)}
+                  />
+                ))}
+              </div>
+            </section>
+          )
+        ) : (
+          <>
+            {(loading || soaring.length > 0) && (
+              <RankingSection
+                title="Soaring"
+                icon="🔥"
+                products={soaring}
+                onSave={() => setShowLogin(true)}
+                trendingBadge
+                loading={loading}
+              />
+            )}
+            {(loading || tiktokRanking.length > 0) && (
+              <RankingSection
+                title="TikTok Ranking"
+                products={tiktokRanking}
+                onSave={() => setShowLogin(true)}
+                loading={loading}
+              />
+            )}
+            {(loading || highestRecommended.length > 0) && (
+              <RankingSection
+                title="Highest Recommended"
+                products={highestRecommended}
+                onSave={() => setShowLogin(true)}
+                showRecommend
+                loading={loading}
+              />
+            )}
+          </>
+        )}
 
         {/* 5. Category sub-sections */}
         <div style={{ padding: "8px 16px 32px" }}>

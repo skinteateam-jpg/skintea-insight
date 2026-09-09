@@ -157,8 +157,8 @@ function ProductsPage() {
       // Randomised server-side (ORDER BY random()) so a bulk import of a single
       // brand can never dominate the ranking pool.
       const { data } = await supabase.rpc("random_active_products", {
-        p_category: activeCategory === "All" ? null : activeCategory,
-        p_subcategory: activeSubcategory,
+        p_category: activeCategory === "All" ? undefined : activeCategory,
+        p_subcategory: activeSubcategory ?? undefined,
         p_limit: 60,
       });
       if (!cancelled) {

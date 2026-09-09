@@ -74,10 +74,25 @@ type Product = {
 function emojiFor(subcategory: string | null | undefined): string {
   const c = (subcategory ?? "").toLowerCase();
   if (c.includes("serum")) return "🧪";
-  if (c.includes("moistur")) return "🫙";
+  if (c.includes("moistur") || c.includes("cream") || c.includes("balm") || c.includes("mask")) return "🫙";
   if (c.includes("cleans")) return "🧼";
-  if (c.includes("toner")) return "💦";
+  if (c.includes("toner") || c.includes("mist")) return "💦";
   if (c.includes("spf") || c.includes("sun")) return "☀️";
+  if (c.includes("tint")) return "💋";
+  if (c.includes("gloss")) return "✨";
+  if (c.includes("liner")) return "✏️";
+  if (c.includes("lipstick")) return "💄";
+  if (c.includes("foundation") || c.includes("cushion")) return "🧴";
+  if (c.includes("primer")) return "🎨";
+  if (c.includes("powder") || c.includes("setting")) return "💨";
+  if (c.includes("blush")) return "🌸";
+  if (c.includes("bronzer")) return "🟫";
+  if (c.includes("highlighter")) return "✨";
+  if (c.includes("mascara")) return "👀";
+  if (c.includes("perfume") || c.includes("fragrance")) return "🌹";
+  if (c.includes("brush") || c.includes("device") || c.includes("accessory") || c.includes("spatula") || c.includes("bag") || c.includes("apparel")) return "🛠️";
+  if (c.includes("body")) return "🧴";
+  if (c.includes("eye cream") || c.includes("eye patch")) return "👁️";
   return "🧴";
 }
 
@@ -113,57 +128,24 @@ function dedupByFamily(rows: DbProduct[]): DbProduct[] {
   });
 }
 
-const CATEGORIES = ["All", "Skincare", "Base Makeup", "Makeup", "Lip", "SPF"] as const;
+const CATEGORIES = ["All", "Skincare", "Lip", "Face", "Sunscreen", "Cheek", "Bodycare", "Eye", "Tool", "Fragrance"] as const;
 type Category = (typeof CATEGORIES)[number];
-
-const subCategoryMap: Record<Exclude<Category, "All">, { name: string; emoji: string }[]> = {
-  Skincare: [
-    { name: "Cleansing", emoji: "🧼" },
-    { name: "Toner", emoji: "💦" },
-    { name: "Serum", emoji: "🧪" },
-    { name: "Moisturizer", emoji: "🫙" },
-    { name: "Face Mask", emoji: "🎭" },
-    { name: "Device", emoji: "🔌" },
-  ],
-  "Base Makeup": [
-    { name: "Foundation", emoji: "🧴" },
-    { name: "Concealer", emoji: "🖌️" },
-    { name: "Primer", emoji: "🎨" },
-    { name: "Cushion", emoji: "🟤" },
-    { name: "Setting Powder", emoji: "💨" },
-    { name: "Setting Spray", emoji: "💧" },
-  ],
-  Makeup: [
-    { name: "Eye Shadow", emoji: "👁️" },
-    { name: "Eyeliner", emoji: "✏️" },
-    { name: "Mascara", emoji: "👀" },
-    { name: "Blush", emoji: "🌸" },
-    { name: "Bronzer", emoji: "🟫" },
-    { name: "Highlighter", emoji: "✨" },
-  ],
-  Lip: [
-    { name: "Lipstick", emoji: "💄" },
-    { name: "Lip Gloss", emoji: "💋" },
-    { name: "Lip Liner", emoji: "✏️" },
-    { name: "Lip Balm", emoji: "🧴" },
-  ],
-  SPF: [
-    { name: "Face SPF", emoji: "☀️" },
-    { name: "Body SPF", emoji: "🏖️" },
-    { name: "Mineral", emoji: "⛰️" },
-    { name: "Chemical", emoji: "🧪" },
-  ],
-};
 
 const FILTERS = ["Filters", "Price", "Skin type", "Concern"];
 
 function ProductsPage() {
   const [activeCategory, setActiveCategory] = useState<Category>("All");
+  const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
   const [showLogin, setShowLogin] = useState(false);
   const navigate = useNavigate();
 
   const [items, setItems] = useState<DbProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [categorySubs, setCategorySubs] = useState<Record<string, string[]>>({});
+
+  useEffect(() => {
+    setActiveSubcategory(null);
+  }, [activeCategory]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<DbProduct[]>([]);
@@ -177,12 +159,15 @@ function ProductsPage() {
       // fetch a recent pool and shuffle client-side for a representative mix.
       // To re-enable ranking later, swap the order() back to:
       //   .order("skintea_score", { ascending: false, nullsFirst: false }).limit(9)
-      const { data } = await supabase
+      let query = supabase
         .from("products")
         .select("*")
         .eq("is_active", true)
         .order("created_at", { ascending: false })
         .limit(60);
+      if (activeCategory !== "All") query = query.eq("category", activeCategory);
+      if (activeSubcategory) query = query.eq("subcategory", activeSubcategory);
+      const { data } = await query;
       if (!cancelled) {
         const pool = dedupByFamily((data ?? []) as DbProduct[]);
         for (let i = pool.length - 1; i > 0; i--) {
@@ -192,6 +177,31 @@ function ProductsPage() {
         setItems(pool.slice(0, 9));
         setLoading(false);
       }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeCategory, activeSubcategory]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("category,subcategory")
+        .eq("is_active", true);
+      if (cancelled) return;
+      const groups = new Map<string, Set<string>>();
+      for (const row of (data ?? []) as { category: string | null; subcategory: string | null }[]) {
+        if (!row.category || !row.subcategory) continue;
+        if (!groups.has(row.category)) groups.set(row.category, new Set());
+        groups.get(row.category)!.add(row.subcategory);
+      }
+      const sorted: Record<string, string[]> = {};
+      for (const [cat, set] of groups) {
+        sorted[cat] = Array.from(set).sort((a, b) => a.localeCompare(b));
+      }
+      setCategorySubs(sorted);
     })();
     return () => {
       cancelled = true;
@@ -223,13 +233,14 @@ function ProductsPage() {
 
   const visibleSubCategories = useMemo(() => {
     if (activeCategory === "All") {
-      return (Object.keys(subCategoryMap) as Exclude<Category, "All">[]).map((k) => ({
-        label: k,
-        items: subCategoryMap[k],
-      }));
+      return CATEGORIES.slice(1)
+        .filter((cat) => (categorySubs[cat] ?? []).length > 0)
+        .map((cat) => ({ label: cat, items: categorySubs[cat] ?? [] }));
     }
-    return [{ label: activeCategory, items: subCategoryMap[activeCategory] }];
-  }, [activeCategory]);
+    return (categorySubs[activeCategory] ?? []).length > 0
+      ? [{ label: activeCategory, items: categorySubs[activeCategory] }]
+      : [];
+  }, [activeCategory, categorySubs]);
 
   return (
     <AppFrame>
@@ -465,16 +476,20 @@ function ProductsPage() {
                   background: C.surface,
                 }}
               >
-                {section.items.map((item, idx) => {
+                {section.items.map((name, idx) => {
                   const col = idx % 2;
                   const row = Math.floor(idx / 2);
                   const totalRows = Math.ceil(section.items.length / 2);
                   return (
                     <SubCategoryCell
-                      key={item.name}
-                      item={item}
+                      key={name}
+                      name={name}
                       hasRightBorder={col === 0}
                       hasBottomBorder={row < totalRows - 1}
+                      active={activeSubcategory === name}
+                      onClick={() =>
+                        setActiveSubcategory((prev) => (prev === name ? null : name))
+                      }
                     />
                   );
                 })}
@@ -815,17 +830,22 @@ function ProductCard({
 }
 
 function SubCategoryCell({
-  item,
+  name,
   hasRightBorder,
   hasBottomBorder,
+  active,
+  onClick,
 }: {
-  item: { name: string; emoji: string };
+  name: string;
   hasRightBorder: boolean;
   hasBottomBorder: boolean;
+  active?: boolean;
+  onClick?: () => void;
 }) {
   const [hover, setHover] = useState(false);
   return (
     <button
+      onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
@@ -833,7 +853,7 @@ function SubCategoryCell({
         alignItems: "center",
         gap: 10,
         padding: "12px 12px",
-        background: hover ? C.hoverTint : C.surface,
+        background: active ? C.hoverTint : hover ? C.hoverTint : C.surface,
         border: "none",
         borderRight: hasRightBorder ? `0.5px solid ${C.border}` : "none",
         borderBottom: hasBottomBorder ? `0.5px solid ${C.border}` : "none",
@@ -856,10 +876,10 @@ function SubCategoryCell({
         }}
         aria-hidden
       >
-        {item.emoji}
+        {emojiFor(name)}
       </div>
-      <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: C.espresso }}>{item.name}</span>
-      <ChevronRight size={14} color={C.textLight} />
+      <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: active ? C.crimson : C.espresso }}>{name}</span>
+      <ChevronRight size={14} color={active ? C.crimson : C.textLight} />
     </button>
   );
 }

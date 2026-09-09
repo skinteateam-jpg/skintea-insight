@@ -215,6 +215,10 @@ function ProductsPage() {
   const soaring = items.slice(0, 3).map((p) => toProduct(p));
   const tiktokRanking = items.slice(3, 6).map((p) => toProduct(p));
   const highestRecommended = items.slice(6, 9).map((p) => toProduct(p, { recommend: true }));
+  // Narrow subcategories can return fewer than 9 products; showing three ranking
+  // headings with empty grids underneath is worse than one plain grid.
+  const thinResult = !loading && !!activeSubcategory && items.length < 9;
+  const flatItems = items.map((p) => toProduct(p));
   const showDropdown = searchQuery.trim().length >= 2 && searchResults.length > 0;
 
   const visibleSubCategories = useMemo(() => {

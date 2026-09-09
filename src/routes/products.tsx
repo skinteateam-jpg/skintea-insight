@@ -154,26 +154,15 @@ function ProductsPage() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      // NOTE: skintea_score is currently NULL on all rows, so ranking by it
-      // returns an arbitrary single-brand slice. Until real scores land, we
-      // fetch a recent pool and shuffle client-side for a representative mix.
-      // To re-enable ranking later, swap the order() back to:
-      //   .order("skintea_score", { ascending: false, nullsFirst: false }).limit(9)
-      let query = supabase
-        .from("products")
-        .select("*")
-        .eq("is_active", true)
-        .order("created_at", { ascending: false })
-        .limit(60);
-      if (activeCategory !== "All") query = query.eq("category", activeCategory);
-      if (activeSubcategory) query = query.eq("subcategory", activeSubcategory);
-      const { data } = await query;
+      // Randomised server-side (ORDER BY random()) so a bulk import of a single
+      // brand can never dominate the ranking pool.
+      const { data } = await supabase.rpc("random_active_products", {
+        p_category: activeCategory === "All" ? undefined : activeCategory,
+        p_subcategory: activeSubcategory ?? undefined,
+        p_limit: 60,
+      });
       if (!cancelled) {
         const pool = dedupByFamily((data ?? []) as DbProduct[]);
-        for (let i = pool.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [pool[i], pool[j]] = [pool[j], pool[i]];
-        }
         setItems(pool.slice(0, 9));
         setLoading(false);
       }
@@ -186,10 +175,7 @@ function ProductsPage() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data } = await supabase
-        .from("products")
-        .select("category,subcategory")
-        .eq("is_active", true);
+      const { data } = await supabase.rpc("distinct_product_subcategories");
       if (cancelled) return;
       const groups = new Map<string, Set<string>>();
       for (const row of (data ?? []) as { category: string | null; subcategory: string | null }[]) {
@@ -229,6 +215,10 @@ function ProductsPage() {
   const soaring = items.slice(0, 3).map((p) => toProduct(p));
   const tiktokRanking = items.slice(3, 6).map((p) => toProduct(p));
   const highestRecommended = items.slice(6, 9).map((p) => toProduct(p, { recommend: true }));
+  // Narrow subcategories can return fewer than 9 products; showing three ranking
+  // headings with empty grids underneath is worse than one plain grid.
+  const thinResult = !loading && !!activeSubcategory && items.length < 9;
+  const flatItems = items.map((p) => toProduct(p));
   const showDropdown = searchQuery.trim().length >= 2 && searchResults.length > 0;
 
   const visibleSubCategories = useMemo(() => {
@@ -424,27 +414,52 @@ function ProductsPage() {
         </div>
 
         {/* 4. Ranking sections */}
-        <RankingSection
-          title="Soaring"
-          icon="🔥"
-          products={soaring}
-          onSave={() => setShowLogin(true)}
-          trendingBadge
-          loading={loading}
-        />
-        <RankingSection
-          title="TikTok Ranking"
-          products={tiktokRanking}
-          onSave={() => setShowLogin(true)}
-          loading={loading}
-        />
-        <RankingSection
-          title="Highest Recommended"
-          products={highestRecommended}
-          onSave={() => setShowLogin(true)}
-          showRecommend
-          loading={loading}
-        />
+        {thinResult ? (
+          flatItems.length > 0 && (
+            <section style={{ padding: "16px 16px 8px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                {flatItems.map((p, idx) => (
+                  <ProductCard
+                    key={p.id}
+                    product={p}
+                    rank={idx + 1}
+                    onSave={() => setShowLogin(true)}
+                  />
+                ))}
+              </div>
+            </section>
+          )
+        ) : (
+          <>
+            {(loading || soaring.length > 0) && (
+              <RankingSection
+                title="Soaring"
+                icon="🔥"
+                products={soaring}
+                onSave={() => setShowLogin(true)}
+                trendingBadge
+                loading={loading}
+              />
+            )}
+            {(loading || tiktokRanking.length > 0) && (
+              <RankingSection
+                title="TikTok Ranking"
+                products={tiktokRanking}
+                onSave={() => setShowLogin(true)}
+                loading={loading}
+              />
+            )}
+            {(loading || highestRecommended.length > 0) && (
+              <RankingSection
+                title="Highest Recommended"
+                products={highestRecommended}
+                onSave={() => setShowLogin(true)}
+                showRecommend
+                loading={loading}
+              />
+            )}
+          </>
+        )}
 
         {/* 5. Category sub-sections */}
         <div style={{ padding: "8px 16px 32px" }}>

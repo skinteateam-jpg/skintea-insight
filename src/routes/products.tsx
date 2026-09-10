@@ -790,7 +790,13 @@ function ProductCard({
             src={product.image_url}
             alt={product.name}
             loading="lazy"
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              padding: 8,
+              boxSizing: "border-box",
+            }}
           />
         ) : (
           <span aria-hidden>{product.emoji}</span>

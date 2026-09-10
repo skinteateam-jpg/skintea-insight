@@ -6,8 +6,6 @@ const MAX_ITEMS = 50
 const MAX_BYTES = 5 * 1024 * 1024
 const ALLOWED_HOST_SUFFIXES = ['cdninstagram.com', 'fbcdn.net']
 
-type Item = { id?: unknown; thumbnailUrl?: unknown }
-
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -45,30 +43,45 @@ export const Route = createFileRoute('/api/public/cache-social-thumbnail')({
           return json({ error: 'Unauthorized' }, 401)
         }
 
-        let payload: { items?: Item[] }
+        let requestedLimit: number | undefined
         try {
-          payload = await request.json()
+          const body = await request.json()
+          if (body && typeof body === 'object' && 'limit' in body) {
+            requestedLimit = Number((body as { limit?: unknown }).limit)
+          }
         } catch {
-          return json({ error: 'Invalid JSON body' }, 400)
+          // Body is optional; default to MAX_ITEMS on empty/invalid JSON.
         }
 
-        const items = Array.isArray(payload?.items) ? payload.items : null
-        if (!items) return json({ error: "Body must contain an 'items' array" }, 400)
-        if (items.length > MAX_ITEMS) {
-          return json({ error: `At most ${MAX_ITEMS} items per call` }, 400)
-        }
+        const limit = Number.isFinite(requestedLimit)
+          ? Math.max(1, Math.min(MAX_ITEMS, Math.floor(requestedLimit)))
+          : MAX_ITEMS
 
         const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
 
+        const { data: rows, error: queueError } = await supabaseAdmin
+          .from('social_review_tags')
+          .select('id, source_thumbnail_url')
+          .eq('platform', 'instagram')
+          .not('source_thumbnail_url', 'is', null)
+          .is('thumbnail_path', null)
+          .order('created_at', { ascending: true })
+          .limit(limit)
+
+        if (queueError) {
+          return json({ error: `Queue query failed: ${queueError.message}` }, 500)
+        }
+
+        const queue = Array.isArray(rows) ? rows : []
         let succeeded = 0
         const errors: { id: string; reason: string }[] = []
 
-        for (const raw of items) {
+        for (const raw of queue) {
           const id = typeof raw?.id === 'string' ? raw.id : ''
-          const thumbnailUrl = typeof raw?.thumbnailUrl === 'string' ? raw.thumbnailUrl : ''
+          const thumbnailUrl = typeof raw?.source_thumbnail_url === 'string' ? raw.source_thumbnail_url : ''
 
           if (!id || !thumbnailUrl) {
-            errors.push({ id: id || '(missing id)', reason: 'Missing id or thumbnailUrl' })
+            errors.push({ id: id || '(missing id)', reason: 'Missing id or source_thumbnail_url' })
             continue
           }
 
@@ -132,7 +145,19 @@ export const Route = createFileRoute('/api/public/cache-social-thumbnail')({
           }
         }
 
-        return json({ succeeded, failed: errors.length, errors })
+        const { count: remaining, error: countError } = await supabaseAdmin
+          .from('social_review_tags')
+          .select('*', { count: 'exact', head: true })
+          .eq('platform', 'instagram')
+          .not('source_thumbnail_url', 'is', null)
+          .is('thumbnail_path', null)
+
+        return json({
+          succeeded,
+          failed: errors.length,
+          remaining: countError ? null : (remaining ?? null),
+          errors,
+        })
       },
     },
   },

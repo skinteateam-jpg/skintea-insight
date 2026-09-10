@@ -518,9 +518,10 @@ function ProductsPage() {
                       hasRightBorder={col === 0}
                       hasBottomBorder={row < totalRows - 1}
                       active={activeSubcategory === name}
-                      onClick={() =>
-                        setActiveSubcategory((prev) => (prev === name ? null : name))
-                      }
+                      onClick={() => {
+                        setActiveSubcategory((prev) => (prev === name ? null : name));
+                        setActiveProductType(null);
+                      }}
                     />
                   );
                 })}

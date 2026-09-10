@@ -871,37 +871,54 @@ function ProductPage() {
           )}
           {tab === "instagram" && (
             instagramRows.length > 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {(() => {
-                  const list = instagramRows.map((r) => ({
-                    user: r.author_handle ?? "user",
-                    likes: r.likes ? `${r.likes}` : "—",
-                    caption: r.content ?? "",
-                    source_url: (r.source_url ?? null) as string | null,
-                  }));
-                  return list.map((p, i) => {
-                    const card = (
-                      <div style={{ background: "white", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "10px 12px" }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>@{p.user}</div>
-                        <div style={{ fontSize: 11, color: "#555", lineHeight: 1.4, marginTop: 3 }}>{p.caption}</div>
-                        <div style={{ display: "flex", gap: 12, fontSize: 10, color: "#bbb", marginTop: 6, alignItems: "center" }}>
-                          <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Heart width={10} height={10} /> {p.likes}</span>
-                          <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Share2 width={10} height={10} /></span>
-                        </div>
-                      </div>
-                    );
-                    return p.source_url ? (
-                      <a key={`${p.user}-${i}`} href={p.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
-                        {card}
-                      </a>
-                    ) : (
-                      <div key={`${p.user}-${i}`}>{card}</div>
-                    );
-                  });
-                })()}
-              </div>
+              (() => {
+                const bestPerVideo = new Map<string, typeof instagramRows[number]>();
+                for (const r of instagramRows) {
+                  const key = r.source_url ?? r.id;
+                  const existing = bestPerVideo.get(key);
+                  if (!existing || (r.views ?? 0) > (existing.views ?? 0)) {
+                    bestPerVideo.set(key, r);
+                  }
+                }
+                const list = Array.from(bestPerVideo.values())
+                  .sort((a, b) => (b.views ?? 0) - (a.views ?? 0))
+                  .slice(0, 6);
+                return (
+                  <div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+                      {list.map((r) => {
+                        const thumbUrl = r.thumbnail_path
+                          ? supabase.storage.from("social-thumbnails").getPublicUrl(r.thumbnail_path).data.publicUrl
+                          : null;
+                        const card = (
+                          <div style={{ background: thumbUrl ? `#1a2620 url(${thumbUrl}) center/cover no-repeat` : "#1a2620", borderRadius: 12, overflow: "hidden", aspectRatio: "9/16", position: "relative" }}>
+                            <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%, -50%)", width: 36, height: 36, background: "rgba(255,255,255,0.2)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Play width={14} height={14} color="#fff" fill="#fff" />
+                            </div>
+                            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "8px 10px", background: "linear-gradient(to top, rgba(0,0,0,0.85), transparent)" }}>
+                              <div style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{r.author_handle ?? "@user"}</div>
+                              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.7)", marginTop: 2, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{r.content ?? ""}</div>
+                              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", marginTop: 3 }}>{r.views != null ? `${r.views} views` : "— views"}</div>
+                            </div>
+                          </div>
+                        );
+                        return r.source_url ? (
+                          <a key={r.id} href={r.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", display: "block" }}>
+                            {card}
+                          </a>
+                        ) : (
+                          <div key={r.id}>{card}</div>
+                        );
+                      })}
+                    </div>
+                    <div style={{ fontSize: 10, color: MUTED, marginTop: 10, lineHeight: 1.4 }}>
+                      {list.length} reel{list.length === 1 ? "" : "s"} showing this product. Includes brand and creator content.
+                    </div>
+                  </div>
+                );
+              })()
             ) : (
-              <DataPending>Instagram collection hasn't started yet. This will show real posts about this product.</DataPending>
+              <DataPending>No Instagram reels collected for this product yet. We're still gathering them.</DataPending>
             )
           )}
           {tab === "reddit" && (

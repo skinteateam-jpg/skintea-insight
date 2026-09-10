@@ -846,11 +846,12 @@ function ProductPage() {
                   }
                   const list = Array.from(bestPerVideo.values()).map((r) => ({
                     user: r.author_handle ?? "@user",
-                    views: r.views ? `${r.views}` : "—",
+                    views: formatViewCount(r.views),
                     likes: r.likes ? `${r.likes}` : "—",
                     caption: r.content ?? "",
                     source_url: (r.source_url ?? null) as string | null,
                   }));
+
                   return list.map((t, i) => {
                     const thumb = t.source_url ? tiktokThumbnails[t.source_url] : undefined;
                     const card = (

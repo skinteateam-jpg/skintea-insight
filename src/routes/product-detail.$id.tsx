@@ -128,6 +128,20 @@ function extractTikTokVideoId(url: string | null): string | null {
   return match ? match[1] : null;
 }
 
+function formatViewCount(value: number | null | undefined): string {
+  if (value == null) return "—";
+  if (value >= 1_000_000) {
+    const formatted = (value / 1_000_000).toFixed(1).replace(/\.0$/, "");
+    return `${formatted}M`;
+  }
+  if (value >= 1_000) {
+    const formatted = (value / 1_000).toFixed(1).replace(/\.0$/, "");
+    return `${formatted}K`;
+  }
+  return `${value}`;
+}
+
+
 function ProductPage() {
   const { id } = Route.useParams();
   const [pageTab, setPageTab] = useState<"product" | "tea">("product");

@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import type { ReactNode, CSSProperties } from "react";
-import { Heart, Play, Share2, ExternalLink, ArrowLeft } from "lucide-react";
+import { Play, ExternalLink, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const ESPRESSO = "#1C0A00";

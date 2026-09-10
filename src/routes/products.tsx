@@ -233,18 +233,18 @@ function ProductsPage() {
   const highestRecommended = items.slice(6, 9).map((p) => toProduct(p, { recommend: true }));
   // Narrow subcategories can return fewer than 9 products; showing three ranking
   // headings with empty grids underneath is worse than one plain grid.
-  const thinResult = !loading && !!activeSubcategory && items.length < 9;
+  const thinResult = !loading && (!!activeSubcategory || !!activeProductType) && items.length < 9;
   const flatItems = items.map((p) => toProduct(p));
   const showDropdown = searchQuery.trim().length >= 2 && searchResults.length > 0;
 
   const visibleSubCategories = useMemo(() => {
     if (activeCategory === "All") {
       return CATEGORIES.slice(1)
-        .filter((cat) => (categorySubs[cat] ?? []).length > 0)
-        .map((cat) => ({ label: cat, items: categorySubs[cat] ?? [] }));
+        .filter((cat) => Object.keys(categorySubs[cat] ?? {}).length > 0)
+        .map((cat) => ({ label: cat, items: Object.keys(categorySubs[cat] ?? {}).sort((a, b) => a.localeCompare(b)) }));
     }
-    return (categorySubs[activeCategory] ?? []).length > 0
-      ? [{ label: activeCategory, items: categorySubs[activeCategory] }]
+    return Object.keys(categorySubs[activeCategory] ?? {}).length > 0
+      ? [{ label: activeCategory, items: Object.keys(categorySubs[activeCategory] ?? {}).sort((a, b) => a.localeCompare(b)) }]
       : [];
   }, [activeCategory, categorySubs]);
 

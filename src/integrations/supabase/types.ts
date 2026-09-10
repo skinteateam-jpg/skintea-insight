@@ -689,6 +689,7 @@ export type Database = {
           name: string
           price: number | null
           product_family_name: string | null
+          product_type: string | null
           product_url: string | null
           shade_name: string | null
           size_variant: string | null
@@ -713,6 +714,7 @@ export type Database = {
           name: string
           price?: number | null
           product_family_name?: string | null
+          product_type?: string | null
           product_url?: string | null
           shade_name?: string | null
           size_variant?: string | null
@@ -737,6 +739,7 @@ export type Database = {
           name?: string
           price?: number | null
           product_family_name?: string | null
+          product_type?: string | null
           product_url?: string | null
           shade_name?: string | null
           size_variant?: string | null
@@ -1575,11 +1578,17 @@ export type Database = {
         Args: never
         Returns: {
           category: string
+          product_type: string
           subcategory: string
         }[]
       }
       random_active_products: {
-        Args: { p_category?: string; p_limit?: number; p_subcategory?: string }
+        Args: {
+          p_category?: string
+          p_limit?: number
+          p_product_type?: string
+          p_subcategory?: string
+        }
         Returns: {
           brand: string
           category: string | null
@@ -1597,6 +1606,7 @@ export type Database = {
           name: string
           price: number | null
           product_family_name: string | null
+          product_type: string | null
           product_url: string | null
           shade_name: string | null
           size_variant: string | null

@@ -276,7 +276,7 @@ function ProductPage() {
       setLoading(true);
       const { data } = await supabase
         .from("products")
-        .select("id,name,brand,category,subcategory,description,image_url,image_urls,product_url,price,currency,skintea_score,product_family_name,shade_name,ingredients,key_ingredients")
+        .select("id,name,brand,category,subcategory,product_type,description,image_url,image_urls,product_url,price,currency,skintea_score,product_family_name,shade_name,ingredients,key_ingredients")
         .eq("id", id)
         .single();
       if (!cancelled) {
@@ -285,7 +285,7 @@ function ProductPage() {
         if (data?.product_family_name && data?.brand) {
           const { data: siblings } = await supabase
             .from("products")
-            .select("id,name,brand,category,subcategory,description,image_url,image_urls,product_url,price,currency,skintea_score,product_family_name,shade_name,ingredients,key_ingredients")
+            .select("id,name,brand,category,subcategory,product_type,description,image_url,image_urls,product_url,price,currency,skintea_score,product_family_name,shade_name,ingredients,key_ingredients")
             .eq("product_family_name", data.product_family_name)
             .eq("brand", data.brand)
             .order("shade_name", { ascending: true });
@@ -514,8 +514,8 @@ function ProductPage() {
           <div style={{ fontSize: 20, fontWeight: 800, color: ESPRESSO, lineHeight: 1.25, marginBottom: activeProduct?.subcategory ? 3 : 0 }}>
             {activeProduct?.name}
           </div>
-          {activeProduct?.subcategory && (
-            <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{activeProduct.subcategory}</div>
+          {(activeProduct?.product_type || activeProduct?.subcategory) && (
+            <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{activeProduct.product_type || activeProduct.subcategory}</div>
           )}
           {shadeOptions.length > 1 && (
             <div style={{ display: "flex", gap: 8, marginTop: 10, overflowX: "auto", paddingBottom: 2 }}>

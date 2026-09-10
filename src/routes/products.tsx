@@ -45,6 +45,7 @@ type DbProduct = {
   brand: string | null;
   category: string | null;
   subcategory: string | null;
+  product_type: string | null;
   price: number | null;
   currency: string | null;
   image_url: string | null;
@@ -141,15 +142,17 @@ const FILTERS = ["Filters", "Price", "Skin type", "Concern"];
 function ProductsPage() {
   const [activeCategory, setActiveCategory] = useState<Category>("All");
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
+  const [activeProductType, setActiveProductType] = useState<string | null>(null);
   const [showLogin, setShowLogin] = useState(false);
   const navigate = useNavigate();
 
   const [items, setItems] = useState<DbProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  const [categorySubs, setCategorySubs] = useState<Record<string, string[]>>({});
+  const [categorySubs, setCategorySubs] = useState<Record<string, Record<string, string[]>>>({});
 
   useEffect(() => {
     setActiveSubcategory(null);
+    setActiveProductType(null);
   }, [activeCategory]);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -164,6 +167,7 @@ function ProductsPage() {
       const { data } = await supabase.rpc("random_active_products", {
         p_category: activeCategory === "All" ? undefined : activeCategory,
         p_subcategory: activeSubcategory ?? undefined,
+        p_product_type: activeProductType ?? undefined,
         p_limit: 60,
       });
       if (!cancelled) {
@@ -175,22 +179,28 @@ function ProductsPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeCategory, activeSubcategory]);
+  }, [activeCategory, activeSubcategory, activeProductType]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const { data } = await supabase.rpc("distinct_product_subcategories");
       if (cancelled) return;
-      const groups = new Map<string, Set<string>>();
-      for (const row of (data ?? []) as { category: string | null; subcategory: string | null }[]) {
+      const groups = new Map<string, Map<string, Set<string>>>();
+      for (const row of (data ?? []) as { category: string | null; subcategory: string | null; product_type: string | null }[]) {
         if (!row.category || !row.subcategory) continue;
-        if (!groups.has(row.category)) groups.set(row.category, new Set());
-        groups.get(row.category)!.add(row.subcategory);
+        if (!groups.has(row.category)) groups.set(row.category, new Map());
+        const catMap = groups.get(row.category)!;
+        if (!catMap.has(row.subcategory)) catMap.set(row.subcategory, new Set());
+        if (row.product_type) catMap.get(row.subcategory)!.add(row.product_type);
       }
-      const sorted: Record<string, string[]> = {};
-      for (const [cat, set] of groups) {
-        sorted[cat] = Array.from(set).sort((a, b) => a.localeCompare(b));
+      const sorted: Record<string, Record<string, string[]>> = {};
+      for (const [cat, subMap] of groups) {
+        const subSorted: Record<string, string[]> = {};
+        for (const [sub, typeSet] of subMap) {
+          subSorted[sub] = Array.from(typeSet).sort((a, b) => a.localeCompare(b));
+        }
+        sorted[cat] = subSorted;
       }
       setCategorySubs(sorted);
     })();
@@ -223,18 +233,18 @@ function ProductsPage() {
   const highestRecommended = items.slice(6, 9).map((p) => toProduct(p, { recommend: true }));
   // Narrow subcategories can return fewer than 9 products; showing three ranking
   // headings with empty grids underneath is worse than one plain grid.
-  const thinResult = !loading && !!activeSubcategory && items.length < 9;
+  const thinResult = !loading && (!!activeSubcategory || !!activeProductType) && items.length < 9;
   const flatItems = items.map((p) => toProduct(p));
   const showDropdown = searchQuery.trim().length >= 2 && searchResults.length > 0;
 
   const visibleSubCategories = useMemo(() => {
     if (activeCategory === "All") {
       return CATEGORIES.slice(1)
-        .filter((cat) => (categorySubs[cat] ?? []).length > 0)
-        .map((cat) => ({ label: cat, items: categorySubs[cat] ?? [] }));
+        .filter((cat) => Object.keys(categorySubs[cat] ?? {}).length > 0)
+        .map((cat) => ({ label: cat, items: Object.keys(categorySubs[cat] ?? {}).sort((a, b) => a.localeCompare(b)) }));
     }
-    return (categorySubs[activeCategory] ?? []).length > 0
-      ? [{ label: activeCategory, items: categorySubs[activeCategory] }]
+    return Object.keys(categorySubs[activeCategory] ?? {}).length > 0
+      ? [{ label: activeCategory, items: Object.keys(categorySubs[activeCategory] ?? {}).sort((a, b) => a.localeCompare(b)) }]
       : [];
   }, [activeCategory, categorySubs]);
 
@@ -508,13 +518,50 @@ function ProductsPage() {
                       hasRightBorder={col === 0}
                       hasBottomBorder={row < totalRows - 1}
                       active={activeSubcategory === name}
-                      onClick={() =>
-                        setActiveSubcategory((prev) => (prev === name ? null : name))
-                      }
+                      onClick={() => {
+                        setActiveSubcategory((prev) => (prev === name ? null : name));
+                        setActiveProductType(null);
+                      }}
                     />
                   );
                 })}
               </div>
+              {(() => {
+                if (!activeSubcategory || !section.items.includes(activeSubcategory)) return null;
+                const catKey = activeCategory === "All" ? section.label : activeCategory;
+                const types = (categorySubs[catKey]?.[activeSubcategory] ?? []).sort((a, b) => a.localeCompare(b));
+                if (types.length === 0) return null;
+                const redundant = types.length === 1 && types[0].toLowerCase() === activeSubcategory.toLowerCase();
+                if (redundant) return null;
+                return (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10, paddingLeft: 2 }}>
+                    {types.map((t) => {
+                      const selected = activeProductType === t;
+                      return (
+                        <button
+                          key={t}
+                          onClick={() => setActiveProductType((prev) => (prev === t ? null : t))}
+                          style={{
+                            padding: "6px 12px",
+                            border: `0.5px solid ${selected ? C.crimson : C.border}`,
+                            borderRadius: 99,
+                            background: selected ? C.crimson : "transparent",
+                            color: selected ? C.surface : C.espresso,
+                            fontSize: 10,
+                            fontWeight: 800,
+                            letterSpacing: "0.06em",
+                            textTransform: "uppercase",
+                            cursor: "pointer",
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          {t}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           ))}
         </div>

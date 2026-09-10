@@ -142,15 +142,17 @@ const FILTERS = ["Filters", "Price", "Skin type", "Concern"];
 function ProductsPage() {
   const [activeCategory, setActiveCategory] = useState<Category>("All");
   const [activeSubcategory, setActiveSubcategory] = useState<string | null>(null);
+  const [activeProductType, setActiveProductType] = useState<string | null>(null);
   const [showLogin, setShowLogin] = useState(false);
   const navigate = useNavigate();
 
   const [items, setItems] = useState<DbProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  const [categorySubs, setCategorySubs] = useState<Record<string, string[]>>({});
+  const [categorySubs, setCategorySubs] = useState<Record<string, Record<string, string[]>>>({});
 
   useEffect(() => {
     setActiveSubcategory(null);
+    setActiveProductType(null);
   }, [activeCategory]);
 
   const [searchQuery, setSearchQuery] = useState("");

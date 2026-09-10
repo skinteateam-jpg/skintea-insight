@@ -30,6 +30,7 @@ import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
 import { Route as ProductDetailIdRouteImport } from './routes/product-detail.$id'
 import { Route as ClinicsIdRouteImport } from './routes/clinics/$id'
 import { Route as AdminTreatmentsRouteImport } from './routes/admin.treatments'
+import { Route as ApiPublicCacheSocialThumbnailRouteImport } from './routes/api/public/cache-social-thumbnail'
 
 const TreatmentTalk2Route = TreatmentTalk2RouteImport.update({
   id: '/treatment-talk2',
@@ -136,6 +137,12 @@ const AdminTreatmentsRoute = AdminTreatmentsRouteImport.update({
   path: '/admin/treatments',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicCacheSocialThumbnailRoute =
+  ApiPublicCacheSocialThumbnailRouteImport.update({
+    id: '/api/public/cache-social-thumbnail',
+    path: '/api/public/cache-social-thumbnail',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -159,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/treatment/$slug': typeof TreatmentSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/clinics/': typeof ClinicsIndexRoute
+  '/api/public/cache-social-thumbnail': typeof ApiPublicCacheSocialThumbnailRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -182,6 +190,7 @@ export interface FileRoutesByTo {
   '/treatment/$slug': typeof TreatmentSlugRoute
   '/admin': typeof AdminIndexRoute
   '/clinics': typeof ClinicsIndexRoute
+  '/api/public/cache-social-thumbnail': typeof ApiPublicCacheSocialThumbnailRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -206,6 +215,7 @@ export interface FileRoutesById {
   '/treatment/$slug': typeof TreatmentSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/clinics/': typeof ClinicsIndexRoute
+  '/api/public/cache-social-thumbnail': typeof ApiPublicCacheSocialThumbnailRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -231,6 +241,7 @@ export interface FileRouteTypes {
     | '/treatment/$slug'
     | '/admin/'
     | '/clinics/'
+    | '/api/public/cache-social-thumbnail'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -254,6 +265,7 @@ export interface FileRouteTypes {
     | '/treatment/$slug'
     | '/admin'
     | '/clinics'
+    | '/api/public/cache-social-thumbnail'
   id:
     | '__root__'
     | '/'
@@ -277,6 +289,7 @@ export interface FileRouteTypes {
     | '/treatment/$slug'
     | '/admin/'
     | '/clinics/'
+    | '/api/public/cache-social-thumbnail'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -300,6 +313,7 @@ export interface RootRouteChildren {
   TreatmentSlugRoute: typeof TreatmentSlugRoute
   AdminIndexRoute: typeof AdminIndexRoute
   ClinicsIndexRoute: typeof ClinicsIndexRoute
+  ApiPublicCacheSocialThumbnailRoute: typeof ApiPublicCacheSocialThumbnailRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -451,6 +465,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminTreatmentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cache-social-thumbnail': {
+      id: '/api/public/cache-social-thumbnail'
+      path: '/api/public/cache-social-thumbnail'
+      fullPath: '/api/public/cache-social-thumbnail'
+      preLoaderRoute: typeof ApiPublicCacheSocialThumbnailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -487,6 +508,7 @@ const rootRouteChildren: RootRouteChildren = {
   TreatmentSlugRoute: TreatmentSlugRoute,
   AdminIndexRoute: AdminIndexRoute,
   ClinicsIndexRoute: ClinicsIndexRoute,
+  ApiPublicCacheSocialThumbnailRoute: ApiPublicCacheSocialThumbnailRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

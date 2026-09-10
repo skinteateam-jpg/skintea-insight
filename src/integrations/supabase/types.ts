@@ -930,11 +930,13 @@ export type Database = {
         Row: {
           age_bracket: string | null
           author_handle: string | null
+          brand: string | null
           comment_id: string | null
           confidence: string | null
           content: string | null
           created_at: string | null
           id: string
+          language: string | null
           likes: number | null
           platform: string
           post_created_utc: string | null
@@ -948,16 +950,19 @@ export type Database = {
           source_url: string | null
           subreddit: string | null
           tagged_at: string | null
+          thumbnail_path: string | null
           views: number | null
         }
         Insert: {
           age_bracket?: string | null
           author_handle?: string | null
+          brand?: string | null
           comment_id?: string | null
           confidence?: string | null
           content?: string | null
           created_at?: string | null
           id?: string
+          language?: string | null
           likes?: number | null
           platform: string
           post_created_utc?: string | null
@@ -971,16 +976,19 @@ export type Database = {
           source_url?: string | null
           subreddit?: string | null
           tagged_at?: string | null
+          thumbnail_path?: string | null
           views?: number | null
         }
         Update: {
           age_bracket?: string | null
           author_handle?: string | null
+          brand?: string | null
           comment_id?: string | null
           confidence?: string | null
           content?: string | null
           created_at?: string | null
           id?: string
+          language?: string | null
           likes?: number | null
           platform?: string
           post_created_utc?: string | null
@@ -994,6 +1002,7 @@ export type Database = {
           source_url?: string | null
           subreddit?: string | null
           tagged_at?: string | null
+          thumbnail_path?: string | null
           views?: number | null
         }
         Relationships: [

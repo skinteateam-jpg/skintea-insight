@@ -210,6 +210,7 @@ function ProductsPage() {
         .from("products")
         .select("*")
         .eq("is_active", true)
+        .neq("category", "Goods")
         .or(`name.ilike.%${q}%,brand.ilike.%${q}%`)
         .limit(20);
       setSearchResults(dedupByFamily((data ?? []) as DbProduct[]));

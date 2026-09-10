@@ -612,6 +612,30 @@ export type Database = {
           },
         ]
       }
+      product_dedupe_log: {
+        Row: {
+          brand: string | null
+          canonical_id: string
+          dup_id: string
+          merged_at: string | null
+          name: string | null
+        }
+        Insert: {
+          brand?: string | null
+          canonical_id: string
+          dup_id: string
+          merged_at?: string | null
+          name?: string | null
+        }
+        Update: {
+          brand?: string | null
+          canonical_id?: string
+          dup_id?: string
+          merged_at?: string | null
+          name?: string | null
+        }
+        Relationships: []
+      }
       product_posts: {
         Row: {
           agree_count: number | null

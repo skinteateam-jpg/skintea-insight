@@ -19,7 +19,7 @@ URL="https://api.apify.com/v2/datasets/${DATASET_ID}/items?clean=true&format=jso
 
 curl -fsS -H "Authorization: Bearer ${APIFY_TOKEN}" "$URL" > "$TMP_FILE"
 
-ITEM_COUNT=$(python3 - <<'PY'
+ITEM_COUNT=$(python3 - "$TMP_FILE" <<'PY'
 import json, sys
 with open(sys.argv[1], 'r') as f:
     data = json.load(f)
@@ -28,7 +28,6 @@ if not isinstance(data, list):
     sys.exit(1)
 print(len(data))
 PY
-"$TMP_FILE"
 )
 
 mv "$TMP_FILE" "$OUT_FILE"

@@ -514,8 +514,8 @@ function ProductPage() {
           <div style={{ fontSize: 20, fontWeight: 800, color: ESPRESSO, lineHeight: 1.25, marginBottom: activeProduct?.subcategory ? 3 : 0 }}>
             {activeProduct?.name}
           </div>
-          {activeProduct?.subcategory && (
-            <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{activeProduct.subcategory}</div>
+          {(activeProduct?.product_type || activeProduct?.subcategory) && (
+            <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{activeProduct.product_type || activeProduct.subcategory}</div>
           )}
           {shadeOptions.length > 1 && (
             <div style={{ display: "flex", gap: 8, marginTop: 10, overflowX: "auto", paddingBottom: 2 }}>

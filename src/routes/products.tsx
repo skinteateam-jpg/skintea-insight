@@ -133,7 +133,7 @@ function dedupByFamily(rows: DbProduct[]): DbProduct[] {
   });
 }
 
-const CATEGORIES = ["All", "Skincare", "Lip", "Face", "Sunscreen", "Cheek", "Bodycare", "Eye", "Tool", "Fragrance"] as const;
+const CATEGORIES = ["All", "Skincare", "Lip", "Face", "Sunscreen", "Cheek", "Bodycare", "Eye", "Device", "Fragrance"] as const;
 type Category = (typeof CATEGORIES)[number];
 
 const FILTERS = ["Filters", "Price", "Skin type", "Concern"];

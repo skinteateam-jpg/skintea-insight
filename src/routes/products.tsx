@@ -167,6 +167,7 @@ function ProductsPage() {
       const { data } = await supabase.rpc("random_active_products", {
         p_category: activeCategory === "All" ? undefined : activeCategory,
         p_subcategory: activeSubcategory ?? undefined,
+        p_product_type: activeProductType ?? undefined,
         p_limit: 60,
       });
       if (!cancelled) {
@@ -178,22 +179,28 @@ function ProductsPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeCategory, activeSubcategory]);
+  }, [activeCategory, activeSubcategory, activeProductType]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const { data } = await supabase.rpc("distinct_product_subcategories");
       if (cancelled) return;
-      const groups = new Map<string, Set<string>>();
-      for (const row of (data ?? []) as { category: string | null; subcategory: string | null }[]) {
+      const groups = new Map<string, Map<string, Set<string>>>();
+      for (const row of (data ?? []) as { category: string | null; subcategory: string | null; product_type: string | null }[]) {
         if (!row.category || !row.subcategory) continue;
-        if (!groups.has(row.category)) groups.set(row.category, new Set());
-        groups.get(row.category)!.add(row.subcategory);
+        if (!groups.has(row.category)) groups.set(row.category, new Map());
+        const catMap = groups.get(row.category)!;
+        if (!catMap.has(row.subcategory)) catMap.set(row.subcategory, new Set());
+        if (row.product_type) catMap.get(row.subcategory)!.add(row.product_type);
       }
-      const sorted: Record<string, string[]> = {};
-      for (const [cat, set] of groups) {
-        sorted[cat] = Array.from(set).sort((a, b) => a.localeCompare(b));
+      const sorted: Record<string, Record<string, string[]>> = {};
+      for (const [cat, subMap] of groups) {
+        const subSorted: Record<string, string[]> = {};
+        for (const [sub, typeSet] of subMap) {
+          subSorted[sub] = Array.from(typeSet).sort((a, b) => a.localeCompare(b));
+        }
+        sorted[cat] = subSorted;
       }
       setCategorySubs(sorted);
     })();

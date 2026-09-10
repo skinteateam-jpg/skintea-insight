@@ -57,6 +57,7 @@ type DbProduct = {
   created_at: string | null;
   product_family_name: string | null;
   shade_name: string | null;
+  size_variant: string | null;
 };
 
 type Product = {

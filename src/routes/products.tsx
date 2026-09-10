@@ -57,6 +57,7 @@ type DbProduct = {
   created_at: string | null;
   product_family_name: string | null;
   shade_name: string | null;
+  size_variant: string | null;
 };
 
 type Product = {
@@ -120,15 +121,19 @@ function dedupByFamily(rows: DbProduct[]): DbProduct[] {
   }
   return Array.from(groups.values()).map((group) => {
     if (group.length === 1) return group[0];
-    const withShade = group.filter((r) => r.shade_name);
-    if (withShade.length) {
-      return withShade.sort((a, b) => (a.shade_name ?? "").localeCompare(b.shade_name ?? ""))[0];
-    }
-    return group[0];
+    const candidates = group.some((r) => r.shade_name)
+      ? group.filter((r) => r.shade_name)
+      : group;
+    return candidates.sort((a, b) => {
+      const aFull = a.size_variant === "Full" ? 0 : 1;
+      const bFull = b.size_variant === "Full" ? 0 : 1;
+      if (aFull !== bFull) return aFull - bFull;
+      return (a.shade_name ?? "").localeCompare(b.shade_name ?? "");
+    })[0];
   });
 }
 
-const CATEGORIES = ["All", "Skincare", "Lip", "Face", "Sunscreen", "Cheek", "Bodycare", "Eye", "Tool", "Fragrance"] as const;
+const CATEGORIES = ["All", "Skincare", "Lip", "Face", "Sunscreen", "Cheek", "Bodycare", "Eye", "Device", "Fragrance"] as const;
 type Category = (typeof CATEGORIES)[number];
 
 const FILTERS = ["Filters", "Price", "Skin type", "Concern"];
@@ -205,6 +210,7 @@ function ProductsPage() {
         .from("products")
         .select("*")
         .eq("is_active", true)
+        .neq("category", "Goods")
         .or(`name.ilike.%${q}%,brand.ilike.%${q}%`)
         .limit(20);
       setSearchResults(dedupByFamily((data ?? []) as DbProduct[]));
@@ -784,7 +790,13 @@ function ProductCard({
             src={product.image_url}
             alt={product.name}
             loading="lazy"
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              padding: 8,
+              boxSizing: "border-box",
+            }}
           />
         ) : (
           <span aria-hidden>{product.emoji}</span>

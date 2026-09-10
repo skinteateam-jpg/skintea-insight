@@ -276,7 +276,7 @@ function ProductPage() {
       setLoading(true);
       const { data } = await supabase
         .from("products")
-        .select("id,name,brand,category,subcategory,description,image_url,image_urls,product_url,price,currency,skintea_score,product_family_name,shade_name,ingredients,key_ingredients")
+        .select("id,name,brand,category,subcategory,product_type,description,image_url,image_urls,product_url,price,currency,skintea_score,product_family_name,shade_name,ingredients,key_ingredients")
         .eq("id", id)
         .single();
       if (!cancelled) {
@@ -285,7 +285,7 @@ function ProductPage() {
         if (data?.product_family_name && data?.brand) {
           const { data: siblings } = await supabase
             .from("products")
-            .select("id,name,brand,category,subcategory,description,image_url,image_urls,product_url,price,currency,skintea_score,product_family_name,shade_name,ingredients,key_ingredients")
+            .select("id,name,brand,category,subcategory,product_type,description,image_url,image_urls,product_url,price,currency,skintea_score,product_family_name,shade_name,ingredients,key_ingredients")
             .eq("product_family_name", data.product_family_name)
             .eq("brand", data.brand)
             .order("shade_name", { ascending: true });

@@ -179,11 +179,13 @@ function ProductPage() {
     const orFilter = productData.product_family_name
       ? `product_id.eq.${id},product_family_name.eq.${productData.product_family_name}`
       : `product_id.eq.${id}`;
-    (supabase as any)
+    let query = (supabase as any)
       .from("social_review_tags")
-      .select("*")
-      .or(orFilter)
-      .then(({ data }: any) => setSocialReviews(data ?? []));
+      .select("*");
+    if (productData.brand) {
+      query = query.eq("brand", productData.brand);
+    }
+    query.or(orFilter).then(({ data }: any) => setSocialReviews(data ?? []));
   }, [id, productData]);
 
   useEffect(() => {

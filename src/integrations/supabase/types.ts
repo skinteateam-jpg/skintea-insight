@@ -691,6 +691,7 @@ export type Database = {
           product_family_name: string | null
           product_url: string | null
           shade_name: string | null
+          size_variant: string | null
           skintea_score: number | null
           source: string | null
           subcategory: string | null
@@ -714,6 +715,7 @@ export type Database = {
           product_family_name?: string | null
           product_url?: string | null
           shade_name?: string | null
+          size_variant?: string | null
           skintea_score?: number | null
           source?: string | null
           subcategory?: string | null
@@ -737,6 +739,7 @@ export type Database = {
           product_family_name?: string | null
           product_url?: string | null
           shade_name?: string | null
+          size_variant?: string | null
           skintea_score?: number | null
           source?: string | null
           subcategory?: string | null
@@ -1596,6 +1599,7 @@ export type Database = {
           product_family_name: string | null
           product_url: string | null
           shade_name: string | null
+          size_variant: string | null
           skintea_score: number | null
           source: string | null
           subcategory: string | null

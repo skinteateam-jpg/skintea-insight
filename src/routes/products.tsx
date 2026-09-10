@@ -526,6 +526,42 @@ function ProductsPage() {
                   );
                 })}
               </div>
+              {(() => {
+                if (!activeSubcategory || !section.items.includes(activeSubcategory)) return null;
+                const catKey = activeCategory === "All" ? section.label : activeCategory;
+                const types = (categorySubs[catKey]?.[activeSubcategory] ?? []).sort((a, b) => a.localeCompare(b));
+                if (types.length === 0) return null;
+                const redundant = types.length === 1 && types[0].toLowerCase() === activeSubcategory.toLowerCase();
+                if (redundant) return null;
+                return (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10, paddingLeft: 2 }}>
+                    {types.map((t) => {
+                      const selected = activeProductType === t;
+                      return (
+                        <button
+                          key={t}
+                          onClick={() => setActiveProductType((prev) => (prev === t ? null : t))}
+                          style={{
+                            padding: "6px 12px",
+                            border: `0.5px solid ${selected ? C.crimson : C.border}`,
+                            borderRadius: 99,
+                            background: selected ? C.crimson : "transparent",
+                            color: selected ? C.surface : C.espresso,
+                            fontSize: 10,
+                            fontWeight: 800,
+                            letterSpacing: "0.06em",
+                            textTransform: "uppercase",
+                            cursor: "pointer",
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          {t}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           ))}
         </div>

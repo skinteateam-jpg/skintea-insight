@@ -45,6 +45,7 @@ type DbProduct = {
   brand: string | null;
   category: string | null;
   subcategory: string | null;
+  product_type: string | null;
   price: number | null;
   currency: string | null;
   image_url: string | null;

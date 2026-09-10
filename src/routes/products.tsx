@@ -121,11 +121,15 @@ function dedupByFamily(rows: DbProduct[]): DbProduct[] {
   }
   return Array.from(groups.values()).map((group) => {
     if (group.length === 1) return group[0];
-    const withShade = group.filter((r) => r.shade_name);
-    if (withShade.length) {
-      return withShade.sort((a, b) => (a.shade_name ?? "").localeCompare(b.shade_name ?? ""))[0];
-    }
-    return group[0];
+    const candidates = group.some((r) => r.shade_name)
+      ? group.filter((r) => r.shade_name)
+      : group;
+    return candidates.sort((a, b) => {
+      const aFull = a.size_variant === "Full" ? 0 : 1;
+      const bFull = b.size_variant === "Full" ? 0 : 1;
+      if (aFull !== bFull) return aFull - bFull;
+      return (a.shade_name ?? "").localeCompare(b.shade_name ?? "");
+    })[0];
   });
 }
 

@@ -128,6 +128,20 @@ function extractTikTokVideoId(url: string | null): string | null {
   return match ? match[1] : null;
 }
 
+function formatViewCount(value: number | null | undefined): string {
+  if (value == null) return "—";
+  if (value >= 1_000_000) {
+    const formatted = (value / 1_000_000).toFixed(1).replace(/\.0$/, "");
+    return `${formatted}M`;
+  }
+  if (value >= 1_000) {
+    const formatted = (value / 1_000).toFixed(1).replace(/\.0$/, "");
+    return `${formatted}K`;
+  }
+  return `${value}`;
+}
+
+
 function ProductPage() {
   const { id } = Route.useParams();
   const [pageTab, setPageTab] = useState<"product" | "tea">("product");
@@ -832,11 +846,12 @@ function ProductPage() {
                   }
                   const list = Array.from(bestPerVideo.values()).map((r) => ({
                     user: r.author_handle ?? "@user",
-                    views: r.views ? `${r.views}` : "—",
+                    views: formatViewCount(r.views),
                     likes: r.likes ? `${r.likes}` : "—",
                     caption: r.content ?? "",
                     source_url: (r.source_url ?? null) as string | null,
                   }));
+
                   return list.map((t, i) => {
                     const thumb = t.source_url ? tiktokThumbnails[t.source_url] : undefined;
                     const card = (
@@ -898,7 +913,7 @@ function ProductPage() {
                             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "8px 10px", background: "linear-gradient(to top, rgba(0,0,0,0.85), transparent)" }}>
                               <div style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{r.author_handle ?? "@user"}</div>
                               <div style={{ fontSize: 9, color: "rgba(255,255,255,0.7)", marginTop: 2, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{r.content ?? ""}</div>
-                              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", marginTop: 3 }}>{r.views != null ? `${r.views} views` : "— views"}</div>
+                              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", marginTop: 3 }}>{formatViewCount(r.views)} views</div>
                             </div>
                           </div>
                         );

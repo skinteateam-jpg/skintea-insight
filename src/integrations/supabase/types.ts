@@ -947,6 +947,7 @@ export type Database = {
           sentiment: string | null
           skin_type: string | null
           source_query_type: string | null
+          source_thumbnail_url: string | null
           source_url: string | null
           subreddit: string | null
           tagged_at: string | null
@@ -973,6 +974,7 @@ export type Database = {
           sentiment?: string | null
           skin_type?: string | null
           source_query_type?: string | null
+          source_thumbnail_url?: string | null
           source_url?: string | null
           subreddit?: string | null
           tagged_at?: string | null
@@ -999,6 +1001,7 @@ export type Database = {
           sentiment?: string | null
           skin_type?: string | null
           source_query_type?: string | null
+          source_thumbnail_url?: string | null
           source_url?: string | null
           subreddit?: string | null
           tagged_at?: string | null

@@ -965,6 +965,7 @@ export type Database = {
           confidence: string | null
           content: string | null
           created_at: string | null
+          disclosure: string[] | null
           id: string
           language: string | null
           likes: number | null
@@ -992,6 +993,7 @@ export type Database = {
           confidence?: string | null
           content?: string | null
           created_at?: string | null
+          disclosure?: string[] | null
           id?: string
           language?: string | null
           likes?: number | null
@@ -1019,6 +1021,7 @@ export type Database = {
           confidence?: string | null
           content?: string | null
           created_at?: string | null
+          disclosure?: string[] | null
           id?: string
           language?: string | null
           likes?: number | null

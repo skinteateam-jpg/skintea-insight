@@ -913,7 +913,7 @@ function ProductPage() {
                             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "8px 10px", background: "linear-gradient(to top, rgba(0,0,0,0.85), transparent)" }}>
                               <div style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{r.author_handle ?? "@user"}</div>
                               <div style={{ fontSize: 9, color: "rgba(255,255,255,0.7)", marginTop: 2, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{r.content ?? ""}</div>
-                              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", marginTop: 3 }}>{r.views != null ? `${r.views} views` : "— views"}</div>
+                              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", marginTop: 3 }}>{formatViewCount(r.views)} views</div>
                             </div>
                           </div>
                         );

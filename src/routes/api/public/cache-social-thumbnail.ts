@@ -53,9 +53,11 @@ export const Route = createFileRoute('/api/public/cache-social-thumbnail')({
           // Body is optional; default to MAX_ITEMS on empty/invalid JSON.
         }
 
-        const limit = Number.isFinite(requestedLimit)
-          ? Math.max(1, Math.min(MAX_ITEMS, Math.floor(requestedLimit)))
-          : MAX_ITEMS
+        const limit =
+          typeof requestedLimit === 'number' && Number.isFinite(requestedLimit)
+            ? Math.max(1, Math.min(MAX_ITEMS, Math.floor(requestedLimit)))
+            : MAX_ITEMS
+
 
         const { supabaseAdmin } = await import('@/integrations/supabase/client.server')
 

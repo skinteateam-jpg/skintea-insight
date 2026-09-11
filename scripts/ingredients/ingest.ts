@@ -604,6 +604,8 @@ type QueueEntry = {
   brand: string;
   name: string;
   reason: string;
+  sources: string[];
+
   unmatched?: string[];
   match_rate?: number;
   candidates: { source: string; url: string; ingredients: string[] }[];
@@ -657,6 +659,10 @@ async function main() {
     stats.set(brand, s);
   };
   const writtenRates: number[] = [];
+  const sourceCounts = new Map<string, number>();
+  const bumpSource = (label: string) =>
+    sourceCounts.set(label, (sourceCounts.get(label) ?? 0) + 1);
+
 
   for (const [i, row] of targets.entries()) {
     console.log(`[${i + 1}/${targets.length}] ${row.brand} — ${row.name}`);
@@ -688,6 +694,8 @@ async function main() {
         brand: row.brand,
         name: row.name,
         reason,
+        sources: candidates.length ? candidates.map((c) => c.source) : ['none'],
+
         ...(extra?.unmatched ? { unmatched: extra.unmatched } : {}),
         ...(extra?.rate !== undefined ? { match_rate: Number(extra.rate.toFixed(4)) } : {}),
         candidates: candidates.map((c) => ({ source: c.source, url: c.url, ingredients: c.list })),
@@ -711,6 +719,7 @@ async function main() {
 
     let list: string[];
     let note: string | undefined;
+    let sourceLabel: string;
     if (usable.length >= 2) {
       const decision = decide(usable[0]!, usable[1]!);
       if (decision.kind === 'queue') {
@@ -720,8 +729,18 @@ async function main() {
       }
       list = decision.list;
       note = decision.note;
+      sourceLabel = usable.map((c) => c.source).join(' + ');
     } else {
-      list = usable[0]!.list;
+      const only = usable[0]!;
+      // incidecoder is a dedicated INCI database and is trusted on its own.
+      // Any other single source still needs a second opinion.
+      if (only.source !== 'incidecoder') {
+        enqueue(`only one source found (${only.source}) — retailer sources need corroboration`);
+        bump(row.brand, 'queued');
+        continue;
+      }
+      list = only.list;
+      sourceLabel = 'incidecoder, uncorroborated';
     }
 
     if (list.length < 5) {
@@ -729,6 +748,7 @@ async function main() {
       bump(row.brand, 'queued');
       continue;
     }
+
 
     const { rate, unmatched, resolved } = validate(dict, list);
     const pct = (rate * 100).toFixed(1);
@@ -749,9 +769,10 @@ async function main() {
 
     if (args.dryRun) {
       console.log(
-        `   would write ${normalised.length} (${pct}% dictionary match): ${normalised.slice(0, 8).join(', ')}…`,
+        `   would write ${normalised.length} ingredients (${sourceLabel}, ${pct}% dictionary match): ${normalised.slice(0, 8).join(', ')}…`,
       );
       writtenRates.push(rate);
+      bumpSource(sourceLabel);
       bump(row.brand, 'written');
       continue;
     }
@@ -771,10 +792,14 @@ async function main() {
       console.log('   ✗ skipped: row already has ingredients');
       bump(row.brand, 'failed');
     } else {
-      console.log(`   ✓ wrote ${normalised.length} ingredients (${pct}% dictionary match)`);
+      console.log(
+        `   ✓ wrote ${normalised.length} ingredients (${sourceLabel}, ${pct}% dictionary match)`,
+      );
       writtenRates.push(rate);
+      bumpSource(sourceLabel);
       bump(row.brand, 'written');
     }
+
   }
 
   if (queue.length > 0) {
@@ -799,6 +824,14 @@ async function main() {
   console.log('-'.repeat(46));
   console.log('TOTAL'.padEnd(24) + String(w).padEnd(9) + String(q).padEnd(8) + String(f));
   console.log(`\nWritten: ${w}   Queued for review: ${q}   Failed: ${f}`);
+
+  if (sourceCounts.size > 0) {
+    console.log('\nProvenance of written rows:');
+    for (const [label, n] of [...sourceCounts.entries()].sort()) {
+      console.log(`  ${label.padEnd(30)} ${n}`);
+    }
+  }
+
 
   if (writtenRates.length > 0) {
     const avg = writtenRates.reduce((s, r) => s + r, 0) / writtenRates.length;

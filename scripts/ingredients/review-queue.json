@@ -4,22 +4,31 @@
     "brand": "COSRX",
     "name": "5 PDRN Hyaluronic Acid Vital Hydrating Hydrogel Mask",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:05:23.945Z"
+    "queued_at": "2026-09-11T21:18:00.178Z"
   },
   {
     "id": "4c7b0a32-e21b-4fab-aa25-ca51c499e02a",
     "brand": "COSRX",
     "name": "AC Collection Blemish Care Sheet Mask",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:05:30.655Z"
+    "queued_at": "2026-09-11T21:18:06.896Z"
   },
   {
     "id": "035c2413-1094-474b-9264-6314f6ca6579",
     "brand": "COSRX",
     "name": "Acne Pimple Master Patch",
     "reason": "only 28.6% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "sources": [
+      "incidecoder"
+    ],
     "unmatched": [
       "Styrene Isoprene Styrene Block Copolymer",
       "Polyisobutylene",
@@ -43,21 +52,27 @@
         ]
       }
     ],
-    "queued_at": "2026-09-11T21:05:35.289Z"
+    "queued_at": "2026-09-11T21:18:11.447Z"
   },
   {
     "id": "1cf02d41-b37f-476f-8138-0f157c2eadcf",
     "brand": "COSRX",
     "name": "Advanced Snail Mucin Power Sheet Mask 10 Sheets",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:05:48.210Z"
+    "queued_at": "2026-09-11T21:18:24.178Z"
   },
   {
     "id": "76de8d3f-1bb7-4eb6-92ee-4c3f37f9d3c0",
     "brand": "COSRX",
     "name": "Advanced The Vitamin C 23 Serum",
     "reason": "only 97.4% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "sources": [
+      "incidecoder"
+    ],
     "unmatched": [
       "Alcohol Denat"
     ],
@@ -109,13 +124,16 @@
         ]
       }
     ],
-    "queued_at": "2026-09-11T21:05:50.668Z"
+    "queued_at": "2026-09-11T21:18:26.576Z"
   },
   {
     "id": "0d5c0dd1-64a1-425b-a4a8-f47255651f34",
     "brand": "COSRX",
     "name": "AHA/BHA Clarifying Treatment Toner",
     "reason": "only 91.7% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "sources": [
+      "incidecoder"
+    ],
     "unmatched": [
       "Mineral Water"
     ],
@@ -140,21 +158,27 @@
         ]
       }
     ],
-    "queued_at": "2026-09-11T21:05:52.936Z"
+    "queued_at": "2026-09-11T21:18:28.785Z"
   },
   {
     "id": "68f747c5-b449-48a9-99ad-412558cef424",
     "brand": "COSRX",
     "name": "Azelaic Acid 20 B5 Redness Soothing Cream",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:06:00.812Z"
+    "queued_at": "2026-09-11T21:18:36.769Z"
   },
   {
     "id": "7ee4463b-e62f-4bc2-9369-271b0ba9d4a3",
     "brand": "COSRX",
     "name": "Balancium Comfort Ceramide Cream",
     "reason": "only 93.3% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "sources": [
+      "incidecoder"
+    ],
     "unmatched": [
       "1,2- Hexanediol",
       "Citrus Aurantium Bergamia (Bergamot) Fruit Oil"
@@ -198,29 +222,38 @@
         ]
       }
     ],
-    "queued_at": "2026-09-11T21:06:01.109Z"
+    "queued_at": "2026-09-11T21:18:36.942Z"
   },
   {
     "id": "e4e68766-c203-456a-9e2c-d9b2ba7c97d5",
     "brand": "COSRX",
     "name": "Balancium Comfort Ceramide Soft Cream Sheet Mask",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:06:08.355Z"
+    "queued_at": "2026-09-11T21:18:43.473Z"
   },
   {
     "id": "035e122d-4751-4254-b0b0-093e9358c75c",
     "brand": "COSRX",
     "name": "BHA Blackhead Power Liquid",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:06:14.021Z"
+    "queued_at": "2026-09-11T21:18:48.679Z"
   },
   {
     "id": "ef8d0df2-1892-478f-a415-c6eacf94d39d",
     "brand": "COSRX",
     "name": "Centella Blemish Cream",
     "reason": "only 95.2% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "sources": [
+      "incidecoder"
+    ],
     "unmatched": [
       "1,2- Hexanediol"
     ],
@@ -254,13 +287,16 @@
         ]
       }
     ],
-    "queued_at": "2026-09-11T21:06:14.279Z"
+    "queued_at": "2026-09-11T21:18:48.902Z"
   },
   {
     "id": "dccefd9e-b1ef-4f4c-8710-4dd055d5a498",
     "brand": "COSRX",
     "name": "Centella Water Alcohol-Free Toner",
     "reason": "only 88.9% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "sources": [
+      "incidecoder"
+    ],
     "unmatched": [
       "Mineral Water"
     ],
@@ -282,13 +318,16 @@
         ]
       }
     ],
-    "queued_at": "2026-09-11T21:06:15.603Z"
+    "queued_at": "2026-09-11T21:18:50.183Z"
   },
   {
     "id": "8846c7ac-8319-4b67-afbc-ee052934eff6",
     "brand": "COSRX",
     "name": "Clear Fit Master Patch",
     "reason": "only 42.9% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "sources": [
+      "incidecoder"
+    ],
     "unmatched": [
       "Styrene Isoprene Styrene Block Copolymer",
       "Petroleum Resin",
@@ -311,21 +350,27 @@
         ]
       }
     ],
-    "queued_at": "2026-09-11T21:06:16.480Z"
+    "queued_at": "2026-09-11T21:18:51.133Z"
   },
   {
     "id": "72a97ab3-4bea-4267-acf3-df013ad41925",
     "brand": "COSRX",
     "name": "Full Fit Propolis Nourishing Magnet Sheet Mask",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:06:27.166Z"
+    "queued_at": "2026-09-11T21:19:01.286Z"
   },
   {
     "id": "af29435d-ceda-4d15-a88a-ca6e00245a10",
     "brand": "COSRX",
     "name": "Hydrium Triple Hyaluronic Moisture Ampoule",
     "reason": "only 93.3% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "sources": [
+      "incidecoder"
+    ],
     "unmatched": [
       "1,2- Hexanediol"
     ],
@@ -353,21 +398,27 @@
         ]
       }
     ],
-    "queued_at": "2026-09-11T21:06:35.143Z"
+    "queued_at": "2026-09-11T21:19:09.815Z"
   },
   {
     "id": "40910759-e7f4-4b66-9cd4-1c26b36e985b",
     "brand": "COSRX",
     "name": "Hydrium Triple Hyaluronic Water Wave Sheet Mask",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:06:43.231Z"
+    "queued_at": "2026-09-11T21:19:16.928Z"
   },
   {
     "id": "62479ef4-cf1d-4370-bd4c-46732abbe643",
     "brand": "COSRX",
     "name": "Low pH Goodnight Soft Peeling Gel",
     "reason": "only 96.0% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "sources": [
+      "incidecoder"
+    ],
     "unmatched": [
       "2-Hexanediol"
     ],
@@ -405,29 +456,38 @@
         ]
       }
     ],
-    "queued_at": "2026-09-11T21:06:45.774Z"
+    "queued_at": "2026-09-11T21:19:19.350Z"
   },
   {
     "id": "9d2c18f3-740a-410c-b81c-7b683eeea275",
     "brand": "COSRX",
     "name": "Master Patch Basic",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:06:56.738Z"
+    "queued_at": "2026-09-11T21:19:26.942Z"
   },
   {
     "id": "4e5ec71c-5eec-496d-a76a-a504774d3d0a",
     "brand": "COSRX",
     "name": "Master Patch X-Large",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:07:03.119Z"
+    "queued_at": "2026-09-11T21:19:33.534Z"
   },
   {
     "id": "c42ba052-3620-4320-b657-df384d544779",
     "brand": "COSRX",
     "name": "One Step Green Calming Pad",
     "reason": "only 70.8% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "sources": [
+      "incidecoder"
+    ],
     "unmatched": [
       "Green Tea Water",
       "Dandelion Leaf Extract",
@@ -470,13 +530,16 @@
         ]
       }
     ],
-    "queued_at": "2026-09-11T21:07:04.424Z"
+    "queued_at": "2026-09-11T21:19:34.817Z"
   },
   {
     "id": "23ec3087-cff5-4d37-ae97-784c99e936ba",
     "brand": "COSRX",
     "name": "One Step Moisture Up Pad",
     "reason": "only 85.7% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "sources": [
+      "incidecoder"
+    ],
     "unmatched": [
       "Glacial Water",
       "Purified Water",
@@ -520,61 +583,82 @@
         ]
       }
     ],
-    "queued_at": "2026-09-11T21:07:05.662Z"
+    "queued_at": "2026-09-11T21:19:36.011Z"
   },
   {
     "id": "ff77397b-f942-44d7-808e-309281ab3d46",
     "brand": "COSRX",
     "name": "One Step Original Blemish Pore Clear Pad",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:07:12.342Z"
+    "queued_at": "2026-09-11T21:19:42.517Z"
   },
   {
     "id": "65b790cd-088d-4190-b40a-29c3c35a2d27",
     "brand": "COSRX",
     "name": "One Step Original Clear Skin Calming Pad",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:07:19.252Z"
+    "queued_at": "2026-09-11T21:19:49.550Z"
   },
   {
     "id": "0c328899-f087-4a2f-b904-45856301ba87",
     "brand": "COSRX",
     "name": "One Step Original Peptide Collagen Lifting Glow Pad",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:07:25.174Z"
+    "queued_at": "2026-09-11T21:19:55.745Z"
   },
   {
     "id": "6f6078d0-82dc-4840-856e-5102900cf5f2",
     "brand": "COSRX",
     "name": "One Step Original Tone Clarifying Moisture Pad",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:07:31.213Z"
+    "queued_at": "2026-09-11T21:20:01.744Z"
   },
   {
     "id": "e5e74c97-a1d8-4601-a1cc-ded68f50b72e",
     "brand": "COSRX",
     "name": "Poreless Clarifying Charcoal Mask Pink",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:07:38.196Z"
+    "queued_at": "2026-09-11T21:20:08.926Z"
   },
   {
     "id": "e4c6dd4e-9c01-4df9-a25b-6a410eef9bed",
     "brand": "COSRX",
     "name": "Pure Fit Cica Calming True Sheet Mask",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:07:44.599Z"
+    "queued_at": "2026-09-11T21:20:14.874Z"
   },
   {
     "id": "73fe632d-0b58-4bae-a78c-d38b1ea3c4e5",
     "brand": "COSRX",
     "name": "Pure Fit Cica Clear Cleansing Oil",
     "reason": "only 89.3% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "sources": [
+      "incidecoder"
+    ],
     "unmatched": [
       "Citrus Aurantifolia (Lime) Oil",
       "Citrus Aurantium Bergamia (Bergamot) Fruit Oil",
@@ -617,13 +701,16 @@
         ]
       }
     ],
-    "queued_at": "2026-09-11T21:07:44.857Z"
+    "queued_at": "2026-09-11T21:20:15.183Z"
   },
   {
     "id": "00d4349c-87d9-43b5-b886-4050d92452a9",
     "brand": "COSRX",
     "name": "Pure Fit Cica Creamy Foam Cleanser",
     "reason": "only 97.4% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "sources": [
+      "incidecoder"
+    ],
     "unmatched": [
       "Eucalyptus Globulus Leaf Oil"
     ],
@@ -675,45 +762,60 @@
         ]
       }
     ],
-    "queued_at": "2026-09-11T21:07:48.266Z"
+    "queued_at": "2026-09-11T21:20:18.413Z"
   },
   {
     "id": "057359f7-b575-4abd-9a73-4feb69e654fe",
     "brand": "COSRX",
     "name": "RED RICE INOSITOL Exfoliating Care Pore Wash-Off Peel Serum",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:07:55.131Z"
+    "queued_at": "2026-09-11T21:20:26.110Z"
   },
   {
     "id": "672f867f-fb80-46e2-b746-817d68408612",
     "brand": "COSRX",
     "name": "RED RICE INOSITOL Pore Clarifying Deep Cleanser",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:08:01.116Z"
+    "queued_at": "2026-09-11T21:20:33.114Z"
   },
   {
     "id": "1a3c12e8-b6ed-4597-a718-e25e96ba9321",
     "brand": "COSRX",
     "name": "The Alpha-Arbutin 2 Discoloration Care Serum",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:08:11.081Z"
+    "queued_at": "2026-09-11T21:20:42.992Z"
   },
   {
     "id": "3a44681a-cce4-4b8c-850f-ae0f430e97e2",
     "brand": "COSRX",
     "name": "The Alpha-Arbutin Discoloration Care Hydrogel Mask",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:08:16.645Z"
+    "queued_at": "2026-09-11T21:20:48.206Z"
   },
   {
     "id": "f1f0798e-e97d-43c7-985a-4dbb4ac7876e",
     "brand": "COSRX",
     "name": "The Ceramide Skin Barrier Moisturizing Mist",
     "reason": "only 97.8% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "sources": [
+      "incidecoder"
+    ],
     "unmatched": [
       "Hydrogenated Poly (C6-14 Olefin)"
     ],
@@ -772,21 +874,27 @@
         ]
       }
     ],
-    "queued_at": "2026-09-11T21:08:20.435Z"
+    "queued_at": "2026-09-11T21:20:51.972Z"
   },
   {
     "id": "71557e3c-d35e-4c95-9ca2-1d2df02fa339",
     "brand": "COSRX",
     "name": "The Peptide Collagen Lifting Glow Hydrogel Mask",
     "reason": "no source found",
+    "sources": [
+      "none"
+    ],
     "candidates": [],
-    "queued_at": "2026-09-11T21:08:29.673Z"
+    "queued_at": "2026-09-11T21:21:01.294Z"
   },
   {
     "id": "7deb0da2-3ebf-4949-b1c0-b8621d3e3e66",
     "brand": "COSRX",
     "name": "The Vitamin C 13 Serum",
     "reason": "only 96.0% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "sources": [
+      "incidecoder"
+    ],
     "unmatched": [
       "3-0-Ethyl Ascorbic Acid"
     ],
@@ -824,6 +932,6 @@
         ]
       }
     ],
-    "queued_at": "2026-09-11T21:08:33.305Z"
+    "queued_at": "2026-09-11T21:21:05.073Z"
   }
 ]

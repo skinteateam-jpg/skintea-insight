@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import type { ReactNode, CSSProperties } from "react";
 import { Play, ExternalLink, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getFlags, isFungalAcneSafe, hasIngredientData, readSkinType } from "@/lib/ingredientFlags";
+import type { SkinType } from "@/lib/ingredientFlags";
 
 const ESPRESSO = "#1C0A00";
 const CRIMSON = "#A8001C";
@@ -173,6 +175,11 @@ function ProductPage() {
   const [heroIndex, setHeroIndex] = useState(0);
   const [showAllIngredients, setShowAllIngredients] = useState(false);
   const [tab, setTab] = useState<"tiktok" | "instagram" | "reddit">("tiktok");
+  const [skinType, setSkinType] = useState<SkinType | null>(null);
+
+  useEffect(() => {
+    setSkinType(readSkinType());
+  }, []);
 
   useEffect(() => {
     if (!productData) return;
@@ -761,6 +768,69 @@ function ProductPage() {
           <DataPending>This will summarize who this product works for and who should skip it, generated from tagged skin-type sentiment.</DataPending>
         </div>
       </Section>
+
+      {/* 7b. For your skin type — ingredient flags */}
+      {hasIngredientData(activeProduct?.ingredients) && (() => {
+        const ingredients = activeProduct!.ingredients as string[];
+        const fungalSafe = isFungalAcneSafe(ingredients);
+        const flags = skinType ? getFlags(ingredients, skinType) : [];
+        const fungalBadge = fungalSafe === null ? null : (
+          <span style={{
+            display: "inline-block", fontSize: 11, fontWeight: 700, padding: "5px 12px", borderRadius: 20,
+            background: fungalSafe ? "#F0FAF1" : "#F5F5F5",
+            color: fungalSafe ? "#2D7A3A" : MUTED,
+            border: `0.5px solid ${fungalSafe ? "#2D7A3A" : BORDER}`,
+          }}>
+            {fungalSafe ? "Fungal-acne safe" : "Not fungal-acne safe"}
+          </span>
+        );
+        return (
+          <Section
+            title={skinType ? "For your skin type" : "Ingredients and your skin"}
+            right={skinType ? (
+              <span style={{ fontSize: 11, fontWeight: 700, color: ESPRESSO }}>{skinType.charAt(0).toUpperCase() + skinType.slice(1)}</span>
+            ) : undefined}
+          >
+            {!skinType && (
+              <Link to="/quiz" style={{ textDecoration: "none" }}>
+                <div style={{ background: WARM_WHITE, border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "12px 13px", marginBottom: 10 }}>
+                  <div style={{ fontSize: 12, color: ESPRESSO, lineHeight: 1.55 }}>
+                    Take the 2-minute quiz to see which of these ingredients suit your skin
+                  </div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: CRIMSON, marginTop: 6 }}>Take the quiz →</div>
+                </div>
+              </Link>
+            )}
+            {skinType && flags.map((f) => {
+              const isRed = f.verdict === "red";
+              return (
+                <div key={f.label} style={{
+                  background: isRed ? "#FFF5F5" : "#F0FAF1",
+                  border: `0.5px solid ${isRed ? CRIMSON : "#2D7A3A"}`,
+                  borderRadius: 10, padding: "10px 13px", marginBottom: 8,
+                }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: isRed ? CRIMSON : "#2D7A3A", marginBottom: 6 }}>
+                    {f.label}
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {f.matched.map((ing) => (
+                      <span key={ing} style={{
+                        background: WARM_WHITE, color: isRed ? CRIMSON : "#2D7A3A",
+                        border: `0.5px solid ${isRed ? CRIMSON : "#2D7A3A"}`,
+                        fontSize: 11, padding: "3px 10px", borderRadius: 20,
+                      }}>{ing}</span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            {fungalBadge && <div style={{ marginTop: skinType ? 2 : 0 }}>{fungalBadge}</div>}
+            <div style={{ fontSize: 10, color: MUTED, fontStyle: "italic", marginTop: 10 }}>
+              Based on the ingredient list. Separate from the review percentages above.
+            </div>
+          </Section>
+        );
+      })()}
 
       {/* 8. Key ingredients */}
       <Section title="Key ingredients">

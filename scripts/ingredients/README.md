@@ -3,20 +3,28 @@
 One-off script that fills `products.ingredients` for Skincare products that are
 still missing it. It is a terminal tool, not part of the app.
 
-## Why two sources
+## How it decides what to trust
 
-In a manual pass over 57 Anua products, roughly 1 in 6 needed human judgment:
-retailers publishing different formulas after a reformulation, retailers
-truncating long lists, retailers publishing the manufacturer's sub-blend
-breakdown instead of a consolidated INCI list, and one retailer publishing a
-completely different product's ingredients. A single-source scraper would write
-all of that as fact, so the script corroborates two independent retailers and
-only writes when they agree.
+incidecoder is the primary source — its meta-description carries the complete
+INCI list. The other retailers (peachesandcreme, saranghae, cultbeauty,
+lookfantastic, ulta) are kept as fallbacks and are only tried when incidecoder
+returns nothing.
 
-It also rejects a source outright when any single ingredient appears more than
-twice in it — that signature means it is a sub-blend breakdown (Water listed
-seven times), which would dedupe into a correctly spelled but wrongly *ordered*
-list. Wrong order is worse than no data, because nothing flags it.
+A second retailer is **not** required. Instead, every parsed list is validated
+token-by-token against the CosIng-derived ingredient dictionary (28,353 names,
+MIT licensed). A list is written only when:
+
+- at least 5 ingredients parsed, and
+- no single token appears more than twice (the sub-blend guard — that signature
+  means the page published the manufacturer's sub-blend breakdown, which would
+  dedupe into a correctly spelled but wrongly *ordered* list), and
+- at least 97% of tokens resolve against the dictionary.
+
+Anything else is queued for a human. When two sources do resolve and disagree on
+the ingredient set, the product is queued as well.
+
+The dictionary is downloaded once and cached to
+`scripts/ingredients/.cache/ingredients.csv` (gitignored).
 
 ## Running it
 
@@ -42,22 +50,28 @@ Flags:
 | `--dry-run` | Print only. **This is the default.** |
 | `--write` | Opt in to writing to the database. |
 
-The script waits at least ~1 second between requests to the same host, so a
-full brand takes a while. It never overwrites a row that already has
-ingredients.
+The script waits at least ~1 second between requests to the same host, so a full
+brand takes a while. It never overwrites a row that already has ingredients.
+
+The summary prints per-brand written/queued/failed counts plus the average
+dictionary match rate across written products. If that average drops below 99%,
+the parser is probably picking up non-ingredient text — investigate before
+trusting the run.
 
 ## The review queue
 
-Anything the script will not vouch for is appended to
-`scripts/ingredients/review-queue.json` instead of being written:
+Anything the script will not vouch for is written to
+`scripts/ingredients/review-queue.json` instead of the database:
 
-- the two sources disagree on the ingredient set
-- only one source could be found (no corroboration)
-- no source could be found at all
+- fewer than 97% of tokens matched the dictionary (the entry lists the unmatched
+  tokens and the match rate, so you can see what the parser grabbed)
+- the source was rejected as a sub-blend breakdown
+- two sources resolved and disagree on the ingredient set
+- no source resolved at all
 
 Each entry carries the product id, brand, name, the reason, and every candidate
-list with the URL it came from, so a human can compare them side by side and
-resolve it by hand. Nothing in the queue has been written to the database.
+list with the URL it came from, so a human can resolve it by hand. Nothing in
+the queue has been written to the database.
 
 One case is resolved automatically rather than queued: when one candidate is a
 strict subset of the other, the longer list wins (a shorter list is usually a

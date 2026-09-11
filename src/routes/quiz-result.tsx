@@ -154,8 +154,9 @@ function QuizResultPage() {
         setStored(parsed);
         setSaved(true);
         if (parsed.skinTypeLabel) {
-          skinTypeValue = parsed.skinTypeLabel.toLowerCase();
-          localStorage.setItem("skintea_skin_type", skinTypeValue);
+          const st: string = parsed.skinTypeLabel.toLowerCase();
+          skinTypeValue = st;
+          localStorage.setItem("skintea_skin_type", st);
         }
       } else {
         skinTypeValue = defaultResult.skinType.toLowerCase();

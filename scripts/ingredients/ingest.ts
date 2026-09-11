@@ -692,6 +692,8 @@ async function main() {
         brand: row.brand,
         name: row.name,
         reason,
+        sources: candidates.length ? candidates.map((c) => c.source) : ['none'],
+
         ...(extra?.unmatched ? { unmatched: extra.unmatched } : {}),
         ...(extra?.rate !== undefined ? { match_rate: Number(extra.rate.toFixed(4)) } : {}),
         candidates: candidates.map((c) => ({ source: c.source, url: c.url, ingredients: c.list })),

@@ -1,185 +1,23 @@
 [
   {
-    "id": "547b8078-7cc6-471a-9520-842af0ce082d",
-    "brand": "COSRX",
-    "name": "5 PDRN B5 Vital Soothing Toner",
-    "reason": "only one source found (incidecoder) — needs corroboration",
-    "candidates": [
-      {
-        "source": "incidecoder",
-        "url": "https://incidecoder.com/products/cosrx-5-pdrn-b5-vital-soothing-toner",
-        "ingredients": [
-          "COSRX 5 Pdrn B5 Vital Soothing Toner ingredients explained: Aqua/Water",
-          "Butylene Glycol",
-          "Glycerin",
-          "Niacinamide",
-          "Pentylene Glycol",
-          "2,3-Butanediol",
-          "1,2-Hexanediol",
-          "Betaine",
-          "Diethoxyethyl Succinate",
-          "Sodium Dna",
-          "Carbomer",
-          "Arginine",
-          "Panthenol",
-          "Ethylhexylglycerin",
-          "Adenosine",
-          "Hydrolyzed Corn Starch",
-          "Disodium EDTA",
-          "Allantoin",
-          "Sucrose",
-          "Lactobacillus Ferment",
-          "Pantothenic Acid",
-          "Alpha-Arbutin",
-          "Hydrolyzed Collagen",
-          "Centella Asiatica Extract",
-          "Propanediol",
-          "Tocopherol",
-          "Sodium Phytate",
-          "Sodium Hyaluronate",
-          "Hydrolyzed Dna",
-          "Caprylyl Glycol",
-          "Hydroxypropyltrimonium Hyaluronate",
-          "Acetyl Hexapeptide-8",
-          "Hydrolyzed Hyaluronic Acid",
-          "Sodium Acetylated Hyaluronate",
-          "Hyaluronic Acid",
-          "Hydrolyzed Sodium Hyaluronate",
-          "Sodium Hyaluronate Crosspolymer",
-          "Potassium Hyaluronate"
-        ]
-      }
-    ],
-    "queued_at": "2026-09-11T20:52:58.505Z"
-  },
-  {
-    "id": "9062d80a-ec86-4380-bdc1-c37ffafbf9d5",
-    "brand": "COSRX",
-    "name": "5 PDRN Collagen Intense Vitalizing Serum",
-    "reason": "only one source found (incidecoder) — needs corroboration",
-    "candidates": [
-      {
-        "source": "incidecoder",
-        "url": "https://incidecoder.com/products/cosrx-5-pdrn-collagen-intense-vitalizing-serum",
-        "ingredients": [
-          "COSRX 5 Pdrn Collagen Intense Vitalizing Serum ingredients explained: Water",
-          "Butylene Glycol",
-          "Glycerin",
-          "Niacinamide",
-          "Pentylene Glycol",
-          "2,3-Butanediol",
-          "1,2-Hexanediol",
-          "Betaine",
-          "Diethoxyethyl Succinate",
-          "Sodium Dna",
-          "Carbomer",
-          "Arginine",
-          "Panthenol",
-          "Ethylhexylglycerin",
-          "Adenosine",
-          "Hydrolyzed Corn Starch",
-          "Disodium EDTA",
-          "Allantoin",
-          "Sucrose",
-          "Lactobacillus Ferment",
-          "Pantothenic Acid",
-          "Alpha-Arbutin",
-          "Hydrolyzed Collagen",
-          "Centella Asiatica Extract",
-          "Propanediol",
-          "Tocopherol",
-          "Sodium Phytate",
-          "Sodium Hyaluronate",
-          "Hydrolyzed Dna",
-          "Caprylyl Glycol",
-          "Hydroxypropyltrimonium Hyaluronate",
-          "Acetyl Hexapeptide-8",
-          "Hydrolyzed Hyaluronic Acid",
-          "Sodium Acetylated Hyaluronate",
-          "Hyaluronic Acid",
-          "Hydrolyzed Sodium Hyaluronate",
-          "Sodium Hyaluronate Crosspolymer",
-          "Potassium Hyaluronate"
-        ]
-      }
-    ],
-    "queued_at": "2026-09-11T20:53:03.103Z"
-  },
-  {
-    "id": "607ec292-07ed-4b09-9f95-b47973543cb1",
-    "brand": "COSRX",
-    "name": "5 PDRN Collagen Vitalizing Hydrogel Eye Patch",
-    "reason": "only one source found (incidecoder) — needs corroboration",
-    "candidates": [
-      {
-        "source": "incidecoder",
-        "url": "https://incidecoder.com/products/cosrx-5-pdrn-collagen-vitalizing-hydrogel-eye-patch",
-        "ingredients": [
-          "COSRX 5 Pdrn Collagen Vitalizing Hydrogel Eye Patch ingredients explained: Aqua/Water",
-          "Glycerin",
-          "Dipropylene Glycol",
-          "Niacinamide",
-          "Ceratonia Siliqua (Carob) Gum",
-          "Methylpropanediol",
-          "Chondrus Crispus Powder",
-          "Chondrus Crispus",
-          "Cellulose Gum",
-          "Hydroxyacetophenone",
-          "Panthenol",
-          "Algin",
-          "Caprylyl Glycol",
-          "Potassium Chloride",
-          "Sucrose",
-          "Ethylhexylglycerin",
-          "Sodium Polyacrylate",
-          "Adenosine",
-          "Polyglyceryl-10 Laurate",
-          "Polyglyceryl-10 Myristate",
-          "Butylene Glycol",
-          "Gardenia Florida Fruit Extract",
-          "1,2-Hexanediol",
-          "Sodium Dna",
-          "Caffeine",
-          "Maltodextrin",
-          "Allantoin",
-          "Collagen",
-          "Dextrin",
-          "Pantolactone",
-          "Cyanocobalamin",
-          "Dipotassium Glycyrrhizate",
-          "Ascorbic Acid",
-          "Sodium Hyaluronate",
-          "Glutathione",
-          "Oryza Sativa (Rice) Extract",
-          "Coptis Japonica Root Extract",
-          "Caulerpa Lentillifera Extract",
-          "Hydrolyzed Hyaluronic Acid",
-          "Hyaluronic Acid",
-          "Potassium Hyaluronate",
-          "Hydrolyzed Sodium Hyaluronate",
-          "Acetyl Hexapeptide-8",
-          "Lactobacillus Ferment Lysate",
-          "Hydrolyzed Rice Protein",
-          "Centella Asiatica Leaf Extract",
-          "Disodium EDTA"
-        ]
-      }
-    ],
-    "queued_at": "2026-09-11T20:53:08.189Z"
-  },
-  {
     "id": "f22fde8b-09d9-4aec-b2ab-6eb22f93bcc6",
     "brand": "COSRX",
     "name": "5 PDRN Hyaluronic Acid Vital Hydrating Hydrogel Mask",
     "reason": "no source found",
     "candidates": [],
-    "queued_at": "2026-09-11T20:53:14.520Z"
+    "queued_at": "2026-09-11T20:58:11.489Z"
   },
   {
     "id": "d1922135-259c-4e20-b630-b40c6311ccf7",
     "brand": "COSRX",
     "name": "AC Collection Acne Patch",
-    "reason": "only one source found (incidecoder) — needs corroboration",
+    "reason": "only 57.1% of tokens matched the ingredient dictionary (threshold 97%) — the parser may have grabbed marketing copy",
+    "unmatched": [
+      "COSRX AC Collection Acne Patch ingredients explained: Sodium Carboxymethyl Cellulose",
+      "Mineral Oil",
+      "Polyurethane Film"
+    ],
+    "match_rate": 0.5714,
     "candidates": [
       {
         "source": "incidecoder",
@@ -195,6 +33,188 @@
         ]
       }
     ],
-    "queued_at": "2026-09-11T20:53:19.006Z"
+    "queued_at": "2026-09-11T20:58:11.654Z"
+  },
+  {
+    "id": "4c7b0a32-e21b-4fab-aa25-ca51c499e02a",
+    "brand": "COSRX",
+    "name": "AC Collection Blemish Care Sheet Mask",
+    "reason": "no source found",
+    "candidates": [],
+    "queued_at": "2026-09-11T20:58:18.793Z"
+  },
+  {
+    "id": "9a5f89e1-0f92-4a75-9945-e130234c118c",
+    "brand": "COSRX",
+    "name": "AC Collection Calming Foam Cleanser",
+    "reason": "only 95.8% of tokens matched the ingredient dictionary (threshold 97%) — the parser may have grabbed marketing copy",
+    "unmatched": [
+      "COSRX Ac Collection Calming Foam Cleanser ingredients explained: Water"
+    ],
+    "match_rate": 0.9583,
+    "candidates": [
+      {
+        "source": "incidecoder",
+        "url": "https://incidecoder.com/products/cosrx-ac-collection-calming-foam-cleanser",
+        "ingredients": [
+          "COSRX Ac Collection Calming Foam Cleanser ingredients explained: Water",
+          "Glycerin",
+          "Stearic Acid",
+          "Myristic Acid",
+          "PEG-32",
+          "Potassium Hydroxide",
+          "Palmitic Acid",
+          "Lauric Acid",
+          "Glyceryl Stearate",
+          "PEG-100 Stearate",
+          "Lauramide Dea",
+          "Cocamidopropyl Betaine",
+          "Potassium Cocoate",
+          "Salicylic Acid",
+          "Sodium Chloride",
+          "Arachidic Acid",
+          "Lavandula Hybrida Oil",
+          "Linalool",
+          "Disodium EDTA",
+          "Oleic Acid",
+          "Limonene",
+          "Asiaticoside",
+          "Asiatic Acid",
+          "Madecassic Acid"
+        ]
+      }
+    ],
+    "queued_at": "2026-09-11T20:58:19.321Z"
+  },
+  {
+    "id": "f6a839fa-e1b4-40ab-8d53-7db34ff13b8d",
+    "brand": "COSRX",
+    "name": "AC Collection Calming Liquid Mild",
+    "reason": "only 88.9% of tokens matched the ingredient dictionary (threshold 97%) — the parser may have grabbed marketing copy",
+    "unmatched": [
+      "COSRX Ac Collection Calming Liquid Mild ingredients explained: Camellia Sinensis Leaf Water",
+      "Glycerine"
+    ],
+    "match_rate": 0.8889,
+    "candidates": [
+      {
+        "source": "incidecoder",
+        "url": "https://incidecoder.com/products/cosrx-ac-collection-calming-liquid-mild",
+        "ingredients": [
+          "COSRX Ac Collection Calming Liquid Mild ingredients explained: Camellia Sinensis Leaf Water",
+          "Butylene Glycol",
+          "Dimethyl Sulfone",
+          "Betaine",
+          "1,2-Hexanediol",
+          "Betaine Salicylate",
+          "Gluconolactone",
+          "Polyglyceryl-10 Laurate",
+          "Polyglyceryl-10 Myristate",
+          "Glycerine",
+          "Panthenol",
+          "Allantoin",
+          "Arginine",
+          "Sodium Hyaluronate",
+          "Melaleuca Alternifolia (Tea Tree) Leaf Oil",
+          "Asiaticoside",
+          "Asiatic Acid",
+          "Madecassic Acid"
+        ]
+      }
+    ],
+    "queued_at": "2026-09-11T20:58:20.412Z"
+  },
+  {
+    "id": "24728dec-c844-45ae-b73b-4db4e5f89d4d",
+    "brand": "COSRX",
+    "name": "AC Collection Lightweight Soothing Moisturizer",
+    "reason": "only 96.7% of tokens matched the ingredient dictionary (threshold 97%) — the parser may have grabbed marketing copy",
+    "unmatched": [
+      "COSRX AC Collection Lightweight Soothing Moisturizer ingredients explained: Propolis Extract"
+    ],
+    "match_rate": 0.9667,
+    "candidates": [
+      {
+        "source": "incidecoder",
+        "url": "https://incidecoder.com/products/cosrx-ac-collection-lightweight-soothing-moisturizer",
+        "ingredients": [
+          "COSRX AC Collection Lightweight Soothing Moisturizer ingredients explained: Propolis Extract",
+          "Aloe Barbadensis Leaf Water",
+          "Camellia Sinensis Leaf Water",
+          "Butylene Glycol",
+          "Cetyl Ethylhexanoate",
+          "Glycerin",
+          "1,2-Hexanediol",
+          "Niacinamide",
+          "Hydroxyethyl Acrylate/Sodium Acryloyldimethyl Taurate Copolymer",
+          "Cyclomethicone",
+          "Cetearyl Olivate",
+          "Betaine",
+          "Cetearyl Alcohol",
+          "Sorbitan Olivate",
+          "Panthenol",
+          "Ethylhexylglycerin",
+          "Allantoin",
+          "Xanthan Gum",
+          "Dimethicone/Vinyl Dimethicone Crosspolymer",
+          "Sodium Hyaluronate",
+          "Arginine",
+          "Zinc Pca",
+          "Betaine Salicylate",
+          "Mentha Haplocalix Extract",
+          "Menthyl Lactate",
+          "Citric Acid",
+          "Melaleuca Alternifolia (Tea Tree) Leaf Oil",
+          "Asiaticoside",
+          "Asiatic Acid",
+          "Madecassic Acid"
+        ]
+      }
+    ],
+    "queued_at": "2026-09-11T20:58:21.312Z"
+  },
+  {
+    "id": "645ece88-ee91-43a6-b026-13669ea278c5",
+    "brand": "COSRX",
+    "name": "AC Collection Ultimate Spot Cream",
+    "reason": "only 91.7% of tokens matched the ingredient dictionary (threshold 97%) — the parser may have grabbed marketing copy",
+    "unmatched": [
+      "COSRX Ac Collection Ultimate Spot Cream ingredients explained: Aloe Barbadensis Leaf Water",
+      "Glycerine"
+    ],
+    "match_rate": 0.9167,
+    "candidates": [
+      {
+        "source": "incidecoder",
+        "url": "https://incidecoder.com/products/cosrx-ac-collection-ultimate-spot-cream",
+        "ingredients": [
+          "COSRX Ac Collection Ultimate Spot Cream ingredients explained: Aloe Barbadensis Leaf Water",
+          "Butylene Glycol",
+          "Helianthus Annuus Seed Oil",
+          "Glycerine",
+          "Zinc Oxide",
+          "Cetearyl Alcohol",
+          "Dimethyl Sulfone",
+          "Betaine",
+          "Polysorbate 60",
+          "Elaeis Guineensis (Palm) Oil",
+          "Elaeis Guineensis (Palm) Kernel Oil",
+          "Cetearyl Olivate",
+          "Sorbitan Olivate",
+          "1,2-Hexanediol",
+          "Calamine",
+          "Dimethicone",
+          "Illicium Verum (Anise) Fruit Extract",
+          "Scutellaria Baicalensis Root Extract",
+          "Xanthan Gum",
+          "Melaleuca Alternifolia (Tea Tree) Leaf Oil",
+          "Ethyl Hexanediol",
+          "Asiaticoside",
+          "Asiatic Acid",
+          "Madecassic Acid"
+        ]
+      }
+    ],
+    "queued_at": "2026-09-11T20:58:22.315Z"
   }
 ]

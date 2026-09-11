@@ -164,11 +164,15 @@ function QuizResultPage() {
       }
       if (skinTypeValue) {
         const st = skinTypeValue;
-        supabase.auth.getUser().then(({ data }) => {
-          if (data.user) {
-            supabase.from("profiles").update({ skin_type: st }).eq("user_id", data.user.id);
-          }
-        });
+        void (async () => {
+          const { data: userData } = await supabase.auth.getUser();
+          if (!userData.user) return;
+          const { error } = await supabase
+            .from("profiles")
+            .update({ skin_type: st })
+            .eq("user_id", userData.user.id);
+          if (error) console.error("Failed to save skin type to profile", error);
+        })();
       }
     } catch {
       // ignore

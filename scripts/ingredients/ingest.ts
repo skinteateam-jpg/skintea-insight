@@ -730,7 +730,7 @@ async function main() {
       continue;
     }
 
-    const { rate, unmatched } = validate(dict, list);
+    const { rate, unmatched, resolved } = validate(dict, list);
     const pct = (rate * 100).toFixed(1);
     if (unmatched.length > 0) {
       console.log(`   unmatched (${unmatched.length}): ${unmatched.join(' | ')}`);
@@ -745,7 +745,7 @@ async function main() {
     }
 
     if (note) console.log(`   ℹ ${note}`);
-    const normalised = list.map(toTitleCase).filter((s) => s.length > 1);
+    const normalised = resolved.filter((s) => s.length > 1);
 
     if (args.dryRun) {
       console.log(

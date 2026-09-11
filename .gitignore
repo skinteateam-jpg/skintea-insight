@@ -30,3 +30,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Ingredient ingestion dictionary cache
+scripts/ingredients/.cache/

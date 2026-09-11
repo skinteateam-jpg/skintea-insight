@@ -162,9 +162,10 @@ function QuizResultPage() {
         localStorage.setItem("skintea_skin_type", skinTypeValue);
       }
       if (skinTypeValue) {
+        const st = skinTypeValue;
         supabase.auth.getUser().then(({ data }) => {
           if (data.user) {
-            supabase.from("profiles").update({ skin_type: skinTypeValue }).eq("user_id", data.user.id);
+            supabase.from("profiles").update({ skin_type: st }).eq("user_id", data.user.id);
           }
         });
       }

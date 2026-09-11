@@ -657,6 +657,10 @@ async function main() {
     stats.set(brand, s);
   };
   const writtenRates: number[] = [];
+  const sourceCounts = new Map<string, number>();
+  const bumpSource = (label: string) =>
+    sourceCounts.set(label, (sourceCounts.get(label) ?? 0) + 1);
+
 
   for (const [i, row] of targets.entries()) {
     console.log(`[${i + 1}/${targets.length}] ${row.brand} — ${row.name}`);

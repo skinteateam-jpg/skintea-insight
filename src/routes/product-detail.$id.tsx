@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import type { ReactNode, CSSProperties } from "react";
 import { Play, ExternalLink, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getFlags, isFungalAcneSafe, hasIngredientData, readSkinType } from "@/lib/ingredientFlags";
+import type { SkinType } from "@/lib/ingredientFlags";
 
 const ESPRESSO = "#1C0A00";
 const CRIMSON = "#A8001C";
@@ -173,6 +175,11 @@ function ProductPage() {
   const [heroIndex, setHeroIndex] = useState(0);
   const [showAllIngredients, setShowAllIngredients] = useState(false);
   const [tab, setTab] = useState<"tiktok" | "instagram" | "reddit">("tiktok");
+  const [skinType, setSkinType] = useState<SkinType | null>(null);
+
+  useEffect(() => {
+    setSkinType(readSkinType());
+  }, []);
 
   useEffect(() => {
     if (!productData) return;

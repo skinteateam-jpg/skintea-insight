@@ -604,6 +604,8 @@ type QueueEntry = {
   brand: string;
   name: string;
   reason: string;
+  sources: string[];
+
   unmatched?: string[];
   match_rate?: number;
   candidates: { source: string; url: string; ingredients: string[] }[];

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode, CSSProperties } from "react";
 import { Play, ExternalLink, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,16 @@ const MUTED = "#999999";
 const CRIMSON_TINT = "#FEE8EC";
 const CREAM_TINT = "#F5EFEC";
 const TRACK = "#F0EAE4";
+
+const DISCLOSURE_LABELS: Record<string, string> = {
+  ad: "#ad",
+  sponsored: "Sponsored",
+  gifted: "Gifted",
+  pr_sample: "PR sample",
+  brand_program: "Brand program",
+  brand_owned: "Brand account",
+  states_no_ad: "States no ad",
+};
 
 const MAKEUP_CATEGORIES = new Set(["Face", "Cheek", "Eye", "Lip"]);
 
@@ -454,6 +464,19 @@ function ProductPage() {
 
   const tiktokRows = socialReviews.filter((r) => r.platform === "tiktok");
   const instagramRows = socialReviews.filter((r) => r.platform === "instagram");
+
+  const autoTabbedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (autoTabbedFor.current === id) return;
+    if (socialReviews.length === 0) return;
+    autoTabbedFor.current = id;
+    const counts = { tiktok: tiktokRows.length, instagram: instagramRows.length, reddit: redditItems.length };
+    const best = (["tiktok", "instagram", "reddit"] as const).reduce(
+      (a, b) => (counts[b] > counts[a] ? b : a),
+      "tiktok" as const,
+    );
+    if (counts[best] > 0) setTab(best);
+  }, [id, socialReviews]);
 
   return (
     <main className="min-h-screen" style={{ paddingTop: 52, paddingBottom: 120, background: WARM_WHITE, fontFamily: "'DM Sans', sans-serif" }}>
@@ -969,7 +992,7 @@ function ProductPage() {
                 }
                 const list = Array.from(bestPerVideo.values())
                   .sort((a, b) => (b.views ?? 0) - (a.views ?? 0))
-                  .slice(0, 6);
+                  .slice(0, 12);
                 return (
                   <div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
@@ -983,6 +1006,15 @@ function ProductPage() {
                               <Play width={14} height={14} color="#fff" fill="#fff" />
                             </div>
                             <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "8px 10px", background: "linear-gradient(to top, rgba(0,0,0,0.85), transparent)" }}>
+                              {Array.isArray(r.disclosure) && r.disclosure.length > 0 && (
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginBottom: 4 }}>
+                                  {r.disclosure.map((d: string) => (
+                                    <span key={d} style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase", color: "#fff", background: "rgba(255,255,255,0.22)", borderRadius: 3, padding: "2px 5px", whiteSpace: "nowrap" }}>
+                                      {DISCLOSURE_LABELS[d] ?? d}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
                               <div style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{r.author_handle ?? "@user"}</div>
                               <div style={{ fontSize: 9, color: "rgba(255,255,255,0.7)", marginTop: 2, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{r.content ?? ""}</div>
                               <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", marginTop: 3 }}>{formatViewCount(r.views)} views</div>

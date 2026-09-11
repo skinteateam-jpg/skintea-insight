@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Lock, Check, AlertTriangle, X, Sparkles, RotateCcw, ArrowRight } from "lucide-react";
 import { TREATMENT_DATA } from "../data/treatments";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/quiz-result")({
   component: QuizResultPage,
@@ -146,16 +147,26 @@ function QuizResultPage() {
   // Hydrate from quiz payload written by /quiz
   useEffect(() => {
     try {
+      let skinTypeValue: string | null = null;
       const raw = localStorage.getItem("skintea.quizResult");
       if (raw) {
         const parsed = JSON.parse(raw);
         setStored(parsed);
         setSaved(true);
         if (parsed.skinTypeLabel) {
-          localStorage.setItem("skintea_skin_type", parsed.skinTypeLabel.toLowerCase());
+          skinTypeValue = parsed.skinTypeLabel.toLowerCase();
+          localStorage.setItem("skintea_skin_type", skinTypeValue);
         }
       } else {
-        localStorage.setItem("skintea_skin_type", defaultResult.skinType.toLowerCase());
+        skinTypeValue = defaultResult.skinType.toLowerCase();
+        localStorage.setItem("skintea_skin_type", skinTypeValue);
+      }
+      if (skinTypeValue) {
+        supabase.auth.getUser().then(({ data }) => {
+          if (data.user) {
+            supabase.from("profiles").update({ skin_type: skinTypeValue }).eq("user_id", data.user.id);
+          }
+        });
       }
     } catch {
       // ignore

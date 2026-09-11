@@ -288,32 +288,56 @@ async function loadDictionary(): Promise<Set<string>> {
   return dict;
 }
 
-function dictHit(dict: Set<string>, formRaw: string): boolean {
+/**
+ * Result of testing one form against the dictionary.
+ * `alias` is set only when the hit came via the alias table — those are the
+ * only tokens we are allowed to rewrite on write.
+ */
+type Hit = { alias: string | null };
+
+function dictHit(dict: Set<string>, formRaw: string): Hit | null {
   const form = formRaw.toLowerCase().replace(/\s+/g, ' ').trim();
-  if (!form) return false;
-  if (ALIASES[form] && dict.has(ALIASES[form]!)) return true;
-  return dict.has(form);
+  if (!form) return null;
+  const alias = ALIASES[form];
+  if (alias && dict.has(alias)) return { alias };
+  if (dict.has(form)) return { alias: null };
+  return null;
 }
 
-/** Does this token resolve against the dictionary? Tries forms a–e in order. */
-export function matchesDictionary(dict: Set<string>, token: string): boolean {
+/**
+ * Resolve a token to its canonical stored spelling, or null when unmatched.
+ * Alias-table hits are rewritten to the alias target; every other hit keeps
+ * the source spelling (only toTitleCase normalisation is applied).
+ * Tries forms a–e in order.
+ */
+export function resolveIngredient(dict: Set<string>, token: string): string | null {
   const base = token.replace(/\s+/g, ' ').trim();
+  const out = (hit: Hit) => toTitleCase(hit.alias ?? base);
 
   // a. as-is
-  if (dictHit(dict, base)) return true;
+  let hit = dictHit(dict, base);
+  if (hit) return out(hit);
 
   // b. parenthetical removed
   const outside = base.replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
-  if (outside && outside !== base && dictHit(dict, outside)) return true;
+  if (outside && outside !== base) {
+    hit = dictHit(dict, outside);
+    if (hit) return out(hit);
+  }
 
   // c. parenthetical contents
   const inner = [...base.matchAll(/\(([^)]*)\)/g)].map((m) => m[1]!.trim()).filter(Boolean);
-  for (const p of inner) if (dictHit(dict, p)) return true;
+  for (const p of inner) {
+    hit = dictHit(dict, p);
+    if (hit) return out(hit);
+  }
 
   // d. hyphen/space swapped both ways
   for (const form of [base, outside].filter(Boolean)) {
-    if (dictHit(dict, form.replace(/-/g, ' '))) return true;
-    if (dictHit(dict, form.replace(/ /g, '-'))) return true;
+    hit = dictHit(dict, form.replace(/-/g, ' '));
+    if (hit) return out(hit);
+    hit = dictHit(dict, form.replace(/ /g, '-'));
+    if (hit) return out(hit);
   }
 
   // e. two-part slash names, but never real slash INCI ("Caprylic/Capric Triglyceride")
@@ -322,20 +346,32 @@ export function matchesDictionary(dict: Set<string>, token: string): boolean {
     const ok = parts.every(
       (p) => !/\d/.test(p) && p.trim().split(/\s+/).length <= 3 && p.trim().length > 1,
     );
-    if (ok && parts.every((p) => dictHit(dict, p.trim()))) return true;
+    if (ok) {
+      const hits = parts.map((p) => dictHit(dict, p.trim()));
+      if (hits.every((h) => h !== null)) return toTitleCase(base);
+    }
   }
 
-  return false;
+  return null;
 }
 
 export function validate(
   dict: Set<string>,
   list: string[],
-): { rate: number; unmatched: string[] } {
+): { rate: number; unmatched: string[]; resolved: string[] } {
   const unmatched: string[] = [];
-  for (const token of list) if (!matchesDictionary(dict, token)) unmatched.push(token);
+  const resolved: string[] = [];
+  for (const token of list) {
+    const canonical = resolveIngredient(dict, token);
+    if (canonical === null) {
+      unmatched.push(token);
+      resolved.push(toTitleCase(token));
+    } else {
+      resolved.push(canonical);
+    }
+  }
   const rate = list.length === 0 ? 0 : (list.length - unmatched.length) / list.length;
-  return { rate, unmatched };
+  return { rate, unmatched, resolved };
 }
 
 // ---------------------------------------------------------------------------

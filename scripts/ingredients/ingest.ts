@@ -48,7 +48,7 @@ const DICT_ZIP_URL =
   'https://codeload.github.com/beauteeru/cosmetic-ingredients-dataset/zip/refs/heads/main';
 
 /** Minimum share of tokens that must resolve against the dictionary to write. */
-const MATCH_THRESHOLD = 0.97;
+const MATCH_THRESHOLD = 0.98;
 
 // ---------------------------------------------------------------------------
 // Parsing / normalisation
@@ -75,6 +75,8 @@ export function cleanToken(tokenRaw: string): string {
   t = t.replace(/\s+/g, ' ').trim();
   t = t.replace(/[.\s]+$/g, '').trim();
   t = t.replace(/^[-–—•*\s]+/, '').trim();
+  // safety net: if a label prefix leaked through, keep only the part after the last colon
+  if (t.includes(':')) t = t.slice(t.lastIndexOf(':') + 1).trim();
   // drop an unbalanced trailing "(" left behind by stripping
   if ((t.match(/\(/g)?.length ?? 0) > (t.match(/\)/g)?.length ?? 0)) {
     t = t.replace(/\s*\([^)]*$/, '').trim();
@@ -175,10 +177,21 @@ const ALIASES: Record<string, string> = {
   'aqua/water/eau': 'water',
   eau: 'water',
   parfum: 'fragrance',
+  glycerine: 'glycerin',
 };
 
 /** Genuine INCI names simply missing from this dump. */
-const LOCAL_ADDITIONS = ['vegetable oil', 'c12-13 alketh-9', 'melaleuca alternifolia leaf oil'];
+const LOCAL_ADDITIONS = [
+  'vegetable oil',
+  'c12-13 alketh-9',
+  'melaleuca alternifolia leaf oil',
+  'propolis extract',
+  'camellia sinensis leaf water',
+  'aloe barbadensis leaf water',
+  'sodium carboxymethyl cellulose',
+  'mineral oil',
+  'polyurethane film',
+];
 
 /** Locate a file inside a zip via its central directory and inflate it. */
 function extractFromZip(zip: Buffer, endsWith: string): Buffer | null {
@@ -443,7 +456,13 @@ const PRIMARY: SourceDef = {
     `https://incidecoder.com/products/${slug(brand)}-${slug(name)}`,
     `https://incidecoder.com/search/product?query=${encodeURIComponent(`${brand} ${name}`)}`,
   ],
-  extract: (html) => metaDescription(html) ?? afterIngredientLabel(stripTags(html)),
+  extract: (html) => {
+    const blob = metaDescription(html) ?? afterIngredientLabel(stripTags(html));
+    if (!blob) return null;
+    // incidecoder meta descriptions are "<Product> ingredients explained: Aqua/Water, ..." —
+    // drop everything up to and including that phrase (no-op when the phrase is absent)
+    return blob.replace(/^[\s\S]*?ingredients\s+explained\s*:\s*/i, '');
+  },
 };
 
 /** Fallbacks — only tried when the primary returns nothing. */

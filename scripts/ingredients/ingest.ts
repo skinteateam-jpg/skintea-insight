@@ -825,6 +825,14 @@ async function main() {
   console.log('TOTAL'.padEnd(24) + String(w).padEnd(9) + String(q).padEnd(8) + String(f));
   console.log(`\nWritten: ${w}   Queued for review: ${q}   Failed: ${f}`);
 
+  if (sourceCounts.size > 0) {
+    console.log('\nProvenance of written rows:');
+    for (const [label, n] of [...sourceCounts.entries()].sort()) {
+      console.log(`  ${label.padEnd(30)} ${n}`);
+    }
+  }
+
+
   if (writtenRates.length > 0) {
     const avg = writtenRates.reduce((s, r) => s + r, 0) / writtenRates.length;
     const avgPct = avg * 100;

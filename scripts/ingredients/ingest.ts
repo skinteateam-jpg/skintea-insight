@@ -711,6 +711,7 @@ async function main() {
 
     let list: string[];
     let note: string | undefined;
+    let sourceLabel: string;
     if (usable.length >= 2) {
       const decision = decide(usable[0]!, usable[1]!);
       if (decision.kind === 'queue') {
@@ -720,8 +721,18 @@ async function main() {
       }
       list = decision.list;
       note = decision.note;
+      sourceLabel = usable.map((c) => c.source).join(' + ');
     } else {
-      list = usable[0]!.list;
+      const only = usable[0]!;
+      // incidecoder is a dedicated INCI database and is trusted on its own.
+      // Any other single source still needs a second opinion.
+      if (only.source !== 'incidecoder') {
+        enqueue(`only one source found (${only.source}) — retailer sources need corroboration`);
+        bump(row.brand, 'queued');
+        continue;
+      }
+      list = only.list;
+      sourceLabel = 'incidecoder, uncorroborated';
     }
 
     if (list.length < 5) {
@@ -729,6 +740,7 @@ async function main() {
       bump(row.brand, 'queued');
       continue;
     }
+
 
     const { rate, unmatched, resolved } = validate(dict, list);
     const pct = (rate * 100).toFixed(1);

@@ -5,7 +5,7 @@
     "name": "5 PDRN Hyaluronic Acid Vital Hydrating Hydrogel Mask",
     "reason": "no source found",
     "candidates": [],
-    "queued_at": "2026-09-11T21:00:22.191Z"
+    "queued_at": "2026-09-11T21:05:23.945Z"
   },
   {
     "id": "4c7b0a32-e21b-4fab-aa25-ca51c499e02a",
@@ -13,6 +13,817 @@
     "name": "AC Collection Blemish Care Sheet Mask",
     "reason": "no source found",
     "candidates": [],
-    "queued_at": "2026-09-11T21:00:29.086Z"
+    "queued_at": "2026-09-11T21:05:30.655Z"
+  },
+  {
+    "id": "035c2413-1094-474b-9264-6314f6ca6579",
+    "brand": "COSRX",
+    "name": "Acne Pimple Master Patch",
+    "reason": "only 28.6% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "unmatched": [
+      "Styrene Isoprene Styrene Block Copolymer",
+      "Polyisobutylene",
+      "Petroleum Resin",
+      "Liquid Paraffin",
+      "Tetrakis Methane"
+    ],
+    "match_rate": 0.2857,
+    "candidates": [
+      {
+        "source": "incidecoder",
+        "url": "https://incidecoder.com/products/cosrx-acne-pimple-master-patch",
+        "ingredients": [
+          "Cellulose Gum",
+          "Styrene Isoprene Styrene Block Copolymer",
+          "Polyisobutylene",
+          "Petroleum Resin",
+          "Polyurethane Film",
+          "Liquid Paraffin",
+          "Tetrakis Methane"
+        ]
+      }
+    ],
+    "queued_at": "2026-09-11T21:05:35.289Z"
+  },
+  {
+    "id": "1cf02d41-b37f-476f-8138-0f157c2eadcf",
+    "brand": "COSRX",
+    "name": "Advanced Snail Mucin Power Sheet Mask 10 Sheets",
+    "reason": "no source found",
+    "candidates": [],
+    "queued_at": "2026-09-11T21:05:48.210Z"
+  },
+  {
+    "id": "76de8d3f-1bb7-4eb6-92ee-4c3f37f9d3c0",
+    "brand": "COSRX",
+    "name": "Advanced The Vitamin C 23 Serum",
+    "reason": "only 97.4% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "unmatched": [
+      "Alcohol Denat"
+    ],
+    "match_rate": 0.9744,
+    "candidates": [
+      {
+        "source": "incidecoder",
+        "url": "https://incidecoder.com/products/cosrx-advanced-the-vitamin-c-23-serum",
+        "ingredients": [
+          "Dimethicone",
+          "Panthenol",
+          "3-O-Ethyl Ascorbic Acid",
+          "Squalane",
+          "Caffeine",
+          "Sodium Hyaluronate",
+          "Glutathione",
+          "Adenosine",
+          "Gardenia Florida Fruit Extract",
+          "Dextrin",
+          "Acetyl Glucosamine",
+          "Allantoin",
+          "Tocotrienols",
+          "Tocopherol",
+          "Elaeis Guineensis (Palm) Oil",
+          "Niacinamide",
+          "Butylene Glycol",
+          "Arginine",
+          "Glycyrrhiza Glabra (Licorice) Root Extract",
+          "Carthamus Tinctorius (Safflower) Seed Oil",
+          "Helianthus Annuus (Sunflower) Seed Oil",
+          "Camellia Japonica Seed Oil",
+          "Methyl Trimethicone",
+          "Daucus Carota Sativa (Carrot) Root Extract",
+          "Beta-Carotene",
+          "Water",
+          "Alcohol Denat",
+          "Pentylene Glycol",
+          "Ascorbic Acid",
+          "Propanediol",
+          "Pentylene Glycol",
+          "Sodium Chloride",
+          "Sodium Sulfite",
+          "Aqua/Water",
+          "Sodium Metaphosphate",
+          "Ascorbic Acid",
+          "Disodium EDTA",
+          "Sodium Hydroxide",
+          "Tromethamine"
+        ]
+      }
+    ],
+    "queued_at": "2026-09-11T21:05:50.668Z"
+  },
+  {
+    "id": "0d5c0dd1-64a1-425b-a4a8-f47255651f34",
+    "brand": "COSRX",
+    "name": "AHA/BHA Clarifying Treatment Toner",
+    "reason": "only 91.7% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "unmatched": [
+      "Mineral Water"
+    ],
+    "match_rate": 0.9167,
+    "candidates": [
+      {
+        "source": "incidecoder",
+        "url": "https://incidecoder.com/products/cosrx-aha-bha-clarifying-treatment-toner",
+        "ingredients": [
+          "Mineral Water",
+          "Salix Alba (Willow) Bark Water",
+          "Pyrus Malus (Apple) Fruit Water",
+          "Butylene Glycol",
+          "1,2-Hexanediol",
+          "Sodium Lactate",
+          "Glycolic Acid",
+          "Water",
+          "Betaine Salicylate",
+          "Allantoin",
+          "Panthenol",
+          "Ethyl Hexanediol"
+        ]
+      }
+    ],
+    "queued_at": "2026-09-11T21:05:52.936Z"
+  },
+  {
+    "id": "68f747c5-b449-48a9-99ad-412558cef424",
+    "brand": "COSRX",
+    "name": "Azelaic Acid 20 B5 Redness Soothing Cream",
+    "reason": "no source found",
+    "candidates": [],
+    "queued_at": "2026-09-11T21:06:00.812Z"
+  },
+  {
+    "id": "7ee4463b-e62f-4bc2-9369-271b0ba9d4a3",
+    "brand": "COSRX",
+    "name": "Balancium Comfort Ceramide Cream",
+    "reason": "only 93.3% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "unmatched": [
+      "1,2- Hexanediol",
+      "Citrus Aurantium Bergamia (Bergamot) Fruit Oil"
+    ],
+    "match_rate": 0.9333,
+    "candidates": [
+      {
+        "source": "incidecoder",
+        "url": "https://incidecoder.com/products/cosrx-balancium-comfort-ceramide-cream",
+        "ingredients": [
+          "Centella Asiatica Leaf Water",
+          "Butylene Glycol",
+          "Glycerin",
+          "Helianthus Annuus(Sunflower) Seed Oil",
+          "Caprylic/Capric Triglyceride",
+          "Cetearyl Alcohol",
+          "Betaine",
+          "1,2- Hexanediol",
+          "Cetearyl Olivate",
+          "Sorbitan Olivate",
+          "Ceramide NP",
+          "Hydrogenated Lecithin",
+          "Sucrose Distearate",
+          "Glyceryl Stearate",
+          "Dipropylene Glycol",
+          "Elaeis Guineensis (Palm) Oil",
+          "Elaeis Guineensis (Palm) Kernel Oil",
+          "Beeswax",
+          "Hydroxyethyl Acrylate/Sodium Acryloyldimethyl Taurate Copolymer",
+          "Ethylhexylglycerin",
+          "Cyclomethicone",
+          "Dimethicone/Vinyl Dimethicone Crosspolymer",
+          "Panthenol",
+          "Sodium Hyaluronate",
+          "Xanthan Gum",
+          "Asiaticoside",
+          "Asiatic Acid",
+          "Madecassic Acid",
+          "Cassia Obtusifolia Seed Extract",
+          "Citrus Aurantium Bergamia (Bergamot) Fruit Oil"
+        ]
+      }
+    ],
+    "queued_at": "2026-09-11T21:06:01.109Z"
+  },
+  {
+    "id": "e4e68766-c203-456a-9e2c-d9b2ba7c97d5",
+    "brand": "COSRX",
+    "name": "Balancium Comfort Ceramide Soft Cream Sheet Mask",
+    "reason": "no source found",
+    "candidates": [],
+    "queued_at": "2026-09-11T21:06:08.355Z"
+  },
+  {
+    "id": "035e122d-4751-4254-b0b0-093e9358c75c",
+    "brand": "COSRX",
+    "name": "BHA Blackhead Power Liquid",
+    "reason": "no source found",
+    "candidates": [],
+    "queued_at": "2026-09-11T21:06:14.021Z"
+  },
+  {
+    "id": "ef8d0df2-1892-478f-a415-c6eacf94d39d",
+    "brand": "COSRX",
+    "name": "Centella Blemish Cream",
+    "reason": "only 95.2% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "unmatched": [
+      "1,2- Hexanediol"
+    ],
+    "match_rate": 0.9524,
+    "candidates": [
+      {
+        "source": "incidecoder",
+        "url": "https://incidecoder.com/products/cosrx-centella-blemish-cream",
+        "ingredients": [
+          "Centella Asiatica Leaf Water",
+          "Butylene Glycol",
+          "Glycerin",
+          "Helianthus Annuus (Sunflower) Seed Oil",
+          "Zinc Oxide",
+          "Dimethicone",
+          "Betaine",
+          "1,2- Hexanediol",
+          "Viola Tricolor Extract",
+          "Viola Yedoensis Extract",
+          "Elaeis Guineensis (Palm) Oil",
+          "Elaeis Guineensis (Palm) Kernel Oil",
+          "Cetearyl Alcohol",
+          "Cetearyl Olivate",
+          "Sorbitan Olivate",
+          "Centella Asiatica Extract",
+          "Zinc Pca",
+          "Xanthan Gum",
+          "Hydroxyethyl Acrylate/Sodium Acryloyldimethyl Taurate Copolymer",
+          "Melaleuca Alternifolia (Tea Tree) Leaf Oil",
+          "Scutellaria Baicalensis Root Extract"
+        ]
+      }
+    ],
+    "queued_at": "2026-09-11T21:06:14.279Z"
+  },
+  {
+    "id": "dccefd9e-b1ef-4f4c-8710-4dd055d5a498",
+    "brand": "COSRX",
+    "name": "Centella Water Alcohol-Free Toner",
+    "reason": "only 88.9% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "unmatched": [
+      "Mineral Water"
+    ],
+    "match_rate": 0.8889,
+    "candidates": [
+      {
+        "source": "incidecoder",
+        "url": "https://incidecoder.com/products/cosrx-centella-water-alcohol-free-toner",
+        "ingredients": [
+          "Mineral Water",
+          "Centella Asiatica Leaf Water",
+          "Butylene Glycol",
+          "1,2-Hexanediol",
+          "Betaine",
+          "Panthenol",
+          "Allantoin",
+          "Sodium Hyaluronate",
+          "Ethyl Hexanediol"
+        ]
+      }
+    ],
+    "queued_at": "2026-09-11T21:06:15.603Z"
+  },
+  {
+    "id": "8846c7ac-8319-4b67-afbc-ee052934eff6",
+    "brand": "COSRX",
+    "name": "Clear Fit Master Patch",
+    "reason": "only 42.9% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "unmatched": [
+      "Styrene Isoprene Styrene Block Copolymer",
+      "Petroleum Resin",
+      "Liquid Paraffin",
+      "Tetrakis Methane"
+    ],
+    "match_rate": 0.4286,
+    "candidates": [
+      {
+        "source": "incidecoder",
+        "url": "https://incidecoder.com/products/cosrx-clear-fit-master-patch",
+        "ingredients": [
+          "Cellulose Gum",
+          "Styrene Isoprene Styrene Block Copolymer",
+          "Polyisobutene",
+          "Petroleum Resin",
+          "Polyurethane Film",
+          "Liquid Paraffin",
+          "Tetrakis Methane"
+        ]
+      }
+    ],
+    "queued_at": "2026-09-11T21:06:16.480Z"
+  },
+  {
+    "id": "72a97ab3-4bea-4267-acf3-df013ad41925",
+    "brand": "COSRX",
+    "name": "Full Fit Propolis Nourishing Magnet Sheet Mask",
+    "reason": "no source found",
+    "candidates": [],
+    "queued_at": "2026-09-11T21:06:27.166Z"
+  },
+  {
+    "id": "af29435d-ceda-4d15-a88a-ca6e00245a10",
+    "brand": "COSRX",
+    "name": "Hydrium Triple Hyaluronic Moisture Ampoule",
+    "reason": "only 93.3% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "unmatched": [
+      "1,2- Hexanediol"
+    ],
+    "match_rate": 0.9333,
+    "candidates": [
+      {
+        "source": "incidecoder",
+        "url": "https://incidecoder.com/products/cosrx-hydrium-triple-hyaluronic-moisture-ampoule",
+        "ingredients": [
+          "Water",
+          "Glycerin",
+          "Butylene Glycol",
+          "Dipropylene Glycol",
+          "1,2- Hexanediol",
+          "Methyl Gluceth-10",
+          "Sodium Hyaluronate",
+          "Carbomer",
+          "Panthenol",
+          "Tromethamine",
+          "Ethylhexylglycerin",
+          "Hyaluronic Acid",
+          "Hydrolyzed Hyaluronic Acid",
+          "Gluconolactone",
+          "Lactobionic Acid"
+        ]
+      }
+    ],
+    "queued_at": "2026-09-11T21:06:35.143Z"
+  },
+  {
+    "id": "40910759-e7f4-4b66-9cd4-1c26b36e985b",
+    "brand": "COSRX",
+    "name": "Hydrium Triple Hyaluronic Water Wave Sheet Mask",
+    "reason": "no source found",
+    "candidates": [],
+    "queued_at": "2026-09-11T21:06:43.231Z"
+  },
+  {
+    "id": "62479ef4-cf1d-4370-bd4c-46732abbe643",
+    "brand": "COSRX",
+    "name": "Low pH Goodnight Soft Peeling Gel",
+    "reason": "only 96.0% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "unmatched": [
+      "2-Hexanediol"
+    ],
+    "match_rate": 0.96,
+    "candidates": [
+      {
+        "source": "incidecoder",
+        "url": "https://incidecoder.com/products/cosrx-low-ph-goodnight-soft-peeling-gel",
+        "ingredients": [
+          "Water",
+          "Cellulose",
+          "Glycerin",
+          "Rosa Damascena Flower Water",
+          "Propanediol",
+          "Butylene Glycol",
+          "2-Hexanediol",
+          "Acrylates/C10-30 Alkyl Acrylate Crosspolymer",
+          "Hydroxyacetophenone",
+          "Lavandula Angustifolia (Lavender) Flower Water",
+          "Tromethamine",
+          "Niacinamide",
+          "Maltodextrin",
+          "Ethylhexylglycerin",
+          "Disodium EDTA",
+          "Pentylene Glycol",
+          "Lactobionic Acid",
+          "Papain",
+          "Hyaluronic Acid",
+          "Hydrolyzed Hyaluronic Acid",
+          "Lactobacillus/Soybean Ferment Extract",
+          "Sodium Hyaluronate",
+          "Sodium Metabisulfite",
+          "Lactobacillus/Rice Ferment",
+          "Camellia Japonica Flower Extract"
+        ]
+      }
+    ],
+    "queued_at": "2026-09-11T21:06:45.774Z"
+  },
+  {
+    "id": "9d2c18f3-740a-410c-b81c-7b683eeea275",
+    "brand": "COSRX",
+    "name": "Master Patch Basic",
+    "reason": "no source found",
+    "candidates": [],
+    "queued_at": "2026-09-11T21:06:56.738Z"
+  },
+  {
+    "id": "4e5ec71c-5eec-496d-a76a-a504774d3d0a",
+    "brand": "COSRX",
+    "name": "Master Patch X-Large",
+    "reason": "no source found",
+    "candidates": [],
+    "queued_at": "2026-09-11T21:07:03.119Z"
+  },
+  {
+    "id": "c42ba052-3620-4320-b657-df384d544779",
+    "brand": "COSRX",
+    "name": "One Step Green Calming Pad",
+    "reason": "only 70.8% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "unmatched": [
+      "Green Tea Water",
+      "Dandelion Leaf Extract",
+      "Virginia Pomegranate Leaf Extract",
+      "Tea Tree Leaf Extract",
+      "Vulgaris Artemisia Extract",
+      "Bergamot Oil",
+      "Peppermint Extract"
+    ],
+    "match_rate": 0.7083,
+    "candidates": [
+      {
+        "source": "incidecoder",
+        "url": "https://incidecoder.com/products/cosrx-one-step-green-calming-pad",
+        "ingredients": [
+          "Green Tea Water",
+          "Butylene Glycol",
+          "1,2-Hexanediol",
+          "Dandelion Leaf Extract",
+          "Centella Asiatica Extract",
+          "Virginia Pomegranate Leaf Extract",
+          "Tea Tree Leaf Extract",
+          "Vulgaris Artemisia Extract",
+          "Panthenol",
+          "Lactobionic Acid",
+          "Allantoin",
+          "Arginine",
+          "Glycerin",
+          "Polyglyceryl-10 Laurate",
+          "Polyglyceryl-10 Myristate",
+          "Asiaticoside",
+          "Asiatic Acid",
+          "Madecassic Acid",
+          "Limonene",
+          "Bergamot Oil",
+          "Linalool",
+          "Sodium Hyaluronate",
+          "Peppermint Extract",
+          "Menthyl Lactate"
+        ]
+      }
+    ],
+    "queued_at": "2026-09-11T21:07:04.424Z"
+  },
+  {
+    "id": "23ec3087-cff5-4d37-ae97-784c99e936ba",
+    "brand": "COSRX",
+    "name": "One Step Moisture Up Pad",
+    "reason": "only 85.7% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "unmatched": [
+      "Glacial Water",
+      "Purified Water",
+      "Lemon Peel Oil",
+      "Bergamot Oil"
+    ],
+    "match_rate": 0.8571,
+    "candidates": [
+      {
+        "source": "incidecoder",
+        "url": "https://incidecoder.com/products/cosrx-one-step-moisture-up-pad",
+        "ingredients": [
+          "Glacial Water",
+          "Butylene Glycol",
+          "Propanediol",
+          "Glycerin",
+          "1,2-Hexanediol",
+          "Betaine Salicylate",
+          "Betaine",
+          "Panthenol",
+          "Allantoin",
+          "Polyglyceryl-10 Myristate",
+          "Polyglyceryl-10 Laurate",
+          "Sodium Hydroxide",
+          "Gluconolactone",
+          "Purified Water",
+          "Limonene",
+          "Sodium Hyaluronate",
+          "Carbomer",
+          "Arginine",
+          "Lemon Peel Oil",
+          "Bergamot Oil",
+          "Linalool",
+          "Pentylene Glycol",
+          "Sodium Hyaluronate Crosspolymer",
+          "Hydrolyzed Hyaluronic Acid",
+          "Hydrolyzed Sodium Hyaluronate",
+          "Hyaluronic Acid",
+          "Ethylhexylglycerin",
+          "Squalane"
+        ]
+      }
+    ],
+    "queued_at": "2026-09-11T21:07:05.662Z"
+  },
+  {
+    "id": "ff77397b-f942-44d7-808e-309281ab3d46",
+    "brand": "COSRX",
+    "name": "One Step Original Blemish Pore Clear Pad",
+    "reason": "no source found",
+    "candidates": [],
+    "queued_at": "2026-09-11T21:07:12.342Z"
+  },
+  {
+    "id": "65b790cd-088d-4190-b40a-29c3c35a2d27",
+    "brand": "COSRX",
+    "name": "One Step Original Clear Skin Calming Pad",
+    "reason": "no source found",
+    "candidates": [],
+    "queued_at": "2026-09-11T21:07:19.252Z"
+  },
+  {
+    "id": "0c328899-f087-4a2f-b904-45856301ba87",
+    "brand": "COSRX",
+    "name": "One Step Original Peptide Collagen Lifting Glow Pad",
+    "reason": "no source found",
+    "candidates": [],
+    "queued_at": "2026-09-11T21:07:25.174Z"
+  },
+  {
+    "id": "6f6078d0-82dc-4840-856e-5102900cf5f2",
+    "brand": "COSRX",
+    "name": "One Step Original Tone Clarifying Moisture Pad",
+    "reason": "no source found",
+    "candidates": [],
+    "queued_at": "2026-09-11T21:07:31.213Z"
+  },
+  {
+    "id": "e5e74c97-a1d8-4601-a1cc-ded68f50b72e",
+    "brand": "COSRX",
+    "name": "Poreless Clarifying Charcoal Mask Pink",
+    "reason": "no source found",
+    "candidates": [],
+    "queued_at": "2026-09-11T21:07:38.196Z"
+  },
+  {
+    "id": "e4c6dd4e-9c01-4df9-a25b-6a410eef9bed",
+    "brand": "COSRX",
+    "name": "Pure Fit Cica Calming True Sheet Mask",
+    "reason": "no source found",
+    "candidates": [],
+    "queued_at": "2026-09-11T21:07:44.599Z"
+  },
+  {
+    "id": "73fe632d-0b58-4bae-a78c-d38b1ea3c4e5",
+    "brand": "COSRX",
+    "name": "Pure Fit Cica Clear Cleansing Oil",
+    "reason": "only 89.3% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "unmatched": [
+      "Citrus Aurantifolia (Lime) Oil",
+      "Citrus Aurantium Bergamia (Bergamot) Fruit Oil",
+      "Persea Gratissima (Avocado) Oil"
+    ],
+    "match_rate": 0.8929,
+    "candidates": [
+      {
+        "source": "incidecoder",
+        "url": "https://incidecoder.com/products/cosrx-pure-fit-cica-clear-cleansing-oil",
+        "ingredients": [
+          "Ethylhexyl Palmitate",
+          "Sorbeth-30 Tetraoleate",
+          "Triethylhexanoin",
+          "Glycine Soja (Soybean) Oil",
+          "Caprylic/Capric Triglyceride",
+          "Simmondsia Chinensis (Jojoba) Seed Oil",
+          "Citrus Aurantifolia (Lime) Oil",
+          "Citrus Limon (Lemon) Peel Oil",
+          "Citrus Aurantium Bergamia (Bergamot) Fruit Oil",
+          "Tocopherol",
+          "Helianthus Annuus (Sunflower) Seed Oil",
+          "Caprylyl Glycol",
+          "Ethylhexylglycerin",
+          "Avena Sativa (Oat) Kernel Oil",
+          "Olea Europaea (Olive) Fruit Oil",
+          "Oenothera Biennis (Evening Primrose) Oil",
+          "Persea Gratissima (Avocado) Oil",
+          "Prunus Amygdalus Dulcis (Sweet Almond) Oil",
+          "Water",
+          "1,2-Hexanediol",
+          "Centella Asiatica Extract",
+          "Centella Asiatica Leaf Extract",
+          "Centella Asiatica Root Extract",
+          "Pinus Pinaster Bark Extract",
+          "Asiaticoside",
+          "Asiatic Acid",
+          "Madecassoside",
+          "Madecassic Acid"
+        ]
+      }
+    ],
+    "queued_at": "2026-09-11T21:07:44.857Z"
+  },
+  {
+    "id": "00d4349c-87d9-43b5-b886-4050d92452a9",
+    "brand": "COSRX",
+    "name": "Pure Fit Cica Creamy Foam Cleanser",
+    "reason": "only 97.4% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "unmatched": [
+      "Eucalyptus Globulus Leaf Oil"
+    ],
+    "match_rate": 0.9744,
+    "candidates": [
+      {
+        "source": "incidecoder",
+        "url": "https://incidecoder.com/products/cosrx-pure-fit-cica-creamy-foam-cleanser",
+        "ingredients": [
+          "Water",
+          "Glycerin",
+          "Myristic Acid",
+          "Palmitic Acid",
+          "Stearic Acid",
+          "Lauric Acid",
+          "Potassium Hydroxide",
+          "Glyceryl Stearate",
+          "1,2-Hexanediol",
+          "Polyquaternium-7",
+          "Ethylhexylglycerin",
+          "Citrus Limon (Lemon) Fruit Extract",
+          "Citrus Nobilis (Mandarin Orange) Oil",
+          "Disodium EDTA",
+          "Butylene Glycol",
+          "Eucalyptus Globulus Leaf Oil",
+          "Lavandula Angustifolia (Lavender) Oil",
+          "Pinus Palustris Oil",
+          "Melia Azadirachta Leaf Extract",
+          "Melia Azadirachta Flower Extract",
+          "Sodium Benzoate",
+          "Coccinia Indica Fruit Extract",
+          "Amber Powder",
+          "Solanum Melongena (Eggplant) Fruit Extract",
+          "Ocimum Sanctum Leaf Extract",
+          "Curcuma Longa (Turmeric) Root Extract",
+          "Centella Asiatica Leaf Extract",
+          "Corallina Officinalis Extract",
+          "Moringa Oleifera Seed Oil",
+          "Hydrogenated Phosphatidylcholine",
+          "Caprylic/Capric Triglyceride",
+          "Sucrose Stearate",
+          "Centella Asiatica Extract",
+          "Cetearyl Alcohol",
+          "Centella Asiatica Root Extract",
+          "Asiatic Acid",
+          "Asiaticoside",
+          "Madecassic Acid",
+          "Madecassoside"
+        ]
+      }
+    ],
+    "queued_at": "2026-09-11T21:07:48.266Z"
+  },
+  {
+    "id": "057359f7-b575-4abd-9a73-4feb69e654fe",
+    "brand": "COSRX",
+    "name": "RED RICE INOSITOL Exfoliating Care Pore Wash-Off Peel Serum",
+    "reason": "no source found",
+    "candidates": [],
+    "queued_at": "2026-09-11T21:07:55.131Z"
+  },
+  {
+    "id": "672f867f-fb80-46e2-b746-817d68408612",
+    "brand": "COSRX",
+    "name": "RED RICE INOSITOL Pore Clarifying Deep Cleanser",
+    "reason": "no source found",
+    "candidates": [],
+    "queued_at": "2026-09-11T21:08:01.116Z"
+  },
+  {
+    "id": "1a3c12e8-b6ed-4597-a718-e25e96ba9321",
+    "brand": "COSRX",
+    "name": "The Alpha-Arbutin 2 Discoloration Care Serum",
+    "reason": "no source found",
+    "candidates": [],
+    "queued_at": "2026-09-11T21:08:11.081Z"
+  },
+  {
+    "id": "3a44681a-cce4-4b8c-850f-ae0f430e97e2",
+    "brand": "COSRX",
+    "name": "The Alpha-Arbutin Discoloration Care Hydrogel Mask",
+    "reason": "no source found",
+    "candidates": [],
+    "queued_at": "2026-09-11T21:08:16.645Z"
+  },
+  {
+    "id": "f1f0798e-e97d-43c7-985a-4dbb4ac7876e",
+    "brand": "COSRX",
+    "name": "The Ceramide Skin Barrier Moisturizing Mist",
+    "reason": "only 97.8% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "unmatched": [
+      "Hydrogenated Poly (C6-14 Olefin)"
+    ],
+    "match_rate": 0.9783,
+    "candidates": [
+      {
+        "source": "incidecoder",
+        "url": "https://incidecoder.com/products/cosrx-the-ceramide-skin-barrier-moisturizing-mist",
+        "ingredients": [
+          "Aqua/Water",
+          "Glycerin",
+          "Butylene Glycol",
+          "Caprylic/Capric Triglyceride",
+          "Hydrogenated Poly (C6-14 Olefin)",
+          "Dimethicone",
+          "Cetyl Ethylhexanoate",
+          "Hydroxypropyl Bislauramide Mea",
+          "1,2-Hexanediol",
+          "Cholesterol",
+          "Sodium Surfactin",
+          "Glyceryl Caprylate",
+          "Ethylhexylglycerin",
+          "Disodium EDTA",
+          "Behenic Acid",
+          "Squalane",
+          "Panthenol",
+          "Allantoin",
+          "Hydrogenated Lecithin",
+          "Cetearyl Alcohol",
+          "Tocopherol",
+          "Betaine",
+          "Stearic Acid",
+          "Propanediol",
+          "Sodium PCA",
+          "Sodium Hyaluronate",
+          "Sodium Lactate",
+          "Pca",
+          "Serine",
+          "Alanine",
+          "Glycine",
+          "Hydrolyzed Hyaluronic Acid",
+          "Ceramide NP",
+          "Glutamic Acid",
+          "Sodium Hyaluronate Crosspolymer",
+          "Lysine Hcl",
+          "Threonine",
+          "Arginine",
+          "Hyaluronic Acid",
+          "Ceramide NS",
+          "Phytosphingosine",
+          "Ceramide AP",
+          "Ceramide AS",
+          "Proline",
+          "Sodium Acetylated Hyaluronate",
+          "Ceramide EOP"
+        ]
+      }
+    ],
+    "queued_at": "2026-09-11T21:08:20.435Z"
+  },
+  {
+    "id": "71557e3c-d35e-4c95-9ca2-1d2df02fa339",
+    "brand": "COSRX",
+    "name": "The Peptide Collagen Lifting Glow Hydrogel Mask",
+    "reason": "no source found",
+    "candidates": [],
+    "queued_at": "2026-09-11T21:08:29.673Z"
+  },
+  {
+    "id": "7deb0da2-3ebf-4949-b1c0-b8621d3e3e66",
+    "brand": "COSRX",
+    "name": "The Vitamin C 13 Serum",
+    "reason": "only 96.0% of tokens matched the ingredient dictionary (threshold 98%) — the parser may have grabbed marketing copy",
+    "unmatched": [
+      "3-0-Ethyl Ascorbic Acid"
+    ],
+    "match_rate": 0.96,
+    "candidates": [
+      {
+        "source": "incidecoder",
+        "url": "https://incidecoder.com/products/cosrx-the-vitamin-c-13-serum",
+        "ingredients": [
+          "Water",
+          "Ascorbic Acid",
+          "Butylene Glycol",
+          "Dipropylene Glycol",
+          "Tromethamine",
+          "3-0-Ethyl Ascorbic Acid",
+          "Panthenol",
+          "Acetyl Glucosamine",
+          "Caffeine",
+          "Sodium Hyaluronate",
+          "Sodium Sulfite",
+          "Disodium EDTA",
+          "Glutathione",
+          "Adenosine",
+          "Gardenia Florida Fruit Extract",
+          "Allantoin",
+          "Dextrin",
+          "Squalane",
+          "Tocotrienols",
+          "Tocopherol",
+          "Elaeis Guineensis (Palm) Oil",
+          "Arginine",
+          "Niacinamide",
+          "Pentylene Glycol",
+          "Glycyrrhiza Glabra (Licorice) Root Extract"
+        ]
+      }
+    ],
+    "queued_at": "2026-09-11T21:08:33.305Z"
   }
 ]

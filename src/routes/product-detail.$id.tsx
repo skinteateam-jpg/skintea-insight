@@ -990,12 +990,25 @@ function ProductPage() {
                     bestPerVideo.set(key, r);
                   }
                 }
-                const list = Array.from(bestPerVideo.values())
-                  .sort((a, b) => (b.views ?? 0) - (a.views ?? 0))
-                  .slice(0, 12);
+                const bestPerAuthor = new Map<string, typeof instagramRows[number]>();
+                const anonymous: typeof instagramRows[number][] = [];
+                for (const r of bestPerVideo.values()) {
+                  const handle = r.author_handle;
+                  if (!handle) {
+                    anonymous.push(r);
+                  } else {
+                    const existing = bestPerAuthor.get(handle);
+                    if (!existing || (r.views ?? 0) > (existing.views ?? 0)) {
+                      bestPerAuthor.set(handle, r);
+                    }
+                  }
+                }
+                const list = Array.from(bestPerAuthor.values())
+                  .concat(anonymous)
+                  .sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
                 return (
                   <div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>
+                    <div style={{ display: "flex", flexDirection: "row", gap: 8, overflowX: "auto", scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", paddingBottom: 4, scrollbarWidth: "none", msOverflowStyle: "none" }}>
                       {list.map((r) => {
                         const thumbUrl = r.thumbnail_path
                           ? supabase.storage.from("social-thumbnails").getPublicUrl(r.thumbnail_path).data.publicUrl
@@ -1021,12 +1034,15 @@ function ProductPage() {
                             </div>
                           </div>
                         );
+                        const tileStyle: React.CSSProperties = { flex: "0 0 150px", scrollSnapAlign: "start", textDecoration: "none" };
                         return r.source_url ? (
-                          <a key={r.id} href={r.source_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none", display: "block" }}>
+                          <a key={r.id} href={r.source_url} target="_blank" rel="noopener noreferrer" style={tileStyle}>
                             {card}
                           </a>
                         ) : (
-                          <div key={r.id}>{card}</div>
+                          <div key={r.id} style={tileStyle}>
+                            {card}
+                          </div>
                         );
                       })}
                     </div>

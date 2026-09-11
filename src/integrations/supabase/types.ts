@@ -697,6 +697,7 @@ export type Database = {
       }
       products: {
         Row: {
+          aliases: string[] | null
           brand: string
           category: string | null
           created_at: string | null
@@ -722,6 +723,7 @@ export type Database = {
           subcategory: string | null
         }
         Insert: {
+          aliases?: string[] | null
           brand: string
           category?: string | null
           created_at?: string | null
@@ -747,6 +749,7 @@ export type Database = {
           subcategory?: string | null
         }
         Update: {
+          aliases?: string[] | null
           brand?: string
           category?: string | null
           created_at?: string | null
@@ -1617,6 +1620,7 @@ export type Database = {
           p_subcategory?: string
         }
         Returns: {
+          aliases: string[] | null
           brand: string
           category: string | null
           created_at: string | null

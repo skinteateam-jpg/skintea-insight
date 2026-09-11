@@ -2,8 +2,10 @@
  * One-off ingredient ingestion script.
  *
  * Fills products.ingredients (text[], INCI order, Title Case) for Skincare rows
- * that are still empty, corroborating across TWO independent retailers before
- * writing anything. Disagreements go to scripts/ingredients/review-queue.json.
+ * that are still empty. incidecoder is the primary source; every parsed list is
+ * validated token-by-token against the CosIng-derived ingredient dictionary
+ * before it is written. Anything that fails validation goes to
+ * scripts/ingredients/review-queue.json instead.
  *
  * Usage (see README.md):
  *   bun run scripts/ingredients/ingest.ts --dry-run
@@ -11,8 +13,10 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { inflateRawSync } from 'node:zlib';
 
 // ---------------------------------------------------------------------------
 // CLI
@@ -35,6 +39,16 @@ function parseArgs(argv: string[]): Args {
   }
   return out;
 }
+
+const SCRIPT_DIR = resolve(import.meta.dirname ?? '.');
+const CACHE_DIR = resolve(SCRIPT_DIR, '.cache');
+const DICT_CSV = resolve(CACHE_DIR, 'ingredients.csv');
+const QUEUE_PATH = resolve(SCRIPT_DIR, 'review-queue.json');
+const DICT_ZIP_URL =
+  'https://codeload.github.com/beauteeru/cosmetic-ingredients-dataset/zip/refs/heads/main';
+
+/** Minimum share of tokens that must resolve against the dictionary to write. */
+const MATCH_THRESHOLD = 0.97;
 
 // ---------------------------------------------------------------------------
 // Parsing / normalisation
@@ -83,12 +97,11 @@ const LOWER_WORDS = new Set(['and', 'or', 'of', 'the']);
 function titleCasePiece(piece: string): string {
   if (!piece) return piece;
   const upper = piece.toUpperCase();
-  if (ACRONYMS.includes(upper)) return ACRONYMS[ACRONYMS.indexOf(upper)]!;
+  const acronymIdx = ACRONYMS.indexOf(upper);
+  if (acronymIdx >= 0) return ACRONYMS[acronymIdx]!;
   if (CERAMIDE_CODES.includes(upper)) return upper;
   // alkyl designators: C12-20, C14-22, C9-12, C12-13
   if (/^c\d+(-\d+)?$/i.test(piece)) return piece.toUpperCase();
-  // PEG-150, PPG-26, Polyglyceryl-10, Laureth-4, CI 77491 handled by hyphen split
-  // keep tokens that contain digits mostly intact, just cap the leading letter run
   return piece.charAt(0).toUpperCase() + piece.slice(1).toLowerCase();
 }
 
@@ -106,7 +119,6 @@ export function toTitleCase(nameRaw: string): string {
       const lc = chunk.toLowerCase();
       if (IRREGULAR[lc]) return IRREGULAR[lc]!;
       if (LOWER_WORDS.has(lc)) return lc;
-      // handle parentheses wrappers: (Rice)
       const m = chunk.match(/^(\(*)(.*?)(\)*)$/);
       const open = m?.[1] ?? '';
       const core = m?.[2] ?? chunk;
@@ -116,7 +128,6 @@ export function toTitleCase(nameRaw: string): string {
         .split('-')
         .map((p, i, arr) => {
           if (/^\d+$/.test(p)) return p;
-          // single-letter chemistry markers stay upper (3-O-Ethyl, N-Acetyl)
           if (p.length === 1 && /[a-z]/i.test(p)) {
             return i === 0 && arr.length > 1 && /^[op]$/i.test(p) ? p.toLowerCase() : p.toUpperCase();
           }
@@ -149,6 +160,169 @@ export function isSubBlendBreakdown(list: string[]): boolean {
   }
   for (const n of counts.values()) if (n > 2) return true;
   return false;
+}
+
+// ---------------------------------------------------------------------------
+// CosIng dictionary
+// ---------------------------------------------------------------------------
+
+/** Names CosIng does not carry under the spelling retailers use. */
+const ALIASES: Record<string, string> = {
+  aqua: 'water',
+  'aqua/water': 'water',
+  'aqua (water)': 'water',
+  'water/aqua/eau': 'water',
+  'aqua/water/eau': 'water',
+  eau: 'water',
+  parfum: 'fragrance',
+};
+
+/** Genuine INCI names simply missing from this dump. */
+const LOCAL_ADDITIONS = ['vegetable oil', 'c12-13 alketh-9', 'melaleuca alternifolia leaf oil'];
+
+/** Locate a file inside a zip via its central directory and inflate it. */
+function extractFromZip(zip: Buffer, endsWith: string): Buffer | null {
+  // End of central directory record
+  let eocd = -1;
+  for (let i = zip.length - 22; i >= 0; i--) {
+    if (zip.readUInt32LE(i) === 0x06054b50) {
+      eocd = i;
+      break;
+    }
+  }
+  if (eocd < 0) return null;
+  const entries = zip.readUInt16LE(eocd + 10);
+  let ptr = zip.readUInt32LE(eocd + 16);
+
+  for (let e = 0; e < entries; e++) {
+    if (zip.readUInt32LE(ptr) !== 0x02014b50) return null;
+    const method = zip.readUInt16LE(ptr + 10);
+    const compressedSize = zip.readUInt32LE(ptr + 20);
+    const nameLen = zip.readUInt16LE(ptr + 28);
+    const extraLen = zip.readUInt16LE(ptr + 30);
+    const commentLen = zip.readUInt16LE(ptr + 32);
+    const localOffset = zip.readUInt32LE(ptr + 42);
+    const name = zip.subarray(ptr + 46, ptr + 46 + nameLen).toString('utf8');
+
+    if (name.toLowerCase().endsWith(endsWith.toLowerCase())) {
+      const lhNameLen = zip.readUInt16LE(localOffset + 26);
+      const lhExtraLen = zip.readUInt16LE(localOffset + 28);
+      const dataStart = localOffset + 30 + lhNameLen + lhExtraLen;
+      const data = zip.subarray(dataStart, dataStart + compressedSize);
+      return method === 0 ? Buffer.from(data) : inflateRawSync(data);
+    }
+    ptr += 46 + nameLen + extraLen + commentLen;
+  }
+  return null;
+}
+
+function parseCsvNames(csv: string): string[] {
+  const lines = csv.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length === 0) return [];
+
+  const splitRow = (row: string): string[] => {
+    const out: string[] = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < row.length; i++) {
+      const ch = row[i];
+      if (ch === '"') {
+        if (inQuotes && row[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else inQuotes = !inQuotes;
+      } else if (ch === ',' && !inQuotes) {
+        out.push(cur);
+        cur = '';
+      } else cur += ch;
+    }
+    out.push(cur);
+    return out;
+  };
+
+  const header = splitRow(lines[0]!).map((h) => h.trim().toLowerCase());
+  const nameIdx = header.indexOf('name');
+  const idx = nameIdx >= 0 ? nameIdx : 0;
+  const names: string[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    const v = splitRow(lines[i]!)[idx];
+    if (v) names.push(v.trim());
+  }
+  return names;
+}
+
+async function loadDictionary(): Promise<Set<string>> {
+  let csv: string;
+  if (existsSync(DICT_CSV)) {
+    csv = await readFile(DICT_CSV, 'utf8');
+  } else {
+    console.log('Downloading CosIng ingredient dictionary (first run only)…');
+    const res = await fetch(DICT_ZIP_URL);
+    if (!res.ok) throw new Error(`dictionary download failed: HTTP ${res.status}`);
+    const zip = Buffer.from(await res.arrayBuffer());
+    const file = extractFromZip(zip, 'ingredients.csv');
+    if (!file) throw new Error('ingredients.csv not found inside the downloaded zip');
+    csv = file.toString('utf8');
+    await mkdir(CACHE_DIR, { recursive: true });
+    await writeFile(DICT_CSV, csv, 'utf8');
+    console.log(`Cached dictionary to ${DICT_CSV}`);
+  }
+
+  const dict = new Set<string>();
+  for (const n of parseCsvNames(csv)) dict.add(n.toLowerCase().replace(/\s+/g, ' ').trim());
+  for (const n of LOCAL_ADDITIONS) dict.add(n);
+  console.log(`Dictionary loaded: ${dict.size} ingredient names\n`);
+  return dict;
+}
+
+function dictHit(dict: Set<string>, formRaw: string): boolean {
+  const form = formRaw.toLowerCase().replace(/\s+/g, ' ').trim();
+  if (!form) return false;
+  if (ALIASES[form] && dict.has(ALIASES[form]!)) return true;
+  return dict.has(form);
+}
+
+/** Does this token resolve against the dictionary? Tries forms a–e in order. */
+export function matchesDictionary(dict: Set<string>, token: string): boolean {
+  const base = token.replace(/\s+/g, ' ').trim();
+
+  // a. as-is
+  if (dictHit(dict, base)) return true;
+
+  // b. parenthetical removed
+  const outside = base.replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
+  if (outside && outside !== base && dictHit(dict, outside)) return true;
+
+  // c. parenthetical contents
+  const inner = [...base.matchAll(/\(([^)]*)\)/g)].map((m) => m[1]!.trim()).filter(Boolean);
+  for (const p of inner) if (dictHit(dict, p)) return true;
+
+  // d. hyphen/space swapped both ways
+  for (const form of [base, outside].filter(Boolean)) {
+    if (dictHit(dict, form.replace(/-/g, ' '))) return true;
+    if (dictHit(dict, form.replace(/ /g, '-'))) return true;
+  }
+
+  // e. two-part slash names, but never real slash INCI ("Caprylic/Capric Triglyceride")
+  const parts = base.split('/');
+  if (parts.length === 2) {
+    const ok = parts.every(
+      (p) => !/\d/.test(p) && p.trim().split(/\s+/).length <= 3 && p.trim().length > 1,
+    );
+    if (ok && parts.every((p) => dictHit(dict, p.trim()))) return true;
+  }
+
+  return false;
+}
+
+export function validate(
+  dict: Set<string>,
+  list: string[],
+): { rate: number; unmatched: string[] } {
+  const unmatched: string[] = [];
+  for (const token of list) if (!matchesDictionary(dict, token)) unmatched.push(token);
+  const rate = list.length === 0 ? 0 : (list.length - unmatched.length) / list.length;
+  return { rate, unmatched };
 }
 
 // ---------------------------------------------------------------------------
@@ -254,28 +428,26 @@ function slug(s: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-type Candidate = { source: string; url: string; list: string[] };
+type Candidate = { source: string; url: string; list: string[]; subBlend?: boolean };
 
 type SourceDef = {
   name: string;
-  /** Candidate URLs to try, cheapest/most likely first. */
   urls: (brand: string, name: string) => string[];
   extract: (html: string) => string | null;
 };
 
-/**
- * Ordered by observed reliability. incidecoder is first because its
- * meta-description carries the complete INCI list (cheapest source of all).
- */
-const SOURCES: SourceDef[] = [
-  {
-    name: 'incidecoder',
-    urls: (brand, name) => [
-      `https://incidecoder.com/products/${slug(brand)}-${slug(name)}`,
-      `https://incidecoder.com/search/product?query=${encodeURIComponent(`${brand} ${name}`)}`,
-    ],
-    extract: (html) => metaDescription(html) ?? afterIngredientLabel(stripTags(html)),
-  },
+/** Primary source: its meta-description carries the complete INCI list. */
+const PRIMARY: SourceDef = {
+  name: 'incidecoder',
+  urls: (brand, name) => [
+    `https://incidecoder.com/products/${slug(brand)}-${slug(name)}`,
+    `https://incidecoder.com/search/product?query=${encodeURIComponent(`${brand} ${name}`)}`,
+  ],
+  extract: (html) => metaDescription(html) ?? afterIngredientLabel(stripTags(html)),
+};
+
+/** Fallbacks — only tried when the primary returns nothing. */
+const FALLBACKS: SourceDef[] = [
   {
     name: 'peachesandcreme',
     urls: (brand, name) => [
@@ -327,29 +499,15 @@ async function candidateFrom(src: SourceDef, brand: string, name: string): Promi
     if (list.length < 5) continue;
     if (isSubBlendBreakdown(list)) {
       console.log(`   ⚠︎ ${src.name}: rejected (sub-blend breakdown, repeated tokens)`);
-      continue;
+      return { source: src.name, url, list, subBlend: true };
     }
     return { source: src.name, url, list };
   }
   return null;
 }
 
-/** Collect up to two independent candidates. */
-async function gatherCandidates(brand: string, name: string): Promise<Candidate[]> {
-  const found: Candidate[] = [];
-  for (const src of SOURCES) {
-    const c = await candidateFrom(src, brand, name);
-    if (c) {
-      found.push(c);
-      console.log(`   ✓ ${c.source}: ${c.list.length} ingredients`);
-    }
-    if (found.length >= 2) break;
-  }
-  return found;
-}
-
 // ---------------------------------------------------------------------------
-// Comparison
+// Comparison (only used when a fallback also resolves)
 // ---------------------------------------------------------------------------
 
 type Decision =
@@ -357,19 +515,18 @@ type Decision =
   | { kind: 'queue'; reason: string };
 
 export function decide(a: Candidate, b: Candidate): Decision {
-  const setA = new Set(a.list.map(compareKey));
-  const setB = new Set(b.list.map(compareKey));
+  const keysA = a.list.map(compareKey);
+  const keysB = b.list.map(compareKey);
+  const setA = new Set(keysA);
+  const setB = new Set(keysB);
   const longer = a.list.length >= b.list.length ? a : b;
   const shorter = longer === a ? b : a;
 
   const sameSet = setA.size === setB.size && [...setA].every((k) => setB.has(k));
-  if (sameSet) {
-    // Order may differ; trust the longer/more complete list's order.
-    return { kind: 'write', list: longer.list };
-  }
+  if (sameSet) return { kind: 'write', list: longer.list };
 
-  const shorterKeys = new Set(shorter.list.map(compareKey));
-  const isSubset = [...shorterKeys].every((k) => new Set(longer.list.map(compareKey)).has(k));
+  const longerSet = new Set(longer.list.map(compareKey));
+  const isSubset = [...new Set(shorter.list.map(compareKey))].every((k) => longerSet.has(k));
   if (isSubset) {
     return {
       kind: 'write',
@@ -392,11 +549,11 @@ type QueueEntry = {
   brand: string;
   name: string;
   reason: string;
+  unmatched?: string[];
+  match_rate?: number;
   candidates: { source: string; url: string; ingredients: string[] }[];
   queued_at: string;
 };
-
-const QUEUE_PATH = resolve(import.meta.dirname ?? '.', 'review-queue.json');
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
@@ -410,6 +567,8 @@ async function main() {
   const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+  const dict = await loadDictionary();
 
   let query = supabase
     .from('products')
@@ -442,51 +601,102 @@ async function main() {
     s[k]++;
     stats.set(brand, s);
   };
+  const writtenRates: number[] = [];
 
   for (const [i, row] of targets.entries()) {
     console.log(`[${i + 1}/${targets.length}] ${row.brand} — ${row.name}`);
-    let candidates: Candidate[] = [];
+
+    const candidates: Candidate[] = [];
     try {
-      candidates = await gatherCandidates(row.brand, row.name);
+      const primary = await candidateFrom(PRIMARY, row.brand, row.name);
+      if (primary) {
+        candidates.push(primary);
+        if (!primary.subBlend) console.log(`   ✓ ${primary.source}: ${primary.list.length} ingredients`);
+      } else {
+        // Only reach for the other retailers when the primary found nothing.
+        for (const src of FALLBACKS) {
+          const c = await candidateFrom(src, row.brand, row.name);
+          if (c) {
+            candidates.push(c);
+            if (!c.subBlend) console.log(`   ✓ ${c.source}: ${c.list.length} ingredients`);
+            if (candidates.length >= 2) break;
+          }
+        }
+      }
     } catch (e) {
       console.log(`   ✗ fetch error: ${(e as Error).message}`);
     }
 
-    const enqueue = (reason: string) => {
+    const enqueue = (reason: string, extra?: { unmatched?: string[]; rate?: number }) => {
       queue.push({
         id: row.id,
         brand: row.brand,
         name: row.name,
         reason,
+        ...(extra?.unmatched ? { unmatched: extra.unmatched } : {}),
+        ...(extra?.rate !== undefined ? { match_rate: Number(extra.rate.toFixed(4)) } : {}),
         candidates: candidates.map((c) => ({ source: c.source, url: c.url, ingredients: c.list })),
         queued_at: new Date().toISOString(),
       });
       console.log(`   → queued for review: ${reason}`);
     };
 
+    const usable = candidates.filter((c) => !c.subBlend);
+
     if (candidates.length === 0) {
       enqueue('no source found');
       bump(row.brand, 'failed');
       continue;
     }
-    if (candidates.length === 1) {
-      enqueue(`only one source found (${candidates[0]!.source}) — needs corroboration`);
+    if (usable.length === 0) {
+      enqueue('source rejected: sub-blend breakdown (repeated tokens)');
       bump(row.brand, 'queued');
       continue;
     }
 
-    const decision = decide(candidates[0]!, candidates[1]!);
-    if (decision.kind === 'queue') {
-      enqueue(decision.reason);
+    let list: string[];
+    let note: string | undefined;
+    if (usable.length >= 2) {
+      const decision = decide(usable[0]!, usable[1]!);
+      if (decision.kind === 'queue') {
+        enqueue(decision.reason);
+        bump(row.brand, 'queued');
+        continue;
+      }
+      list = decision.list;
+      note = decision.note;
+    } else {
+      list = usable[0]!.list;
+    }
+
+    if (list.length < 5) {
+      enqueue(`only ${list.length} ingredients parsed`);
       bump(row.brand, 'queued');
       continue;
     }
 
-    if (decision.note) console.log(`   ℹ ${decision.note}`);
-    const normalised = decision.list.map(toTitleCase).filter((s) => s.length > 1);
+    const { rate, unmatched } = validate(dict, list);
+    const pct = (rate * 100).toFixed(1);
+    if (unmatched.length > 0) {
+      console.log(`   unmatched (${unmatched.length}): ${unmatched.join(' | ')}`);
+    }
+    if (rate < MATCH_THRESHOLD) {
+      enqueue(
+        `only ${pct}% of tokens matched the ingredient dictionary (threshold ${(MATCH_THRESHOLD * 100).toFixed(0)}%) — the parser may have grabbed marketing copy`,
+        { unmatched, rate },
+      );
+      bump(row.brand, 'queued');
+      continue;
+    }
+
+    if (note) console.log(`   ℹ ${note}`);
+    const normalised = list.map(toTitleCase).filter((s) => s.length > 1);
 
     if (args.dryRun) {
-      console.log(`   would write ${normalised.length}: ${normalised.slice(0, 8).join(', ')}…`);
+      console.log(
+        `   would write ${normalised.length} (${pct}% dictionary match): ${normalised.slice(0, 8).join(', ')}…`,
+      );
+      writtenRates.push(rate);
       bump(row.brand, 'written');
       continue;
     }
@@ -506,7 +716,8 @@ async function main() {
       console.log('   ✗ skipped: row already has ingredients');
       bump(row.brand, 'failed');
     } else {
-      console.log(`   ✓ wrote ${normalised.length} ingredients`);
+      console.log(`   ✓ wrote ${normalised.length} ingredients (${pct}% dictionary match)`);
+      writtenRates.push(rate);
       bump(row.brand, 'written');
     }
   }
@@ -524,10 +735,7 @@ async function main() {
   console.log('brand'.padEnd(24) + 'written  queued  failed');
   for (const [brand, s] of [...stats.entries()].sort()) {
     console.log(
-      brand.padEnd(24) +
-        String(s.written).padEnd(9) +
-        String(s.queued).padEnd(8) +
-        String(s.failed),
+      brand.padEnd(24) + String(s.written).padEnd(9) + String(s.queued).padEnd(8) + String(s.failed),
     );
     w += s.written;
     q += s.queued;
@@ -535,6 +743,16 @@ async function main() {
   }
   console.log('-'.repeat(46));
   console.log('TOTAL'.padEnd(24) + String(w).padEnd(9) + String(q).padEnd(8) + String(f));
+  console.log(`\nWritten: ${w}   Queued for review: ${q}   Failed: ${f}`);
+
+  if (writtenRates.length > 0) {
+    const avg = writtenRates.reduce((s, r) => s + r, 0) / writtenRates.length;
+    const avgPct = avg * 100;
+    console.log(`Average dictionary match rate across written products: ${avgPct.toFixed(2)}%`);
+    if (avgPct < 99) {
+      console.log('⚠︎ Average match rate is below 99% — the parser is probably picking up non-ingredient text.');
+    }
+  }
   if (args.dryRun) console.log('\nDRY RUN — nothing was written. Re-run with --write to persist.');
 }
 

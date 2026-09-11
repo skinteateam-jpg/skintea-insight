@@ -761,9 +761,10 @@ async function main() {
 
     if (args.dryRun) {
       console.log(
-        `   would write ${normalised.length} (${pct}% dictionary match): ${normalised.slice(0, 8).join(', ')}…`,
+        `   would write ${normalised.length} ingredients (${sourceLabel}, ${pct}% dictionary match): ${normalised.slice(0, 8).join(', ')}…`,
       );
       writtenRates.push(rate);
+      bumpSource(sourceLabel);
       bump(row.brand, 'written');
       continue;
     }
@@ -783,10 +784,14 @@ async function main() {
       console.log('   ✗ skipped: row already has ingredients');
       bump(row.brand, 'failed');
     } else {
-      console.log(`   ✓ wrote ${normalised.length} ingredients (${pct}% dictionary match)`);
+      console.log(
+        `   ✓ wrote ${normalised.length} ingredients (${sourceLabel}, ${pct}% dictionary match)`,
+      );
       writtenRates.push(rate);
+      bumpSource(sourceLabel);
       bump(row.brand, 'written');
     }
+
   }
 
   if (queue.length > 0) {

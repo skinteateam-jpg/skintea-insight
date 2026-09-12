@@ -144,12 +144,15 @@ function CategoryPage() {
           supabase.rpc("ranked_products_tiktok", args as never),
           supabase.rpc("ranked_products_soaring", args as never),
           supabase.rpc("ranked_products_recommended", args as never),
-          supabase.rpc("browse_facets", {
-            p_q: null,
-            p_category: slug,
-            p_subcategory: selectedSubcategory,
-            p_product_type: null,
-          }),
+          supabase.rpc(
+            "browse_facets",
+            {
+              p_q: null,
+              p_category: slug,
+              p_subcategory: selectedSubcategory,
+              p_product_type: null,
+            } as never,
+          ),
         ]);
 
       if (cancelled) return;

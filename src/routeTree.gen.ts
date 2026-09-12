@@ -30,6 +30,7 @@ import { Route as TeaProductsPostIdRouteImport } from './routes/tea-products.$po
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
 import { Route as ProductDetailIdRouteImport } from './routes/product-detail.$id'
 import { Route as ClinicsIdRouteImport } from './routes/clinics/$id'
+import { Route as CategorySlugRouteImport } from './routes/category.$slug'
 import { Route as AdminTreatmentsRouteImport } from './routes/admin.treatments'
 import { Route as ApiPublicCacheSocialThumbnailRouteImport } from './routes/api/public/cache-social-thumbnail'
 
@@ -138,6 +139,11 @@ const ClinicsIdRoute = ClinicsIdRouteImport.update({
   path: '/clinics/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CategorySlugRoute = CategorySlugRouteImport.update({
+  id: '/category/$slug',
+  path: '/category/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminTreatmentsRoute = AdminTreatmentsRouteImport.update({
   id: '/admin/treatments',
   path: '/admin/treatments',
@@ -166,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/tea-products': typeof TeaProductsRouteWithChildren
   '/treatment-talk2': typeof TreatmentTalk2Route
   '/admin/treatments': typeof AdminTreatmentsRoute
+  '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
   '/product-detail/$id': typeof ProductDetailIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
@@ -191,6 +198,7 @@ export interface FileRoutesByTo {
   '/tea-products': typeof TeaProductsRouteWithChildren
   '/treatment-talk2': typeof TreatmentTalk2Route
   '/admin/treatments': typeof AdminTreatmentsRoute
+  '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
   '/product-detail/$id': typeof ProductDetailIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
@@ -217,6 +225,7 @@ export interface FileRoutesById {
   '/tea-products': typeof TeaProductsRouteWithChildren
   '/treatment-talk2': typeof TreatmentTalk2Route
   '/admin/treatments': typeof AdminTreatmentsRoute
+  '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
   '/product-detail/$id': typeof ProductDetailIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
@@ -244,6 +253,7 @@ export interface FileRouteTypes {
     | '/tea-products'
     | '/treatment-talk2'
     | '/admin/treatments'
+    | '/category/$slug'
     | '/clinics/$id'
     | '/product-detail/$id'
     | '/profile/$username'
@@ -269,6 +279,7 @@ export interface FileRouteTypes {
     | '/tea-products'
     | '/treatment-talk2'
     | '/admin/treatments'
+    | '/category/$slug'
     | '/clinics/$id'
     | '/product-detail/$id'
     | '/profile/$username'
@@ -294,6 +305,7 @@ export interface FileRouteTypes {
     | '/tea-products'
     | '/treatment-talk2'
     | '/admin/treatments'
+    | '/category/$slug'
     | '/clinics/$id'
     | '/product-detail/$id'
     | '/profile/$username'
@@ -320,6 +332,7 @@ export interface RootRouteChildren {
   TeaProductsRoute: typeof TeaProductsRouteWithChildren
   TreatmentTalk2Route: typeof TreatmentTalk2Route
   AdminTreatmentsRoute: typeof AdminTreatmentsRoute
+  CategorySlugRoute: typeof CategorySlugRoute
   ClinicsIdRoute: typeof ClinicsIdRoute
   ProductDetailIdRoute: typeof ProductDetailIdRoute
   ProfileUsernameRoute: typeof ProfileUsernameRoute
@@ -478,6 +491,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClinicsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/category/$slug': {
+      id: '/category/$slug'
+      path: '/category/$slug'
+      fullPath: '/category/$slug'
+      preLoaderRoute: typeof CategorySlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/treatments': {
       id: '/admin/treatments'
       path: '/admin/treatments'
@@ -523,6 +543,7 @@ const rootRouteChildren: RootRouteChildren = {
   TeaProductsRoute: TeaProductsRouteWithChildren,
   TreatmentTalk2Route: TreatmentTalk2Route,
   AdminTreatmentsRoute: AdminTreatmentsRoute,
+  CategorySlugRoute: CategorySlugRoute,
   ClinicsIdRoute: ClinicsIdRoute,
   ProductDetailIdRoute: ProductDetailIdRoute,
   ProfileUsernameRoute: ProfileUsernameRoute,

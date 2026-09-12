@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronRight, Search, X } from "lucide-react";
 
 import AppFrame from "@/components/AppFrame";
@@ -62,8 +62,6 @@ type SubcategoryRow = {
   product_type: string | null;
 };
 
-type Rail = "soaring" | "tiktok" | "recommended";
-
 const CATEGORIES = [
   "All",
   "Skincare",
@@ -77,16 +75,23 @@ const CATEGORIES = [
   "Fragrance",
 ] as const;
 
-const EMPTY_RAILS: Record<Rail, RankedProduct[]> = {
-  soaring: [],
-  tiktok: [],
-  recommended: [],
-};
+const SECTION_CATEGORIES = [
+  "Skincare",
+  "Lip",
+  "Face",
+  "Sunscreen",
+  "Cheek",
+  "Bodycare",
+  "Device",
+  "Fragrance",
+  "Eye",
+] as const;
 
 function ProductsPage() {
   const navigate = useNavigate();
-  const [rankings, setRankings] = useState(EMPTY_RAILS);
-  const [loading, setLoading] = useState(true);
+  const [soaring, setSoaring] = useState<RankedProduct[]>([]);
+  const [soaringLoading, setSoaringLoading] = useState(true);
+  const [categoryRankings, setCategoryRankings] = useState<Record<string, RankedProduct[]>>({});
   const [showLogin, setShowLogin] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchProduct[]>([]);
@@ -96,32 +101,49 @@ function ProductsPage() {
     let cancelled = false;
 
     (async () => {
-      setLoading(true);
+      setSoaringLoading(true);
       const args = {
         p_category: null,
         p_subcategory: null,
         p_product_type: null,
         p_limit: 20,
       };
-      const [soaringResult, tiktokResult, recommendedResult] = await Promise.all([
-        supabase.rpc("ranked_products_soaring", args as never),
-        supabase.rpc("ranked_products_tiktok", args as never),
-        supabase.rpc("ranked_products_recommended", args as never),
-      ]);
+      const soaringResult = await supabase.rpc("ranked_products_soaring", args as never);
 
       if (cancelled) return;
       if (soaringResult.error) console.error("ranked_products_soaring failed", soaringResult.error);
-      if (tiktokResult.error) console.error("ranked_products_tiktok failed", tiktokResult.error);
-      if (recommendedResult.error) {
-        console.error("ranked_products_recommended failed", recommendedResult.error);
-      }
-      setRankings({
-        soaring: (soaringResult.data ?? []) as RankedProduct[],
-        tiktok: (tiktokResult.data ?? []) as RankedProduct[],
-        recommended: (recommendedResult.data ?? []) as RankedProduct[],
-      });
-      setLoading(false);
+      setSoaring((soaringResult.data ?? []) as RankedProduct[]);
+      setSoaringLoading(false);
     })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setCategoryRankings({});
+
+    const requests = SECTION_CATEGORIES.map(async (category) => {
+      const result = await supabase.rpc(
+        "ranked_products_tiktok",
+        {
+          p_category: category,
+          p_subcategory: null,
+          p_product_type: null,
+          p_limit: 20,
+        } as never,
+      );
+      if (cancelled) return;
+      if (result.error) console.error("ranked_products_tiktok failed", result.error);
+      setCategoryRankings((current) => ({
+        ...current,
+        [category]: (result.data ?? []) as RankedProduct[],
+      }));
+    });
+
+    void Promise.all(requests);
 
     return () => {
       cancelled = true;
@@ -192,14 +214,6 @@ function ProductsPage() {
       window.clearTimeout(timer);
     };
   }, [searchQuery]);
-
-  const subcategorySections = useMemo(
-    () =>
-      CATEGORIES.slice(1)
-        .filter((category) => (categorySubs[category] ?? []).length > 0)
-        .map((category) => ({ category, items: categorySubs[category] ?? [] })),
-    [categorySubs],
-  );
 
   const showDropdown = searchQuery.trim().length >= 2 && searchResults.length > 0;
 
@@ -310,60 +324,25 @@ function ProductsPage() {
         <main className="mx-auto w-full max-w-[1180px] py-5 md:py-8">
           <RankingSection
             title="Soaring"
-            subtitle="Most new Instagram Reels in the last 90 days"
-            products={rankings.soaring}
-            loading={loading}
-            seeAllSearch={{ sort: "popular", page: 1 }}
-            metric={(product) => `${product.metric_value} new Reels · 90 days`}
+            subtitle="Most new Reels in the last 90 days"
+            products={soaring}
+            loading={soaringLoading}
+            metric={(product) => `${product.metric_value} new Reels`}
             onSave={() => setShowLogin(true)}
           />
-          <RankingSection
-            title="TikTok Ranking"
-            subtitle="Ranked by total TikTok views"
-            products={rankings.tiktok}
-            loading={loading}
-            seeAllSearch={{ sort: "popular", page: 1 }}
-            metric={(product) => `${formatCompact(product.metric_value)} TikTok views`}
-            ranked
-            onSave={() => setShowLogin(true)}
-          />
-          <RankingSection
-            title="Highest Recommended"
-            subtitle="Products with 10 or more tagged opinions"
-            products={rankings.recommended}
-            loading={loading}
-            seeAllSearch={{ sort: "popular", page: 1 }}
-            recommended
-            onSave={() => setShowLogin(true)}
-          />
-
-          <div className="px-4 pt-3 md:px-0">
-            {subcategorySections.map((section) => (
-              <section key={section.category} className="mb-6">
-                <h2 className="mb-2.5 inline-block rounded bg-brand-espresso px-3 py-1.5 text-[12px] font-bold text-primary-foreground">
-                  {section.category}
-                </h2>
-                <div className="grid grid-cols-2 overflow-hidden rounded-md border border-brand-border bg-card md:grid-cols-3 lg:grid-cols-4">
-                  {section.items.map((name) => (
-                    <Link
-                      key={name}
-                      to="/browse"
-                      search={{
-                        category: section.category,
-                        subcategory: name,
-                        sort: "popular",
-                        page: 1,
-                      }}
-                      className="flex min-h-12 items-center gap-2 border-b border-r border-brand-border px-3 py-2.5 text-[13px] font-medium text-brand-espresso no-underline hover:bg-brand-cream"
-                    >
-                      <span className="min-w-0 flex-1">{name}</span>
-                      <ChevronRight size={14} className="shrink-0 text-brand-muted" />
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
+          {SECTION_CATEGORIES.map((category) => {
+            const products = categoryRankings[category];
+            if (!products || products.length < 3) return null;
+            return (
+              <CategorySection
+                key={category}
+                category={category}
+                products={products}
+                subcategories={categorySubs[category] ?? []}
+                onSave={() => setShowLogin(true)}
+              />
+            );
+          })}
         </main>
 
         {showLogin && (
@@ -408,20 +387,14 @@ function RankingSection({
   subtitle,
   products,
   loading,
-  seeAllSearch,
   metric,
-  ranked,
-  recommended,
   onSave,
 }: {
   title: string;
   subtitle: string;
   products: RankedProduct[];
   loading: boolean;
-  seeAllSearch: { sort: string; page: number };
   metric?: (product: RankedProduct) => string;
-  ranked?: boolean;
-  recommended?: boolean;
   onSave: () => void;
 }) {
   return (
@@ -431,13 +404,6 @@ function RankingSection({
           <h2 className="text-[18px] font-bold text-brand-espresso">{title}</h2>
           <p className="mt-0.5 text-[11px] text-brand-muted">{subtitle}</p>
         </div>
-        <Link
-          to="/browse"
-          search={seeAllSearch}
-          className="shrink-0 text-[12px] font-medium text-brand-crimson underline"
-        >
-          See all
-        </Link>
       </div>
 
       {loading ? (
@@ -471,14 +437,87 @@ function RankingSection({
                 price={product.price}
                 currency={product.currency}
                 imageUrl={product.image_url}
-                rank={ranked ? index + 1 : undefined}
                 metricLabel={metric?.(product)}
-                recommendPct={recommended ? product.metric_value : undefined}
-                decisiveTags={recommended ? product.metric_secondary : undefined}
                 onSave={onSave}
               />
             </div>
           ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function CategorySection({
+  category,
+  products,
+  subcategories,
+  onSave,
+}: {
+  category: string;
+  products: RankedProduct[];
+  subcategories: string[];
+  onSave: () => void;
+}) {
+  return (
+    <section className="px-4 pb-10 md:px-0">
+      <Link
+        to="/category/$slug"
+        params={{ slug: category }}
+        className="mb-3 flex items-center justify-between text-brand-espresso no-underline"
+      >
+        <h2 className="text-[16px] font-semibold">{category}</h2>
+        <ChevronRight size={18} className="text-brand-muted" />
+      </Link>
+
+      <div className="grid grid-cols-3 gap-3">
+        {products.slice(0, 3).map((product, index) => (
+          <div key={product.id} className="relative min-w-0">
+            <ProductCard
+              id={product.id}
+              brand={product.brand ?? ""}
+              name={product.product_family_name ?? product.name}
+              price={product.price}
+              currency={product.currency}
+              imageUrl={product.image_url}
+              metricLabel={`${formatCompact(product.metric_value)} TikTok views`}
+              onSave={onSave}
+            />
+            <span className="pointer-events-none absolute left-2 top-2 rounded-sm bg-brand-espresso px-1.5 py-0.5 text-[9px] font-bold text-primary-foreground">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {subcategories.length >= 2 && (
+        <div className="mt-3 grid grid-cols-2 overflow-hidden rounded-md border border-brand-border bg-card">
+          {subcategories.map((subcategory) => {
+            const thumbnail = products.find(
+              (product) => product.subcategory === subcategory && product.image_url,
+            )?.image_url;
+            return (
+              <Link
+                key={subcategory}
+                to="/browse"
+                search={{ category, subcategory, sort: "popular", page: 1 }}
+                className="flex min-h-14 items-center gap-2 border-b border-r border-brand-border p-2 text-[12px] font-semibold text-brand-espresso no-underline hover:bg-brand-cream"
+              >
+                <span className="h-9 w-9 shrink-0 overflow-hidden rounded-sm bg-brand-cream">
+                  {thumbnail && (
+                    <img
+                      src={thumbnail}
+                      alt=""
+                      loading="lazy"
+                      className="h-full w-full object-contain"
+                    />
+                  )}
+                </span>
+                <span className="min-w-0 flex-1">{subcategory}</span>
+                <ChevronRight size={14} className="shrink-0 text-brand-muted" />
+              </Link>
+            );
+          })}
         </div>
       )}
     </section>

@@ -133,7 +133,7 @@ function CategoryPage() {
     setLoading(true);
 
     (async () => {
-      const args = {
+      const commonArgs = {
         p_category: slug,
         p_subcategory: selectedSubcategory,
         p_product_type: null,
@@ -141,9 +141,9 @@ function CategoryPage() {
       };
       const [tiktokResult, soaringResult, recommendedResult, facetsResult] =
         await Promise.all([
-          supabase.rpc("ranked_products_tiktok", args as never),
-          supabase.rpc("ranked_products_soaring", args as never),
-          supabase.rpc("ranked_products_recommended", args as never),
+          supabase.rpc("ranked_products_tiktok", { ...commonArgs, p_limit: 30 } as never),
+          supabase.rpc("ranked_products_soaring", commonArgs as never),
+          supabase.rpc("ranked_products_recommended", commonArgs as never),
           supabase.rpc(
             "browse_facets",
             {
@@ -331,15 +331,15 @@ function CategoryPage() {
           })}
         </nav>
 
-        {subcategories.length >= 2 && (
-          <div className="flex gap-2 overflow-x-auto border-b border-brand-border bg-card px-4 py-3 [scrollbar-width:none] md:px-0 [&::-webkit-scrollbar]:hidden">
+        {subcategories.length > 0 && (
+          <div className="flex gap-5 overflow-x-auto border-b border-brand-border bg-card px-4 [scrollbar-width:none] md:px-0 [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
               onClick={() => setSelectedSubcategory(null)}
               className={
                 selectedSubcategory === null
-                  ? "shrink-0 rounded-full bg-brand-espresso px-3 py-1.5 text-[12px] font-semibold text-white"
-                  : "shrink-0 rounded-full border border-brand-border bg-card px-3 py-1.5 text-[12px] font-semibold text-brand-espresso"
+                  ? "shrink-0 border-b-2 border-brand-espresso py-3 text-[12px] font-semibold text-brand-espresso"
+                  : "shrink-0 border-b-2 border-transparent py-3 text-[12px] text-brand-muted"
               }
             >
               All
@@ -351,8 +351,8 @@ function CategoryPage() {
                 onClick={() => setSelectedSubcategory(subcategory)}
                 className={
                   selectedSubcategory === subcategory
-                    ? "shrink-0 rounded-full bg-brand-espresso px-3 py-1.5 text-[12px] font-semibold text-white"
-                    : "shrink-0 rounded-full border border-brand-border bg-card px-3 py-1.5 text-[12px] font-semibold text-brand-espresso"
+                    ? "shrink-0 border-b-2 border-brand-espresso py-3 text-[12px] font-semibold text-brand-espresso"
+                    : "shrink-0 border-b-2 border-transparent py-3 text-[12px] text-brand-muted"
                 }
               >
                 {subcategory}
@@ -362,19 +362,6 @@ function CategoryPage() {
         )}
 
         <main className="mx-auto w-full max-w-[1180px] py-5 md:py-8">
-          <h1 className="px-4 pb-5 text-[24px] font-bold text-brand-espresso md:px-0">
-            {slug}
-          </h1>
-          <RankingSection
-            title="TikTok Ranking"
-            subtitle="Ranked by total TikTok views"
-            products={rankings.tiktok}
-            loading={loading}
-            seeAllSearch={seeAllSearch}
-            metric={(product) => `${formatCompact(product.metric_value)} TikTok views`}
-            ranked
-            onSave={() => setShowLogin(true)}
-          />
           <RankingSection
             title="Soaring"
             subtitle="Most new Reels in the last 90 days"
@@ -382,6 +369,12 @@ function CategoryPage() {
             loading={loading}
             seeAllSearch={seeAllSearch}
             metric={(product) => `${product.metric_value} new Reels`}
+            onSave={() => setShowLogin(true)}
+          />
+          <RankingGrid
+            products={rankings.tiktok}
+            loading={loading}
+            seeAllSearch={seeAllSearch}
             onSave={() => setShowLogin(true)}
           />
           <RankingSection
@@ -452,6 +445,82 @@ function CategoryPage() {
         <BottomNav />
       </div>
     </AppFrame>
+  );
+}
+
+function RankingGrid({
+  products,
+  loading,
+  seeAllSearch,
+  onSave,
+}: {
+  products: RankedProduct[];
+  loading: boolean;
+  seeAllSearch: {
+    category: string;
+    subcategory?: string;
+    sort: string;
+    page: number;
+  };
+  onSave: () => void;
+}) {
+  return (
+    <section className="px-4 pb-8 md:px-0">
+      <div className="mb-3">
+        <h1 className="text-[18px] font-bold text-brand-espresso">Ranking</h1>
+        <p className="mt-0.5 text-[11px] text-brand-muted">Ranked by total TikTok views</p>
+      </div>
+
+      {loading ? (
+        <div className="grid grid-cols-3 gap-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div
+              key={`ranking-skeleton-${index}`}
+              className="min-w-0 overflow-hidden rounded-md border border-brand-border bg-card"
+            >
+              <div className="aspect-square animate-pulse bg-brand-cream" />
+              <div className="space-y-2 p-3">
+                <div className="h-2.5 w-1/2 animate-pulse rounded bg-brand-border" />
+                <div className="h-3 w-full animate-pulse rounded bg-brand-border" />
+                <div className="h-3 w-2/3 animate-pulse rounded bg-brand-border" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : products.length === 0 ? (
+        <div className="rounded-md border border-brand-border bg-card px-4 py-8 text-[13px] text-brand-muted">
+          Not enough data yet
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 gap-3">
+          {products.map((product, index) => (
+            <div key={product.id} className="relative min-w-0">
+              <ProductCard
+                id={product.id}
+                brand={product.brand ?? ""}
+                name={product.product_family_name ?? product.name}
+                price={product.price}
+                currency={product.currency}
+                imageUrl={product.image_url}
+                metricLabel={`${formatCompact(product.metric_value)} TikTok views`}
+                onSave={onSave}
+              />
+              <span className="pointer-events-none absolute left-2 top-2 rounded-sm bg-brand-espresso px-1.5 py-0.5 text-[9px] font-bold text-primary-foreground">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Link
+        to="/browse"
+        search={seeAllSearch}
+        className="mt-4 inline-block text-[12px] font-semibold text-brand-crimson underline"
+      >
+        See all
+      </Link>
+    </section>
   );
 }
 

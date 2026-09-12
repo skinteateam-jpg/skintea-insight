@@ -391,38 +391,71 @@ function ProductPage() {
     setSaving(false);
   }
 
-  const skinTypePct: Record<string, number | null> = {};
-  for (const st of SKIN_ORDER) {
-    const rows = socialReviews.filter(
-      (r) => String(r.skin_type).toLowerCase() === st && (r.sentiment === "positive" || r.sentiment === "negative")
-    );
-    if (rows.length < 10) { skinTypePct[st] = null; continue; }
+  // Opinion scope. A shade page (a family with more than one SKU) fetches three kinds of
+  // tagged row: tags about this shade, tags about other shades, and line-level tags that
+  // name no shade. They are never summed into one unlabelled number:
+  //   >= MIN_TAGGED tags about this shade -> the shade percentage
+  //   else >= MIN_TAGGED tags on the line -> the line percentage, labelled as the line
+  //   else                                -> the "not enough data yet" placeholder
+  // A product with no shade family keeps every fetched row, as before.
+  const MIN_TAGGED = 10;
+  const isShadeLine = shadeOptions.length > 1;
+  const lineName: string | null = productData?.product_family_name ?? null;
+  const shadeId: string = activeProduct?.id ?? id;
+  const shadeName: string | null = activeProduct?.shade_name ?? null;
+  type Scope = "product" | "shade" | "line" | "none";
+  const skuReviews = isShadeLine ? socialReviews.filter((r) => r.product_id === shadeId) : socialReviews;
+  function pickScope(pred: (r: any) => boolean): { scope: Scope; rows: any[] } {
+    const own = skuReviews.filter(pred);
+    if (own.length >= MIN_TAGGED) return { scope: isShadeLine ? "shade" : "product", rows: own };
+    if (isShadeLine) {
+      const line = socialReviews.filter(pred);
+      if (line.length >= MIN_TAGGED) return { scope: "line", rows: line };
+    }
+    return { scope: "none", rows: own };
+  }
+  function bucketPct(pred: (r: any) => boolean): { pct: number | null; scope: Scope; n: number } {
+    const { scope, rows } = pickScope((r) => pred(r) && (r.sentiment === "positive" || r.sentiment === "negative"));
+    if (scope === "none") return { pct: null, scope, n: rows.length };
     const pos = rows.filter((r) => r.sentiment === "positive").length;
-    skinTypePct[st] = Math.round((pos / rows.length) * 100);
+    return { pct: Math.round((pos / rows.length) * 100), scope, n: rows.length };
+  }
+
+  const skinTypePct: Record<string, number | null> = {};
+  const skinTypeScope: Record<string, Scope> = {};
+  for (const st of SKIN_ORDER) {
+    const b = bucketPct((r) => String(r.skin_type).toLowerCase() === st);
+    skinTypePct[st] = b.pct;
+    skinTypeScope[st] = b.scope;
   }
   const anySkinPct = SKIN_ORDER.some((st) => skinTypePct[st] !== null);
   const ageBracketPct: Record<string, number | null> = {};
+  const ageBracketScope: Record<string, Scope> = {};
   for (const a of AGE_ORDER) {
-    const rows = socialReviews.filter(
-      (r) => String(r.age_bracket).toLowerCase() === a.key && (r.sentiment === "positive" || r.sentiment === "negative")
-    );
-    if (rows.length < 10) { ageBracketPct[a.key] = null; continue; }
-    const pos = rows.filter((r) => r.sentiment === "positive").length;
-    ageBracketPct[a.key] = Math.round((pos / rows.length) * 100);
+    const b = bucketPct((r) => String(r.age_bracket).toLowerCase() === a.key);
+    ageBracketPct[a.key] = b.pct;
+    ageBracketScope[a.key] = b.scope;
   }
   const anyAgePct = AGE_ORDER.some((a) => ageBracketPct[a.key] !== null);
+  const anyLineBar = [...Object.values(skinTypeScope), ...Object.values(ageBracketScope)].some((s) => s === "line");
 
   const backTo = () => {
     if (fromPost && fromPostId) navigate({ to: "/tea-products/$postId", params: { postId: fromPostId } });
     else navigate({ to: "/products" });
   };
 
-  const taggedReviews = socialReviews.filter((r) => r.sentiment === "positive" || r.sentiment === "negative" || r.sentiment === "mixed");
+  const headline = pickScope((r) => r.sentiment === "positive" || r.sentiment === "negative" || r.sentiment === "mixed");
+  const opinionScope = headline.scope;
+  const taggedReviews = headline.rows;
+  const shadeTaggedCount = isShadeLine
+    ? skuReviews.filter((r) => r.sentiment === "positive" || r.sentiment === "negative" || r.sentiment === "mixed").length
+    : null;
+  const lineTaggedCount = socialReviews.filter((r) => r.sentiment === "positive" || r.sentiment === "negative" || r.sentiment === "mixed").length;
   const posCount = taggedReviews.filter((r) => r.sentiment === "positive").length;
   const negCount = taggedReviews.filter((r) => r.sentiment === "negative").length;
   const mixedCount = taggedReviews.filter((r) => r.sentiment === "mixed").length;
   const sentimentTotal = posCount + negCount + mixedCount;
-  const hasEnoughSentimentData = sentimentTotal >= 10;
+  const hasEnoughSentimentData = opinionScope !== "none";
   const majorityIsPositive = posCount >= negCount;
   const majorityCount = majorityIsPositive ? posCount : negCount;
   const majorityPct = sentimentTotal > 0 ? Math.round((majorityCount / sentimentTotal) * 100) : 0;
@@ -612,8 +645,8 @@ function ProductPage() {
         {/* 3. Stats row */}
         <div className="flex border-b border-brand-border">
           {[
-            { val: hasEnoughSentimentData && recommendPct !== null ? `${recommendPct}%` : "—", label: "Recommend" },
-            { val: `${sentimentTotal}`, label: "Tagged opinions" },
+            { val: hasEnoughSentimentData && recommendPct !== null ? `${recommendPct}%` : "—", label: opinionScope === "line" ? "Recommend (line)" : "Recommend" },
+            { val: `${sentimentTotal}`, label: opinionScope === "line" ? "Line opinions" : isShadeLine ? "Shade opinions" : "Tagged opinions" },
             { val: confidence, label: "Confidence" },
           ].map((s, i, arr) => (
             <div key={s.label} className={`flex-1 py-[13px] text-center ${i < arr.length - 1 ? "border-r border-brand-border" : ""}`}>
@@ -645,6 +678,14 @@ function ProductPage() {
         <Section title="What people say">
           {hasEnoughSentimentData ? (
             <>
+              {opinionScope === "line" && (
+                <div className="bg-brand-cream border border-brand-border rounded-[10px] px-[13px] py-2.5 mb-2.5">
+                  <div className={SECTION_LABEL_CLS}>About the {lineName} line</div>
+                  <div className="text-xs text-brand-espresso leading-[1.55] mt-1">
+                    Not enough opinions name {shadeName ?? "this shade"} yet ({shadeTaggedCount} of {MIN_TAGGED} needed), so these numbers are for the whole line: {sentimentTotal} tagged opinions across every shade.
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-2.5">
                 {[
                   { label: majorityIsPositive ? "Recommend" : "Don't recommend", pct: majorityPct, barCls: "bg-brand-crimson", sentence: majorityQuote ?? "Based on tagged social posts." },
@@ -662,12 +703,19 @@ function ProductPage() {
               </div>
               <div className="bg-brand-cream border border-brand-border rounded-[10px] px-[13px] py-2.5 mt-2.5">
                 <div className="text-[10px] text-brand-muted font-semibold">Sample size</div>
-                <div className="text-xs text-brand-espresso leading-[1.55] mt-1">Based on {sentimentTotal} tagged social posts{mixedCount > 0 ? ` (${mixedCount} mixed)` : ""}. Early data — treat as directional, not definitive.</div>
+                <div className="text-xs text-brand-espresso leading-[1.55] mt-1">
+                  {opinionScope === "line"
+                    ? <>Based on {sentimentTotal} tagged social posts about the {lineName} line{mixedCount > 0 ? ` (${mixedCount} mixed)` : ""}; {shadeTaggedCount} name {shadeName ?? "this shade"}.</>
+                    : opinionScope === "shade"
+                      ? <>Based on {sentimentTotal} tagged social posts about {shadeName ?? "this shade"}{mixedCount > 0 ? ` (${mixedCount} mixed)` : ""}.</>
+                      : <>Based on {sentimentTotal} tagged social posts{mixedCount > 0 ? ` (${mixedCount} mixed)` : ""}.</>}
+                  {" "}Early data — treat as directional, not definitive.
+                </div>
               </div>
             </>
           ) : (
             <div className="bg-brand-cream border border-brand-border rounded-[10px] px-[13px] py-3.5">
-              <div className="text-xs text-brand-espresso leading-[1.55]">Not enough tagged social data yet for this product. Check back soon — we're actively collecting real reviews from TikTok, Instagram, and Reddit.</div>
+              <div className="text-xs text-brand-espresso leading-[1.55]">Not enough tagged social data yet for {isShadeLine ? "this shade or its line" : "this product"}. Check back soon — we're actively collecting real reviews from TikTok, Instagram, and Reddit.</div>
             </div>
           )}
         </Section>
@@ -689,7 +737,7 @@ function ProductPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="bg-brand-crimson text-brand-cream text-[10px] px-2 py-0.5 rounded-[20px] font-medium">You</span>
-                      <span className="text-brand-crimson font-semibold text-[13px]">{has ? `${pct}%` : "—"}</span>
+                      <span className="text-brand-crimson font-semibold text-[13px]">{has ? `${pct}%` : "—"}{has && skinTypeScope[key] === "line" ? <span className="font-normal text-[10px] ml-1">line</span> : null}</span>
                     </div>
                   </div>
                   <div className="h-1 bg-brand-crimson/10 rounded-[3px] overflow-hidden">
@@ -704,7 +752,7 @@ function ProductPage() {
                   <div className="flex items-center gap-2 text-brand-espresso text-xs">
                     <span>{c.name} <span className="font-normal text-[11px] text-brand-muted">({SKIN_TYPE_LABEL[key]})</span></span>
                   </div>
-                  <span className="text-brand-muted text-xs">{has ? `${pct}%` : "—"}</span>
+                  <span className="text-brand-muted text-xs">{has ? `${pct}%` : "—"}{has && skinTypeScope[key] === "line" ? <span className="text-[10px] ml-1">line</span> : null}</span>
                 </div>
                 <div className="h-1 bg-brand-border rounded-[3px] overflow-hidden">
                   <div className="h-full bg-brand-espresso/25" style={{ width: `${has ? pct : 0}%` }} />
@@ -730,7 +778,7 @@ function ProductPage() {
                     <div className="text-brand-crimson font-semibold text-[13px]">{a.label} <span className="text-brand-crimson font-normal text-[11px] ml-1">{a.sub}</span></div>
                     <div className="flex items-center gap-2">
                       <span className="bg-brand-crimson text-brand-cream text-[10px] px-2 py-0.5 rounded-[20px] font-medium">You</span>
-                      <span className="text-brand-crimson font-semibold text-[13px]">{has ? `${pct}%` : "—"}</span>
+                      <span className="text-brand-crimson font-semibold text-[13px]">{has ? `${pct}%` : "—"}{has && ageBracketScope[a.key] === "line" ? <span className="font-normal text-[10px] ml-1">line</span> : null}</span>
                     </div>
                   </div>
                   <div className="h-1 bg-brand-crimson/10 rounded-[3px] overflow-hidden">
@@ -743,7 +791,7 @@ function ProductPage() {
               <div key={a.key} className={`px-3 py-2 ${has ? "" : "opacity-55"}`}>
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="text-brand-espresso text-xs">{a.label} <span className="text-brand-muted text-[11px] ml-1">{a.sub}</span></div>
-                  <span className="text-brand-muted text-xs">{has ? `${pct}%` : "—"}</span>
+                  <span className="text-brand-muted text-xs">{has ? `${pct}%` : "—"}{has && ageBracketScope[a.key] === "line" ? <span className="text-[10px] ml-1">line</span> : null}</span>
                 </div>
                 <div className="h-1 bg-brand-border rounded-[3px] overflow-hidden">
                   <div className="h-full bg-brand-espresso/25" style={{ width: `${has ? pct : 0}%` }} />
@@ -754,6 +802,11 @@ function ProductPage() {
           {!anyAgePct && (
             <div className="mt-2.5">
               <DataPending>This will show recommend rates by age group. Needs at least 10 tagged posts per age group — we're still collecting.</DataPending>
+            </div>
+          )}
+          {anyLineBar && (
+            <div className="text-[10px] text-brand-muted italic mt-2.5">
+              Bars marked “line” use opinions about the whole {lineName} line, because fewer than {MIN_TAGGED} name {shadeName ?? "this shade"}.
             </div>
           )}
         </Section>
@@ -1052,7 +1105,7 @@ function ProductPage() {
         <div className="px-4 py-3.5 bg-brand-cream border border-brand-border rounded-[10px] mx-4 mt-3 mb-2 flex items-center gap-2.5">
           <span className="bg-brand-crimson text-brand-cream text-[11px] font-semibold px-3 py-[3px] rounded-[20px]">{confidence}</span>
           <span className="text-[11px] text-brand-muted leading-[1.4]">
-            {tiktokRows.length + instagramRowsDeduped.length} TikTok and Instagram post{tiktokRows.length + instagramRowsDeduped.length === 1 ? "" : "s"} collected; {sentimentTotal} tagged opinion{sentimentTotal === 1 ? "" : "s"} from TikTok, Instagram, and Reddit
+            {tiktokRows.length + instagramRowsDeduped.length} TikTok and Instagram post{tiktokRows.length + instagramRowsDeduped.length === 1 ? "" : "s"} collected; {sentimentTotal} tagged opinion{sentimentTotal === 1 ? "" : "s"} from TikTok, Instagram, and Reddit{opinionScope === "line" ? ` about the ${lineName} line` : opinionScope === "shade" ? ` about ${shadeName ?? "this shade"}` : isShadeLine ? ` naming ${shadeName ?? "this shade"} (${lineTaggedCount} about the ${lineName} line, too few to show)` : ""}
           </span>
         </div>
         )}

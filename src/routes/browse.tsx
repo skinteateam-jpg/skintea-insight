@@ -446,6 +446,34 @@ function BrowsePage() {
               </div>
             )}
 
+            {/* Subcategory chips */}
+            {search.category && !subcatsLoading && categorySubcats.length >= 2 && (
+              <div className="mt-3 flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {categorySubcats.map((sc) => {
+                  const active = search.subcategory === sc;
+                  return (
+                    <button
+                      key={sc}
+                      type="button"
+                      onClick={() =>
+                        setSearch({
+                          subcategory: active ? undefined : sc,
+                          type: undefined,
+                        })
+                      }
+                      className={
+                        active
+                          ? "whitespace-nowrap rounded-full bg-brand-espresso px-3 py-1.5 text-[12px] font-medium text-white"
+                          : "whitespace-nowrap rounded-full border border-brand-border bg-card px-3 py-1.5 text-[12px] font-medium text-brand-espresso"
+                      }
+                    >
+                      {sc}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Grid */}
             <div ref={gridRef} className="mt-4 scroll-mt-6">
               {loading ? (

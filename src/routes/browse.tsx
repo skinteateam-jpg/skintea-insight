@@ -104,6 +104,12 @@ type FacetRow = {
   max_price: number | null;
 };
 
+type DistinctRow = {
+  category: string;
+  subcategory: string | null;
+  product_type: string | null;
+};
+
 function BrowsePage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/browse" });

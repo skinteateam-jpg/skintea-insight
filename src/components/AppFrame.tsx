@@ -1,6 +1,25 @@
 import DesktopNav from "@/components/DesktopNav";
 
-export default function AppFrame({ children }: { children: React.ReactNode }) {
+export default function AppFrame({
+  children,
+  fluid,
+}: {
+  children: React.ReactNode;
+  fluid?: boolean;
+}) {
+  if (fluid) {
+    return (
+      <>
+        <DesktopNav />
+        <div className="min-h-screen bg-background">
+          <div className="mx-auto w-full max-w-[1280px] px-4 md:px-8">
+            {children}
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <DesktopNav />

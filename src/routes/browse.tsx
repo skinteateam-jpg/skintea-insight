@@ -198,6 +198,36 @@ function BrowsePage() {
     };
   }, [search.q, search.category, search.subcategory, search.type]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setSubcatsLoading(true);
+    (async () => {
+      const { data, error } = await supabase.rpc("distinct_product_subcategories");
+      if (cancelled) return;
+      if (error) {
+        console.error("distinct_product_subcategories failed", error);
+        setTaxonomyRows([]);
+      } else {
+        setTaxonomyRows((data ?? []) as unknown as DistinctRow[]);
+      }
+      setSubcatsLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const categorySubcats = useMemo(() => {
+    if (!search.category) return [];
+    const set = new Set<string>();
+    for (const row of taxonomyRows) {
+      if (row.category === search.category && row.subcategory) {
+        set.add(row.subcategory);
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [taxonomyRows, search.category]);
+
   const totalCount = rows.length > 0 ? Number(rows[0].total_count) : 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const priceFloor = facets.length > 0 ? facets[0].min_price ?? undefined : undefined;

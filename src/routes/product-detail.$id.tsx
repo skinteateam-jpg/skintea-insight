@@ -95,6 +95,11 @@ const STORE_LINKS = [
 
 const CONFIDENCE_RANK: Record<string, number> = { high: 3, medium: 2, low: 1 };
 
+// Carousels show display rows only. Rows with any other source_query_type are tagged
+// opinions (Reddit threads, TikTok product searches, Instagram comments) and must never
+// render as a video or reel tile.
+const isDisplayRow = (r: any) => r.source_query_type === "display_candidate";
+
 const REDDIT_SENTIMENT_META: Record<string, { cls: string; label: string }> = {
   positive: { cls: "text-emerald-700", label: "Positive" },
   negative: { cls: "text-brand-crimson", label: "Negative" },
@@ -191,7 +196,7 @@ function ProductPage() {
   }, [activeTikTokEmbed]);
 
   useEffect(() => {
-    const urls = socialReviews.filter((r) => r.platform === "tiktok" && r.source_url).map((r) => r.source_url as string);
+    const urls = socialReviews.filter((r) => r.platform === "tiktok" && isDisplayRow(r) && r.source_url).map((r) => r.source_url as string);
     const toFetch = Array.from(new Set(urls)).filter((u) => !(u in tiktokThumbnails));
     if (toFetch.length === 0) return;
     toFetch.forEach(async (u) => {
@@ -296,8 +301,9 @@ function ProductPage() {
     if (socialReviews.length === 0) return;
     autoTabbedFor.current = id;
     const counts = {
-      tiktok: socialReviews.filter((r) => r.platform === "tiktok").length,
-      instagram: socialReviews.filter((r) => r.platform === "instagram").length,
+      // Auto-tab counts display rows only (approved 2026-09-12; still raw, not deduped).
+      tiktok: socialReviews.filter((r) => r.platform === "tiktok" && isDisplayRow(r)).length,
+      instagram: socialReviews.filter((r) => r.platform === "instagram" && isDisplayRow(r)).length,
       reddit: socialReviews.filter((r) => r.platform === "reddit" && ["positive", "negative", "mixed"].includes(r.sentiment)).length,
     };
     const best = (["tiktok", "instagram", "reddit"] as const).reduce(
@@ -449,8 +455,8 @@ function ProductPage() {
     return Array.from(byQuote.values()).slice(0, 8);
   })();
 
-  const tiktokRows = socialReviews.filter((r) => r.platform === "tiktok");
-  const instagramRows = socialReviews.filter((r) => r.platform === "instagram");
+  const tiktokRows = socialReviews.filter((r) => r.platform === "tiktok" && isDisplayRow(r));
+  const instagramRows = socialReviews.filter((r) => r.platform === "instagram" && isDisplayRow(r));
   const instagramRowsDeduped = (() => {
     const map = new Map<string, typeof instagramRows[number]>();
     for (const r of instagramRows) {
@@ -1042,11 +1048,11 @@ function ProductPage() {
         </Section>
 
         {/* 10. Confidence strip */}
-        {socialReviews.length > 0 && (
+        {(tiktokRows.length + instagramRowsDeduped.length > 0 || sentimentTotal > 0) && (
         <div className="px-4 py-3.5 bg-brand-cream border border-brand-border rounded-[10px] mx-4 mt-3 mb-2 flex items-center gap-2.5">
           <span className="bg-brand-crimson text-brand-cream text-[11px] font-semibold px-3 py-[3px] rounded-[20px]">{confidence}</span>
           <span className="text-[11px] text-brand-muted leading-[1.4]">
-            {socialReviews.length} post{socialReviews.length === 1 ? "" : "s"} collected across TikTok, Instagram, and Reddit; {sentimentTotal} carr{sentimentTotal === 1 ? "ies" : "y"} a tagged opinion
+            {tiktokRows.length + instagramRowsDeduped.length} TikTok and Instagram post{tiktokRows.length + instagramRowsDeduped.length === 1 ? "" : "s"} collected; {sentimentTotal} tagged opinion{sentimentTotal === 1 ? "" : "s"} from TikTok, Instagram, and Reddit
           </span>
         </div>
         )}

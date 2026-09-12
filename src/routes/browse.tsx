@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
@@ -104,6 +104,12 @@ type FacetRow = {
   max_price: number | null;
 };
 
+type DistinctRow = {
+  category: string;
+  subcategory: string | null;
+  product_type: string | null;
+};
+
 function BrowsePage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/browse" });
@@ -133,6 +139,8 @@ function BrowsePage() {
   const [rows, setRows] = useState<BrowseRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [facets, setFacets] = useState<FacetRow[]>([]);
+  const [taxonomyRows, setTaxonomyRows] = useState<DistinctRow[]>([]);
+  const [subcatsLoading, setSubcatsLoading] = useState(true);
 
   const brandsKey = activeBrands.join(",");
 
@@ -189,6 +197,36 @@ function BrowsePage() {
       cancelled = true;
     };
   }, [search.q, search.category, search.subcategory, search.type]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSubcatsLoading(true);
+    (async () => {
+      const { data, error } = await supabase.rpc("distinct_product_subcategories");
+      if (cancelled) return;
+      if (error) {
+        console.error("distinct_product_subcategories failed", error);
+        setTaxonomyRows([]);
+      } else {
+        setTaxonomyRows((data ?? []) as unknown as DistinctRow[]);
+      }
+      setSubcatsLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const categorySubcats = useMemo(() => {
+    if (!search.category) return [];
+    const set = new Set<string>();
+    for (const row of taxonomyRows) {
+      if (row.category === search.category && row.subcategory) {
+        set.add(row.subcategory);
+      }
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [taxonomyRows, search.category]);
 
   const totalCount = rows.length > 0 ? Number(rows[0].total_count) : 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -405,6 +443,34 @@ function BrowsePage() {
                     Clear all
                   </button>
                 )}
+              </div>
+            )}
+
+            {/* Subcategory chips */}
+            {search.category && !subcatsLoading && categorySubcats.length >= 2 && (
+              <div className="mt-3 flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {categorySubcats.map((sc) => {
+                  const active = search.subcategory === sc;
+                  return (
+                    <button
+                      key={sc}
+                      type="button"
+                      onClick={() =>
+                        setSearch({
+                          subcategory: active ? undefined : sc,
+                          type: undefined,
+                        })
+                      }
+                      className={
+                        active
+                          ? "whitespace-nowrap rounded-full bg-brand-espresso px-3 py-1.5 text-[12px] font-medium text-white"
+                          : "whitespace-nowrap rounded-full border border-brand-border bg-card px-3 py-1.5 text-[12px] font-medium text-brand-espresso"
+                      }
+                    >
+                      {sc}
+                    </button>
+                  );
+                })}
               </div>
             )}
 

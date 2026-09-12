@@ -446,7 +446,7 @@ function ProductPage() {
       const key = raw && typeof raw === "string" && raw.trim().length > 0 ? raw.trim().toLowerCase() : r.id;
       if (!byQuote.has(key)) byQuote.set(key, r);
     }
-    return Array.from(byQuote.values()).slice(0, 6);
+    return Array.from(byQuote.values()).slice(0, 8);
   })();
 
   const tiktokRows = socialReviews.filter((r) => r.platform === "tiktok");

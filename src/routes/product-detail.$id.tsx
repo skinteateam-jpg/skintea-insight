@@ -908,7 +908,7 @@ function ProductPage() {
       <Section title="What people are saying">
         <div style={{ display: "flex" }}>
           {(["tiktok", "instagram", "reddit"] as const).map((t) => {
-            const count = t === "tiktok" ? tiktokRows.length : t === "instagram" ? instagramRows.length : redditItems.length;
+            const count = t === "tiktok" ? tiktokRows.length : t === "instagram" ? instagramRowsDeduped.length : redditItems.length;
             const active = tab === t;
             const label = t === "tiktok" ? "TikTok" : t === "instagram" ? "Instagram" : "Reddit";
             return (

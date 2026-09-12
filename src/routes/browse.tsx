@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import AppFrame from "@/components/AppFrame";
@@ -130,47 +130,66 @@ function BrowsePage() {
     });
   }
 
-  const productsQuery = useQuery({
-    queryKey: ["browse-products", search],
-    queryFn: async () => {
+  const [rows, setRows] = useState<BrowseRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [facets, setFacets] = useState<FacetRow[]>([]);
+
+  const brandsKey = activeBrands.join(",");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
       const { data, error } = await supabase.rpc("browse_products", {
         p_q: search.q,
         p_category: search.category,
         p_subcategory: search.subcategory,
         p_product_type: search.type,
-        p_brands: activeBrands.length > 0 ? activeBrands : undefined,
+        p_brands: brandsKey ? brandsKey.split(",") : undefined,
         p_min_price: search.min,
         p_max_price: search.max,
         p_sort: search.sort,
         p_offset: (search.page - 1) * PAGE_SIZE,
         p_limit: PAGE_SIZE,
       });
-      if (error) throw error;
-      return (data ?? []) as unknown as BrowseRow[];
-    },
-  });
+      if (cancelled) return;
+      if (error) console.error("browse_products failed", error);
+      setRows(((data ?? []) as unknown as BrowseRow[]) ?? []);
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    search.q,
+    search.category,
+    search.subcategory,
+    search.type,
+    search.min,
+    search.max,
+    search.sort,
+    search.page,
+    brandsKey,
+  ]);
 
-  const facetsQuery = useQuery({
-    queryKey: [
-      "browse-facets",
-      search.q,
-      search.category,
-      search.subcategory,
-      search.type,
-    ],
-    queryFn: async () => {
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
       const { data, error } = await supabase.rpc("browse_facets", {
         p_q: search.q,
         p_category: search.category,
         p_subcategory: search.subcategory,
         p_product_type: search.type,
       });
-      if (error) throw error;
-      return (data ?? []) as unknown as FacetRow[];
-    },
-  });
+      if (cancelled) return;
+      if (error) console.error("browse_facets failed", error);
+      setFacets(((data ?? []) as unknown as FacetRow[]) ?? []);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [search.q, search.category, search.subcategory, search.type]);
 
-  const rows = productsQuery.data ?? [];
   const totalCount = rows.length > 0 ? Number(rows[0].total_count) : 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const loading = productsQuery.isPending;

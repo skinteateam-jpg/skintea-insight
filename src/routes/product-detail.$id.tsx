@@ -464,6 +464,17 @@ function ProductPage() {
 
   const tiktokRows = socialReviews.filter((r) => r.platform === "tiktok");
   const instagramRows = socialReviews.filter((r) => r.platform === "instagram");
+  const instagramRowsDeduped = (() => {
+    const map = new Map<string, typeof instagramRows[number]>();
+    for (const r of instagramRows) {
+      const key = r.source_url ?? r.id;
+      const existing = map.get(key);
+      if (!existing || (r.views ?? 0) > (existing.views ?? 0)) {
+        map.set(key, r);
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
+  })();
 
   const autoTabbedFor = useRef<string | null>(null);
   useEffect(() => {
@@ -897,7 +908,7 @@ function ProductPage() {
       <Section title="What people are saying">
         <div style={{ display: "flex" }}>
           {(["tiktok", "instagram", "reddit"] as const).map((t) => {
-            const count = t === "tiktok" ? tiktokRows.length : t === "instagram" ? instagramRows.length : redditItems.length;
+            const count = t === "tiktok" ? tiktokRows.length : t === "instagram" ? instagramRowsDeduped.length : redditItems.length;
             const active = tab === t;
             const label = t === "tiktok" ? "TikTok" : t === "instagram" ? "Instagram" : "Reddit";
             return (
@@ -980,78 +991,50 @@ function ProductPage() {
             )
           )}
           {tab === "instagram" && (
-            instagramRows.length > 0 ? (
-              (() => {
-                const bestPerVideo = new Map<string, typeof instagramRows[number]>();
-                for (const r of instagramRows) {
-                  const key = r.source_url ?? r.id;
-                  const existing = bestPerVideo.get(key);
-                  if (!existing || (r.views ?? 0) > (existing.views ?? 0)) {
-                    bestPerVideo.set(key, r);
-                  }
-                }
-                const bestPerAuthor = new Map<string, typeof instagramRows[number]>();
-                const anonymous: typeof instagramRows[number][] = [];
-                for (const r of bestPerVideo.values()) {
-                  const handle = r.author_handle;
-                  if (!handle) {
-                    anonymous.push(r);
-                  } else {
-                    const existing = bestPerAuthor.get(handle);
-                    if (!existing || (r.views ?? 0) > (existing.views ?? 0)) {
-                      bestPerAuthor.set(handle, r);
-                    }
-                  }
-                }
-                const list = Array.from(bestPerAuthor.values())
-                  .concat(anonymous)
-                  .sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
-                return (
-                  <div>
-                    <div style={{ display: "flex", flexDirection: "row", gap: 8, overflowX: "auto", scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", paddingBottom: 4, scrollbarWidth: "none", msOverflowStyle: "none" }}>
-                      {list.map((r) => {
-                        const thumbUrl = r.thumbnail_path
-                          ? supabase.storage.from("social-thumbnails").getPublicUrl(r.thumbnail_path).data.publicUrl
-                          : null;
-                        const card = (
-                          <div style={{ background: thumbUrl ? `#1a2620 url(${thumbUrl}) center/cover no-repeat` : "#1a2620", borderRadius: 12, overflow: "hidden", aspectRatio: "9/16", position: "relative" }}>
-                            <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%, -50%)", width: 36, height: 36, background: "rgba(255,255,255,0.2)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              <Play width={14} height={14} color="#fff" fill="#fff" />
+            instagramRowsDeduped.length > 0 ? (
+              <div>
+                <div style={{ display: "flex", flexDirection: "row", gap: 8, overflowX: "auto", scrollSnapType: "x mandatory", WebkitOverflowScrolling: "touch", paddingBottom: 4, scrollbarWidth: "none", msOverflowStyle: "none" }}>
+                  {instagramRowsDeduped.map((r) => {
+                    const thumbUrl = r.thumbnail_path
+                      ? supabase.storage.from("social-thumbnails").getPublicUrl(r.thumbnail_path).data.publicUrl
+                      : null;
+                    const card = (
+                      <div style={{ background: thumbUrl ? `#1a2620 url(${thumbUrl}) center/cover no-repeat` : "#1a2620", borderRadius: 12, overflow: "hidden", aspectRatio: "9/16", position: "relative" }}>
+                        <div style={{ position: "absolute", top: "40%", left: "50%", transform: "translate(-50%, -50%)", width: 36, height: 36, background: "rgba(255,255,255,0.2)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <Play width={14} height={14} color="#fff" fill="#fff" />
+                        </div>
+                        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "8px 10px", background: "linear-gradient(to top, rgba(0,0,0,0.85), transparent)" }}>
+                          {Array.isArray(r.disclosure) && r.disclosure.length > 0 && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginBottom: 4 }}>
+                              {r.disclosure.map((d: string) => (
+                                <span key={d} style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase", color: "#fff", background: "rgba(255,255,255,0.22)", borderRadius: 3, padding: "2px 5px", whiteSpace: "nowrap" }}>
+                                  {DISCLOSURE_LABELS[d] ?? d}
+                                </span>
+                              ))}
                             </div>
-                            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "8px 10px", background: "linear-gradient(to top, rgba(0,0,0,0.85), transparent)" }}>
-                              {Array.isArray(r.disclosure) && r.disclosure.length > 0 && (
-                                <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginBottom: 4 }}>
-                                  {r.disclosure.map((d: string) => (
-                                    <span key={d} style={{ fontSize: 8, fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase", color: "#fff", background: "rgba(255,255,255,0.22)", borderRadius: 3, padding: "2px 5px", whiteSpace: "nowrap" }}>
-                                      {DISCLOSURE_LABELS[d] ?? d}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                              <div style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{r.author_handle ?? "@user"}</div>
-                              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.7)", marginTop: 2, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{r.content ?? ""}</div>
-                              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", marginTop: 3 }}>{formatViewCount(r.views)} views</div>
-                            </div>
-                          </div>
-                        );
-                        const tileStyle: React.CSSProperties = { flex: "0 0 150px", scrollSnapAlign: "start", textDecoration: "none" };
-                        return r.source_url ? (
-                          <a key={r.id} href={r.source_url} target="_blank" rel="noopener noreferrer" style={tileStyle}>
-                            {card}
-                          </a>
-                        ) : (
-                          <div key={r.id} style={tileStyle}>
-                            {card}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div style={{ fontSize: 10, color: MUTED, marginTop: 10, lineHeight: 1.4 }}>
-                      {list.length} reel{list.length === 1 ? "" : "s"} showing this product. Includes brand and creator content.
-                    </div>
-                  </div>
-                );
-              })()
+                          )}
+                          <div style={{ fontSize: 11, fontWeight: 700, color: "#fff" }}>{r.author_handle ?? "@user"}</div>
+                          <div style={{ fontSize: 9, color: "rgba(255,255,255,0.7)", marginTop: 2, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{r.content ?? ""}</div>
+                          <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", marginTop: 3 }}>{formatViewCount(r.views)} views</div>
+                        </div>
+                      </div>
+                    );
+                    const tileStyle: React.CSSProperties = { flex: "0 0 150px", scrollSnapAlign: "start", textDecoration: "none" };
+                    return r.source_url ? (
+                      <a key={r.id} href={r.source_url} target="_blank" rel="noopener noreferrer" style={tileStyle}>
+                        {card}
+                      </a>
+                    ) : (
+                      <div key={r.id} style={tileStyle}>
+                        {card}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: 10, color: MUTED, marginTop: 10, lineHeight: 1.4 }}>
+                  {instagramRowsDeduped.length} reel{instagramRowsDeduped.length === 1 ? "" : "s"} showing this product. Includes brand and creator content.
+                </div>
+              </div>
             ) : (
               <DataPending>No Instagram reels collected for this product yet. We're still gathering them.</DataPending>
             )

@@ -139,6 +139,8 @@ function BrowsePage() {
   const [rows, setRows] = useState<BrowseRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [facets, setFacets] = useState<FacetRow[]>([]);
+  const [taxonomyRows, setTaxonomyRows] = useState<DistinctRow[]>([]);
+  const [subcatsLoading, setSubcatsLoading] = useState(true);
 
   const brandsKey = activeBrands.join(",");
 

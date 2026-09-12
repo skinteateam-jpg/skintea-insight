@@ -220,7 +220,7 @@ function ProductsPage() {
               <span className="font-display text-[22px] font-bold italic text-brand-espresso">Skin</span>
               <span className="font-display text-[22px] font-bold italic text-brand-crimson">tea</span>
             </div>
-            <div className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.16em] text-brand-muted">
+            <div className="mt-0.5 text-[8px] font-medium text-brand-muted">
               Got Skintea? Spill it.
             </div>
           </Link>
@@ -334,7 +334,7 @@ function ProductsPage() {
           <div className="px-4 pt-3 md:px-0">
             {subcategorySections.map((section) => (
               <section key={section.category} className="mb-6">
-                <h2 className="mb-2.5 inline-block rounded bg-brand-espresso px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-primary-foreground">
+                <h2 className="mb-2.5 inline-block rounded bg-brand-espresso px-3 py-1.5 text-[12px] font-bold text-primary-foreground">
                   {section.category}
                 </h2>
                 <div className="grid grid-cols-2 overflow-hidden rounded-md border border-brand-border bg-card md:grid-cols-3 lg:grid-cols-4">

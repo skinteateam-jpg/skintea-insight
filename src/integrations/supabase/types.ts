@@ -1604,6 +1604,104 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      browse_facets: {
+        Args: {
+          p_category?: string
+          p_product_type?: string
+          p_q?: string
+          p_subcategory?: string
+        }
+        Returns: {
+          brand: string
+          max_price: number
+          min_price: number
+          product_count: number
+        }[]
+      }
+      browse_products: {
+        Args: {
+          p_brands?: string[]
+          p_category?: string
+          p_limit?: number
+          p_max_price?: number
+          p_min_price?: number
+          p_offset?: number
+          p_product_type?: string
+          p_q?: string
+          p_sort?: string
+          p_subcategory?: string
+        }
+        Returns: {
+          brand: string
+          category: string
+          currency: string
+          decisive_tags: number
+          id: string
+          image_url: string
+          name: string
+          price: number
+          product_family_name: string
+          product_type: string
+          recommend_pct: number
+          subcategory: string
+          total_count: number
+          total_views: number
+          video_count: number
+        }[]
+      }
+      catalog_brand_facets: {
+        Args: {
+          p_category?: string
+          p_product_type?: string
+          p_search?: string
+          p_subcategory?: string
+        }
+        Returns: {
+          brand: string
+          n: number
+        }[]
+      }
+      catalog_products: {
+        Args: {
+          p_brands?: string[]
+          p_category?: string
+          p_limit?: number
+          p_offset?: number
+          p_price_max?: number
+          p_price_min?: number
+          p_product_type?: string
+          p_search?: string
+          p_sort?: string
+          p_subcategory?: string
+        }
+        Returns: {
+          brand: string
+          category: string
+          currency: string
+          id: string
+          image_url: string
+          name: string
+          price: number
+          product_family_name: string
+          product_type: string
+          product_url: string
+          shade_count: number
+          shade_name: string
+          size_variant: string
+          social_count: number
+          source: string
+          subcategory: string
+          tiktok_views: number
+          total_count: number
+        }[]
+      }
+      category_counts: {
+        Args: never
+        Returns: {
+          category: string
+          product_count: number
+        }[]
+      }
       distinct_product_subcategories: {
         Args: never
         Returns: {
@@ -1651,6 +1749,87 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      ranked_products: {
+        Args: {
+          p_category?: string
+          p_limit?: number
+          p_metric?: string
+          p_product_type?: string
+          p_subcategory?: string
+        }
+        Returns: {
+          brand: string
+          category: string
+          currency: string
+          id: string
+          image_url: string
+          metric_count: number
+          metric_value: number
+          name: string
+          price: number
+          product_family_name: string
+          product_type: string
+          product_url: string
+          shade_name: string
+          size_variant: string
+          source: string
+          subcategory: string
+        }[]
+      }
+      ranking_recommended: {
+        Args: { p_category?: string; p_limit?: number; p_min_tags?: number }
+        Returns: {
+          brand: string
+          category: string
+          currency: string
+          decisive_tags: number
+          id: string
+          image_url: string
+          min_tags: number
+          name: string
+          positive_tags: number
+          price: number
+          product_family_name: string
+          product_type: string
+          recommend_pct: number
+          subcategory: string
+        }[]
+      }
+      ranking_soaring: {
+        Args: { p_category?: string; p_days?: number; p_limit?: number }
+        Returns: {
+          brand: string
+          category: string
+          currency: string
+          id: string
+          image_url: string
+          name: string
+          price: number
+          product_family_name: string
+          product_type: string
+          recent_posts: number
+          subcategory: string
+          total_views: number
+          window_days: number
+        }[]
+      }
+      ranking_tiktok: {
+        Args: { p_category?: string; p_limit?: number }
+        Returns: {
+          brand: string
+          category: string
+          currency: string
+          id: string
+          image_url: string
+          name: string
+          price: number
+          product_family_name: string
+          product_type: string
+          subcategory: string
+          total_views: number
+          video_count: number
+        }[]
       }
     }
     Enums: {

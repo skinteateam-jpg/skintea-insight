@@ -103,6 +103,7 @@
   --sidebar-ring: oklch(0.3308 0.9105 357.67);
 }
 
+/* NOTE: .dark still uses the default shadcn palette and is not yet brand-aligned. */
 .dark {
   --background: oklch(0.129 0.042 264.695);
   --foreground: oklch(0.984 0.003 247.858);

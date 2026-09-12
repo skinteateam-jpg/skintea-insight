@@ -36,11 +36,13 @@ export const Route = createRootRoute({
       { property: "og:description", content: "The honest skincare decision platform. Real reviews from TikTok, Reddit, and Instagram — turned into clear insights." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@skintea" },
       { name: "twitter:title", content: "Skintea" },
       { name: "twitter:description", content: "The honest skincare decision platform. Real reviews from TikTok, Reddit, and Instagram — turned into clear insights." },
     ],
     links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..800;1,9..40,400..800&family=Playfair+Display:ital,wght@1,700;1,800;1,900&display=swap" },
       {
         rel: "stylesheet",
         href: appCss,

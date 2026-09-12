@@ -1777,6 +1777,86 @@ export type Database = {
           subcategory: string
         }[]
       }
+      ranked_products_recommended: {
+        Args: {
+          p_category?: string
+          p_limit?: number
+          p_min_tags?: number
+          p_product_type?: string
+          p_subcategory?: string
+        }
+        Returns: {
+          brand: string
+          category: string
+          currency: string
+          id: string
+          image_url: string
+          metric_secondary: number
+          metric_value: number
+          name: string
+          price: number
+          product_family_name: string
+          product_type: string
+          product_url: string
+          shade_name: string
+          size_variant: string
+          source: string
+          subcategory: string
+        }[]
+      }
+      ranked_products_soaring: {
+        Args: {
+          p_category?: string
+          p_days?: number
+          p_limit?: number
+          p_product_type?: string
+          p_subcategory?: string
+        }
+        Returns: {
+          brand: string
+          category: string
+          currency: string
+          id: string
+          image_url: string
+          metric_secondary: number
+          metric_value: number
+          name: string
+          price: number
+          product_family_name: string
+          product_type: string
+          product_url: string
+          shade_name: string
+          size_variant: string
+          source: string
+          subcategory: string
+        }[]
+      }
+      ranked_products_tiktok: {
+        Args: {
+          p_category?: string
+          p_limit?: number
+          p_product_type?: string
+          p_subcategory?: string
+        }
+        Returns: {
+          brand: string
+          category: string
+          currency: string
+          id: string
+          image_url: string
+          metric_secondary: number
+          metric_value: number
+          name: string
+          price: number
+          product_family_name: string
+          product_type: string
+          product_url: string
+          shade_name: string
+          size_variant: string
+          source: string
+          subcategory: string
+        }[]
+      }
       ranking_recommended: {
         Args: { p_category?: string; p_limit?: number; p_min_tags?: number }
         Returns: {

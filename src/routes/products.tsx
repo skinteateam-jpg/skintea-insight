@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronRight, Search, X } from "lucide-react";
 
 import AppFrame from "@/components/AppFrame";
@@ -62,8 +62,6 @@ type SubcategoryRow = {
   product_type: string | null;
 };
 
-type Rail = "soaring" | "tiktok" | "recommended";
-
 const CATEGORIES = [
   "All",
   "Skincare",
@@ -77,16 +75,23 @@ const CATEGORIES = [
   "Fragrance",
 ] as const;
 
-const EMPTY_RAILS: Record<Rail, RankedProduct[]> = {
-  soaring: [],
-  tiktok: [],
-  recommended: [],
-};
+const SECTION_CATEGORIES = [
+  "Skincare",
+  "Lip",
+  "Face",
+  "Sunscreen",
+  "Cheek",
+  "Bodycare",
+  "Device",
+  "Fragrance",
+  "Eye",
+] as const;
 
 function ProductsPage() {
   const navigate = useNavigate();
-  const [rankings, setRankings] = useState(EMPTY_RAILS);
-  const [loading, setLoading] = useState(true);
+  const [soaring, setSoaring] = useState<RankedProduct[]>([]);
+  const [soaringLoading, setSoaringLoading] = useState(true);
+  const [categoryRankings, setCategoryRankings] = useState<Record<string, RankedProduct[]>>({});
   const [showLogin, setShowLogin] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchProduct[]>([]);
@@ -96,32 +101,49 @@ function ProductsPage() {
     let cancelled = false;
 
     (async () => {
-      setLoading(true);
+      setSoaringLoading(true);
       const args = {
         p_category: null,
         p_subcategory: null,
         p_product_type: null,
         p_limit: 20,
       };
-      const [soaringResult, tiktokResult, recommendedResult] = await Promise.all([
-        supabase.rpc("ranked_products_soaring", args as never),
-        supabase.rpc("ranked_products_tiktok", args as never),
-        supabase.rpc("ranked_products_recommended", args as never),
-      ]);
+      const soaringResult = await supabase.rpc("ranked_products_soaring", args as never);
 
       if (cancelled) return;
       if (soaringResult.error) console.error("ranked_products_soaring failed", soaringResult.error);
-      if (tiktokResult.error) console.error("ranked_products_tiktok failed", tiktokResult.error);
-      if (recommendedResult.error) {
-        console.error("ranked_products_recommended failed", recommendedResult.error);
-      }
-      setRankings({
-        soaring: (soaringResult.data ?? []) as RankedProduct[],
-        tiktok: (tiktokResult.data ?? []) as RankedProduct[],
-        recommended: (recommendedResult.data ?? []) as RankedProduct[],
-      });
-      setLoading(false);
+      setSoaring((soaringResult.data ?? []) as RankedProduct[]);
+      setSoaringLoading(false);
     })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setCategoryRankings({});
+
+    const requests = SECTION_CATEGORIES.map(async (category) => {
+      const result = await supabase.rpc(
+        "ranked_products_tiktok",
+        {
+          p_category: category,
+          p_subcategory: null,
+          p_product_type: null,
+          p_limit: 20,
+        } as never,
+      );
+      if (cancelled) return;
+      if (result.error) console.error("ranked_products_tiktok failed", result.error);
+      setCategoryRankings((current) => ({
+        ...current,
+        [category]: (result.data ?? []) as RankedProduct[],
+      }));
+    });
+
+    void Promise.all(requests);
 
     return () => {
       cancelled = true;
@@ -192,14 +214,6 @@ function ProductsPage() {
       window.clearTimeout(timer);
     };
   }, [searchQuery]);
-
-  const subcategorySections = useMemo(
-    () =>
-      CATEGORIES.slice(1)
-        .filter((category) => (categorySubs[category] ?? []).length > 0)
-        .map((category) => ({ category, items: categorySubs[category] ?? [] })),
-    [categorySubs],
-  );
 
   const showDropdown = searchQuery.trim().length >= 2 && searchResults.length > 0;
 

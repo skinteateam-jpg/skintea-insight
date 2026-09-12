@@ -464,6 +464,17 @@ function ProductPage() {
 
   const tiktokRows = socialReviews.filter((r) => r.platform === "tiktok");
   const instagramRows = socialReviews.filter((r) => r.platform === "instagram");
+  const instagramRowsDeduped = (() => {
+    const map = new Map<string, typeof instagramRows[number]>();
+    for (const r of instagramRows) {
+      const key = r.source_url ?? r.id;
+      const existing = map.get(key);
+      if (!existing || (r.views ?? 0) > (existing.views ?? 0)) {
+        map.set(key, r);
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => (b.views ?? 0) - (a.views ?? 0));
+  })();
 
   const autoTabbedFor = useRef<string | null>(null);
   useEffect(() => {

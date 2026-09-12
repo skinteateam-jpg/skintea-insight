@@ -154,7 +154,7 @@ function BrowsePage() {
       });
       if (cancelled) return;
       if (error) console.error("browse_products failed", error);
-      setRows(((data ?? []) as unknown as BrowseRow[]) ?? []);
+      setRows((data ?? []) as unknown as BrowseRow[]);
       setLoading(false);
     })();
     return () => {
@@ -183,7 +183,7 @@ function BrowsePage() {
       });
       if (cancelled) return;
       if (error) console.error("browse_facets failed", error);
-      setFacets(((data ?? []) as unknown as FacetRow[]) ?? []);
+      setFacets((data ?? []) as unknown as FacetRow[]);
     })();
     return () => {
       cancelled = true;
@@ -192,9 +192,6 @@ function BrowsePage() {
 
   const totalCount = rows.length > 0 ? Number(rows[0].total_count) : 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const loading = productsQuery.isPending;
-
-  const facets = facetsQuery.data ?? [];
   const priceFloor = facets.length > 0 ? facets[0].min_price ?? undefined : undefined;
   const priceCeil = facets.length > 0 ? facets[0].max_price ?? undefined : undefined;
 

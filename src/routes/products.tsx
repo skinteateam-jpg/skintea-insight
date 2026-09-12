@@ -327,6 +327,7 @@ function ProductsPage() {
             products={rankings.recommended}
             loading={loading}
             seeAllSearch={{ sort: "popular", page: 1 }}
+            recommended
             onSave={() => setShowLogin(true)}
           />
 
@@ -404,6 +405,7 @@ function RankingSection({
   seeAllSearch,
   metric,
   ranked,
+  recommended,
   onSave,
 }: {
   title: string;
@@ -413,6 +415,7 @@ function RankingSection({
   seeAllSearch: { sort: string; page: number };
   metric?: (product: RankedProduct) => string;
   ranked?: boolean;
+  recommended?: boolean;
   onSave: () => void;
 }) {
   return (
@@ -464,8 +467,8 @@ function RankingSection({
                 imageUrl={product.image_url}
                 rank={ranked ? index + 1 : undefined}
                 metricLabel={metric?.(product)}
-                recommendPct={ranked ? undefined : product.metric_value}
-                decisiveTags={ranked ? undefined : product.metric_secondary}
+                recommendPct={recommended ? product.metric_value : undefined}
+                decisiveTags={recommended ? product.metric_secondary : undefined}
                 onSave={onSave}
               />
             </div>

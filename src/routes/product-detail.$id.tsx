@@ -530,7 +530,7 @@ function ProductPage() {
             );
           })()}
           <div className="bg-brand-cream px-4 pt-3.5 pb-4 border-b border-brand-border">
-            <div className={`${SECTION_LABEL_CLS} mb-1 text-[10px] tracking-[0.12em]`}>
+            <div className="text-[11px] font-medium text-brand-muted mb-1">
               {activeProduct?.brand}{activeProduct?.category ? ` · ${activeProduct.category}` : ""}
             </div>
             <div className="text-xl font-semibold text-brand-espresso leading-[1.25]">
@@ -960,7 +960,7 @@ function ProductPage() {
                             {Array.isArray(r.disclosure) && r.disclosure.length > 0 && (
                               <div className="flex flex-wrap gap-[3px] mb-1">
                                 {r.disclosure.map((d: string) => (
-                                  <span key={d} className="text-[8px] font-semibold uppercase tracking-[0.3px] text-white bg-white/20 rounded-[3px] px-[5px] py-0.5 whitespace-nowrap">
+                                  <span key={d} className="text-[8px] font-medium text-white bg-white/20 rounded-[3px] px-[5px] py-0.5 whitespace-nowrap">
                                     {DISCLOSURE_LABELS[d] ?? d}
                                   </span>
                                 ))}

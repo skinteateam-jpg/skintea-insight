@@ -6,6 +6,7 @@ import AppFrame from "@/components/AppFrame";
 import BottomNav from "@/components/BottomNav";
 import ProductCard, { formatCompact } from "@/components/ProductCard";
 import { supabase } from "@/integrations/supabase/client";
+import { categorySlugFor } from "@/lib/categorySlugs";
 
 export const Route = createFileRoute("/products")({
   component: ProductsPage,
@@ -312,7 +313,7 @@ function ProductsPage() {
               <Link
                 key={category}
                 to="/category/$slug"
-                params={{ slug: category }}
+                params={{ slug: categorySlugFor(category) }}
                 className="shrink-0 border-b-[3px] border-transparent px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-brand-espresso no-underline hover:border-brand-crimson hover:text-brand-crimson"
               >
                 {category}
@@ -463,7 +464,7 @@ function CategorySection({
     <section className="px-4 pb-10 md:px-0">
       <Link
         to="/category/$slug"
-        params={{ slug: category }}
+        params={{ slug: categorySlugFor(category) }}
         className="mb-3 flex items-center justify-between text-brand-espresso no-underline"
       >
         <h2 className="text-[16px] font-semibold">{category}</h2>

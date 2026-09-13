@@ -6,6 +6,7 @@ import AppFrame from "@/components/AppFrame";
 import BottomNav from "@/components/BottomNav";
 import ProductCard, { formatCompact } from "@/components/ProductCard";
 import { supabase } from "@/integrations/supabase/client";
+import { CATEGORY_LABEL_TO_SLUG } from "@/lib/categorySlugs";
 
 type CategoryNode = {
   slug: string;
@@ -65,24 +66,33 @@ const EMPTY_RAILS: Record<Rail, RankedProduct[]> = {
   recommended: [],
 };
 
+function labelFromSlug(slug: string) {
+  const known = Object.entries(CATEGORY_LABEL_TO_SLUG).find(([, value]) => value === slug);
+  const source = known ? known[0] : slug.replace(/-/g, " ");
+  return source.replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
 export const Route = createFileRoute("/category/$slug")({
   component: CategoryPage,
-  head: ({ params }) => ({
-    meta: [
-      { title: `${params.slug} rankings — Skintea` },
-      {
-        name: "description",
-        content: `Browse ${params.slug} products ranked by real social activity and tagged opinions.`,
-      },
-      { property: "og:title", content: `${params.slug} rankings — Skintea` },
-      {
-        property: "og:description",
-        content: `Browse ${params.slug} products ranked by real social activity and tagged opinions.`,
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  head: ({ params }) => {
+    const label = labelFromSlug(params.slug);
+    return {
+      meta: [
+        { title: `${label} rankings — Skintea` },
+        {
+          name: "description",
+          content: `Browse ${label} products ranked by real social activity and tagged opinions.`,
+        },
+        { property: "og:title", content: `${label} rankings — Skintea` },
+        {
+          property: "og:description",
+          content: `Browse ${label} products ranked by real social activity and tagged opinions.`,
+        },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary_large_image" },
+      ],
+    };
+  },
 });
 
 function CategoryPage() {
@@ -121,16 +131,48 @@ function CategoryPage() {
     };
   }, []);
 
+  const parentTabs = useMemo(
+    () => tree.filter((node) => node.level === 1 && node.is_navigable),
+    [tree],
+  );
+  const currentParent = useMemo(
+    () => tree.find((node) => node.level === 1 && node.slug === slug) ?? null,
+    [tree, slug],
+  );
+  const categoryLabel = currentParent?.label ?? null;
+
+  // Legacy label URLs (/category/Skincare, /category/Cheek) redirect to the slug URL.
+  const redirectSlug = useMemo(() => {
+    if (tree.length === 0 || currentParent) return null;
+    const labelMatch = tree.find(
+      (node) => node.level === 1 && node.label.toLowerCase() === slug.trim().toLowerCase(),
+    );
+    if (labelMatch) return labelMatch.slug;
+    const mapped = CATEGORY_LABEL_TO_SLUG[slug.trim().toLowerCase()];
+    if (mapped && tree.some((node) => node.level === 1 && node.slug === mapped)) return mapped;
+    return null;
+  }, [tree, currentParent, slug]);
+  const notFound = tree.length > 0 && !currentParent && !redirectSlug;
+
+  useEffect(() => {
+    if (!redirectSlug) return;
+    navigate({ to: "/category/$slug", params: { slug: redirectSlug }, replace: true });
+  }, [redirectSlug, navigate]);
+
   useEffect(() => {
     setSelectedSubcategory(null);
     setSelectedProductType(null);
+    if (!categoryLabel) {
+      setTaxonomyRows([]);
+      return;
+    }
     let cancelled = false;
 
     (async () => {
       const { data, error } = await supabase
         .from("products")
         .select("subcategory,product_type")
-        .eq("category", slug)
+        .eq("category", categoryLabel)
         .eq("is_active", true)
         .limit(5000);
       if (cancelled) return;
@@ -145,16 +187,7 @@ function CategoryPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
-
-  const parentTabs = useMemo(
-    () => tree.filter((node) => node.level === 1 && node.is_navigable),
-    [tree],
-  );
-  const currentParent = useMemo(
-    () => tree.find((node) => node.level === 1 && node.label === slug) ?? null,
-    [tree, slug],
-  );
+  }, [categoryLabel]);
   const childTabs = useMemo(() => {
     if (!currentParent) return [] as CategoryNode[];
     return tree.filter(
@@ -182,12 +215,18 @@ function CategoryPage() {
   }, [tree, selectedChild, taxonomyRows]);
 
   useEffect(() => {
+    if (!categoryLabel) {
+      setRankings(EMPTY_RAILS);
+      setBrands([]);
+      setLoading(tree.length === 0);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
 
     (async () => {
       const commonArgs = {
-        p_category: slug,
+        p_category: categoryLabel,
         p_subcategory: selectedSubcategory,
         p_product_type: selectedProductType,
         p_limit: 20,
@@ -201,7 +240,7 @@ function CategoryPage() {
             "browse_facets",
             {
               p_q: null,
-              p_category: slug,
+              p_category: categoryLabel,
               p_subcategory: selectedSubcategory,
               p_product_type: selectedProductType,
             } as never,
@@ -228,7 +267,7 @@ function CategoryPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug, selectedSubcategory, selectedProductType]);
+  }, [categoryLabel, tree.length, selectedSubcategory, selectedProductType]);
 
 
   useEffect(() => {
@@ -267,14 +306,15 @@ function CategoryPage() {
     };
   }, [searchQuery]);
 
+  // /browse takes the category label, not the slug (it is passed straight to p_category).
   const seeAllSearch = useMemo(
     () => ({
-      category: slug,
+      category: categoryLabel ?? "",
       sort: "popular",
       page: 1,
       ...(selectedSubcategory ? { subcategory: selectedSubcategory } : {}),
     }),
-    [selectedSubcategory, slug],
+    [selectedSubcategory, categoryLabel],
   );
   const showDropdown = searchQuery.trim().length >= 2 && searchResults.length > 0;
 
@@ -284,6 +324,26 @@ function CategoryPage() {
       to: "/browse",
       search: { sort: "popular", page: 1, ...(query ? { q: query } : {}) },
     });
+  }
+
+  if (notFound) {
+    return (
+      <AppFrame fluid>
+        <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background px-6 pb-24 text-center text-brand-espresso">
+          <h1 className="text-[20px] font-bold">Category not found</h1>
+          <p className="text-[13px] text-brand-muted">
+            We could not find a category at this address.
+          </p>
+          <Link
+            to="/products"
+            className="text-[13px] font-semibold text-brand-crimson underline"
+          >
+            Back to all rankings
+          </Link>
+        </div>
+        <BottomNav />
+      </AppFrame>
+    );
   }
 
   return (
@@ -367,12 +427,12 @@ function CategoryPage() {
             All
           </Link>
           {parentTabs.map((category) => {
-            const active = category.label === slug;
+            const active = category.slug === slug;
             return (
               <Link
                 key={category.slug}
                 to="/category/$slug"
-                params={{ slug: category.label }}
+                params={{ slug: category.slug }}
                 className={
                   active
                     ? "shrink-0 border-b-[3px] border-brand-crimson px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-brand-crimson no-underline"
@@ -488,7 +548,7 @@ function CategoryPage() {
                     key={brand.brand}
                     to="/browse"
                     search={{
-                      category: slug,
+                      category: categoryLabel ?? "",
                       brands: brand.brand,
                       sort: "popular",
                       page: 1,

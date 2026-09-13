@@ -306,14 +306,15 @@ function CategoryPage() {
     };
   }, [searchQuery]);
 
+  // /browse takes the category label, not the slug (it is passed straight to p_category).
   const seeAllSearch = useMemo(
     () => ({
-      category: slug,
+      category: categoryLabel ?? "",
       sort: "popular",
       page: 1,
       ...(selectedSubcategory ? { subcategory: selectedSubcategory } : {}),
     }),
-    [selectedSubcategory, slug],
+    [selectedSubcategory, categoryLabel],
   );
   const showDropdown = searchQuery.trim().length >= 2 && searchResults.length > 0;
 

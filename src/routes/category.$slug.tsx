@@ -215,12 +215,18 @@ function CategoryPage() {
   }, [tree, selectedChild, taxonomyRows]);
 
   useEffect(() => {
+    if (!categoryLabel) {
+      setRankings(EMPTY_RAILS);
+      setBrands([]);
+      setLoading(tree.length === 0);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
 
     (async () => {
       const commonArgs = {
-        p_category: slug,
+        p_category: categoryLabel,
         p_subcategory: selectedSubcategory,
         p_product_type: selectedProductType,
         p_limit: 20,
@@ -234,7 +240,7 @@ function CategoryPage() {
             "browse_facets",
             {
               p_q: null,
-              p_category: slug,
+              p_category: categoryLabel,
               p_subcategory: selectedSubcategory,
               p_product_type: selectedProductType,
             } as never,
@@ -261,7 +267,7 @@ function CategoryPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug, selectedSubcategory, selectedProductType]);
+  }, [categoryLabel, tree.length, selectedSubcategory, selectedProductType]);
 
 
   useEffect(() => {

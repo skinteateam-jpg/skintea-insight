@@ -187,23 +187,6 @@ function CategoryPage() {
   );
   const categoryLabel = currentParent?.label ?? null;
 
-  // Legacy label URLs (/category/Skincare, /category/Cheek) redirect to the slug URL.
-  const redirectSlug = useMemo(() => {
-    if (tree.length === 0 || currentParent) return null;
-    const labelMatch = tree.find(
-      (node) => node.level === 1 && node.label.toLowerCase() === slug.trim().toLowerCase(),
-    );
-    if (labelMatch) return labelMatch.slug;
-    const mapped = CATEGORY_LABEL_TO_SLUG[slug.trim().toLowerCase()];
-    if (mapped && tree.some((node) => node.level === 1 && node.slug === mapped)) return mapped;
-    return null;
-  }, [tree, currentParent, slug]);
-  const notFound = tree.length > 0 && !currentParent && !redirectSlug;
-
-  useEffect(() => {
-    if (!redirectSlug) return;
-    navigate({ to: "/category/$slug", params: { slug: redirectSlug }, replace: true });
-  }, [redirectSlug, navigate]);
 
   useEffect(() => {
     setSelectedSubcategory(null);

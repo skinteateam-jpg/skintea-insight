@@ -526,15 +526,15 @@ function BrowsePage() {
             {/* Subcategory chips */}
             {search.category && !subcatsLoading && categorySubcats.length >= 2 && (
               <div className="mt-3 flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {categorySubcats.map((sc) => {
-                  const active = search.subcategory === sc;
+                {categorySubcats.map((node) => {
+                  const active = search.subcategory === node.label;
                   return (
                     <button
-                      key={sc}
+                      key={node.slug}
                       type="button"
                       onClick={() =>
                         setSearch({
-                          subcategory: active ? undefined : sc,
+                          subcategory: active ? undefined : node.label,
                           type: undefined,
                         })
                       }
@@ -544,7 +544,32 @@ function BrowsePage() {
                           : "whitespace-nowrap rounded-full border border-brand-border bg-card px-3 py-1.5 text-[12px] font-medium text-brand-espresso"
                       }
                     >
-                      {sc}
+                      {node.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Product type chips (third tier) */}
+            {search.subcategory && !subcatsLoading && typeChips.length >= 2 && (
+              <div className="mt-2 flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {typeChips.map((node) => {
+                  const active = search.type === node.label;
+                  return (
+                    <button
+                      key={node.slug}
+                      type="button"
+                      onClick={() =>
+                        setSearch({ type: active ? undefined : node.label })
+                      }
+                      className={
+                        active
+                          ? "whitespace-nowrap rounded-full bg-brand-espresso px-3 py-1 text-[11px] font-medium text-primary-foreground"
+                          : "whitespace-nowrap rounded-full border border-brand-border bg-card px-3 py-1 text-[11px] font-medium text-brand-muted"
+                      }
+                    >
+                      {node.label}
                     </button>
                   );
                 })}

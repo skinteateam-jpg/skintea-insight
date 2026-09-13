@@ -6,6 +6,7 @@ import AppFrame from "@/components/AppFrame";
 import BottomNav from "@/components/BottomNav";
 import ProductCard, { formatCompact } from "@/components/ProductCard";
 import { supabase } from "@/integrations/supabase/client";
+import { CATEGORY_LABEL_TO_SLUG } from "@/lib/categorySlugs";
 
 type CategoryNode = {
   slug: string;

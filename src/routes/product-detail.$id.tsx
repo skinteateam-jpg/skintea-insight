@@ -1096,7 +1096,7 @@ function ProductPage() {
                     );
                   })}
                   <div className="text-[10px] text-brand-muted mt-0.5">
-                    {redditItems.length} {redditItems.length === 1 ? "quote" : "quotes"}{redditScope === "line" ? ` about the ${lineName} line` : isShadeLine ? ` naming ${shadeName ?? "this shade"}` : ""} pulled from Reddit threads. Unedited.
+                    {redditItems.length} {redditItems.length === 1 ? "quote" : "quotes"}{redditScope === "line" ? ` about the ${lineName} line` : isShadeLine ? ` naming ${shadeName ?? "this shade"}` : ""}, paraphrased by Skintea from Reddit threads. Tap a quote to read the original.
                   </div>
                 </div>
               ) : (

@@ -612,6 +612,44 @@ export type Database = {
           },
         ]
       }
+      product_categories: {
+        Row: {
+          created_at: string
+          is_navigable: boolean
+          label: string
+          level: number
+          parent_slug: string | null
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          is_navigable?: boolean
+          label: string
+          level: number
+          parent_slug?: string | null
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          is_navigable?: boolean
+          label?: string
+          level?: number
+          parent_slug?: string | null
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_categories_parent_slug_fkey"
+            columns: ["parent_slug"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       product_dedupe_log: {
         Row: {
           brand: string | null
@@ -711,6 +749,9 @@ export type Database = {
           is_priority_review_target: boolean | null
           is_top_pick: boolean | null
           key_ingredients: string[] | null
+          legacy_category: string | null
+          legacy_product_type: string | null
+          legacy_subcategory: string | null
           name: string
           price: number | null
           product_family_name: string | null
@@ -737,6 +778,9 @@ export type Database = {
           is_priority_review_target?: boolean | null
           is_top_pick?: boolean | null
           key_ingredients?: string[] | null
+          legacy_category?: string | null
+          legacy_product_type?: string | null
+          legacy_subcategory?: string | null
           name: string
           price?: number | null
           product_family_name?: string | null
@@ -763,6 +807,9 @@ export type Database = {
           is_priority_review_target?: boolean | null
           is_top_pick?: boolean | null
           key_ingredients?: string[] | null
+          legacy_category?: string | null
+          legacy_product_type?: string | null
+          legacy_subcategory?: string | null
           name?: string
           price?: number | null
           product_family_name?: string | null
@@ -1732,6 +1779,9 @@ export type Database = {
           is_priority_review_target: boolean | null
           is_top_pick: boolean | null
           key_ingredients: string[] | null
+          legacy_category: string | null
+          legacy_product_type: string | null
+          legacy_subcategory: string | null
           name: string
           price: number | null
           product_family_name: string | null

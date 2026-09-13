@@ -469,8 +469,14 @@ function ProductPage() {
   const majorityQuote = topQuote(majorityIsPositive ? "positive" : "negative");
   const minorityQuote = topQuote(majorityIsPositive ? "negative" : "positive");
 
+  const redditScope: "line" | "own" = isShadeLine && opinionScope === "line" ? "line" : "own";
+  const redditLineCount = socialReviews.filter(
+    (r) => r.platform === "reddit" && ["positive", "negative", "mixed"].includes(r.sentiment),
+  ).length;
   const redditItems = (() => {
-    const rows = socialReviews.filter(
+    // Same scope as the headline (patch 02): a shade page lists its own shade's quotes; it lists the
+    // whole line's quotes only when the headline is showing the line, and says so below the list.
+    const rows = (redditScope === "line" ? socialReviews : skuReviews).filter(
       (r) => r.platform === "reddit" && ["positive", "negative", "mixed"].includes(r.sentiment),
     );
     const sorted = rows.sort((a, b) => {
@@ -1090,11 +1096,13 @@ function ProductPage() {
                     );
                   })}
                   <div className="text-[10px] text-brand-muted mt-0.5">
-                    {redditItems.length} {redditItems.length === 1 ? "quote" : "quotes"} pulled from Reddit threads. Unedited.
+                    {redditItems.length} {redditItems.length === 1 ? "quote" : "quotes"}{redditScope === "line" ? ` about the ${lineName} line` : isShadeLine ? ` naming ${shadeName ?? "this shade"}` : ""} pulled from Reddit threads. Unedited.
                   </div>
                 </div>
               ) : (
-                <DataPending>No Reddit threads tagged for this product yet. We're still gathering them.</DataPending>
+                <DataPending>{isShadeLine && redditLineCount > 0
+                  ? `No Reddit quotes name ${shadeName ?? "this shade"} yet. ${redditLineCount} ${redditLineCount === 1 ? "is" : "are"} about the ${lineName} line, too few to show here.`
+                  : "No Reddit threads tagged for this product yet. We're still gathering them."}</DataPending>
               )
             )}
           </div>

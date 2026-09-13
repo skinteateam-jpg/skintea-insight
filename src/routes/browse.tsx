@@ -104,8 +104,16 @@ type FacetRow = {
   max_price: number | null;
 };
 
-type DistinctRow = {
-  category: string;
+type CategoryNode = {
+  slug: string;
+  level: number;
+  parent_slug: string | null;
+  label: string;
+  sort_order: number;
+  is_navigable: boolean;
+};
+
+type TaxonomyRow = {
   subcategory: string | null;
   product_type: string | null;
 };

@@ -7,17 +7,15 @@ import BottomNav from "@/components/BottomNav";
 import ProductCard, { formatCompact } from "@/components/ProductCard";
 import { supabase } from "@/integrations/supabase/client";
 
-const CATEGORIES = [
-  "Skincare",
-  "Lip",
-  "Face",
-  "Sunscreen",
-  "Cheek",
-  "Bodycare",
-  "Eye",
-  "Device",
-  "Fragrance",
-] as const;
+type CategoryNode = {
+  slug: string;
+  level: number;
+  parent_slug: string | null;
+  label: string;
+  sort_order: number;
+  is_navigable: boolean;
+};
+
 
 type RankedProduct = {
   id: string;
@@ -46,11 +44,11 @@ type SearchProduct = {
   price: number | null;
 };
 
-type SubcategoryRow = {
-  category: string | null;
+type ProductTaxonomyRow = {
   subcategory: string | null;
   product_type: string | null;
 };
+
 
 type FacetRow = {
   brand: string;
@@ -91,7 +89,9 @@ function CategoryPage() {
   const { slug } = Route.useParams();
   const navigate = useNavigate();
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
-  const [subcategories, setSubcategories] = useState<string[]>([]);
+  const [selectedProductType, setSelectedProductType] = useState<string | null>(null);
+  const [tree, setTree] = useState<CategoryNode[]>([]);
+  const [taxonomyRows, setTaxonomyRows] = useState<ProductTaxonomyRow[]>([]);
   const [rankings, setRankings] = useState(EMPTY_RAILS);
   const [brands, setBrands] = useState<FacetRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,33 +100,86 @@ function CategoryPage() {
   const [searchResults, setSearchResults] = useState<SearchProduct[]>([]);
 
   useEffect(() => {
-    setSelectedSubcategory(null);
     let cancelled = false;
 
     (async () => {
-      const { data, error } = await supabase.rpc("distinct_product_subcategories");
+      const { data, error } = await supabase
+        .from("product_categories")
+        .select("slug,level,parent_slug,label,sort_order,is_navigable")
+        .order("sort_order", { ascending: true });
       if (cancelled) return;
       if (error) {
-        console.error("distinct_product_subcategories failed", error);
-        setSubcategories([]);
+        console.error("product_categories fetch failed", error);
+        setTree([]);
         return;
       }
+      setTree((data ?? []) as CategoryNode[]);
+    })();
 
-      const categorySubcategories = new Set<string>();
-      for (const row of (data ?? []) as SubcategoryRow[]) {
-        if (row.category === slug && row.subcategory) {
-          categorySubcategories.add(row.subcategory);
-        }
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    setSelectedSubcategory(null);
+    setSelectedProductType(null);
+    let cancelled = false;
+
+    (async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("subcategory,product_type")
+        .eq("category", slug)
+        .eq("is_active", true)
+        .limit(5000);
+      if (cancelled) return;
+      if (error) {
+        console.error("product taxonomy counts failed", error);
+        setTaxonomyRows([]);
+        return;
       }
-      setSubcategories(
-        Array.from(categorySubcategories).sort((a, b) => a.localeCompare(b)),
-      );
+      setTaxonomyRows((data ?? []) as ProductTaxonomyRow[]);
     })();
 
     return () => {
       cancelled = true;
     };
   }, [slug]);
+
+  const parentTabs = useMemo(
+    () => tree.filter((node) => node.level === 1 && node.is_navigable),
+    [tree],
+  );
+  const currentParent = useMemo(
+    () => tree.find((node) => node.level === 1 && node.label === slug) ?? null,
+    [tree, slug],
+  );
+  const childTabs = useMemo(() => {
+    if (!currentParent) return [] as CategoryNode[];
+    return tree.filter(
+      (node) =>
+        node.level === 2 &&
+        node.parent_slug === currentParent.slug &&
+        taxonomyRows.some((row) => row.subcategory === node.label),
+    );
+  }, [tree, currentParent, taxonomyRows]);
+  const selectedChild = useMemo(
+    () => childTabs.find((node) => node.label === selectedSubcategory) ?? null,
+    [childTabs, selectedSubcategory],
+  );
+  const grandchildChips = useMemo(() => {
+    if (!selectedChild) return [] as CategoryNode[];
+    return tree.filter(
+      (node) =>
+        node.level === 3 &&
+        node.parent_slug === selectedChild.slug &&
+        taxonomyRows.some(
+          (row) =>
+            row.subcategory === selectedChild.label && row.product_type === node.label,
+        ),
+    );
+  }, [tree, selectedChild, taxonomyRows]);
 
   useEffect(() => {
     let cancelled = false;
@@ -136,7 +189,7 @@ function CategoryPage() {
       const commonArgs = {
         p_category: slug,
         p_subcategory: selectedSubcategory,
-        p_product_type: null,
+        p_product_type: selectedProductType,
         p_limit: 20,
       };
       const [tiktokResult, soaringResult, recommendedResult, facetsResult] =
@@ -150,7 +203,7 @@ function CategoryPage() {
               p_q: null,
               p_category: slug,
               p_subcategory: selectedSubcategory,
-              p_product_type: null,
+              p_product_type: selectedProductType,
             } as never,
           ),
         ]);
@@ -175,7 +228,8 @@ function CategoryPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug, selectedSubcategory]);
+  }, [slug, selectedSubcategory, selectedProductType]);
+
 
   useEffect(() => {
     if (searchQuery.trim().length < 2) {
@@ -312,30 +366,34 @@ function CategoryPage() {
           >
             All
           </Link>
-          {CATEGORIES.map((category) => {
-            const active = category === slug;
+          {parentTabs.map((category) => {
+            const active = category.label === slug;
             return (
               <Link
-                key={category}
+                key={category.slug}
                 to="/category/$slug"
-                params={{ slug: category }}
+                params={{ slug: category.label }}
                 className={
                   active
                     ? "shrink-0 border-b-[3px] border-brand-crimson px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-brand-crimson no-underline"
                     : "shrink-0 border-b-[3px] border-transparent px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-brand-espresso no-underline hover:border-brand-crimson hover:text-brand-crimson"
                 }
               >
-                {category}
+                {category.label}
               </Link>
             );
           })}
+
         </nav>
 
-        {subcategories.length > 0 && (
+        {childTabs.length > 0 && (
           <div className="flex gap-5 overflow-x-auto border-b border-brand-border bg-card px-4 [scrollbar-width:none] md:px-0 [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
-              onClick={() => setSelectedSubcategory(null)}
+              onClick={() => {
+                setSelectedSubcategory(null);
+                setSelectedProductType(null);
+              }}
               className={
                 selectedSubcategory === null
                   ? "shrink-0 border-b-2 border-brand-espresso py-3 text-[12px] font-semibold text-brand-espresso"
@@ -344,22 +402,56 @@ function CategoryPage() {
             >
               All
             </button>
-            {subcategories.map((subcategory) => (
+            {childTabs.map((child) => (
               <button
-                key={subcategory}
+                key={child.slug}
                 type="button"
-                onClick={() => setSelectedSubcategory(subcategory)}
+                onClick={() => {
+                  setSelectedSubcategory(child.label);
+                  setSelectedProductType(null);
+                }}
                 className={
-                  selectedSubcategory === subcategory
+                  selectedSubcategory === child.label
                     ? "shrink-0 border-b-2 border-brand-espresso py-3 text-[12px] font-semibold text-brand-espresso"
                     : "shrink-0 border-b-2 border-transparent py-3 text-[12px] text-brand-muted"
                 }
               >
-                {subcategory}
+                {child.label}
               </button>
             ))}
           </div>
         )}
+
+        {grandchildChips.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto border-b border-brand-border bg-card px-4 py-2.5 [scrollbar-width:none] md:px-0 [&::-webkit-scrollbar]:hidden">
+            <button
+              type="button"
+              onClick={() => setSelectedProductType(null)}
+              className={
+                selectedProductType === null
+                  ? "shrink-0 rounded-full border border-brand-espresso bg-brand-espresso px-3 py-1 text-[11px] font-semibold text-primary-foreground"
+                  : "shrink-0 rounded-full border border-brand-border bg-card px-3 py-1 text-[11px] font-medium text-brand-muted"
+              }
+            >
+              All
+            </button>
+            {grandchildChips.map((node) => (
+              <button
+                key={node.slug}
+                type="button"
+                onClick={() => setSelectedProductType(node.label)}
+                className={
+                  selectedProductType === node.label
+                    ? "shrink-0 rounded-full border border-brand-espresso bg-brand-espresso px-3 py-1 text-[11px] font-semibold text-primary-foreground"
+                    : "shrink-0 rounded-full border border-brand-border bg-card px-3 py-1 text-[11px] font-medium text-brand-muted"
+                }
+              >
+                {node.label}
+              </button>
+            ))}
+          </div>
+        )}
+
 
         <main className="mx-auto w-full max-w-[1180px] py-5 md:py-8">
           <RankingSection

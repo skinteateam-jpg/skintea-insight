@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
 
@@ -72,8 +72,54 @@ function labelFromSlug(slug: string) {
   return source.replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
+let level1Cache: Promise<CategoryNode[]> | null = null;
+async function fetchLevel1Categories(): Promise<CategoryNode[]> {
+  level1Cache ??= (async () => {
+    const { data, error } = await supabase
+      .from("product_categories")
+      .select("slug,level,parent_slug,label,sort_order,is_navigable")
+      .eq("level", 1)
+      .order("sort_order", { ascending: true });
+    if (error) {
+      console.error("product_categories fetch failed", error);
+      level1Cache = null;
+      return [] as CategoryNode[];
+    }
+    return (data ?? []) as CategoryNode[];
+  })();
+  return level1Cache;
+}
+
 export const Route = createFileRoute("/category/$slug")({
   component: CategoryPage,
+  beforeLoad: async ({ params }) => {
+    const param = params.slug.trim();
+    const nodes = await fetchLevel1Categories();
+    // Exact slug match: canonical URL, no redirect.
+    if (nodes.some((node) => node.slug === param)) return;
+    const lower = param.toLowerCase();
+    // Legacy label URLs (/category/Skincare, /category/Cheek) redirect permanently.
+    const mapped = CATEGORY_LABEL_TO_SLUG[lower];
+    if (mapped && nodes.some((node) => node.slug === mapped)) {
+      throw redirect({
+        to: "/category/$slug",
+        params: { slug: mapped },
+        statusCode: 301,
+        replace: true,
+      });
+    }
+    // General case: any level-1 label, case-insensitive.
+    const labelMatch = nodes.find((node) => node.label.toLowerCase() === lower);
+    if (labelMatch) {
+      throw redirect({
+        to: "/category/$slug",
+        params: { slug: labelMatch.slug },
+        statusCode: 301,
+        replace: true,
+      });
+    }
+    throw redirect({ to: "/products", statusCode: 301, replace: true });
+  },
   head: ({ params }) => {
     const label = labelFromSlug(params.slug);
     return {
@@ -141,23 +187,6 @@ function CategoryPage() {
   );
   const categoryLabel = currentParent?.label ?? null;
 
-  // Legacy label URLs (/category/Skincare, /category/Cheek) redirect to the slug URL.
-  const redirectSlug = useMemo(() => {
-    if (tree.length === 0 || currentParent) return null;
-    const labelMatch = tree.find(
-      (node) => node.level === 1 && node.label.toLowerCase() === slug.trim().toLowerCase(),
-    );
-    if (labelMatch) return labelMatch.slug;
-    const mapped = CATEGORY_LABEL_TO_SLUG[slug.trim().toLowerCase()];
-    if (mapped && tree.some((node) => node.level === 1 && node.slug === mapped)) return mapped;
-    return null;
-  }, [tree, currentParent, slug]);
-  const notFound = tree.length > 0 && !currentParent && !redirectSlug;
-
-  useEffect(() => {
-    if (!redirectSlug) return;
-    navigate({ to: "/category/$slug", params: { slug: redirectSlug }, replace: true });
-  }, [redirectSlug, navigate]);
 
   useEffect(() => {
     setSelectedSubcategory(null);
@@ -326,25 +355,7 @@ function CategoryPage() {
     });
   }
 
-  if (notFound) {
-    return (
-      <AppFrame fluid>
-        <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background px-6 pb-24 text-center text-brand-espresso">
-          <h1 className="text-[20px] font-bold">Category not found</h1>
-          <p className="text-[13px] text-brand-muted">
-            We could not find a category at this address.
-          </p>
-          <Link
-            to="/products"
-            className="text-[13px] font-semibold text-brand-crimson underline"
-          >
-            Back to all rankings
-          </Link>
-        </div>
-        <BottomNav />
-      </AppFrame>
-    );
-  }
+
 
   return (
     <AppFrame fluid>

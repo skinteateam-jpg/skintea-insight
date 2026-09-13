@@ -6,7 +6,6 @@ import AppFrame from "@/components/AppFrame";
 import BottomNav from "@/components/BottomNav";
 import ProductCard, { formatCompact } from "@/components/ProductCard";
 import { supabase } from "@/integrations/supabase/client";
-import { categorySlugFor } from "@/lib/categorySlugs";
 
 export const Route = createFileRoute("/products")({
   component: ProductsPage,
@@ -29,6 +28,15 @@ export const Route = createFileRoute("/products")({
     ],
   }),
 });
+
+type CategoryNode = {
+  slug: string;
+  level: number;
+  parent_slug: string | null;
+  label: string;
+  sort_order: number;
+  is_navigable: boolean;
+};
 
 type RankedProduct = {
   id: string;
@@ -57,46 +65,40 @@ type SearchProduct = {
   price: number | null;
 };
 
-type SubcategoryRow = {
-  category: string | null;
-  subcategory: string | null;
-  product_type: string | null;
-};
-
-const CATEGORIES = [
-  "All",
-  "Skincare",
-  "Lip",
-  "Face",
-  "Sunscreen",
-  "Cheek",
-  "Bodycare",
-  "Eye",
-  "Device",
-  "Fragrance",
-] as const;
-
-const SECTION_CATEGORIES = [
-  "Skincare",
-  "Lip",
-  "Face",
-  "Sunscreen",
-  "Cheek",
-  "Bodycare",
-  "Device",
-  "Fragrance",
-  "Eye",
-] as const;
-
 function ProductsPage() {
   const navigate = useNavigate();
   const [soaring, setSoaring] = useState<RankedProduct[]>([]);
   const [soaringLoading, setSoaringLoading] = useState(true);
+  const [categories, setCategories] = useState<CategoryNode[]>([]);
   const [categoryRankings, setCategoryRankings] = useState<Record<string, RankedProduct[]>>({});
   const [showLogin, setShowLogin] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchProduct[]>([]);
   const [categorySubs, setCategorySubs] = useState<Record<string, string[]>>({});
+
+  // Level-1 navigable categories from product_categories, in sort_order.
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      const { data, error } = await supabase
+        .from("product_categories")
+        .select("slug,level,parent_slug,label,sort_order,is_navigable")
+        .eq("level", 1)
+        .eq("is_navigable", true)
+        .order("sort_order", { ascending: true });
+      if (cancelled) return;
+      if (error) {
+        console.error("product_categories fetch failed", error);
+        return;
+      }
+      setCategories((data ?? []) as CategoryNode[]);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -122,15 +124,17 @@ function ProductsPage() {
     };
   }, []);
 
+  // Per-category TikTok rankings, keyed by the node label (products.category stores labels).
   useEffect(() => {
+    if (categories.length === 0) return;
     let cancelled = false;
     setCategoryRankings({});
 
-    const requests = SECTION_CATEGORIES.map(async (category) => {
+    const requests = categories.map(async (category) => {
       const result = await supabase.rpc(
         "ranked_products_tiktok",
         {
-          p_category: category,
+          p_category: category.label,
           p_subcategory: null,
           p_product_type: null,
           p_limit: 20,
@@ -140,7 +144,7 @@ function ProductsPage() {
       if (result.error) console.error("ranked_products_tiktok failed", result.error);
       setCategoryRankings((current) => ({
         ...current,
-        [category]: (result.data ?? []) as RankedProduct[],
+        [category.label]: (result.data ?? []) as RankedProduct[],
       }));
     });
 
@@ -149,29 +153,61 @@ function ProductsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [categories]);
 
+  // Level-2 children per parent (sort_order), kept only when they have active products.
   useEffect(() => {
+    if (categories.length === 0) return;
     let cancelled = false;
+
     (async () => {
-      const { data, error } = await supabase.rpc("distinct_product_subcategories");
+      const [childrenResult, productsResult] = await Promise.all([
+        supabase
+          .from("product_categories")
+          .select("slug,level,parent_slug,label,sort_order,is_navigable")
+          .eq("level", 2)
+          .order("sort_order", { ascending: true }),
+        supabase
+          .from("products")
+          .select("category,subcategory")
+          .eq("is_active", true)
+          .not("subcategory", "is", null),
+      ]);
       if (cancelled) return;
-      if (error) {
-        console.error("distinct_product_subcategories failed", error);
+      if (childrenResult.error) {
+        console.error("product_categories level-2 fetch failed", childrenResult.error);
+        return;
+      }
+      if (productsResult.error) {
+        console.error("active products subcategory fetch failed", productsResult.error);
         return;
       }
 
-      const groups = new Map<string, Set<string>>();
-      for (const row of (data ?? []) as SubcategoryRow[]) {
-        if (!row.category || !row.subcategory || row.category === "Goods") continue;
-        const existing = groups.get(row.category) ?? new Set<string>();
+      // One grouped lookup: parent label -> set of subcategory labels with active products.
+      const activeSubs = new Map<string, Set<string>>();
+      for (const row of (productsResult.data ?? []) as { category: string | null; subcategory: string | null }[]) {
+        if (!row.category || !row.subcategory) continue;
+        const existing = activeSubs.get(row.category) ?? new Set<string>();
         existing.add(row.subcategory);
-        groups.set(row.category, existing);
+        activeSubs.set(row.category, existing);
+      }
+
+      const childrenByParent = new Map<string, CategoryNode[]>();
+      for (const child of (childrenResult.data ?? []) as CategoryNode[]) {
+        if (!child.parent_slug) continue;
+        const existing = childrenByParent.get(child.parent_slug) ?? [];
+        existing.push(child);
+        childrenByParent.set(child.parent_slug, existing);
       }
 
       const next: Record<string, string[]> = {};
-      for (const [category, subcategories] of groups) {
-        next[category] = Array.from(subcategories).sort((a, b) => a.localeCompare(b));
+      for (const parent of categories) {
+        const active = activeSubs.get(parent.label);
+        if (!active) continue;
+        const labels = (childrenByParent.get(parent.slug) ?? [])
+          .filter((child) => active.has(child.label))
+          .map((child) => child.label);
+        if (labels.length > 0) next[parent.label] = labels;
       }
       setCategorySubs(next);
     })();
@@ -179,7 +215,7 @@ function ProductsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [categories]);
 
   useEffect(() => {
     if (searchQuery.trim().length < 2) {
@@ -300,26 +336,22 @@ function ProductsPage() {
         </header>
 
         <nav className="flex overflow-x-auto border-b border-brand-border bg-card [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {CATEGORIES.map((category) =>
-            category === "All" ? (
-              <Link
-                key={category}
-                to="/products"
-                className="shrink-0 border-b-[3px] border-brand-crimson px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-brand-crimson no-underline"
-              >
-                {category}
-              </Link>
-            ) : (
-              <Link
-                key={category}
-                to="/category/$slug"
-                params={{ slug: categorySlugFor(category) }}
-                className="shrink-0 border-b-[3px] border-transparent px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-brand-espresso no-underline hover:border-brand-crimson hover:text-brand-crimson"
-              >
-                {category}
-              </Link>
-            ),
-          )}
+          <Link
+            to="/products"
+            className="shrink-0 border-b-[3px] border-brand-crimson px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-brand-crimson no-underline"
+          >
+            All
+          </Link>
+          {categories.map((category) => (
+            <Link
+              key={category.slug}
+              to="/category/$slug"
+              params={{ slug: category.slug }}
+              className="shrink-0 border-b-[3px] border-transparent px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-brand-espresso no-underline hover:border-brand-crimson hover:text-brand-crimson"
+            >
+              {category.label}
+            </Link>
+          ))}
         </nav>
 
         <main className="mx-auto w-full max-w-[1180px] py-5 md:py-8">
@@ -331,15 +363,16 @@ function ProductsPage() {
             metric={(product) => `${product.metric_value} new Reels`}
             onSave={() => setShowLogin(true)}
           />
-          {SECTION_CATEGORIES.map((category) => {
-            const products = categoryRankings[category];
+          {categories.map((category) => {
+            const products = categoryRankings[category.label];
             if (!products || products.length < 3) return null;
             return (
               <CategorySection
-                key={category}
-                category={category}
+                key={category.slug}
+                categoryLabel={category.label}
+                categorySlug={category.slug}
                 products={products}
-                subcategories={categorySubs[category] ?? []}
+                subcategories={categorySubs[category.label] ?? []}
                 onSave={() => setShowLogin(true)}
               />
             );
@@ -429,7 +462,7 @@ function RankingSection({
         </div>
       ) : (
         <div className="flex snap-x gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {products.map((product, index) => (
+          {products.map((product) => (
             <div key={product.id} className="w-[128px] shrink-0 snap-start">
               <ProductCard
                 id={product.id}
@@ -450,12 +483,14 @@ function RankingSection({
 }
 
 function CategorySection({
-  category,
+  categoryLabel,
+  categorySlug,
   products,
   subcategories,
   onSave,
 }: {
-  category: string;
+  categoryLabel: string;
+  categorySlug: string;
   products: RankedProduct[];
   subcategories: string[];
   onSave: () => void;
@@ -464,10 +499,10 @@ function CategorySection({
     <section className="px-4 pb-10 md:px-0">
       <Link
         to="/category/$slug"
-        params={{ slug: categorySlugFor(category) }}
+        params={{ slug: categorySlug }}
         className="mb-3 flex items-center justify-between text-brand-espresso no-underline"
       >
-        <h2 className="text-[16px] font-semibold">{category}</h2>
+        <h2 className="text-[16px] font-semibold">{categoryLabel}</h2>
         <ChevronRight size={18} className="text-brand-muted" />
       </Link>
 
@@ -501,7 +536,7 @@ function CategorySection({
               <Link
                 key={subcategory}
                 to="/browse"
-                search={{ category, subcategory, sort: "popular", page: 1 }}
+                search={{ category: categoryLabel, subcategory, sort: "popular", page: 1 }}
                 className="flex min-h-14 items-center gap-2 border-b border-r border-brand-border p-2 text-[12px] font-semibold text-brand-espresso no-underline hover:bg-brand-cream"
               >
                 <span className="h-9 w-9 shrink-0 overflow-hidden rounded-sm bg-brand-cream">

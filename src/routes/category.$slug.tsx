@@ -326,6 +326,26 @@ function CategoryPage() {
     });
   }
 
+  if (notFound) {
+    return (
+      <AppFrame fluid>
+        <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background px-6 pb-24 text-center text-brand-espresso">
+          <h1 className="text-[20px] font-bold">Category not found</h1>
+          <p className="text-[13px] text-brand-muted">
+            We could not find a category at this address.
+          </p>
+          <Link
+            to="/products"
+            className="text-[13px] font-semibold text-brand-crimson underline"
+          >
+            Back to all rankings
+          </Link>
+        </div>
+        <BottomNav />
+      </AppFrame>
+    );
+  }
+
   return (
     <AppFrame fluid>
       <div className="min-h-screen bg-background pb-24 text-brand-espresso">
@@ -407,12 +427,12 @@ function CategoryPage() {
             All
           </Link>
           {parentTabs.map((category) => {
-            const active = category.label === slug;
+            const active = category.slug === slug;
             return (
               <Link
                 key={category.slug}
                 to="/category/$slug"
-                params={{ slug: category.label }}
+                params={{ slug: category.slug }}
                 className={
                   active
                     ? "shrink-0 border-b-[3px] border-brand-crimson px-3.5 py-3 text-[11px] font-bold uppercase tracking-[0.05em] text-brand-crimson no-underline"
@@ -528,7 +548,7 @@ function CategoryPage() {
                     key={brand.brand}
                     to="/browse"
                     search={{
-                      category: slug,
+                      category: categoryLabel ?? "",
                       brands: brand.brand,
                       sort: "popular",
                       page: 1,

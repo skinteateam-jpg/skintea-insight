@@ -65,24 +65,33 @@ const EMPTY_RAILS: Record<Rail, RankedProduct[]> = {
   recommended: [],
 };
 
+function labelFromSlug(slug: string) {
+  const known = Object.entries(CATEGORY_LABEL_TO_SLUG).find(([, value]) => value === slug);
+  const source = known ? known[0] : slug.replace(/-/g, " ");
+  return source.replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
 export const Route = createFileRoute("/category/$slug")({
   component: CategoryPage,
-  head: ({ params }) => ({
-    meta: [
-      { title: `${params.slug} rankings — Skintea` },
-      {
-        name: "description",
-        content: `Browse ${params.slug} products ranked by real social activity and tagged opinions.`,
-      },
-      { property: "og:title", content: `${params.slug} rankings — Skintea` },
-      {
-        property: "og:description",
-        content: `Browse ${params.slug} products ranked by real social activity and tagged opinions.`,
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
+  head: ({ params }) => {
+    const label = labelFromSlug(params.slug);
+    return {
+      meta: [
+        { title: `${label} rankings — Skintea` },
+        {
+          name: "description",
+          content: `Browse ${label} products ranked by real social activity and tagged opinions.`,
+        },
+        { property: "og:title", content: `${label} rankings — Skintea` },
+        {
+          property: "og:description",
+          content: `Browse ${label} products ranked by real social activity and tagged opinions.`,
+        },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary_large_image" },
+      ],
+    };
+  },
 });
 
 function CategoryPage() {

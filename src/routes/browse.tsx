@@ -235,11 +235,12 @@ function BrowsePage() {
       return;
     }
     setSubcatsLoading(true);
+    const category = search.category;
     (async () => {
       const { data, error } = await supabase
         .from("products")
         .select("subcategory, product_type")
-        .eq("category", search.category)
+        .eq("category", category)
         .eq("is_active", true)
         .limit(5000);
       if (cancelled) return;

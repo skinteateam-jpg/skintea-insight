@@ -130,16 +130,48 @@ function CategoryPage() {
     };
   }, []);
 
+  const parentTabs = useMemo(
+    () => tree.filter((node) => node.level === 1 && node.is_navigable),
+    [tree],
+  );
+  const currentParent = useMemo(
+    () => tree.find((node) => node.level === 1 && node.slug === slug) ?? null,
+    [tree, slug],
+  );
+  const categoryLabel = currentParent?.label ?? null;
+
+  // Legacy label URLs (/category/Skincare, /category/Cheek) redirect to the slug URL.
+  const redirectSlug = useMemo(() => {
+    if (tree.length === 0 || currentParent) return null;
+    const labelMatch = tree.find(
+      (node) => node.level === 1 && node.label.toLowerCase() === slug.trim().toLowerCase(),
+    );
+    if (labelMatch) return labelMatch.slug;
+    const mapped = CATEGORY_LABEL_TO_SLUG[slug.trim().toLowerCase()];
+    if (mapped && tree.some((node) => node.level === 1 && node.slug === mapped)) return mapped;
+    return null;
+  }, [tree, currentParent, slug]);
+  const notFound = tree.length > 0 && !currentParent && !redirectSlug;
+
+  useEffect(() => {
+    if (!redirectSlug) return;
+    navigate({ to: "/category/$slug", params: { slug: redirectSlug }, replace: true });
+  }, [redirectSlug, navigate]);
+
   useEffect(() => {
     setSelectedSubcategory(null);
     setSelectedProductType(null);
+    if (!categoryLabel) {
+      setTaxonomyRows([]);
+      return;
+    }
     let cancelled = false;
 
     (async () => {
       const { data, error } = await supabase
         .from("products")
         .select("subcategory,product_type")
-        .eq("category", slug)
+        .eq("category", categoryLabel)
         .eq("is_active", true)
         .limit(5000);
       if (cancelled) return;
@@ -154,16 +186,7 @@ function CategoryPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
-
-  const parentTabs = useMemo(
-    () => tree.filter((node) => node.level === 1 && node.is_navigable),
-    [tree],
-  );
-  const currentParent = useMemo(
-    () => tree.find((node) => node.level === 1 && node.label === slug) ?? null,
-    [tree, slug],
-  );
+  }, [categoryLabel]);
   const childTabs = useMemo(() => {
     if (!currentParent) return [] as CategoryNode[];
     return tree.filter(

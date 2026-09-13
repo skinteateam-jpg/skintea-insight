@@ -209,33 +209,100 @@ function BrowsePage() {
 
   useEffect(() => {
     let cancelled = false;
-    setSubcatsLoading(true);
     (async () => {
-      const { data, error } = await supabase.rpc("distinct_product_subcategories");
+      const { data, error } = await supabase
+        .from("product_categories")
+        .select("slug, level, parent_slug, label, sort_order, is_navigable")
+        .order("sort_order", { ascending: true });
       if (cancelled) return;
       if (error) {
-        console.error("distinct_product_subcategories failed", error);
-        setTaxonomyRows([]);
+        console.error("product_categories failed", error);
+        setCategoryTree([]);
       } else {
-        setTaxonomyRows((data ?? []) as unknown as DistinctRow[]);
+        setCategoryTree((data ?? []) as unknown as CategoryNode[]);
       }
-      setSubcatsLoading(false);
     })();
     return () => {
       cancelled = true;
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!search.category) {
+      setTaxonomyRows([]);
+      setSubcatsLoading(false);
+      return;
+    }
+    setSubcatsLoading(true);
+    (async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("subcategory, product_type")
+        .eq("category", search.category)
+        .eq("is_active", true)
+        .limit(5000);
+      if (cancelled) return;
+      if (error) {
+        console.error("product taxonomy availability failed", error);
+        setTaxonomyRows([]);
+      } else {
+        setTaxonomyRows((data ?? []) as unknown as TaxonomyRow[]);
+      }
+      setSubcatsLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [search.category]);
+
+  const parentNode = useMemo(
+    () =>
+      categoryTree.find(
+        (n) => n.level === 1 && n.label === search.category,
+      ) ?? null,
+    [categoryTree, search.category],
+  );
+
+  const availableSubcats = useMemo(() => {
+    const set = new Set<string>();
+    for (const row of taxonomyRows) if (row.subcategory) set.add(row.subcategory);
+    return set;
+  }, [taxonomyRows]);
+
   const categorySubcats = useMemo(() => {
-    if (!search.category) return [];
+    if (!parentNode) return [];
+    return categoryTree
+      .filter((n) => n.level === 2 && n.parent_slug === parentNode.slug)
+      .filter((n) => availableSubcats.has(n.label))
+      .sort((a, b) => a.sort_order - b.sort_order);
+  }, [categoryTree, parentNode, availableSubcats]);
+
+  const selectedChildNode = useMemo(
+    () =>
+      search.subcategory
+        ? categorySubcats.find((n) => n.label === search.subcategory) ?? null
+        : null,
+    [categorySubcats, search.subcategory],
+  );
+
+  const availableTypes = useMemo(() => {
     const set = new Set<string>();
     for (const row of taxonomyRows) {
-      if (row.category === search.category && row.subcategory) {
-        set.add(row.subcategory);
+      if (row.subcategory === search.subcategory && row.product_type) {
+        set.add(row.product_type);
       }
     }
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [taxonomyRows, search.category]);
+    return set;
+  }, [taxonomyRows, search.subcategory]);
+
+  const typeChips = useMemo(() => {
+    if (!selectedChildNode) return [];
+    return categoryTree
+      .filter((n) => n.level === 3 && n.parent_slug === selectedChildNode.slug)
+      .filter((n) => availableTypes.has(n.label))
+      .sort((a, b) => a.sort_order - b.sort_order);
+  }, [categoryTree, selectedChildNode, availableTypes]);
 
   const totalCount = rows.length > 0 ? Number(rows[0].total_count) : 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));

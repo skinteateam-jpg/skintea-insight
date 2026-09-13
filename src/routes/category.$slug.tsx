@@ -73,20 +73,20 @@ function labelFromSlug(slug: string) {
 }
 
 let level1Cache: Promise<CategoryNode[]> | null = null;
-function fetchLevel1Categories(): Promise<CategoryNode[]> {
-  level1Cache ??= supabase
-    .from("product_categories")
-    .select("slug,level,parent_slug,label,sort_order,is_navigable")
-    .eq("level", 1)
-    .order("sort_order", { ascending: true })
-    .then(({ data, error }) => {
-      if (error) {
-        console.error("product_categories fetch failed", error);
-        level1Cache = null;
-        return [] as CategoryNode[];
-      }
-      return (data ?? []) as CategoryNode[];
-    });
+async function fetchLevel1Categories(): Promise<CategoryNode[]> {
+  level1Cache ??= (async () => {
+    const { data, error } = await supabase
+      .from("product_categories")
+      .select("slug,level,parent_slug,label,sort_order,is_navigable")
+      .eq("level", 1)
+      .order("sort_order", { ascending: true });
+    if (error) {
+      console.error("product_categories fetch failed", error);
+      level1Cache = null;
+      return [] as CategoryNode[];
+    }
+    return (data ?? []) as CategoryNode[];
+  })();
   return level1Cache;
 }
 

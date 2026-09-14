@@ -19,14 +19,12 @@ export const Route = createFileRoute("/treatment-talk2")({
       { title: "Treatment Talk — Skintea" },
       {
         name: "description",
-        content:
-          "Real outcomes, real regrets, real cost from Botox, Juvelook, Rejuran, Fillers and more. No clinic bias.",
+        content: "Share and read treatment experiences.",
       },
       { property: "og:title", content: "Treatment Talk — Skintea" },
       {
         property: "og:description",
-        content:
-          "Real outcomes from real people on Botox, Juvelook, Rejuran, Fillers and more. Spill the needle.",
+        content: "Share and read treatment experiences.",
       },
     ],
   }),
@@ -121,26 +119,6 @@ const SKIN_TYPES = [
 
 const SORTS = ["Most recent", "Most helpful", "Most detailed"];
 
-const WOULD_DO_AGAIN = [
-  { name: "Botox", pct: 78, count: 412 },
-  { name: "Juvelook", pct: 64, count: 189 },
-  { name: "Rejuran", pct: 71, count: 244 },
-  { name: "Fillers", pct: 55, count: 327 },
-];
-
-const TRENDING = [
-  { name: "Juvelook", posts: 42 },
-  { name: "Rejuran", posts: 31 },
-  { name: "Skin Boosters", posts: 24 },
-  { name: "Lumecca", posts: 19 },
-];
-
-const SURPRISES = [
-  { t: "Botox", s: "Took 10 days to fully kick in." },
-  { t: "Juvelook", s: "Bumps lasted 2 weeks longer than promised." },
-  { t: "Rejuran", s: "Way more painful than fillers." },
-  { t: "Fillers", s: "Migration after 6 months — be careful." },
-];
 
 const SKIN_BG: Record<string, string> = {
   oily: "#FCE7B3",

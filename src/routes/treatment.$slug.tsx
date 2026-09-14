@@ -880,157 +880,23 @@ function WhatYouCanGet({ text }: { text: string | null }) {
   );
 }
 
-function PipBar({ filled, total, color, emptyColor }: { filled: number; total: number; color: string; emptyColor: string }) {
-  return (
-    <div style={{ display: "flex", gap: 4 }}>
-      {Array.from({ length: total }).map((_, i) => (
-        <div key={i} style={{ flex: 1, height: 6, borderRadius: 3, background: i < filled ? color : emptyColor }} />
-      ))}
-    </div>
-  );
-}
-
 function AtAGlance({ treatment }: { treatment: Treatment }) {
+  const rows = [
+    { label: "Average cost", value: treatment.average_cost },
+    { label: "Downtime", value: treatment.downtime },
+    { label: "Sessions recommended", value: treatment.sessions_recommended },
+  ].filter((r) => r.value != null && `${r.value}`.trim() !== "");
+
+  if (rows.length === 0) return <EmptyNote text="No details recorded for this treatment yet." />;
 
   return (
-    <div style={{ marginTop: 10 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-        <div style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
-          <div style={{ fontSize: 9, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Price rank</div>
-          <PipBar filled={2} total={5} color={ESPRESSO} emptyColor={BORDER} />
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-            <span style={{ fontSize: 9, color: MUTED }}>Budget</span>
-            <span style={{ fontSize: 9, color: MUTED }}>Luxury</span>
-          </div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO, marginTop: 6 }}>Mid-range</div>
-          <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Not cheap, not crazy</div>
+    <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+      {rows.map((r) => (
+        <div key={r.label} style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.1em" }}>{r.label}</div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO, marginTop: 6, lineHeight: 1.3 }}>{r.value}</div>
         </div>
-        <div style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
-          <div style={{ fontSize: 9, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>How serious</div>
-          <div style={{ display: "flex", gap: 4 }}>
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div key={i} style={{ flex: 1, height: 6, borderRadius: 3, background: i === 2 || i === 3 ? CRIMSON : BORDER }} />
-            ))}
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-            <span style={{ fontSize: 9, color: MUTED }}>Casual</span>
-            <span style={{ fontSize: 9, color: MUTED }}>Surgery</span>
-          </div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO, marginTop: 6 }}>Medical</div>
-          <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Needs a licensed injector</div>
-        </div>
-      </div>
-
-      {/* How big is the change */}
-      <div style={{ marginTop: 10, background: "#fff", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: 12 }}>
-
-        <div style={{ fontSize: 14, fontWeight: 800, color: ESPRESSO, marginBottom: 4 }}>How big is the change?</div>
-
-        <div style={{ fontSize: 11, color: MUTED, marginBottom: 14 }}>Compared to other treatments</div>
-
-        {/* Gradient bar with dot */}
-
-        <div style={{ position: "relative", height: 6, background: "linear-gradient(to right, #E8DDD4, #A8001C)", borderRadius: 3, marginBottom: 6 }}>
-
-          <div style={{
-
-            position: "absolute",
-
-            left: `${((treatment.change_score ?? 2) / 5) * 100}%`,
-
-            top: "50%",
-
-            transform: "translate(-50%, -50%)",
-
-            width: 14,
-
-            height: 14,
-
-            borderRadius: "50%",
-
-            background: CRIMSON,
-
-            border: "2px solid #FFFCF8",
-
-            boxShadow: `0 0 0 1.5px ${CRIMSON}`,
-
-          }} />
-
-        </div>
-
-        {/* 5 labels */}
-
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
-
-          {["Subtle", "Noticeable", "Significant", "Big", "Huge"].map((l) => (
-
-            <div key={l} style={{ fontSize: 9, color: ESPRESSO, fontWeight: 700 }}>{l}</div>
-
-          ))}
-
-        </div>
-
-        {/* Chips */}
-
-        <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }} className="no-scrollbar">
-
-          {[
-
-            { label: "Glow Facial", sub: "Subtle", score: 1.0 },
-
-            { label: "Botox", sub: "Noticeable", score: 2.0 },
-
-            { label: "Skin Tightening", sub: "Significant", score: 3.0 },
-
-            { label: "Laser Resurfacing", sub: "Big", score: 4.0 },
-
-            { label: "Cosmetic Surgery", sub: "Huge", score: 5.0 },
-
-          ].map((chip) => {
-
-            const currentScore = treatment.change_score ?? 2;
-
-            const isActive = Math.abs(currentScore - chip.score) < 0.8;
-
-            return (
-
-              <div key={chip.label} style={{
-
-                flexShrink: 0,
-
-                textAlign: "center",
-
-                fontSize: 10,
-
-                padding: "6px 10px",
-
-                background: isActive ? "#FEE8EC" : "#F5EFEC",
-
-                border: isActive ? `0.5px solid ${CRIMSON}` : "none",
-
-                borderRadius: 6,
-
-                color: isActive ? CRIMSON : ESPRESSO,
-
-                fontWeight: isActive ? 800 : 700,
-
-                lineHeight: 1.5,
-
-              }}>
-
-                {chip.label}
-
-                <span style={{ fontSize: 9, color: isActive ? "#C44060" : MUTED, fontWeight: 400, display: "block" }}>{chip.sub}</span>
-
-              </div>
-
-            );
-
-          })}
-
-        </div>
-
-      </div>
+      ))}
     </div>
   );
 }

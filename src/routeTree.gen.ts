@@ -20,6 +20,7 @@ import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForClinicsRouteImport } from './routes/for-clinics'
 import { Route as BrowseRouteImport } from './routes/browse'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
@@ -90,6 +91,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForClinicsRoute = ForClinicsRouteImport.update({
+  id: '/for-clinics',
+  path: '/for-clinics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BrowseRoute = BrowseRouteImport.update({
@@ -179,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/browse': typeof BrowseRoute
+  '/for-clinics': typeof ForClinicsRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRoute
@@ -208,6 +215,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/browse': typeof BrowseRoute
+  '/for-clinics': typeof ForClinicsRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRoute
@@ -238,6 +246,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/browse': typeof BrowseRoute
+  '/for-clinics': typeof ForClinicsRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
   '/products': typeof ProductsRoute
@@ -269,6 +278,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/browse'
+    | '/for-clinics'
     | '/login'
     | '/privacy'
     | '/products'
@@ -298,6 +308,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/browse'
+    | '/for-clinics'
     | '/login'
     | '/privacy'
     | '/products'
@@ -327,6 +338,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/browse'
+    | '/for-clinics'
     | '/login'
     | '/privacy'
     | '/products'
@@ -357,6 +369,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   BrowseRoute: typeof BrowseRoute
+  ForClinicsRoute: typeof ForClinicsRoute
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
   ProductsRoute: typeof ProductsRoute
@@ -459,6 +472,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/for-clinics': {
+      id: '/for-clinics'
+      path: '/for-clinics'
+      fullPath: '/for-clinics'
+      preLoaderRoute: typeof ForClinicsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/browse': {
@@ -592,6 +612,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   BrowseRoute: BrowseRoute,
+  ForClinicsRoute: ForClinicsRoute,
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,
   ProductsRoute: ProductsRoute,

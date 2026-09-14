@@ -34,7 +34,7 @@ type CTreatment = {
   price_from: number | null;
   price_unit: string | null;
   treatment_id: string;
-  treatments: { id: string; name: string; slug: string | null } | null;
+  treatments: { id: string; name: string; slug: string | null; active?: boolean | null } | null;
 };
 type Influencer = {
   id: string;
@@ -203,7 +203,7 @@ function ClinicDetailPage() {
       const [c, ss, ct, pr, wv, rv, v] = await Promise.all([
         supabase.from("clinics").select("*").eq("id", id).maybeSingle(),
         supabase.from("clinic_skin_scores").select("*").eq("clinic_id", id),
-        supabase.from("clinic_treatments").select("*, treatments(id, name, slug)").eq("clinic_id", id),
+        supabase.from("clinic_treatments").select("*, treatments(id, name, slug, active)").eq("clinic_id", id),
         supabase.from("clinic_practitioners").select("*").eq("clinic_id", id),
         supabase.from("clinic_who_visited").select("id, user_id, visited_at").eq("clinic_id", id).order("visited_at", { ascending: false }).limit(20),
         supabase.from("clinic_reviews").select("*, treatments(name)").eq("clinic_id", id).order("created_at", { ascending: false }),
@@ -347,14 +347,18 @@ function ClinicDetailPage() {
         )}
       </div>
 
-      {/* 6. Stats row */}
+      {/* 6. Stats row — only recorded values; hidden entirely when none are recorded */}
+      {(() => {
+        const stats = [
+          clinic.skintea_score != null ? { v: `${clinic.skintea_score}%`, l: "Recommend" } : null,
+          clinic.review_count != null ? { v: `${clinic.review_count}`, l: "Reviews" } : null,
+          clinic.avg_score != null ? { v: `${clinic.avg_score}`, l: "Score" } : null,
+          clinic.price_tier != null ? { v: `${clinic.price_tier}`, l: "Price" } : null,
+        ].filter(Boolean) as { v: string; l: string }[];
+        if (stats.length === 0) return null;
+        return (
       <div style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}` }}>
-        {[
-          { v: `${clinic.skintea_score ?? "—"}%`, l: "Recommend" },
-          { v: clinic.review_count != null ? `${clinic.review_count}` : "—", l: "Reviews" },
-          { v: `${clinic.avg_score ?? "—"}`, l: "Score" },
-          { v: `${clinic.price_tier ?? "—"}`, l: "Price" },
-        ].map((s, i, arr) => (
+        {stats.map((s, i, arr) => (
           <div key={i} style={{
             flex: 1, padding: "14px 0", textAlign: "center",
             borderRight: i < arr.length - 1 ? `0.5px solid ${BORDER}` : "none",
@@ -364,6 +368,8 @@ function ClinicDetailPage() {
           </div>
         ))}
       </div>
+        );
+      })()}
 
       {/* 7. Treatments (each mapping carries a recorded source; prices only where a source states one) */}
       <Section title="Treatments">
@@ -407,7 +413,7 @@ function ClinicDetailPage() {
                   {tInf.length > 3 && (
                     <span style={{ fontSize: 10, color: MUTED }}>+{tInf.length - 3} more</span>
                   )}
-                  {t.treatments?.slug && (
+                  {t.treatments?.slug && t.treatments?.active !== false && (
                     <button onClick={() => { navigate({ to: "/treatments/$slug", params: { slug: t.treatments!.slug! } }).catch(() => {}); }} style={{
                       background: "none", border: "none", color: CRIMSON,
                       fontSize: 10, fontWeight: 700, cursor: "pointer",

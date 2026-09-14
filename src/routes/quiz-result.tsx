@@ -82,6 +82,23 @@ function QuizResultPage() {
     return (SKIN_TYPES as readonly string[]).includes(st) ? (st as SkinType) : null;
   }, [payload]);
 
+  // Silent profile write for signed-in users — the only DB write on this page.
+  useEffect(() => {
+    if (!skinType) return;
+    void (async () => {
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (error || !data.user) return;
+        await supabase
+          .from("profiles")
+          .update({ skin_type: skinType } as any)
+          .eq("user_id", data.user.id);
+      } catch (e) {
+        console.error("Failed to save skin type to profile", e);
+      }
+    })();
+  }, [skinType]);
+
   // Computed on read, every time. Nothing is stored.
   const [fits, setFits] = useState<ProductResult[]>([]);
   const [misses, setMisses] = useState<ProductResult[]>([]);
@@ -453,25 +470,38 @@ function EmailCapture() {
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(false);
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [errorLine, setErrorLine] = useState<string | null>(null);
 
   async function submit() {
     const trimmed = email.trim();
-    if (!trimmed) return;
-    setSent(true);
+    const at = trimmed.indexOf("@");
+    if (at <= 0 || at !== trimmed.lastIndexOf("@") || at === trimmed.length - 1) {
+      setErrorLine("Enter a valid email");
+      return;
+    }
+    setSending(true);
+    setErrorLine(null);
     try {
       const sessionId = getLeadSessionId();
-      if (!sessionId) return;
-      await supabase.rpc("lead_upsert" as any, {
+      if (!sessionId) throw new Error("No session id");
+      const { error: upsertErr } = await supabase.rpc("lead_upsert" as any, {
         p_session_id: sessionId,
         p_email: trimmed,
         p_contact_consent: consent,
       } as any);
-      await supabase.rpc("lead_event_add" as any, {
+      if (upsertErr) throw upsertErr;
+      const { error: eventErr } = await supabase.rpc("lead_event_add" as any, {
         p_session_id: sessionId,
         p_event_type: "email_submitted",
       } as any);
+      if (eventErr) throw eventErr;
+      setSent(true);
     } catch (e) {
       console.error("Failed to submit email", e);
+      setErrorLine("That didn't go through. Try again.");
+    } finally {
+      setSending(false);
     }
   }
 
@@ -493,12 +523,16 @@ function EmailCapture() {
             <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} style={{ marginTop: 2 }} />
             You can contact me about treatments near me
           </label>
+          {errorLine && (
+            <div style={{ fontSize: 11, color: C.crimson, lineHeight: 1.5 }}>{errorLine}</div>
+          )}
           <button
             type="button"
+            disabled={sending}
             onClick={() => void submit()}
-            style={{ background: C.crimson, color: "#FFFCF8", border: "none", borderRadius: 99, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+            style={{ background: C.crimson, color: "#FFFCF8", border: "none", borderRadius: 99, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: sending ? "default" : "pointer", opacity: sending ? 0.7 : 1 }}
           >
-            Submit
+            {sending ? "Sending…" : "Submit"}
           </button>
         </div>
       )}

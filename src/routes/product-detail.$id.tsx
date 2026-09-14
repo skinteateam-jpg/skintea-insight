@@ -6,6 +6,7 @@ import AppFrame from "@/components/AppFrame";
 import { supabase } from "@/integrations/supabase/client";
 import { getFlags, isFungalAcneSafe, hasIngredientData, readSkinType } from "@/lib/ingredientFlags";
 import type { SkinType } from "@/lib/ingredientFlags";
+import { MIN_TAGGED, isOpinionRow, aggregate } from "@/lib/opinionAggregate";
 
 const DISCLOSURE_LABELS: Record<string, string> = {
   ad: "#ad",
@@ -106,24 +107,6 @@ const isDisplayRow = (r: any) => r.source_query_type === "display_candidate";
 const VERBATIM_QUOTE_TYPES = new Set(["product_search_comment", "reel_comment", "negative_search_reel_comment", "search_reel_comment"]);
 const EDITED_QUOTE_TYPES = new Set(["plain_brand", "fan_subreddit", "product_specific_search"]);
 const QUOTE_EXCERPT_MAX = 280;
-
-// Recommend / Don't recommend / Mixed shares of one set of opinion rows. Each comes from its own count and the
-// three are rounded with the largest-remainder method, so what the page shows always adds up to 100 and no
-// figure is "the rest" of another.
-function opinionShares(pos: number, neg: number, mix: number): { pos: number; neg: number; mix: number } {
-  const total = pos + neg + mix;
-  if (total === 0) return { pos: 0, neg: 0, mix: 0 };
-  const raw = [pos, neg, mix].map((n) => (n / total) * 100);
-  const floor = raw.map(Math.floor);
-  let left = 100 - floor.reduce((a, b) => a + b, 0);
-  const order = raw.map((v, i) => ({ i, r: v - Math.floor(v) })).sort((a, b) => b.r - a.r || a.i - b.i);
-  for (const { i } of order) {
-    if (left <= 0) break;
-    floor[i] += 1;
-    left -= 1;
-  }
-  return { pos: floor[0], neg: floor[1], mix: floor[2] };
-}
 
 // Render-only excerpt of a verbatim quote. Never shortens edited text, never touches what is stored.
 function quoteDisplay(r: any): { text: string; form: "verbatim" | "edited" | null; excerpted: boolean } {

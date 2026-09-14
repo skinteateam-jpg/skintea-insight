@@ -70,11 +70,9 @@ function PostDetailPage() {
   const [activeImg, setActiveImg] = React.useState(0);
   const [comment, setComment] = React.useState("");
   const [socialTab, setSocialTab] = React.useState<SocialSource>("all");
-  const [comments, setComments] = React.useState([
-    { id: "c1", initials: "RL", bg: "#FFF0F0", color: "#A8001C", name: "rosylip", text: "this is exactly what my skin needed to hear. two weeks and i'm already seeing results", agrees: 67 },
-    { id: "c2", initials: "DK", bg: "#E8F0FF", color: "#185FA5", name: "dewykim", text: "dry skin here — be careful with this one. made me flaky until i added more moisturizer", agrees: 43 },
-    { id: "c3", initials: "GS", bg: "#E8F5E0", color: "#3B6D11", name: "glowseeker", text: "the skintea data breakdown is what sold me. 65% for oily is actually pretty good", agrees: 31 },
-  ]);
+  const [comments, setComments] = React.useState<
+    { id: string; initials: string; bg: string; color: string; name: string; text: string; agrees: number }[]
+  >([]);
 
   const submitComment = () => {
     if (!comment.trim()) return;

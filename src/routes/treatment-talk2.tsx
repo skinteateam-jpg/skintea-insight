@@ -884,38 +884,21 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
                 </div>
               </div>
 
-              {/* Mobile insights collapsible */}
-              <div className="mb-4 lg:hidden">
-                <button
-                  onClick={() => setShowInsights(v => !v)}
-                  className="flex w-full items-center justify-between rounded-xl px-4 py-2.5"
-                  style={{ background: "#fff", border: `1px solid ${BORDER}` }}
-                >
-                  <span className="text-[12px] font-bold uppercase tracking-wider" style={{ color: ESPRESSO }}>
-                    Insights
-                  </span>
-                  <ChevronDown size={16} color={MUTED} style={{ transform: showInsights ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
-                </button>
-                {showInsights && (
-                  <div className="mt-3 space-y-3">
-                    <InsightsBlock />
+              <div className="tt-feed space-y-4">
+                {filtered.length === 0 ? (
+                  <div
+                    className="rounded-xl p-6 text-center text-[12px]"
+                    style={{ background: "#fff", border: `1px solid ${BORDER}`, color: MUTED }}
+                  >
+                    No treatment talk yet — be the first to share.
                   </div>
+                ) : (
+                  filtered.map((p, i) => (
+                    <PostCard key={p.id} post={p} locked={i >= 2} />
+                  ))
                 )}
               </div>
-
-              <div className="tt-feed space-y-4">
-                {filtered.map((p, i) => (
-                  <PostCard key={p.id} post={p} locked={i >= 2} />
-                ))}
-              </div>
             </section>
-
-            {/* Right sidebar */}
-            <aside className="hidden lg:block">
-              <div className="sticky top-[140px] space-y-4">
-                <InsightsBlock />
-              </div>
-            </aside>
           </div>
         </main>
 

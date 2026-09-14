@@ -208,7 +208,7 @@ function usePosts(surgeries: Surgery[]) {
     setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
   }, []);
 
-  return { posts, loading, usingDemo, reload, updatePost };
+  return { posts, loading, reload, updatePost };
 }
 
 // ============= UI primitives =============

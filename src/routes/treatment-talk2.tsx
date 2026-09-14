@@ -164,113 +164,6 @@ type Post = {
   tags: string[];
 };
 
-const POSTS: Post[] = [
-  {
-    id: "1",
-    name: "Glazed Donut",
-    skinType: "oily",
-    emoji: "🍩",
-    member: "oily skin · member",
-    treatment: "Botox",
-    fields: {
-      cost: "$520",
-      sessions: "1 session · forehead + 11s",
-      happened: "Mild bruising on left brow, gone in 4 days. Movement softened by day 7.",
-      surprised: "Took 10 full days to kick in — I almost asked for a touch-up too early.",
-      works: "Static lines that show in selfies. Sweat reduction also a perk.",
-      warn: "Don't lie down for 4 hours. I did. Got slight droop on one side.",
-    },
-    timeline: [
-      { key: "before", label: "Before", badge: "before", emoji: "🪞", note: "11s deep" },
-      { key: "after", label: "Right after", badge: "day1", emoji: "💉", note: "tiny bumps" },
-      { key: "3d", label: "3 days later", badge: "mid", emoji: "🩹", note: "small bruise" },
-      { key: "1w", label: "1 week", badge: "mid", emoji: "✨", note: "softening" },
-      { key: "1m", label: "1 month", badge: "done", emoji: "😌", note: "full effect" },
-      { key: "healed", label: "Fully healed", badge: "done", emoji: "🌟", note: "love it" },
-    ],
-    outcome: "again",
-    tags: ["#firsttimer", "#forehead", "#worthit"],
-  },
-  {
-    id: "2",
-    name: "Dr. Hwang",
-    skinType: "derm",
-    emoji: "🩺",
-    member: "board-certified · Seoul",
-    derm: true,
-    treatment: "Juvelook",
-    fields: {
-      cost: "$680/session",
-      sessions: "3 sessions · full face",
-      happened: "Used 2 vials per session, 4 weeks apart. Visible bounce by month 2.",
-      surprised: "Patient retention of bumps under eyes for ~14 days. Counsel patients up front.",
-      works: "Mid-30s and up with mild laxity. Not a wrinkle eraser.",
-      warn: "Avoid stacking with fillers in same session. Plan a 2-week gap minimum.",
-    },
-    timeline: [
-      { key: "before", label: "Before", badge: "before", emoji: "📋", note: "consult" },
-      { key: "after", label: "Right after", badge: "day1", emoji: "💉", note: "expected swelling" },
-      { key: "3d", label: "3 days", badge: "mid", emoji: "🩹", note: "bumps" },
-      { key: "1w", label: "1 week", badge: "mid", emoji: "🫧", note: "settling" },
-      { key: "1m", label: "1 month", badge: "done", emoji: "✨", note: "bounce" },
-      { key: "healed", label: "Fully healed", badge: "done", emoji: "🌟", note: "even tone" },
-    ],
-    outcome: "again",
-    tags: ["#dermtake", "#collagen", "#mid30s"],
-  },
-  {
-    id: "3",
-    name: "Sahara Skin",
-    skinType: "dry",
-    emoji: "🏜️",
-    member: "dry skin · member",
-    treatment: "Rejuran",
-    fields: {
-      cost: "$450",
-      sessions: "2 of 4 · cheeks + under-eye",
-      happened: "PAIN. Numbing cream barely helped. Bumps for 3 days, then visible plumping.",
-      surprised: "Way more painful than the fillers I had last year. Bring a stress ball.",
-      works: "Under-eye crepiness and dehydrated cheeks.",
-      warn: "Don't book a date for 4 days after. The bumps are not subtle.",
-    },
-    timeline: [
-      { key: "before", label: "Before", badge: "before", emoji: "💧", note: "tired skin" },
-      { key: "after", label: "Right after", badge: "day1", emoji: "🐸", note: "frog face" },
-      { key: "3d", label: "3 days", badge: "mid", emoji: "🩹", note: "still bumpy" },
-      { key: "1w", label: "1 week", badge: "mid", emoji: "🌿", note: "smoothing" },
-      { key: "1m", label: "1 month", badge: "done", emoji: "💎", note: "glow" },
-      { key: "healed", label: "Fully healed", badge: "done", emoji: "🌟", note: "booking #3" },
-    ],
-    outcome: "modified",
-    tags: ["#painful", "#worth_it_eventually", "#undereye"],
-  },
-  {
-    id: "4",
-    name: "Combo Queen",
-    skinType: "combo",
-    emoji: "✨",
-    member: "combo skin · member",
-    treatment: "Fillers",
-    fields: {
-      cost: "$1,200",
-      sessions: "1 syringe · cheeks",
-      happened: "Looked great for 3 months, then migration toward nasolabial fold started.",
-      surprised: "How much it moved. Had to dissolve at month 6.",
-      works: "Volume loss in mid-face, but only with a conservative injector.",
-      warn: "Ask about migration risk for YOUR product. Not all HA behaves the same.",
-    },
-    timeline: [
-      { key: "before", label: "Before", badge: "before", emoji: "🪞", note: "flat cheeks" },
-      { key: "after", label: "Right after", badge: "day1", emoji: "💉", note: "swollen" },
-      { key: "3d", label: "3 days", badge: "mid", emoji: "🩹", note: "bruising" },
-      { key: "1w", label: "1 week", badge: "mid", emoji: "🌸", note: "looking good" },
-      { key: "1m", label: "1 month", badge: "done", emoji: "💖", note: "loved it" },
-      { key: "healed", label: "Fully healed", badge: "done", emoji: "⚠️", note: "migrated" },
-    ],
-    outcome: "wouldnt",
-    tags: ["#migration", "#dissolved", "#lessons"],
-  },
-];
 
 function ChipScroll({
   items,
@@ -688,15 +581,16 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
   const [chip, setChip] = useState("All");
   const [skin, setSkin] = useState("all");
   const [sort, setSort] = useState(SORTS[0]);
-  const [showInsights, setShowInsights] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const { treatments, loading: treatmentsLoading } = useTreatments();
+  // Posts the visitor writes stay local; the feed starts empty.
+  const [posts] = useState<Post[]>([]);
 
   const filtered = useMemo(() => {
-    return POSTS.filter((p) => (chip === "All" ? true : p.treatment === chip)).filter((p) =>
+    return posts.filter((p) => (chip === "All" ? true : p.treatment === chip)).filter((p) =>
       skin === "all" ? true : p.skinType === skin,
     );
-  }, [chip, skin]);
+  }, [posts, chip, skin]);
 
   const centerLabel =
     activeTab === "product" ? "Spill ☕" : activeTab === "treatment" ? "Spill the needle ✦" : "Spill it all ✦";

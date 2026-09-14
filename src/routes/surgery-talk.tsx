@@ -774,16 +774,6 @@ function MostControversial({ post }: { post: EnrichedPost | null }) {
   );
 }
 
-function TrendingPill({ name, multiplier }: { name: string; multiplier: number }) {
-  return (
-    <div className="mb-5">
-      <span className="inline-block rounded-full text-[10px] font-medium"
-        style={{ background: "#FFF3CD", border: "1px solid #FAC775", color: ESPRESSO, padding: "6px 12px" }}>
-        📈 Trending this week: {name} — {multiplier}× more posts than usual
-      </span>
-    </div>
-  );
-}
 
 // ============= Disclaimer modal =============
 function DisclaimerModal({ onCancel, onConfirm }: { onCancel: () => void; onConfirm: () => void }) {
@@ -1072,16 +1062,6 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
     return [...posts].filter((p) => p.outcome === "Wouldn't").sort((a, b) => b.likes_count - a.likes_count)[0] ?? null;
   }, [posts]);
 
-  const trendingName = useMemo(() => {
-    if (rankCounts.size === 0) return null;
-    let best: { id: string; n: number } | null = null;
-    for (const [id, n] of rankCounts) {
-      if (!best || n > best.n) best = { id, n };
-    }
-    if (!best) return null;
-    const surg = surgeries.find((s) => s.id === best!.id);
-    return surg ? { name: surg.name, multiplier: 3 } : null;
-  }, [rankCounts, surgeries]);
 
   function handleSpillClick() {
     setDisclaimerOpen(true);
@@ -1158,7 +1138,6 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
           <TodaysTea post={todaysTea} />
           {topTea.length > 0 && <TopTea posts={topTea} />}
           <MostControversial post={controversial} />
-          {trendingName && <TrendingPill name={trendingName.name} multiplier={trendingName.multiplier} />}
 
           <div className="mb-3 flex items-end justify-between">
             <h1 className="text-[18px]" style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }}>
@@ -1184,7 +1163,7 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
             ) : filtered.length === 0 ? (
               <div className="rounded-xl p-6 text-center text-[12px]"
                 style={{ background: "#fff", border: `1px solid ${BORDER}`, color: MUTED }}>
-                No spills match those filters yet.
+                No surgery stories yet — be the first to share.
               </div>
             ) : (
               filtered.map((p, i) => (

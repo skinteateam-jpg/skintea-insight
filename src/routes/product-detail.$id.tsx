@@ -508,7 +508,8 @@ function ProductPage() {
   const redditLineCount = socialReviews.filter(
     (r) => r.platform === "reddit" && ["positive", "negative", "mixed"].includes(r.sentiment),
   ).length;
-  const redditItems = (() => {
+  const REDDIT_DISPLAY_CAP = 8;
+  const redditAll = (() => {
     // Same scope as the headline (patch 02): a shade page lists its own shade's quotes; it lists the
     // whole line's quotes only when the headline is showing the line, and says so below the list.
     const rows = (redditScope === "line" ? socialReviews : skuReviews).filter(
@@ -526,8 +527,10 @@ function ProductPage() {
       const key = raw && typeof raw === "string" && raw.trim().length > 0 ? raw.trim().toLowerCase() : r.id;
       if (!byQuote.has(key)) byQuote.set(key, r);
     }
-    return Array.from(byQuote.values()).slice(0, 8);
+    return Array.from(byQuote.values());
   })();
+  // What renders is capped; the tab badge and the footer count everything available.
+  const redditItems = redditAll.slice(0, REDDIT_DISPLAY_CAP);
 
   const tiktokRows = socialReviews.filter((r) => r.platform === "tiktok" && isDisplayRow(r));
   const instagramRows = socialReviews.filter((r) => r.platform === "instagram" && isDisplayRow(r));
@@ -988,7 +991,7 @@ function ProductPage() {
         <Section title="What people are saying">
           <div className="flex">
             {(["tiktok", "instagram", "reddit"] as const).map((t) => {
-              const count = t === "tiktok" ? tiktokRows.length : t === "instagram" ? instagramRowsDeduped.length : redditItems.length;
+              const count = t === "tiktok" ? tiktokRows.length : t === "instagram" ? instagramRowsDeduped.length : redditAll.length;
               const active = tab === t;
               const label = t === "tiktok" ? "TikTok" : t === "instagram" ? "Instagram" : "Reddit";
               return (
@@ -1154,7 +1157,7 @@ function ProductPage() {
                     );
                   })}
                   <div className="text-[10px] text-brand-muted mt-0.5">
-                    {redditItems.length} {redditItems.length === 1 ? "quote" : "quotes"}{redditScope === "line" ? ` about the ${lineName} line` : isShadeLine ? ` naming ${shadeName ?? "this shade"}` : ""} from Reddit threads. Each is marked as quoted as written or edited by Skintea; tap one to read the original.
+                    {redditAll.length > redditItems.length ? `${redditItems.length} of ${redditAll.length}` : redditItems.length} {redditAll.length === 1 ? "quote" : "quotes"}{redditScope === "line" ? ` about the ${lineName} line` : isShadeLine ? ` naming ${shadeName ?? "this shade"}` : ""} from Reddit threads. Each is marked as quoted as written or edited by Skintea; tap one to read the original.
                   </div>
                 </div>
               ) : (

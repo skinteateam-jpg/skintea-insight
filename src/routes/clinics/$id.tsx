@@ -3,6 +3,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { leadEvent, recordConsultationClick } from "@/lib/leads";
+import { ClinicImage } from "@/components/ClinicImage";
+import { displayImages, useCategoryImages } from "@/lib/clinicPhotos";
 import {
   ArrowLeft, Heart, Share2, MapPin, Sparkles, FileText, Lock,
   Phone, Car, Map as MapIcon, Building2, Plus, Flame, Camera,
@@ -203,7 +205,7 @@ function ClinicDetailPage() {
         supabase.from("clinic_skin_scores").select("*").eq("clinic_id", id),
         supabase.from("clinic_treatments").select("*, treatments(id, name, slug)").eq("clinic_id", id),
         supabase.from("clinic_practitioners").select("*").eq("clinic_id", id),
-        supabase.from("clinic_who_visited").select("id, user_id, visited_at").eq("clinic_id", id).limit(4),
+        supabase.from("clinic_who_visited").select("id, user_id, visited_at").eq("clinic_id", id).order("visited_at", { ascending: false }).limit(20),
         supabase.from("clinic_reviews").select("*, treatments(name)").eq("clinic_id", id).order("created_at", { ascending: false }),
         supabase.from("clinic_videos").select("*").eq("clinic_id", id).eq("is_active", true).order("created_at", { ascending: false }),
       ]);
@@ -234,13 +236,12 @@ function ClinicDetailPage() {
     return () => { alive = false; };
   }, [id]);
 
-  const photoTabs = {
-    interior: (clinic?.photos as any)?.interior ?? [],
-    results: (clinic?.photos as any)?.results ?? [],
-    staff: (clinic?.photos as any)?.staff ?? [],
-    outside: (clinic?.photos as any)?.outside ?? [],
-  } as Record<"interior"|"results"|"staff"|"outside", string[]>;
-  const activePhotos = photoTabs[activePhotoTab];
+  const categoryImages = useCategoryImages();
+  const [failedPhotos, setFailedPhotos] = useState<Set<string>>(new Set());
+  const markFailed = (url: string) => setFailedPhotos((prev) => (prev.has(url) ? prev : new Set(prev).add(url)));
+  // Failed photos are removed from the list itself, so the hero and the strip always show the same set.
+  const galleryImages = clinic ? displayImages(clinic as any, categoryImages, 800, failedPhotos) : [];
+  const galleryIndex = Math.min(activeThumbIndex, Math.max(galleryImages.length - 1, 0));
 
   const userSkinScore = useMemo(
     () => userSkin ? skinScores.find((s) => s.skin_type === userSkin)?.recommend_pct : null,
@@ -264,8 +265,6 @@ function ClinicDetailPage() {
   if (!clinic) {
     return <div style={{ padding: 40, textAlign: "center", color: MUTED, fontSize: 12, background: WARM_WHITE, minHeight: "100vh" }}>Clinic not found.</div>;
   }
-
-  const TAB_KEYS: Array<"interior" | "results" | "staff" | "outside"> = ["interior", "results", "staff", "outside"];
 
   return (
     <div style={{ background: WARM_WHITE, minHeight: "100vh", color: ESPRESSO, fontFamily: "system-ui, -apple-system, sans-serif" }}>
@@ -295,62 +294,25 @@ function ClinicDetailPage() {
         </div>
       </div>
 
-      {/* 2. Photo hero */}
-      <div style={{ width: "100%", height: 170, background: ESPRESSO, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
-        {activePhotos[activeThumbIndex] ? (
-          <img src={activePhotos[activeThumbIndex]} alt={clinic.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-        ) : (
-          <Camera size={36} color={MUTED} />
-        )}
-      </div>
+      {/* 2. Photo hero: the clinic's own photos, else a marked category image, else a plain placeholder */}
+      <ClinicImage images={galleryImages} height={170} index={galleryIndex} showCount onFailed={markFailed} />
 
-      {/* 3. Photo category tabs */}
-      <div style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}` }}>
-        {TAB_KEYS.map((t) => {
-          const active = t === activePhotoTab;
-          return (
-            <button key={t} onClick={() => { setActivePhotoTab(t); setActiveThumbIndex(0); }} style={{
-              flex: 1, background: "none", border: "none", cursor: "pointer",
-              padding: "10px 0", fontSize: 11, fontWeight: 700, textTransform: "capitalize",
-              color: active ? ESPRESSO : MUTED,
-              borderBottom: active ? `2px solid ${CRIMSON}` : "2px solid transparent",
-            }}>{t}</button>
-          );
-        })}
-      </div>
-
-      {/* 4. Photo strip */}
-      {activePhotos.length > 0 && (
+      {/* 3. Photo strip (only when the clinic has more than one photo of its own) */}
+      {galleryImages.filter((g) => g.kind === "clinic").length > 1 && (
         <div style={{
           display: "flex", gap: 4, overflowX: "auto", padding: "6px 10px",
           scrollbarWidth: "none", background: WARM_WHITE,
           borderBottom: `0.5px solid ${BORDER}`,
         }}>
-          <style>{`div::-webkit-scrollbar{display:none}`}</style>
-          {activePhotos.slice(0, 4).map((p: string, i: number) => (
-            <img
-              key={i}
-              src={p}
-              alt=""
+          {galleryImages.filter((g) => g.kind === "clinic").slice(0, 8).map((p, i) => (
+            <button
+              key={p.url}
               onClick={() => setActiveThumbIndex(i)}
-              style={{
-                width: 56, height: 44, borderRadius: 6, objectFit: "cover",
-                flexShrink: 0, cursor: "pointer",
-                border: i === activeThumbIndex ? `1.5px solid ${CRIMSON}` : "1.5px solid transparent",
-              }}
-            />
+              style={{ padding: 0, border: i === galleryIndex ? `1.5px solid ${CRIMSON}` : "1.5px solid transparent", borderRadius: 7, background: "none", cursor: "pointer", flexShrink: 0 }}
+            >
+              <ClinicImage images={[p]} width={56} height={44} radius={6} compact onFailed={markFailed} />
+            </button>
           ))}
-          {activePhotos.length > 4 && (
-            <div style={{
-              width: 56, height: 44, borderRadius: 6, background: CREAM_TINT,
-              border: `0.5px solid ${BORDER}`,
-              display: "flex", flexDirection: "column",
-              alignItems: "center", justifyContent: "center", flexShrink: 0,
-            }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: ESPRESSO, lineHeight: 1 }}>+{activePhotos.length - 4}</div>
-              <div style={{ fontSize: 8, color: MUTED, textTransform: "uppercase", marginTop: 2 }}>Photos</div>
-            </div>
-          )}
         </div>
       )}
 
@@ -359,7 +321,7 @@ function ClinicDetailPage() {
         <div style={{ fontSize: 20, fontWeight: 800, color: ESPRESSO, marginBottom: 6 }}>{clinic.name}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: MUTED, marginBottom: 10 }}>
           <MapPin size={12} />
-          <span>{clinic.neighborhood} · {clinic.distance_miles} mi</span>
+          <span>{clinic.neighborhood ?? ""}{clinic.distance_miles != null ? ` · ${clinic.distance_miles} mi` : ""}</span>
         </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {clinic.is_verified && (
@@ -389,7 +351,7 @@ function ClinicDetailPage() {
       <div style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}` }}>
         {[
           { v: `${clinic.skintea_score ?? "—"}%`, l: "Recommend" },
-          { v: `${clinic.review_count ?? 0}`, l: "Reviews" },
+          { v: clinic.review_count != null ? `${clinic.review_count}` : "—", l: "Reviews" },
           { v: `${clinic.avg_score ?? "—"}`, l: "Score" },
           { v: `${clinic.price_tier ?? "—"}`, l: "Price" },
         ].map((s, i, arr) => (
@@ -592,32 +554,12 @@ function ClinicDetailPage() {
         })()}
       </div>
 
-      {/* 9. Who's Been Here */}
-      <Section title="Who's Been Here" right={<button style={{ background: "none", border: "none", color: CRIMSON, fontSize: 10, fontWeight: 700, cursor: "pointer", textTransform: "uppercase" }}>See all</button>}>
-        <div style={{ display: "flex", gap: 14, overflowX: "auto", scrollbarWidth: "none" }}>
-          {visitors.length === 0 && (
-            <div style={{ fontSize: 11, color: MUTED }}>No visits logged yet.</div>
-          )}
-          {visitors.map((v, i) => {
-            const initials = `U${i + 1}`;
-            const st = "—";
-            return (
-              <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, minWidth: 60 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 44, background: CRIMSON_TINT, color: CRIMSON, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800 }}>{initials}</div>
-                <div style={{ fontSize: 9, color: ESPRESSO, fontWeight: 700 }}>{initials}</div>
-                <div style={{ fontSize: 9, color: MUTED, display: "flex", alignItems: "center", gap: 2 }}>
-                  <span>{SKIN_EMOJI[st] ?? ""}</span><span>{st}</span>
-                </div>
-              </div>
-            );
-          })}
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, minWidth: 60, opacity: 0.55 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 44, border: `1px dashed ${BORDER}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Lock size={14} color={MUTED} />
-            </div>
-            <div style={{ fontSize: 9, color: MUTED }}>+more</div>
-            <div style={{ fontSize: 9, color: MUTED }}>Sub only</div>
-          </div>
+      {/* 9. Your visits (clinic_who_visited is private: a signed-in user only sees their own rows) */}
+      <Section title="Your visits">
+        <div style={{ fontSize: 11, color: MUTED }}>
+          {visitors.length > 0
+            ? `You logged ${visitors.length === 1 ? "a visit" : `${visitors.length} visits`} here — last on ${new Date(visitors[0].visited_at).toLocaleDateString()}. Only you can see this.`
+            : "Visits you log here are private to you."}
         </div>
       </Section>
 
@@ -755,11 +697,11 @@ function ClinicDetailPage() {
             <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>Parking</div>
             <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{clinic.parking_notes ?? "—"}</div>
           </div>
-          <span style={{
+          {clinic.parking_is_free != null && <span style={{
             background: clinic.parking_is_free ? "#E8F5E9" : CREAM_TINT,
             color: clinic.parking_is_free ? "#2D7A3A" : MUTED,
             fontSize: 10, fontWeight: 800, padding: "4px 8px", borderRadius: 4, textTransform: "uppercase",
-          }}>{clinic.parking_is_free ? "Free" : "Paid"}</span>
+          }}>{clinic.parking_is_free ? "Free" : "Paid"}</span>}
         </div>
       </Section>
 

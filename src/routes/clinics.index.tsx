@@ -5,14 +5,16 @@ import BottomNav from "@/components/BottomNav";
 import AppFrame from "@/components/AppFrame";
 import { Search, SlidersHorizontal, Map, Bell, MapPin, Sparkles, X } from "lucide-react";
 import { IconBookmark } from "@tabler/icons-react";
+import { ClinicImage } from "@/components/ClinicImage";
+import { displayImages, useCategoryImages } from "@/lib/clinicPhotos";
 
 export const Route = createFileRoute("/clinics/")({
   head: () => ({
     meta: [
       { title: "Find your clinic — Skintea" },
-      { name: "description", content: "Real LA clinics, ranked by Skintea trust score. No sponsored placements." },
+      { name: "description", content: "LA skin clinics, med spas, laser clinics and dermatologists. No sponsored placements." },
       { property: "og:title", content: "Find your clinic — Skintea" },
-      { property: "og:description", content: "Real LA clinics, ranked by Skintea trust score. No sponsored placements." },
+      { property: "og:description", content: "LA skin clinics, med spas, laser clinics and dermatologists. No sponsored placements." },
     ],
   }),
   component: ClinicsPage,
@@ -46,7 +48,8 @@ type Clinic = {
   tea_skin_type: string | null;
   badges: string[] | null;
   image_url: string | null;
-  photos: string[] | null;
+  photos: unknown;
+  category: string | null;
   booking_url: string | null;
   is_verified: boolean;
   is_featured: boolean | null;
@@ -142,7 +145,8 @@ function ClinicsPage() {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const { data } = await supabase.from("clinics").select("*").order("trust_score", { ascending: false });
+      // Only places that pass the strict clinic filter are listed; unsure / dropped places stay in the table, unlisted.
+      const { data } = await supabase.from("clinics").select("*").eq("listing_filter", "passed").order("name", { ascending: true });
       if (!alive) return;
       setClinics((data as unknown as Clinic[]) ?? []);
       setLoading(false);
@@ -666,14 +670,13 @@ function HeroCard({ clinic, onOpen, isSaved, onToggleSave }: { clinic: Clinic; o
   const tags = clinic.best_for ?? [];
   const visibleTags = tags.slice(0, 3);
   const extra = tags.length - visibleTags.length;
-  const bg = clinic.image_url;
+  const images = displayImages(clinic, useCategoryImages());
   return (
     <div
       onClick={onOpen}
       style={{ background: "#FFFFFF", borderRadius: 14, overflow: "hidden", cursor: "pointer", border: `1px solid ${CRIMSON}` }}
     >
-      <div style={{ position: "relative", height: 172, background: bg ? `url(${bg}) center/cover no-repeat` : ESPRESSO }}>
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0) 40%, rgba(0,0,0,0.7) 100%)" }} />
+      <ClinicImage images={images} height={172} showCount>
         <span style={{ position: "absolute", top: 10, left: 10, background: CRIMSON, color: WARM_WHITE, fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", borderRadius: 4, padding: "3px 8px" }}>
           ☕ Skintea Pick
         </span>
@@ -683,15 +686,13 @@ function HeroCard({ clinic, onOpen, isSaved, onToggleSave }: { clinic: Clinic; o
             <div style={{ fontSize: 7.5, color: "rgba(255,252,248,0.75)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2 }}>recommend</div>
           </div>
         )}
-        <div style={{ position: "absolute", left: 12, right: 12, bottom: 10 }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: WARM_WHITE, lineHeight: 1.2 }}>{clinic.name}</div>
-          <div style={{ fontSize: 11, color: "rgba(255,252,248,0.85)", marginTop: 2 }}>
-            {clinic.neighborhood ?? ""}{clinic.distance_miles != null ? ` · ${clinic.distance_miles} mi` : ""}
-          </div>
-        </div>
-      </div>
+      </ClinicImage>
 
       <div style={{ padding: "11px 13px 12px" }}>
+        <div style={{ fontSize: 16, fontWeight: 800, color: ESPRESSO, lineHeight: 1.2 }}>{clinic.name}</div>
+        <div style={{ fontSize: 11, color: MUTED, marginTop: 2, marginBottom: 8 }}>
+          {clinic.neighborhood ?? ""}{clinic.distance_miles != null ? ` · ${clinic.distance_miles} mi` : ""}
+        </div>
         {clinic.known_for && <KnownForRow value={clinic.known_for} />}
 
         {visibleTags.length > 0 && (
@@ -746,20 +747,20 @@ function HeroCard({ clinic, onOpen, isSaved, onToggleSave }: { clinic: Clinic; o
 
 function CompactCard({ clinic, onOpen, isSaved, onToggleSave }: { clinic: Clinic; onOpen: () => void; isSaved: boolean; onToggleSave: () => void }) {
   const score = clinic.skintea_score ?? clinic.trust_score;
-  const bg = clinic.image_url;
+  const images = displayImages(clinic, useCategoryImages(), 240);
   return (
     <div
       onClick={onOpen}
       style={{ background: "#FFFFFF", borderRadius: 12, overflow: "hidden", cursor: "pointer", border: `0.5px solid ${BORDER}`, display: "flex", height: 104 }}
     >
-      <div style={{ width: 88, flexShrink: 0, position: "relative", background: bg ? `url(${bg}) center/cover no-repeat` : ESPRESSO }}>
+      <ClinicImage images={images} width={88} height={104} compact showCount>
         {score != null && (
           <div style={{ position: "absolute", bottom: 6, left: 0, right: 0, textAlign: "center" }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: WARM_WHITE, lineHeight: 1, textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>{score}%</div>
             <div style={{ fontSize: 7, color: "rgba(255,252,248,0.85)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 1, textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>score</div>
           </div>
         )}
-      </div>
+      </ClinicImage>
       <div style={{ flex: 1, padding: "9px 11px", display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0 }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clinic.name}</div>

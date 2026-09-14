@@ -842,25 +842,22 @@ function StatBar({ label, pct }: { label: string; pct: number }) {
 function WhatYouCanGet({ text }: { text: string | null }) {
   const icons = [Sparkles, Smile, Droplet, ArrowUp];
   const parts = useMemo(() => {
-    const raw = (text ?? "")
+    return (text ?? "")
       .split(/[.;\n]+/)
       .map((s) => s.trim())
-      .filter(Boolean);
-    const defaults = ["Smoother skin", "Even tone", "More hydration", "A lifted look"];
-    const out: { title: string; subtitle: string }[] = [];
-    for (let i = 0; i < 4; i++) {
-      const src = raw[i];
-      if (src) {
+      .filter(Boolean)
+      .slice(0, 4)
+      .map((src) => {
         const words = src.split(/\s+/);
         const title = words.slice(0, 3).join(" ");
-        const subtitle = words.slice(3).join(" ") || src;
-        out.push({ title: title.charAt(0).toUpperCase() + title.slice(1), subtitle });
-      } else {
-        out.push({ title: defaults[i], subtitle: "Common reported benefit" });
-      }
-    }
-    return out;
+        return {
+          title: title.charAt(0).toUpperCase() + title.slice(1),
+          subtitle: words.slice(3).join(" "),
+        };
+      });
   }, [text]);
+
+  if (parts.length === 0) return <EmptyNote text="No benefits recorded for this treatment yet." />;
 
   return (
     <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -870,9 +867,11 @@ function WhatYouCanGet({ text }: { text: string | null }) {
           <div key={i} style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
             <Icon size={16} color={CRIMSON} />
             <div style={{ fontSize: 12, fontWeight: 800, color: ESPRESSO, marginTop: 6, lineHeight: 1.25 }}>{p.title}</div>
-            <div style={{ fontSize: 10, color: MUTED, marginTop: 3, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-              {p.subtitle}
-            </div>
+            {p.subtitle && (
+              <div style={{ fontSize: 10, color: MUTED, marginTop: 3, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                {p.subtitle}
+              </div>
+            )}
           </div>
         );
       })}

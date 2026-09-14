@@ -583,7 +583,9 @@ function TreatmentDetailPage() {
           })}
         </div>
 
-        {socialTab !== "reddit" ? (
+        {(socialTab === "reddit" ? activeReddit.length : activeVideos.length) === 0 ? (
+          <EmptyNote text="No posts collected for this treatment yet." />
+        ) : socialTab !== "reddit" ? (
           <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             {activeVideos.map((p, i) => (
               <div key={i} style={{ height: 140, borderRadius: 10, overflow: "hidden", position: "relative", background: POST_BGS[i % POST_BGS.length], cursor: "pointer" }}>

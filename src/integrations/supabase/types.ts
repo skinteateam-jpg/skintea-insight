@@ -58,6 +58,41 @@ export type Database = {
           },
         ]
       }
+      clinic_contacts: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          emails: string[] | null
+          field_provenance: Json
+          social_profiles: Json | null
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          emails?: string[] | null
+          field_provenance: Json
+          social_profiles?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          emails?: string[] | null
+          field_provenance?: Json
+          social_profiles?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_contacts_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_practitioners: {
         Row: {
           clinic_id: string | null

@@ -23,8 +23,10 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as BrowseRouteImport } from './routes/browse'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TreatmentsIndexRouteImport } from './routes/treatments.index'
 import { Route as ClinicsIndexRouteImport } from './routes/clinics.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as TreatmentsSlugRouteImport } from './routes/treatments.$slug'
 import { Route as TreatmentSlugRouteImport } from './routes/treatment.$slug'
 import { Route as TeaProductsPostIdRouteImport } from './routes/tea-products.$postId'
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
@@ -32,6 +34,7 @@ import { Route as ProductDetailIdRouteImport } from './routes/product-detail.$id
 import { Route as ClinicsIdRouteImport } from './routes/clinics/$id'
 import { Route as CategorySlugRouteImport } from './routes/category.$slug'
 import { Route as AdminTreatmentsRouteImport } from './routes/admin.treatments'
+import { Route as ApiPublicConsultationClickRouteImport } from './routes/api/public/consultation-click'
 import { Route as ApiPublicCacheSocialThumbnailRouteImport } from './routes/api/public/cache-social-thumbnail'
 
 const TreatmentTalk2Route = TreatmentTalk2RouteImport.update({
@@ -104,6 +107,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TreatmentsIndexRoute = TreatmentsIndexRouteImport.update({
+  id: '/treatments/',
+  path: '/treatments/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClinicsIndexRoute = ClinicsIndexRouteImport.update({
   id: '/clinics/',
   path: '/clinics/',
@@ -112,6 +120,11 @@ const ClinicsIndexRoute = ClinicsIndexRouteImport.update({
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TreatmentsSlugRoute = TreatmentsSlugRouteImport.update({
+  id: '/treatments/$slug',
+  path: '/treatments/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TreatmentSlugRoute = TreatmentSlugRouteImport.update({
@@ -149,6 +162,12 @@ const AdminTreatmentsRoute = AdminTreatmentsRouteImport.update({
   path: '/admin/treatments',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicConsultationClickRoute =
+  ApiPublicConsultationClickRouteImport.update({
+    id: '/api/public/consultation-click',
+    path: '/api/public/consultation-click',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCacheSocialThumbnailRoute =
   ApiPublicCacheSocialThumbnailRouteImport.update({
     id: '/api/public/cache-social-thumbnail',
@@ -178,9 +197,12 @@ export interface FileRoutesByFullPath {
   '/profile/$username': typeof ProfileUsernameRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment/$slug': typeof TreatmentSlugRoute
+  '/treatments/$slug': typeof TreatmentsSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/clinics/': typeof ClinicsIndexRoute
+  '/treatments/': typeof TreatmentsIndexRoute
   '/api/public/cache-social-thumbnail': typeof ApiPublicCacheSocialThumbnailRoute
+  '/api/public/consultation-click': typeof ApiPublicConsultationClickRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -204,9 +226,12 @@ export interface FileRoutesByTo {
   '/profile/$username': typeof ProfileUsernameRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment/$slug': typeof TreatmentSlugRoute
+  '/treatments/$slug': typeof TreatmentsSlugRoute
   '/admin': typeof AdminIndexRoute
   '/clinics': typeof ClinicsIndexRoute
+  '/treatments': typeof TreatmentsIndexRoute
   '/api/public/cache-social-thumbnail': typeof ApiPublicCacheSocialThumbnailRoute
+  '/api/public/consultation-click': typeof ApiPublicConsultationClickRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -231,9 +256,12 @@ export interface FileRoutesById {
   '/profile/$username': typeof ProfileUsernameRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment/$slug': typeof TreatmentSlugRoute
+  '/treatments/$slug': typeof TreatmentsSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/clinics/': typeof ClinicsIndexRoute
+  '/treatments/': typeof TreatmentsIndexRoute
   '/api/public/cache-social-thumbnail': typeof ApiPublicCacheSocialThumbnailRoute
+  '/api/public/consultation-click': typeof ApiPublicConsultationClickRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -259,9 +287,12 @@ export interface FileRouteTypes {
     | '/profile/$username'
     | '/tea-products/$postId'
     | '/treatment/$slug'
+    | '/treatments/$slug'
     | '/admin/'
     | '/clinics/'
+    | '/treatments/'
     | '/api/public/cache-social-thumbnail'
+    | '/api/public/consultation-click'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -285,9 +316,12 @@ export interface FileRouteTypes {
     | '/profile/$username'
     | '/tea-products/$postId'
     | '/treatment/$slug'
+    | '/treatments/$slug'
     | '/admin'
     | '/clinics'
+    | '/treatments'
     | '/api/public/cache-social-thumbnail'
+    | '/api/public/consultation-click'
   id:
     | '__root__'
     | '/'
@@ -311,9 +345,12 @@ export interface FileRouteTypes {
     | '/profile/$username'
     | '/tea-products/$postId'
     | '/treatment/$slug'
+    | '/treatments/$slug'
     | '/admin/'
     | '/clinics/'
+    | '/treatments/'
     | '/api/public/cache-social-thumbnail'
+    | '/api/public/consultation-click'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -337,9 +374,12 @@ export interface RootRouteChildren {
   ProductDetailIdRoute: typeof ProductDetailIdRoute
   ProfileUsernameRoute: typeof ProfileUsernameRoute
   TreatmentSlugRoute: typeof TreatmentSlugRoute
+  TreatmentsSlugRoute: typeof TreatmentsSlugRoute
   AdminIndexRoute: typeof AdminIndexRoute
   ClinicsIndexRoute: typeof ClinicsIndexRoute
+  TreatmentsIndexRoute: typeof TreatmentsIndexRoute
   ApiPublicCacheSocialThumbnailRoute: typeof ApiPublicCacheSocialThumbnailRoute
+  ApiPublicConsultationClickRoute: typeof ApiPublicConsultationClickRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -442,6 +482,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/treatments/': {
+      id: '/treatments/'
+      path: '/treatments'
+      fullPath: '/treatments/'
+      preLoaderRoute: typeof TreatmentsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/clinics/': {
       id: '/clinics/'
       path: '/clinics'
@@ -454,6 +501,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/treatments/$slug': {
+      id: '/treatments/$slug'
+      path: '/treatments/$slug'
+      fullPath: '/treatments/$slug'
+      preLoaderRoute: typeof TreatmentsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/treatment/$slug': {
@@ -505,6 +559,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminTreatmentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/consultation-click': {
+      id: '/api/public/consultation-click'
+      path: '/api/public/consultation-click'
+      fullPath: '/api/public/consultation-click'
+      preLoaderRoute: typeof ApiPublicConsultationClickRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cache-social-thumbnail': {
       id: '/api/public/cache-social-thumbnail'
       path: '/api/public/cache-social-thumbnail'
@@ -548,9 +609,12 @@ const rootRouteChildren: RootRouteChildren = {
   ProductDetailIdRoute: ProductDetailIdRoute,
   ProfileUsernameRoute: ProfileUsernameRoute,
   TreatmentSlugRoute: TreatmentSlugRoute,
+  TreatmentsSlugRoute: TreatmentsSlugRoute,
   AdminIndexRoute: AdminIndexRoute,
   ClinicsIndexRoute: ClinicsIndexRoute,
+  TreatmentsIndexRoute: TreatmentsIndexRoute,
   ApiPublicCacheSocialThumbnailRoute: ApiPublicCacheSocialThumbnailRoute,
+  ApiPublicConsultationClickRoute: ApiPublicConsultationClickRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

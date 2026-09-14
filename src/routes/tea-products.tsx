@@ -86,9 +86,7 @@ type TaggedProduct = {
   id: string;
   name: string;
   brand: string;
-  price: string;
-  image: string;
-  approval: number; // 0-100
+  image?: string;
   skinType: SkinType;
 };
 
@@ -98,9 +96,6 @@ export type Post = {
   tag: TagKey;
   postType: PostType;
   hashtags?: string[];
-  authorName?: string;
-  authorRole?: string;
-  isMUA?: boolean;
   text: string;
   images: string[];
   products: TaggedProduct[];

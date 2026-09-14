@@ -64,15 +64,6 @@ const TINT = "#F5EFEC";
 const SANS = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 const SERIF = "'Playfair Display', serif";
 
-const CELEB_NAMES: Record<string, string> = {
-  kimkardashian: "Kim Kardashian",
-  haileybieber: "Hailey Bieber",
-  beyonce: "Beyoncé",
-  selenagomez: "Selena Gomez",
-  kyliejenner: "Kylie Jenner",
-  jlo: "Jennifer Lopez",
-};
-
 type SocialTab = "tiktok" | "instagram" | "reddit";
 
 type VideoPost = { handle: string; caption: string; views: string; likes: string };
@@ -82,160 +73,6 @@ type RedditPost = {
   preview: string;
   upvotes: string;
   comments: number;
-};
-
-const SOCIAL_POSTS: Record<
-  string,
-  { tiktok: VideoPost[]; instagram: VideoPost[]; reddit: RedditPost[] }
-> = {
-  "prf-injection": {
-    tiktok: [
-      { handle: "skinwithliv", caption: "My PRF results after 3 sessions 🩸", views: "1.2M", likes: "184K" },
-      { handle: "dermdoctor", caption: "Why I recommend PRF over PRP", views: "890K", likes: "92K" },
-      { handle: "glowby.mei", caption: "PRF before and after — oily skin", views: "430K", likes: "61K" },
-      { handle: "prfskinjourney", caption: "Week 6 update — the glow is real", views: "210K", likes: "27K" },
-    ],
-    instagram: [
-      { handle: "skinwithliv", caption: "PRF changed my texture completely", views: "892K", likes: "74K" },
-      { handle: "aestheticsbyla", caption: "PRF injection process explained", views: "445K", likes: "38K" },
-      { handle: "glowstudiola", caption: "Client result after 2 PRF sessions", views: "210K", likes: "19K" },
-      { handle: "oilyskin.diaries", caption: "Finally found what works for oily skin", views: "180K", likes: "14K" },
-    ],
-    reddit: [
-      {
-        subreddit: "r/SkincareAddiction",
-        title: "6 months of PRF — honest review with before/after photos",
-        preview: "I was skeptical but my derm convinced me. Here's what actually happened to my oily skin...",
-        upvotes: "2.1K",
-        comments: 184,
-      },
-      {
-        subreddit: "r/30PlusSkinCare",
-        title: "PRF worth it for large pores? My experience after 2 sessions",
-        preview: "Has anyone tried PRF specifically for enlarged pores? I have oily skin and my derm recommended it...",
-        upvotes: "1.8K",
-        comments: 97,
-      },
-      {
-        subreddit: "r/Skintea",
-        title: "PRF regret post — please read before booking",
-        preview: "I want to share my experience because I wish someone had warned me. Not saying don't do it, but...",
-        upvotes: "740",
-        comments: 203,
-      },
-    ],
-  },
-  hydrafacial: {
-    tiktok: [
-      { handle: "glowgirlmia", caption: "Hydrafacial vs regular facial — huge difference", views: "2.1M", likes: "310K" },
-      { handle: "skinprosamantha", caption: "What a Hydrafacial actually does to your pores", views: "1.4M", likes: "192K" },
-      { handle: "monthlyglowup", caption: "12 months of Hydrafacials — my honest take", views: "620K", likes: "78K" },
-      { handle: "lapores", caption: "Extraction footage is oddly satisfying", views: "350K", likes: "44K" },
-    ],
-    instagram: [
-      { handle: "beautybyclara", caption: "Pre-event glow with a Hydrafacial", views: "510K", likes: "52K" },
-      { handle: "dermclinicla", caption: "Behind the scenes of a Hydrafacial session", views: "280K", likes: "23K" },
-      { handle: "glowstudiola", caption: "Why we recommend Hydrafacials monthly", views: "190K", likes: "17K" },
-      { handle: "skintypecombo", caption: "Best maintenance facial for combo skin", views: "120K", likes: "9.4K" },
-    ],
-    reddit: [
-      {
-        subreddit: "r/SkincareAddiction",
-        title: "Are Hydrafacials worth the money? 6-session review",
-        preview: "After doing one every month for half a year, here's everything I noticed about my pores and texture...",
-        upvotes: "3.4K",
-        comments: 221,
-      },
-      {
-        subreddit: "r/30PlusSkinCare",
-        title: "Hydrafacial broke me out — anyone else?",
-        preview: "Got my first Hydrafacial last week and woke up with small bumps along my jaw. Is this normal purging or...",
-        upvotes: "1.1K",
-        comments: 156,
-      },
-      {
-        subreddit: "r/Skintea",
-        title: "What to ask before booking a Hydrafacial",
-        preview: "Quick checklist I wish I had before my first appointment — serums, pressure, add-ons...",
-        upvotes: "890",
-        comments: 64,
-      },
-    ],
-  },
-  botox: {
-    tiktok: [
-      { handle: "botoxbabe", caption: "My first Botox at 27 — what I wish I knew", views: "3.4M", likes: "420K" },
-      { handle: "dermtokdaily", caption: "Baby Botox vs full Botox — explained", views: "1.8M", likes: "240K" },
-      { handle: "frozenface.no", caption: "How to avoid that frozen look", views: "920K", likes: "118K" },
-      { handle: "tox.diaries", caption: "3 month update — natural results", views: "510K", likes: "63K" },
-    ],
-    instagram: [
-      { handle: "injectorjess", caption: "Subtle Botox placement for natural movement", views: "640K", likes: "61K" },
-      { handle: "aestheticsbyla", caption: "Preventative Botox — when to start", views: "390K", likes: "32K" },
-      { handle: "smoothskindiary", caption: "Forehead before/after — 14 days", views: "240K", likes: "21K" },
-      { handle: "glowstudiola", caption: "Crow's feet softened — same expression", views: "150K", likes: "12K" },
-    ],
-    reddit: [
-      {
-        subreddit: "r/30PlusSkinCare",
-        title: "Honest Botox cost breakdown by city",
-        preview: "Compiled prices from 12 cities so you know what fair pricing looks like before walking in...",
-        upvotes: "4.2K",
-        comments: 312,
-      },
-      {
-        subreddit: "r/SkincareAddiction",
-        title: "First time Botox — questions to ask your injector",
-        preview: "List of everything I asked before letting anyone near my face with a needle. Saved me from a bad result...",
-        upvotes: "2.6K",
-        comments: 188,
-      },
-      {
-        subreddit: "r/Skintea",
-        title: "Bad Botox experience — what went wrong",
-        preview: "Drooping eyebrow for 8 weeks. Sharing photos and what I learned so you don't make the same mistake...",
-        upvotes: "1.1K",
-        comments: 247,
-      },
-    ],
-  },
-  "laser-resurfacing": {
-    tiktok: [
-      { handle: "lasergirl", caption: "Day-by-day laser resurfacing recovery", views: "2.8M", likes: "360K" },
-      { handle: "dermdr.k", caption: "Fractional vs ablative — what's the difference", views: "1.1M", likes: "140K" },
-      { handle: "scarless.story", caption: "Acne scars after 3 laser sessions", views: "780K", likes: "97K" },
-      { handle: "glowafterlaser", caption: "Week 4 update — texture transformed", views: "320K", likes: "41K" },
-    ],
-    instagram: [
-      { handle: "laserclinicla", caption: "Treating sun damage with fractional laser", views: "510K", likes: "44K" },
-      { handle: "skinrenewmd", caption: "What to expect after CO2 laser", views: "290K", likes: "26K" },
-      { handle: "glowstudiola", caption: "Smoother skin in 6 weeks", views: "180K", likes: "15K" },
-      { handle: "deeptone.skin", caption: "Laser safety for melanin-rich skin", views: "140K", likes: "11K" },
-    ],
-    reddit: [
-      {
-        subreddit: "r/SkincareAddiction",
-        title: "Laser resurfacing for acne scars — 1 year update",
-        preview: "Three sessions later, here are the photos and the exact protocol my derm used. Real results, real cost...",
-        upvotes: "3.1K",
-        comments: 214,
-      },
-      {
-        subreddit: "r/30PlusSkinCare",
-        title: "How I prepped for fractional laser (and what I'd skip)",
-        preview: "Two weeks of pre-treatment routine, products that helped, and the one thing my derm told me to stop using...",
-        upvotes: "2.0K",
-        comments: 132,
-      },
-      {
-        subreddit: "r/Skintea",
-        title: "Laser tips for deeper skin tones — read before booking",
-        preview: "Hyperpigmentation risk is real. Here's what to look for in a provider and the questions that matter most...",
-        upvotes: "1.3K",
-        comments: 178,
-      },
-    ],
-  },
 };
 
 const POST_BGS = ["#1C0A00", "#2A1408", "#1a1020", "#0f2018"];
@@ -346,40 +183,26 @@ function TreatmentDetailPage() {
     return d;
   }, [treatment?.downtime]);
 
-  const posts = (treatment && SOCIAL_POSTS[treatment.slug]) ?? SOCIAL_POSTS["prf-injection"];
-  const realTikTok: VideoPost[] = treatmentReviews
-    .filter((r) => r.platform === "tiktok")
-    .map((r) => ({
-      handle: r.author_handle ?? "user",
-      caption: r.content ?? "",
-      views: r.views ? `${r.views}` : "—",
-      likes: r.likes ? `${r.likes}` : "—",
-    }));
-  const realInstagram: VideoPost[] = treatmentReviews
-    .filter((r) => r.platform === "instagram")
-    .map((r) => ({
-      handle: r.author_handle ?? "user",
-      caption: r.content ?? "",
-      views: r.views ? `${r.views}` : "—",
-      likes: r.likes ? `${r.likes}` : "—",
-    }));
+  const toVideo = (r: any): VideoPost => ({
+    handle: r.author_handle ?? "user",
+    caption: r.content ?? "",
+    views: r.views ? `${r.views}` : "—",
+    likes: r.likes ? `${r.likes}` : "—",
+  });
+  const realTikTok: VideoPost[] = treatmentReviews.filter((r) => r.platform === "tiktok").map(toVideo);
+  const realInstagram: VideoPost[] = treatmentReviews.filter((r) => r.platform === "instagram").map(toVideo);
   const realReddit: RedditPost[] = treatmentReviews
     .filter((r) => r.platform === "reddit")
     .map((r) => ({
-      subreddit: r.subreddit ?? "r/SkincareAddiction",
+      subreddit: r.subreddit ?? "Reddit",
       title: (r.content ?? "").split("\n")[0] || r.content || "—",
       preview: r.content ?? "—",
       upvotes: r.upvotes ? `${r.upvotes}` : "—",
       comments: r.comment_count ?? 0,
     }));
   const activeVideos =
-    socialTab === "tiktok"
-      ? (realTikTok.length ? realTikTok : posts.tiktok)
-      : socialTab === "instagram"
-        ? (realInstagram.length ? realInstagram : posts.instagram)
-        : [];
-  const activeReddit =
-    socialTab === "reddit" ? (realReddit.length ? realReddit : posts.reddit) : [];
+    socialTab === "tiktok" ? realTikTok : socialTab === "instagram" ? realInstagram : [];
+  const activeReddit = socialTab === "reddit" ? realReddit : [];
 
   if (loading) {
     return (
@@ -435,13 +258,6 @@ function TreatmentDetailPage() {
           {treatment.subtitle && (
             <div style={{ fontSize: 12, color: "rgba(255,252,248,0.75)", fontStyle: "italic", lineHeight: 1.4, marginBottom: 12 }}>{treatment.subtitle}</div>
           )}
-          {treatment.celebrity_handles && treatment.celebrity_handles.length > 0 && (
-            <div className="no-scrollbar" style={{ display: "flex", gap: 6, overflowX: "auto", flexWrap: "nowrap" }}>
-              {treatment.celebrity_handles.map((h) => (
-                <CelebPill key={h} handle={h} />
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
@@ -484,31 +300,16 @@ function TreatmentDetailPage() {
         <AtAGlance treatment={treatment} />
       </Section>
 
-      {/* S3. How long it lasts */}
-      <Section label="How long it lasts">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
-          <NeutralCard label="Results last" value={treatment.sessions_recommended ?? "—"} subtitle="Then fades naturally" />
-          <NeutralCard label="Maintenance" value="Repeat visits" subtitle="To keep results" />
-        </div>
-      </Section>
-
-      {/* S4. Who does this */}
-      <Section label="Who does this">
-        <AgeChart category={treatment.category} />
-      </Section>
-
-      {/* S5. Popular in */}
-      <Section label="Popular in">
-        <CountryChart />
-      </Section>
-
       {/* S6. What people say */}
       <Section label="What people say">
-        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
-          <StatBar label="Would recommend" pct={treatment.majority_pct ?? 0} />
-          <StatBar label="Saw real results" pct={treatment.results_pct ?? 0} />
-          <StatBar label="Would do again" pct={Math.round((treatment.majority_pct ?? 0) * 0.95)} />
-        </div>
+        {treatment.majority_pct == null && treatment.results_pct == null ? (
+          <EmptyNote text="No recommendation data collected for this treatment yet." />
+        ) : (
+          <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+            {treatment.majority_pct != null && <StatBar label="Would recommend" pct={treatment.majority_pct} />}
+            {treatment.results_pct != null && <StatBar label="Saw real results" pct={treatment.results_pct} />}
+          </div>
+        )}
         {treatment.minority_opinion && (
           <div style={{ marginTop: 12, background: TINT, borderRadius: 8, padding: "10px 12px", borderLeft: `2px solid ${BORDER}` }}>
             <div style={{ fontSize: 9, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>
@@ -583,7 +384,9 @@ function TreatmentDetailPage() {
           })}
         </div>
 
-        {socialTab !== "reddit" ? (
+        {(socialTab === "reddit" ? activeReddit.length : activeVideos.length) === 0 ? (
+          <EmptyNote text="No posts collected for this treatment yet." />
+        ) : socialTab !== "reddit" ? (
           <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             {activeVideos.map((p, i) => (
               <div key={i} style={{ height: 140, borderRadius: 10, overflow: "hidden", position: "relative", background: POST_BGS[i % POST_BGS.length], cursor: "pointer" }}>
@@ -669,9 +472,6 @@ function TreatmentDetailPage() {
                     {c.price_from != null && (
                       <div style={{ fontSize: 13, fontWeight: 800, color: CRIMSON }}>From ${c.price_from}</div>
                     )}
-                    <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
-                      {c.skintea_score ?? c.trust_score ?? "—"}% recommend
-                    </div>
                   </div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: CRIMSON }}>Book here →</div>
                 </div>
@@ -720,39 +520,11 @@ function TreatmentDetailPage() {
 
       {/* Before & After */}
       <Section label="Before & After">
-        <div style={{ fontSize: 11, color: MUTED, marginTop: -4, marginBottom: 12 }}>
-          From real users · {treatment.name}{skinType ? ` · ${skinType} skin` : ""}
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-          {beforeAfters.length === 0 ? (
-            [0, 1].map((i) => (
-              <div key={i} style={{ borderRadius: 10, overflow: "hidden", border: `0.5px solid ${BORDER}`, opacity: i === 1 ? 0.5 : 1, position: "relative" }}>
-                <div style={{ display: "flex" }}>
-                  <div style={{ flex: 1, height: 100, background: "#2A1408", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <div style={{ fontSize: 8, fontWeight: 800, color: "rgba(255,252,248,0.5)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Before</div>
-                  </div>
-                  <div style={{ flex: 1, height: 100, background: "#1C3020", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <div style={{ fontSize: 8, fontWeight: 800, color: "rgba(255,252,248,0.5)", textTransform: "uppercase", letterSpacing: "0.06em" }}>After</div>
-                  </div>
-                </div>
-                <div style={{ padding: 8, background: "#fff" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: ESPRESSO }}>🍩 Oily skin · 28</div>
-                  <div style={{ fontSize: 9, color: MUTED, marginTop: 2 }}>1 session · forehead</div>
-                  <div style={{ fontSize: 9, color: "#2D7A3A", fontWeight: 700, marginTop: 4 }}>✓ Would do again</div>
-                </div>
-                {i === 1 && (
-                  <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(4px)", background: "rgba(255,252,248,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <div style={{ background: "#fff", borderRadius: 8, padding: "8px 10px", textAlign: "center", border: `0.5px solid ${BORDER}` }}>
-                      <div style={{ fontSize: 16, marginBottom: 2 }}>🔒</div>
-                      <div style={{ fontSize: 9, fontWeight: 800, color: ESPRESSO }}>Members only</div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))
-          ) : (
-            beforeAfters.slice(0, 2).map((ba, i) => (
+        {beforeAfters.length === 0 ? (
+          <EmptyNote text="No before/after photos yet." />
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
+            {beforeAfters.slice(0, 2).map((ba) => (
               <div key={ba.id} style={{ borderRadius: 10, overflow: "hidden", border: `0.5px solid ${BORDER}`, position: "relative" }}>
                 <div style={{ display: "flex" }}>
                   <div style={{ flex: 1, height: 100, background: "#2A1408", overflow: "hidden" }}>
@@ -763,42 +535,24 @@ function TreatmentDetailPage() {
                   </div>
                   <div style={{ flex: 1, height: 100, background: "#1C3020", overflow: "hidden" }}>
                     {ba.after_url
-                      ? <img src={ba.after_url} alt="After" style={{ width: "100%", height: "100%", objectFit: "cover", filter: i >= 1 ? "blur(6px)" : "none" }} />
+                      ? <img src={ba.after_url} alt="After" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                       : <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ fontSize: 8, fontWeight: 800, color: "rgba(255,252,248,0.5)", textTransform: "uppercase" }}>After</span></div>
                     }
                   </div>
                 </div>
-                <div style={{ padding: 8, background: "#fff", filter: i >= 1 ? "blur(3px)" : "none" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: ESPRESSO }}>{ba.skin_type ?? "—"} · {ba.age ?? "—"}</div>
-                  <div style={{ fontSize: 9, color: MUTED, marginTop: 2 }}>{ba.sessions ?? "—"}</div>
-                  {ba.outcome && (
-                    <div style={{ fontSize: 9, color: "#2D7A3A", fontWeight: 700, marginTop: 4 }}>✓ {ba.outcome}</div>
-                  )}
-                </div>
-                {i >= 1 && (
-                  <div style={{ position: "absolute", inset: 0, backdropFilter: "blur(4px)", background: "rgba(255,252,248,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <div style={{ background: "#fff", borderRadius: 8, padding: "8px 10px", textAlign: "center", border: `0.5px solid ${BORDER}` }}>
-                      <div style={{ fontSize: 16, marginBottom: 2 }}>🔒</div>
-                      <div style={{ fontSize: 9, fontWeight: 800, color: ESPRESSO }}>Members only</div>
+                <div style={{ padding: 8, background: "#fff" }}>
+                  {(ba.skin_type || ba.age) && (
+                    <div style={{ fontSize: 10, fontWeight: 700, color: ESPRESSO }}>
+                      {[ba.skin_type, ba.age].filter(Boolean).join(" · ")}
                     </div>
-                  </div>
-                )}
+                  )}
+                  {ba.sessions && <div style={{ fontSize: 9, color: MUTED, marginTop: 2 }}>{ba.sessions}</div>}
+                  {ba.outcome && <div style={{ fontSize: 9, color: "#2D7A3A", fontWeight: 700, marginTop: 4 }}>{ba.outcome}</div>}
+                </div>
               </div>
-            ))
-          )}
-        </div>
-
-        <div style={{ background: TINT, borderRadius: 10, padding: "14px 16px", textAlign: "center" }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO, marginBottom: 4 }}>
-            See real before &amp; afters + side effects, costs, regrets
+            ))}
           </div>
-          <div style={{ fontSize: 11, color: MUTED, marginBottom: 12, lineHeight: 1.5 }}>
-            Filtered to your skin type. Real people, real results.
-          </div>
-          <button style={{ width: "100%", background: CRIMSON, color: WARM, border: "none", borderRadius: 8, padding: "13px 0", fontSize: 14, fontWeight: 800, cursor: "pointer" }}>
-            Unlock Full Tea — $9.99/mo
-          </button>
-        </div>
+        )}
       </Section>
 
       {/* 11. Spacer */}
@@ -842,25 +596,22 @@ function StatBar({ label, pct }: { label: string; pct: number }) {
 function WhatYouCanGet({ text }: { text: string | null }) {
   const icons = [Sparkles, Smile, Droplet, ArrowUp];
   const parts = useMemo(() => {
-    const raw = (text ?? "")
+    return (text ?? "")
       .split(/[.;\n]+/)
       .map((s) => s.trim())
-      .filter(Boolean);
-    const defaults = ["Smoother skin", "Even tone", "More hydration", "A lifted look"];
-    const out: { title: string; subtitle: string }[] = [];
-    for (let i = 0; i < 4; i++) {
-      const src = raw[i];
-      if (src) {
+      .filter(Boolean)
+      .slice(0, 4)
+      .map((src) => {
         const words = src.split(/\s+/);
         const title = words.slice(0, 3).join(" ");
-        const subtitle = words.slice(3).join(" ") || src;
-        out.push({ title: title.charAt(0).toUpperCase() + title.slice(1), subtitle });
-      } else {
-        out.push({ title: defaults[i], subtitle: "Common reported benefit" });
-      }
-    }
-    return out;
+        return {
+          title: title.charAt(0).toUpperCase() + title.slice(1),
+          subtitle: words.slice(3).join(" "),
+        };
+      });
   }, [text]);
+
+  if (parts.length === 0) return <EmptyNote text="No benefits recorded for this treatment yet." />;
 
   return (
     <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -870,9 +621,11 @@ function WhatYouCanGet({ text }: { text: string | null }) {
           <div key={i} style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
             <Icon size={16} color={CRIMSON} />
             <div style={{ fontSize: 12, fontWeight: 800, color: ESPRESSO, marginTop: 6, lineHeight: 1.25 }}>{p.title}</div>
-            <div style={{ fontSize: 10, color: MUTED, marginTop: 3, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-              {p.subtitle}
-            </div>
+            {p.subtitle && (
+              <div style={{ fontSize: 10, color: MUTED, marginTop: 3, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                {p.subtitle}
+              </div>
+            )}
           </div>
         );
       })}
@@ -880,282 +633,31 @@ function WhatYouCanGet({ text }: { text: string | null }) {
   );
 }
 
-function PipBar({ filled, total, color, emptyColor }: { filled: number; total: number; color: string; emptyColor: string }) {
+function AtAGlance({ treatment }: { treatment: Treatment }) {
+  const rows = [
+    { label: "Average cost", value: treatment.average_cost },
+    { label: "Downtime", value: treatment.downtime },
+    { label: "Sessions recommended", value: treatment.sessions_recommended },
+  ].filter((r) => r.value != null && `${r.value}`.trim() !== "");
+
+  if (rows.length === 0) return <EmptyNote text="No details recorded for this treatment yet." />;
+
   return (
-    <div style={{ display: "flex", gap: 4 }}>
-      {Array.from({ length: total }).map((_, i) => (
-        <div key={i} style={{ flex: 1, height: 6, borderRadius: 3, background: i < filled ? color : emptyColor }} />
+    <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+      {rows.map((r) => (
+        <div key={r.label} style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
+          <div style={{ fontSize: 9, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.1em" }}>{r.label}</div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO, marginTop: 6, lineHeight: 1.3 }}>{r.value}</div>
+        </div>
       ))}
     </div>
   );
 }
 
-function AtAGlance({ treatment }: { treatment: Treatment }) {
-
+function EmptyNote({ text }: { text: string }) {
   return (
-    <div style={{ marginTop: 10 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-        <div style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
-          <div style={{ fontSize: 9, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>Price rank</div>
-          <PipBar filled={2} total={5} color={ESPRESSO} emptyColor={BORDER} />
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-            <span style={{ fontSize: 9, color: MUTED }}>Budget</span>
-            <span style={{ fontSize: 9, color: MUTED }}>Luxury</span>
-          </div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO, marginTop: 6 }}>Mid-range</div>
-          <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Not cheap, not crazy</div>
-        </div>
-        <div style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
-          <div style={{ fontSize: 9, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>How serious</div>
-          <div style={{ display: "flex", gap: 4 }}>
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div key={i} style={{ flex: 1, height: 6, borderRadius: 3, background: i === 2 || i === 3 ? CRIMSON : BORDER }} />
-            ))}
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-            <span style={{ fontSize: 9, color: MUTED }}>Casual</span>
-            <span style={{ fontSize: 9, color: MUTED }}>Surgery</span>
-          </div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO, marginTop: 6 }}>Medical</div>
-          <div style={{ fontSize: 10, color: MUTED, marginTop: 2 }}>Needs a licensed injector</div>
-        </div>
-      </div>
-
-      {/* How big is the change */}
-      <div style={{ marginTop: 10, background: "#fff", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: 12 }}>
-
-        <div style={{ fontSize: 14, fontWeight: 800, color: ESPRESSO, marginBottom: 4 }}>How big is the change?</div>
-
-        <div style={{ fontSize: 11, color: MUTED, marginBottom: 14 }}>Compared to other treatments</div>
-
-        {/* Gradient bar with dot */}
-
-        <div style={{ position: "relative", height: 6, background: "linear-gradient(to right, #E8DDD4, #A8001C)", borderRadius: 3, marginBottom: 6 }}>
-
-          <div style={{
-
-            position: "absolute",
-
-            left: `${((treatment.change_score ?? 2) / 5) * 100}%`,
-
-            top: "50%",
-
-            transform: "translate(-50%, -50%)",
-
-            width: 14,
-
-            height: 14,
-
-            borderRadius: "50%",
-
-            background: CRIMSON,
-
-            border: "2px solid #FFFCF8",
-
-            boxShadow: `0 0 0 1.5px ${CRIMSON}`,
-
-          }} />
-
-        </div>
-
-        {/* 5 labels */}
-
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
-
-          {["Subtle", "Noticeable", "Significant", "Big", "Huge"].map((l) => (
-
-            <div key={l} style={{ fontSize: 9, color: ESPRESSO, fontWeight: 700 }}>{l}</div>
-
-          ))}
-
-        </div>
-
-        {/* Chips */}
-
-        <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }} className="no-scrollbar">
-
-          {[
-
-            { label: "Glow Facial", sub: "Subtle", score: 1.0 },
-
-            { label: "Botox", sub: "Noticeable", score: 2.0 },
-
-            { label: "Skin Tightening", sub: "Significant", score: 3.0 },
-
-            { label: "Laser Resurfacing", sub: "Big", score: 4.0 },
-
-            { label: "Cosmetic Surgery", sub: "Huge", score: 5.0 },
-
-          ].map((chip) => {
-
-            const currentScore = treatment.change_score ?? 2;
-
-            const isActive = Math.abs(currentScore - chip.score) < 0.8;
-
-            return (
-
-              <div key={chip.label} style={{
-
-                flexShrink: 0,
-
-                textAlign: "center",
-
-                fontSize: 10,
-
-                padding: "6px 10px",
-
-                background: isActive ? "#FEE8EC" : "#F5EFEC",
-
-                border: isActive ? `0.5px solid ${CRIMSON}` : "none",
-
-                borderRadius: 6,
-
-                color: isActive ? CRIMSON : ESPRESSO,
-
-                fontWeight: isActive ? 800 : 700,
-
-                lineHeight: 1.5,
-
-              }}>
-
-                {chip.label}
-
-                <span style={{ fontSize: 9, color: isActive ? "#C44060" : MUTED, fontWeight: 400, display: "block" }}>{chip.sub}</span>
-
-              </div>
-
-            );
-
-          })}
-
-        </div>
-
-      </div>
+    <div style={{ marginTop: 10, border: `0.5px dashed ${BORDER}`, borderRadius: 8, padding: "14px 12px", textAlign: "center", fontSize: 12, color: MUTED }}>
+      {text}
     </div>
-  );
-}
-
-function NeutralCard({ label, value, subtitle }: { label: string; value: string; subtitle: string }) {
-  return (
-    <div style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
-      <div style={{ fontSize: 9, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.1em" }}>{label}</div>
-      <div style={{ fontSize: 14, fontWeight: 800, color: ESPRESSO, marginTop: 6, lineHeight: 1.25 }}>{value}</div>
-      <div style={{ fontSize: 10, color: MUTED, marginTop: 3 }}>{subtitle}</div>
-    </div>
-  );
-}
-
-const AGE_BUCKETS_BY_CATEGORY: Record<string, { label: string; pct: number }[]> = {
-  Injectables: [
-    { label: "20s", pct: 28 },
-    { label: "30s", pct: 45 },
-    { label: "40s", pct: 20 },
-    { label: "50s+", pct: 7 },
-  ],
-};
-const DEFAULT_AGE_BUCKETS = [
-  { label: "20s", pct: 35 },
-  { label: "30s", pct: 38 },
-  { label: "40s", pct: 20 },
-  { label: "50s+", pct: 7 },
-];
-
-function AgeChart({ category }: { category: string | null }) {
-  const buckets = (category ? AGE_BUCKETS_BY_CATEGORY[category] : undefined) ?? DEFAULT_AGE_BUCKETS;
-  const topIdx = buckets.reduce((best, b, i, arr) => (b.pct > arr[best].pct ? i : best), 0);
-  const max = Math.max(...buckets.map((b) => b.pct));
-  return (
-    <div style={{ marginTop: 10 }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {buckets.map((b, i) => {
-          const top = i === topIdx;
-          return (
-            <div key={b.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 48, fontSize: 11, fontWeight: top ? 800 : 600, color: ESPRESSO }}>
-                {b.label}{top ? " 👑" : ""}
-              </div>
-              <div style={{ flex: 1, height: 8, background: "#F0EAE4", borderRadius: 4, overflow: "hidden" }}>
-                <div style={{ width: `${(b.pct / max) * 100}%`, height: "100%", background: top ? ESPRESSO : CRIMSON }} />
-              </div>
-              <div style={{ width: 34, textAlign: "right", fontSize: 11, fontWeight: 700, color: ESPRESSO }}>{b.pct}%</div>
-            </div>
-          );
-        })}
-      </div>
-      <div style={{ fontSize: 10, color: MUTED, marginTop: 8 }}>Most popular in your {buckets[topIdx].label}</div>
-    </div>
-  );
-}
-
-const COUNTRIES = [
-  { flag: "🇺🇸", name: "US", pct: 88 },
-  { flag: "🇰🇷", name: "Korea", pct: 74 },
-  { flag: "🇯🇵", name: "Japan", pct: 58 },
-  { flag: "🇨🇳", name: "China", pct: 45 },
-  { flag: "🇪🇺", name: "Europe", pct: 38 },
-  { flag: "🌎", name: "Latin America", pct: 22 },
-];
-
-function CountryChart() {
-  const max = COUNTRIES[0].pct;
-  return (
-    <div style={{ marginTop: 10 }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {COUNTRIES.map((c, i) => {
-          const top = i === 0;
-          return (
-            <div key={c.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ minWidth: 120, fontSize: 11, fontWeight: top ? 800 : 600, color: ESPRESSO, display: "flex", alignItems: "center", gap: 4 }}>
-                {top && <span>👑</span>}
-                <span>{c.flag}</span>
-                <span>{c.name}</span>
-              </div>
-              <div style={{ flex: 1, height: 8, background: "#F0EAE4", borderRadius: 4, overflow: "hidden" }}>
-                <div style={{ width: `${(c.pct / max) * 100}%`, height: "100%", background: top ? ESPRESSO : CRIMSON }} />
-              </div>
-              <div style={{ width: 34, textAlign: "right", fontSize: 11, fontWeight: 700, color: ESPRESSO }}>{c.pct}%</div>
-            </div>
-          );
-        })}
-      </div>
-      <div style={{ fontSize: 10, color: MUTED, marginTop: 8 }}>Most popular in the US, followed by Korea</div>
-    </div>
-  );
-}
-
-function CelebPill({ handle }: { handle: string }) {
-  const [imgError, setImgError] = useState(false);
-  const name = CELEB_NAMES[handle] ?? handle;
-  const initials = name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
-  return (
-    <button
-      onClick={() => window.open(`https://instagram.com/${handle}`, "_blank")}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        background: "rgba(255,252,248,0.15)",
-        border: "0.5px solid rgba(255,252,248,0.25)",
-        borderRadius: 4,
-        padding: "4px 8px",
-        flexShrink: 0,
-        cursor: "pointer",
-      }}
-    >
-      {imgError ? (
-        <div style={{ width: 18, height: 18, borderRadius: "50%", background: "#C9A98A", color: WARM, fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          {initials}
-        </div>
-      ) : (
-        <img
-          src={`https://unavatar.io/instagram/${handle}`}
-          alt={name}
-          onError={() => setImgError(true)}
-          style={{ width: 18, height: 18, borderRadius: "50%", objectFit: "cover" }}
-        />
-      )}
-      <span style={{ fontSize: 11, fontWeight: 700, color: WARM, whiteSpace: "nowrap" }}>{name}</span>
-      <span style={{ fontSize: 10, color: "rgba(255,252,248,0.7)", whiteSpace: "nowrap" }}>did this</span>
-    </button>
   );
 }

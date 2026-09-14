@@ -333,11 +333,13 @@ function PostDetailPage() {
                 gap: 12,
               }}
             >
-              <img
-                src={post.products[0].image}
-                alt={post.products[0].name}
-                style={{ width: 56, height: 56, borderRadius: 10, objectFit: "cover", flexShrink: 0 }}
-              />
+              {post.products[0].image && (
+                <img
+                  src={post.products[0].image}
+                  alt={post.products[0].name}
+                  style={{ width: 56, height: 56, borderRadius: 10, objectFit: "cover", flexShrink: 0 }}
+                />
+              )}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p
                   style={{
@@ -348,16 +350,10 @@ function PostDetailPage() {
                     letterSpacing: 0.4,
                   }}
                 >
-                  Creator's Pick
+                  Hot Pick
                 </p>
                 <p style={{ fontSize: 13, fontWeight: 600, color: "#1C0A00" }}>
                   {post.products[0].name} — {post.products[0].brand}
-                </p>
-                <p style={{ fontSize: 12, color: "#1C0A00", fontWeight: 500 }}>
-                  {post.products[0].price}
-                </p>
-                <p style={{ fontSize: 10, color: "#888", marginTop: 2 }}>
-                  {post.products[0].approval}% of {skinTypeLabel(post.products[0].skinType)} skin approve · Skintea
                 </p>
               </div>
               <button

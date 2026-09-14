@@ -679,27 +679,6 @@ export type Database = {
           },
         ]
       }
-      crawl_field_staging: {
-        Row: {
-          field: string
-          match_key: string
-          place_id: string
-          url: string
-        }
-        Insert: {
-          field: string
-          match_key: string
-          place_id: string
-          url: string
-        }
-        Update: {
-          field?: string
-          match_key?: string
-          place_id?: string
-          url?: string
-        }
-        Relationships: []
-      }
       gift_wishlist: {
         Row: {
           affiliate_store: string | null

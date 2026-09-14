@@ -131,7 +131,6 @@ function useSession() {
 function usePosts(surgeries: Surgery[]) {
   const [posts, setPosts] = useState<EnrichedPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [usingDemo, setUsingDemo] = useState(false);
   const hasLoadedRef = useRef(false);
   const surgeriesRef = useRef(surgeries);
   useEffect(() => { surgeriesRef.current = surgeries; }, [surgeries]);
@@ -146,11 +145,8 @@ function usePosts(surgeries: Surgery[]) {
         .order("created_at", { ascending: false })
         .limit(100);
       if (error || !data || data.length === 0) {
-        // Don't flash to demo if we already have real posts loaded
-        if (!hasLoadedRef.current) {
-          setPosts(DEMO_POSTS);
-          setUsingDemo(true);
-        }
+        // Don't clear real posts we already loaded
+        if (!hasLoadedRef.current) setPosts([]);
       } else {
         const surgMap = new Map(surgeriesRef.current.map((s) => [s.id, s.name]));
         const userIds = Array.from(new Set(data.map((p) => p.user_id)));
@@ -176,13 +172,9 @@ function usePosts(surgeries: Surgery[]) {
           };
         });
         setPosts(enriched);
-        setUsingDemo(false);
       }
     } catch {
-      if (!hasLoadedRef.current) {
-        setPosts(DEMO_POSTS);
-        setUsingDemo(true);
-      }
+      if (!hasLoadedRef.current) setPosts([]);
     } finally {
       hasLoadedRef.current = true;
       setLoading(false);

@@ -1,8 +1,9 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Lock, Check, AlertTriangle, X, Sparkles, RotateCcw, ArrowRight } from "lucide-react";
-import { TREATMENT_DATA } from "../data/treatments";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { Lock, Check, AlertTriangle, X, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { MIN_TAGGED, isOpinionRow, aggregate } from "@/lib/opinionAggregate";
+import { getLeadSessionId } from "@/lib/leadSession";
 
 export const Route = createFileRoute("/quiz-result")({
   component: QuizResultPage,
@@ -12,13 +13,15 @@ export const Route = createFileRoute("/quiz-result")({
       {
         name: "description",
         content:
-          "Your personalized skin profile, ingredient list, and product matches based on your Skintea quiz.",
+          "Your skin type, ingredient list, and the products real tagged opinions say fit or do not fit your skin.",
       },
       { property: "og:title", content: "Your Skin Profile — Skintea" },
       {
         property: "og:description",
-        content: "Personalized skincare insights powered by real user data.",
+        content: "Your skin result, computed from tagged opinions — never from invented numbers.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
 });
@@ -28,184 +31,188 @@ const C = { espresso: "#1C0A00", crimson: "#A8001C", bg: "#FFFCF8", surface: "#F
 
 type CharacterKey = "glazed-donut" | "desert-girl" | "mood-board" | "unbothered" | "main-character";
 
-const CHARACTER_META: Record<CharacterKey, { name: string; emoji: string; tagline: string }> = { "glazed-donut": { name: "The Butter Girl", emoji: "🧈", tagline: "Rich, glossy, and a little too much. Your skin never misses a beat." }, "desert-girl": { name: "The Cracker", emoji: "🫙", tagline: "Thirsty by 9am. Moisturizer is your love language." }, "mood-board": { name: "The Everything Bagel", emoji: "🥯", tagline: "Oily here, dry there. Your skin contains multitudes." }, "unbothered": { name: "The Glass of Milk", emoji: "🥛", tagline: "Balanced. Calm. Unbothered. Don't break what isn't broken." }, "main-character": { name: "The Peach", emoji: "🍑", tagline: "Soft, delicate, and reacts to everything. Gentle is the only way." } };
-
 const CHARACTER_HASHTAGS: Record<CharacterKey, string[]> = { "glazed-donut": ["#butterface", "#glossynotgreasy", "#oilygirlswin", "#blotterqueen", "#myskinismoisturized"], "desert-girl": ["#perpetuallythirsty", "#dryskingang", "#moisturizeordie", "#creameverything", "#flakingbutmakingit"], "mood-board": ["#skintypecontradiction", "#tzonechaos", "#itsgivingbothsides", "#combogirlproblems", "#skinmoodswings"], "unbothered": ["#lowmaintenance", "#skinjustworks", "#cleangirlaesthetic", "#normalbutmakeittrendy", "#dontfixwhatsnotbroken"], "main-character": ["#sensitivequeeen", "#gentleornothanks", "#myskinhasopinions", "#fragrancefreelife", "#everythingbreaksmeout"] };
 
-const PRODUCT_TABS = ["Cleanser", "Toner", "Serum", "Moisturizer", "SPF", "Mask"];
+const SKIN_TYPES = ["oily", "dry", "combination", "sensitive", "normal"] as const;
+type SkinType = (typeof SKIN_TYPES)[number];
 
-const SKIN_RECOMMENDATIONS: Record<string, Record<string, { rank: number; brand: string; name: string; emoji: string; good: string[]; watch?: string; pct: string }[]>> = { oily: { cleanser: [ { rank: 1, brand: "CeraVe", name: "Foaming Facial Cleanser", emoji: "🧼", good: ["Niacinamide", "Ceramides"], pct: "84% rec" }, { rank: 2, brand: "La Roche-Posay", name: "Effaclar Gel Cleanser", emoji: "🫧", good: ["Salicylic acid"], pct: "79% rec" } ], toner: [ { rank: 1, brand: "COSRX", name: "AHA/BHA Clarifying Toner", emoji: "💧", good: ["Salicylic acid", "Willow bark"], watch: "Go slow if sensitive", pct: "75% rec" }, { rank: 2, brand: "Paula's Choice", name: "BHA Liquid Exfoliant", emoji: "🧴", good: ["Salicylic acid"], pct: "88% rec" } ], serum: [ { rank: 1, brand: "The Ordinary", name: "Niacinamide 10% + Zinc 1%", emoji: "🧪", good: ["Niacinamide", "Zinc PCA"], watch: "Can pill under SPF", pct: "91% rec" }, { rank: 2, brand: "Minimalist", name: "Niacinamide 10% Serum", emoji: "💊", good: ["Niacinamide"], pct: "82% rec" } ], moisturizer: [ { rank: 1, brand: "Neutrogena", name: "Hydro Boost Water Gel", emoji: "🫙", good: ["Hyaluronic acid"], pct: "86% rec" }, { rank: 2, brand: "Belif", name: "Aqua Bomb Cream", emoji: "💙", good: ["Lady's mantle"], pct: "78% rec" } ], spf: [ { rank: 1, brand: "EltaMD", name: "UV Clear Broad-Spectrum SPF 46", emoji: "☀️", good: ["Niacinamide", "Zinc oxide"], pct: "93% rec" }, { rank: 2, brand: "Skin1004", name: "Madagascar SPF 50+ PA++++", emoji: "🌤️", good: ["Centella"], pct: "81% rec" } ], mask: [ { rank: 1, brand: "Innisfree", name: "Super Volcanic Pore Clay Mask", emoji: "🌋", good: ["Volcanic clay", "Green tea"], watch: "Max 10 min", pct: "77% rec" }, { rank: 2, brand: "Origins", name: "Clear Improvement Charcoal Mask", emoji: "🖤", good: ["Charcoal", "White China clay"], pct: "72% rec" } ] }, dry: { cleanser: [ { rank: 1, brand: "CeraVe", name: "Hydrating Facial Cleanser", emoji: "🧼", good: ["Ceramides", "Hyaluronic acid"], pct: "91% rec" }, { rank: 2, brand: "Vanicream", name: "Gentle Facial Cleanser", emoji: "🫧", good: ["No fragrance", "No dye"], pct: "85% rec" } ], toner: [ { rank: 1, brand: "Klairs", name: "Supple Preparation Toner", emoji: "💧", good: ["Hyaluronic acid", "Beta-glucan"], pct: "83% rec" }, { rank: 2, brand: "Pyunkang Yul", name: "Essence Toner", emoji: "🌿", good: ["Astragalus extract"], pct: "79% rec" } ], serum: [ { rank: 1, brand: "The Inkey List", name: "Hyaluronic Acid Serum", emoji: "🧪", good: ["Hyaluronic acid"], pct: "87% rec" }, { rank: 2, brand: "SkinCeuticals", name: "Hydrating B5 Gel", emoji: "💧", good: ["Hyaluronic acid", "Vitamin B5"], pct: "89% rec" } ], moisturizer: [ { rank: 1, brand: "CeraVe", name: "Moisturizing Cream", emoji: "🫙", good: ["Ceramides", "Hyaluronic acid"], pct: "94% rec" }, { rank: 2, brand: "First Aid Beauty", name: "Ultra Repair Cream", emoji: "🌾", good: ["Colloidal oatmeal", "Ceramides"], pct: "88% rec" } ], spf: [ { rank: 1, brand: "Altruist", name: "Dermatologist SPF 50", emoji: "☀️", good: ["Hyaluronic acid"], pct: "82% rec" }, { rank: 2, brand: "Isntree", name: "Hyaluronic Acid Watery Sun Gel SPF 50+", emoji: "🌤️", good: ["Hyaluronic acid"], pct: "80% rec" } ], mask: [ { rank: 1, brand: "Laneige", name: "Water Sleeping Mask", emoji: "💤", good: ["Hyaluronic acid", "Sleep-tox"], pct: "89% rec" }, { rank: 2, brand: "Glow Recipe", name: "Watermelon Sleeping Mask", emoji: "🍉", good: ["Watermelon extract", "AHA"], pct: "76% rec" } ] }, combination: { cleanser: [ { rank: 1, brand: "Cetaphil", name: "Gentle Skin Cleanser", emoji: "🧼", good: ["No fragrance", "Niacinamide"], pct: "82% rec" }, { rank: 2, brand: "Bioderma", name: "Sensibio Gel Moussant", emoji: "🫧", good: ["Cucumber extract"], pct: "78% rec" } ], toner: [ { rank: 1, brand: "Some By Mi", name: "AHA BHA PHA 30 Days Toner", emoji: "💧", good: ["AHA", "BHA", "PHA"], watch: "Start 2x weekly", pct: "81% rec" }, { rank: 2, brand: "Torriden", name: "Dive-In Low Molecule Toner", emoji: "🌊", good: ["Hyaluronic acid"], pct: "77% rec" } ], serum: [ { rank: 1, brand: "The Ordinary", name: "Niacinamide 10% + Zinc 1%", emoji: "🧪", good: ["Niacinamide", "Zinc PCA"], pct: "88% rec" }, { rank: 2, brand: "Good Molecules", name: "Niacinamide Brightening Toner", emoji: "💊", good: ["Niacinamide"], pct: "74% rec" } ], moisturizer: [ { rank: 1, brand: "Tatcha", name: "Water Cream", emoji: "🫙", good: ["Japanese wild rose", "Hyaluronic acid"], pct: "83% rec" }, { rank: 2, brand: "Clinique", name: "Dramatically Different Moisturizing Gel", emoji: "💚", good: ["Cucumber extract"], pct: "79% rec" } ], spf: [ { rank: 1, brand: "Beauty of Joseon", name: "Relief Sun Rice + Probiotics SPF 50+", emoji: "☀️", good: ["Rice extract", "Probiotics"], pct: "90% rec" }, { rank: 2, brand: "Round Lab", name: "Birch Juice Moisturizing Sun Cream SPF 50+", emoji: "🌤️", good: ["Birch juice"], pct: "84% rec" } ], mask: [ { rank: 1, brand: "Dr. Jart+", name: "Dermask Micro Jet Clearing Solution", emoji: "🎭", good: ["BHA", "Centella"], pct: "73% rec" }, { rank: 2, brand: "Benton", name: "Goodbye Redness Centella Mask", emoji: "🌿", good: ["Centella"], pct: "76% rec" } ] }, normal: { cleanser: [ { rank: 1, brand: "Fresh", name: "Soy Face Cleanser", emoji: "🧼", good: ["Soy proteins", "Rosewater"], pct: "86% rec" }, { rank: 2, brand: "Tatcha", name: "The Rice Wash", emoji: "🌾", good: ["Japanese rice bran"], pct: "81% rec" } ], toner: [ { rank: 1, brand: "Kiehl's", name: "Calendula Herbal Extract Toner", emoji: "🌼", good: ["Calendula", "No alcohol"], pct: "84% rec" }, { rank: 2, brand: "Caudalie", name: "Moisturizing Toner", emoji: "💧", good: ["Grape water"], pct: "79% rec" } ], serum: [ { rank: 1, brand: "SkinCeuticals", name: "C E Ferulic Serum", emoji: "🧪", good: ["Vitamin C", "Ferulic acid"], pct: "91% rec" }, { rank: 2, brand: "Drunk Elephant", name: "C-Firma Fresh Day Serum", emoji: "🍊", good: ["Vitamin C", "Pumpkin enzyme"], pct: "82% rec" } ], moisturizer: [ { rank: 1, brand: "Tatcha", name: "The Water Cream", emoji: "🫙", good: ["Japanese wild rose", "Algae"], pct: "87% rec" }, { rank: 2, brand: "Kiehl's", name: "Ultra Facial Cream SPF 30", emoji: "🌿", good: ["Squalane", "Glacier glycoprotein"], pct: "83% rec" } ], spf: [ { rank: 1, brand: "Supergoop", name: "Unseen Sunscreen SPF 40", emoji: "☀️", good: ["Red algae", "Meadowfoam seed"], pct: "89% rec" }, { rank: 2, brand: "Coola", name: "Mineral Face SPF 30", emoji: "🌤️", good: ["Zinc oxide", "Aloe vera"], pct: "81% rec" } ], mask: [ { rank: 1, brand: "Glow Recipe", name: "Watermelon Glow Sleeping Mask", emoji: "🍉", good: ["Watermelon extract", "AHA"], pct: "80% rec" }, { rank: 2, brand: "Youth To The People", name: "Superberry Hydrate + Glow Dream Mask", emoji: "🫐", good: ["Peptides", "Maqui berry"], pct: "76% rec" } ] }, sensitive: { cleanser: [ { rank: 1, brand: "Vanicream", name: "Gentle Facial Cleanser", emoji: "🧼", good: ["No fragrance", "No dye", "No parabens"], pct: "92% rec" }, { rank: 2, brand: "Avène", name: "Extremely Gentle Cleanser Lotion", emoji: "🫧", good: ["Avène thermal spring water"], pct: "86% rec" } ], toner: [ { rank: 1, brand: "Klairs", name: "Supple Preparation Unscented Toner", emoji: "💧", good: ["Hyaluronic acid", "No fragrance"], pct: "88% rec" }, { rank: 2, brand: "Pyunkang Yul", name: "Essence Toner", emoji: "🌿", good: ["Astragalus extract"], pct: "83% rec" } ], serum: [ { rank: 1, brand: "Dr. Jart+", name: "Cicapair Tiger Grass Serum", emoji: "🧪", good: ["Centella", "No fragrance"], pct: "85% rec" }, { rank: 2, brand: "Purito", name: "Centella Unscented Serum", emoji: "🌿", good: ["Centella asiatica"], pct: "81% rec" } ], moisturizer: [ { rank: 1, brand: "La Roche-Posay", name: "Toleriane Double Repair Face Moisturizer", emoji: "🫙", good: ["Ceramides", "Niacinamide", "No fragrance"], pct: "90% rec" }, { rank: 2, brand: "Avène", name: "Cicalfate+ Restorative Protective Cream", emoji: "🌸", good: ["Avène spring water", "Sucralfate"], pct: "84% rec" } ], spf: [ { rank: 1, brand: "EltaMD", name: "UV Physical Broad-Spectrum SPF 41", emoji: "☀️", good: ["Zinc oxide", "No fragrance"], pct: "87% rec" }, { rank: 2, brand: "Altruist", name: "Sensitive SPF 50", emoji: "🌤️", good: ["No fragrance", "Mineral filters"], pct: "82% rec" } ], mask: [ { rank: 1, brand: "Avène", name: "Soothing Sheet Mask", emoji: "🌸", good: ["Avène spring water", "No fragrance"], pct: "83% rec" }, { rank: 2, brand: "Benton", name: "Goodbye Redness Centella Mask", emoji: "🌿", good: ["Centella", "No fragrance"], pct: "79% rec" } ] } };
-
-// ---------- Placeholder result data ----------
-const defaultResult = {
-  skinType: "Oily",
-  persona: {
-    name: "The Butter Girl",
-    emoji: "🧈",
-    tagline: "Rich, glossy, and a little too much. Your skin never misses a beat.",
-  },
-  ethnicity: "East Asian", // from quiz; null if not provided
-  concerns: ["Enlarged pores", "Occasional breakouts", "Sensitivity on cheeks"],
-  summary: "Oily skin with sensitivity around the cheeks.",
-  ingredients: {
-    good: ["Niacinamide", "Salicylic acid", "Centella asiatica", "Zinc PCA", "Green tea", "Hyaluronic acid"],
-    watch: ["Retinol", "AHA (Glycolic)", "Vitamin C (L-AA)", "Witch hazel"],
-    avoid: ["Denatured alcohol", "Coconut oil", "Fragrance", "Essential oils"],
-  },
-  data: {
-    headline: "68% of Oily skin users recommend lightweight moisturizers",
-    minority: "21% prefer richer creams at night",
-    sample: "Based on 14,200 reviews from Reddit, TikTok & Sephora",
-  },
-  categories: [
-    {
-      category: "Cleanser",
-      emoji: "🧼",
-      brand: "CeraVe",
-      name: "Foaming Facial Cleanser",
-      good: ["Niacinamide", "Ceramides"],
-      watch: "Fragrance-free formula — but contains SLS",
-      reason: "Cuts oil without stripping your barrier",
-    },
-    {
-      category: "Toner",
-      emoji: "💦",
-      brand: "COSRX",
-      name: "AHA/BHA Clarifying Treatment Toner",
-      good: ["Salicylic acid", "Willow bark"],
-      watch: "Contains low % AHA — go slow if sensitive",
-      reason: "Unclogs pores between cleanses",
-    },
-    {
-      category: "Serum",
-      emoji: "🧪",
-      brand: "The Ordinary",
-      name: "Niacinamide 10% + Zinc 1%",
-      good: ["Niacinamide", "Zinc PCA"],
-      watch: "Can pill under sunscreen if over-applied",
-      reason: "Targets pores + breakouts in one step",
-    },
-    {
-      category: "Moisturizer",
-      emoji: "🥛",
-      brand: "Beauty of Joseon",
-      name: "Dynasty Cream",
-      good: ["Centella asiatica", "Hyaluronic acid"],
-      watch: "Lightly fragranced with rice extract",
-      reason: "Lightweight hydration that won't clog you",
-    },
-    {
-      category: "Face Mask",
-      emoji: "🍃",
-      brand: "Innisfree",
-      name: "Super Volcanic Pore Clay Mask",
-      good: ["Volcanic clay", "Green tea"],
-      watch: "Don't leave on past 10 min — can over-dry",
-      reason: "Weekly pore reset for oily zones",
-    },
-  ],
-  twins: [
-    {
-      name: "Mei Tanaka",
-      handle: "@meiglow",
-      avatar: "👩🏻",
-      matchLabel: "Oily + Sensitive like you",
-      ethnicity: "East Asian",
-      swearsBy: "Beauty of Joseon Relief Sun",
-    },
-    {
-      name: "Hana Park",
-      handle: "@hanaskin",
-      avatar: "🧑🏻‍🦰",
-      matchLabel: "Oily skin, breakout-prone",
-      ethnicity: "East Asian",
-      swearsBy: "Niacinamide 10% serum",
-    },
-    {
-      name: "Yuki R.",
-      handle: "@yuki.routine",
-      avatar: "👧🏻",
-      matchLabel: "Oily + enlarged pores",
-      ethnicity: "East Asian",
-      swearsBy: "COSRX BHA toner, 3x a week",
-    },
-  ],
+type Payload = {
+  skinType?: string;
+  skinTypeLabel?: string;
+  character?: CharacterKey;
+  persona?: { name: string; emoji: string; tagline: string };
+  concerns?: string[];
+  ingredients?: { good: string[]; watch: string[]; avoid: string[] };
+  treatmentInterest?: string | null;
+  treatmentIds?: string[];
 };
 
-const MUST_GET_PRODUCTS: Record<string, { type: string; brand: string; name: string; emoji: string; why: string; pct: string; affiliates: string[] }[]> = { oily: [ { type: "Cleanser", brand: "CeraVe", name: "Foaming Facial Cleanser", emoji: "🧼", why: "Cuts oil without stripping your barrier", pct: "84% rec", affiliates: ["Amazon", "Ulta"] }, { type: "Serum", brand: "The Ordinary", name: "Niacinamide 10% + Zinc 1%", emoji: "🧪", why: "Shrinks pores and controls shine all day", pct: "91% rec", affiliates: ["Amazon", "Sephora"] }, { type: "SPF", brand: "EltaMD", name: "UV Clear SPF 46", emoji: "☀️", why: "Lightweight, matte finish — no white cast", pct: "93% rec", affiliates: ["Amazon", "Sephora"] }, { type: "Face Mask", brand: "Innisfree", name: "Super Volcanic Pore Clay Mask", emoji: "🌋", why: "Weekly pore reset for oily zones", pct: "77% rec", affiliates: ["Amazon", "Ulta"] } ], dry: [ { type: "Toner", brand: "Gokujyun", name: "Super Hyaluronic Acid Lotion", emoji: "💧", why: "Floods dry skin with layers of hydration", pct: "91% rec", affiliates: ["Amazon", "Sephora"] }, { type: "Serum", brand: "Medicube", name: "Collagen Niacinamide Serum", emoji: "🧪", why: "Repairs barrier while you sleep", pct: "87% rec", affiliates: ["Amazon"] }, { type: "Moisturizer", brand: "Sekisei", name: "Labo Labo Super Gel Moisturizer", emoji: "🫙", why: "Rich but non-sticky — dry skin best friend", pct: "85% rec", affiliates: ["Amazon"] }, { type: "Face Mask", brand: "Medicube", name: "Red Erasing Cream Mask", emoji: "🎭", why: "Weekly reset for parched flaky skin", pct: "83% rec", affiliates: ["Amazon", "Ulta"] } ], combination: [ { type: "Toner", brand: "Some By Mi", name: "AHA BHA PHA 30 Days Toner", emoji: "💧", why: "Balances oily zones while hydrating dry patches", pct: "81% rec", affiliates: ["Amazon", "Ulta"] }, { type: "Serum", brand: "The Ordinary", name: "Niacinamide 10% + Zinc 1%", emoji: "🧪", why: "Controls T-zone without drying cheeks", pct: "88% rec", affiliates: ["Amazon", "Sephora"] }, { type: "Moisturizer", brand: "Tatcha", name: "The Water Cream", emoji: "🫙", why: "Lightweight hydration for combo skin", pct: "83% rec", affiliates: ["Sephora"] }, { type: "Face Mask", brand: "Dr. Jart+", name: "Dermask Micro Jet Clearing Solution", emoji: "🎭", why: "Targets both oily and dry zones at once", pct: "73% rec", affiliates: ["Sephora", "Ulta"] } ], normal: [ { type: "Serum", brand: "SkinCeuticals", name: "C E Ferulic Serum", emoji: "🧪", why: "The gold standard for prevention and glow", pct: "91% rec", affiliates: ["Sephora"] }, { type: "Moisturizer", brand: "Tatcha", name: "The Water Cream", emoji: "🫙", why: "Effortless hydration for balanced skin", pct: "87% rec", affiliates: ["Sephora"] }, { type: "SPF", brand: "Supergoop", name: "Unseen Sunscreen SPF 40", emoji: "☀️", why: "Invisible finish — wear it every single day", pct: "89% rec", affiliates: ["Sephora", "Ulta"] }, { type: "Face Mask", brand: "Glow Recipe", name: "Watermelon Glow Sleeping Mask", emoji: "🍉", why: "Weekly glow boost for maintenance skin", pct: "80% rec", affiliates: ["Sephora", "Amazon"] } ], sensitive: [ { type: "Cleanser", brand: "Vanicream", name: "Gentle Facial Cleanser", emoji: "🧼", why: "Zero fragrance zero reaction every time", pct: "92% rec", affiliates: ["Amazon", "Ulta"] }, { type: "Serum", brand: "Dr. Jart+", name: "Cicapair Tiger Grass Serum", emoji: "🧪", why: "Calms redness and repairs barrier fast", pct: "85% rec", affiliates: ["Sephora"] }, { type: "Moisturizer", brand: "La Roche-Posay", name: "Toleriane Double Repair Moisturizer", emoji: "🫙", why: "Fragrance-free barrier repair for reactive skin", pct: "90% rec", affiliates: ["Amazon", "Ulta"] }, { type: "Face Mask", brand: "Benton", name: "Goodbye Redness Centella Mask", emoji: "🌿", why: "Calms flare-ups and redness in 20 minutes", pct: "79% rec", affiliates: ["Amazon"] } ] };
+type ProductResult = {
+  id: string;
+  brand: string | null;
+  name: string;
+  pct: number;
+  n: number;
+};
+
+type TreatmentRow = {
+  id: string;
+  name: string;
+  subtitle: string | null;
+  average_cost: string | null;
+  downtime: string | null;
+};
 
 function QuizResultPage() {
-  const [saved, setSaved] = useState(false);
-  const navigate = useNavigate();
-  const [stored, setStored] = useState<null | {
-    skinTypeLabel?: string;
-    persona?: { name: string; emoji: string; tagline: string };
-    concerns?: string[];
-    ingredients?: { good: string[]; watch: string[]; avoid: string[] };
-  }>(null);
+  const [loadedPayload, setLoadedPayload] = useState(false);
+  const [payload, setPayload] = useState<Payload | null>(null);
 
-  // Hydrate from quiz payload written by /quiz
   useEffect(() => {
     try {
-      let skinTypeValue: string | null = null;
       const raw = localStorage.getItem("skintea.quizResult");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        setStored(parsed);
-        setSaved(true);
-        if (parsed.skinTypeLabel) {
-          const st: string = parsed.skinTypeLabel.toLowerCase();
-          skinTypeValue = st;
-          localStorage.setItem("skintea_skin_type", st);
-        }
-      } else {
-        skinTypeValue = defaultResult.skinType.toLowerCase();
-        localStorage.setItem("skintea_skin_type", skinTypeValue);
-      }
-      if (skinTypeValue) {
-        const st = skinTypeValue;
-        void (async () => {
-          const { data: userData } = await supabase.auth.getUser();
-          if (!userData.user) return;
-          const { error } = await supabase
-            .from("profiles")
-            .update({ skin_type: st })
-            .eq("user_id", userData.user.id);
-          if (error) console.error("Failed to save skin type to profile", error);
-        })();
-      }
-    } catch {
-      // ignore
+      if (raw) setPayload(JSON.parse(raw) as Payload);
+    } catch (e) {
+      console.error("Failed to read quiz result", e);
     }
+    setLoadedPayload(true);
   }, []);
 
-  const result = {
-    ...defaultResult,
-    skinType: stored?.skinTypeLabel ?? defaultResult.skinType,
-    persona: (stored as any)?.character ? CHARACTER_META[(stored as any).character as CharacterKey] : (stored?.persona ?? defaultResult.persona),
-    concerns: stored?.concerns?.length ? stored.concerns : defaultResult.concerns,
-    ingredients: stored?.ingredients ?? defaultResult.ingredients,
-    character: ((stored as any)?.character ?? "glazed-donut") as CharacterKey,
-  };
+  const skinType = useMemo<SkinType | null>(() => {
+    const st = String(payload?.skinType ?? "").toLowerCase();
+    return (SKIN_TYPES as readonly string[]).includes(st) ? (st as SkinType) : null;
+  }, [payload]);
 
-  const [activeTab, setActiveTab] = useState(1);
-  const hashtags = CHARACTER_HASHTAGS[result.character] ?? CHARACTER_HASHTAGS["glazed-donut"];
-  const [activeRecTab, setActiveRecTab] = useState("cleanser");
-  const REC_TABS = [ { num: 1, key: "cleanser", label: "Cleanser" }, { num: 2, key: "toner", label: "Toner" }, { num: 3, key: "serum", label: "Serum" }, { num: 4, key: "moisturizer", label: "Moisturizer" }, { num: 5, key: "spf", label: "SPF" }, { num: 6, key: "mask", label: "Mask" } ];
-  const skinTypeKey = (result.skinType || "oily").toLowerCase().replace("combination", "combination") as string;
-  const currentRecs = SKIN_RECOMMENDATIONS[skinTypeKey] ?? SKIN_RECOMMENDATIONS["oily"];
+  // Computed on read, every time. Nothing is stored.
+  const [fits, setFits] = useState<ProductResult[]>([]);
+  const [misses, setMisses] = useState<ProductResult[]>([]);
+  const [maxTagged, setMaxTagged] = useState(0);
+  const [opinionsLoaded, setOpinionsLoaded] = useState(false);
 
+  useEffect(() => {
+    if (!skinType) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("social_review_tags")
+          .select("product_id, brand, sentiment, skin_type")
+          .not("sentiment", "is", null)
+          .eq("skin_type", skinType);
+        if (error) throw error;
+
+        const groups = new Map<string, any[]>();
+        for (const row of data ?? []) {
+          const pid = (row as any).product_id;
+          if (!pid) continue;
+          if (!isOpinionRow(row)) continue;
+          const list = groups.get(pid) ?? [];
+          list.push(row);
+          groups.set(pid, list);
+        }
+
+        let best = 0;
+        const qualifying: { id: string; pct: number; n: number }[] = [];
+        for (const [pid, rows] of groups) {
+          if (rows.length > best) best = rows.length;
+          if (rows.length < MIN_TAGGED) continue;
+          const agg = aggregate(rows);
+          if (agg.recommendPct == null) continue;
+          qualifying.push({ id: pid, pct: agg.recommendPct, n: agg.total });
+        }
+        if (cancelled) return;
+        setMaxTagged(best);
+
+        let products: Record<string, { name: string; brand: string | null }> = {};
+        if (qualifying.length) {
+          const { data: prods, error: prodErr } = await supabase
+            .from("products")
+            .select("id, name, brand, image_url")
+            .in("id", qualifying.map((q) => q.id));
+          if (prodErr) throw prodErr;
+          for (const p of prods ?? []) {
+            products[(p as any).id] = { name: (p as any).name, brand: (p as any).brand };
+          }
+        }
+        if (cancelled) return;
+
+        const resolved: ProductResult[] = qualifying
+          .filter((q) => products[q.id])
+          .map((q) => ({ id: q.id, name: products[q.id].name, brand: products[q.id].brand, pct: q.pct, n: q.n }));
+
+        const sorter = (a: ProductResult, b: ProductResult) => b.pct - a.pct || b.n - a.n;
+        setFits(resolved.filter((r) => r.pct >= 50).sort(sorter).slice(0, 4));
+        setMisses(resolved.filter((r) => r.pct < 50).sort(sorter).slice(0, 4));
+      } catch (e) {
+        console.error("Failed to load tagged opinions", e);
+      } finally {
+        if (!cancelled) setOpinionsLoaded(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [skinType]);
+
+  // Treatments the user actually selected.
+  const treatmentInterest = payload?.treatmentInterest ?? null;
+  const treatmentIds = payload?.treatmentIds ?? [];
+  const showTreatments = treatmentInterest === "yes" || treatmentInterest === "not_sure";
+  const [treatments, setTreatments] = useState<TreatmentRow[]>([]);
+
+  useEffect(() => {
+    if (!showTreatments || !treatmentIds.length) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("treatments")
+          .select("id, name, subtitle, average_cost, downtime")
+          .in("id", treatmentIds);
+        if (error) throw error;
+        if (!cancelled) setTreatments((data ?? []) as TreatmentRow[]);
+      } catch (e) {
+        console.error("Failed to load treatments", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [showTreatments, treatmentIds.join(",")]);
+
+  if (!loadedPayload) return <div style={{ background: C.bg, minHeight: "100vh" }} />;
+
+  if (!payload || !skinType) {
+    return (
+      <div style={{ background: C.bg, color: C.espresso, minHeight: "100vh", display: "grid", placeItems: "center", padding: 24 }}>
+        <div style={{ textAlign: "center", maxWidth: 340 }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 24, marginBottom: 10 }}>
+            No result yet
+          </div>
+          <p style={{ fontSize: 13, color: C.textLight, lineHeight: 1.6, marginTop: 0 }}>
+            Take the quiz and your result appears here.
+          </p>
+          <Link
+            to="/quiz"
+            style={{ display: "inline-block", marginTop: 14, background: C.crimson, color: "#FFFCF8", borderRadius: 99, padding: "12px 22px", fontSize: 13, fontWeight: 700, textDecoration: "none" }}
+          >
+            Take the quiz
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const persona = payload.persona ?? null;
+  const character = (payload.character ?? "glazed-donut") as CharacterKey;
+  const hashtags = CHARACTER_HASHTAGS[character] ?? CHARACTER_HASHTAGS["glazed-donut"];
+  const skinTypeLabel = payload.skinTypeLabel ?? skinType.charAt(0).toUpperCase() + skinType.slice(1);
+  const concerns = payload.concerns ?? [];
+  const ingredients = payload.ingredients ?? null;
 
   return (
     <div style={{ background: C.bg, color: C.espresso, minHeight: "100vh" }}>
       {/* Top nav */}
-      <header
-        style={{
-          background: C.espresso,
-          color: "#fff",
-          padding: "16px 20px",
-        }}
-      >
+      <header style={{ background: C.espresso, color: "#fff", padding: "16px 20px" }}>
         <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
             <Link to="/" style={{ textDecoration: "none" }}>
@@ -231,17 +238,21 @@ function QuizResultPage() {
         <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.18em", color: "#A8001C", textTransform: "uppercase", marginBottom: 18, textAlign: "center" }}>
           HERE'S YOUR TEA
         </div>
-        <div style={{ position: "relative", marginBottom: 16 }}>
-          <div style={{ position: "absolute", inset: -10, borderRadius: 32, background: "radial-gradient(ellipse at center, rgba(168,0,28,0.2), transparent 70%)", pointerEvents: "none" }} />
-          <div style={{ width: 120, height: 120, borderRadius: 28, background: "linear-gradient(145deg, #2a1200, #3d1a00)", border: "1.5px solid rgba(168,0,28,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 62 }}>
-            {result.persona.emoji}
+        {persona && (
+          <div style={{ position: "relative", marginBottom: 16 }}>
+            <div style={{ position: "absolute", inset: -10, borderRadius: 32, background: "radial-gradient(ellipse at center, rgba(168,0,28,0.2), transparent 70%)", pointerEvents: "none" }} />
+            <div style={{ width: 120, height: 120, borderRadius: 28, background: "linear-gradient(145deg, #2a1200, #3d1a00)", border: "1.5px solid rgba(168,0,28,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 62 }}>
+              {persona.emoji}
+            </div>
           </div>
-        </div>
-        <div style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 28, color: "#FFFCF8", textAlign: "center", lineHeight: 1.1, marginBottom: 4 }}>
-          {result.persona.name}
-        </div>
+        )}
+        {persona && (
+          <div style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 28, color: "#FFFCF8", textAlign: "center", lineHeight: 1.1, marginBottom: 4 }}>
+            {persona.name}
+          </div>
+        )}
         <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,252,248,0.45)", textAlign: "center", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 14 }}>
-          {result.skinType} Skin
+          {skinTypeLabel} Skin
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center", padding: "0 12px 22px" }}>
           {hashtags.map((tag, i) => {
@@ -267,404 +278,111 @@ function QuizResultPage() {
       </div>
 
       {/* Tagline strip */}
-      <div style={{ background: "#FFFCF8", borderRadius: "16px 16px 0 0", padding: "18px 18px 0" }}>
-        <div style={{ fontSize: 13, color: "#1C0A00", lineHeight: 1.65, fontStyle: "italic", textAlign: "center", paddingBottom: 16, borderBottom: "0.5px solid #E8DDD4" }}>
-          "{result.persona.tagline}"
+      {persona && (
+        <div style={{ background: "#FFFCF8", borderRadius: "16px 16px 0 0", padding: "18px 18px 0" }}>
+          <div style={{ fontSize: 13, color: "#1C0A00", lineHeight: 1.65, fontStyle: "italic", textAlign: "center", paddingBottom: 16, borderBottom: "0.5px solid #E8DDD4" }}>
+            "{persona.tagline}"
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Profile sync banner */}
-      <div style={{ margin: "14px 16px 0", background: "#F0FAF1", border: "0.5px solid #2D7A3A", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 8, height: 8, background: "#2D7A3A", borderRadius: "50%", flexShrink: 0 }} />
-        <div style={{ fontSize: 11, color: "#2D7A3A", fontWeight: 600, lineHeight: 1.4 }}>
-          <strong>Saved to your profile.</strong> Your skin type, concerns, and recommendations are now on your Skintea page.
-        </div>
-      </div>
+      <main style={{ background: C.bg, padding: "24px 16px 60px" }}>
+        <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 4 }}>
 
-      {/* Content */}
-      <main
-        style={{
-          background: C.bg,
-          borderRadius: 0,
-          marginTop: 0,
-          padding: "24px 16px 60px",
-        }}
-      >
-        <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
-
-          {/* 1. TOP CONCERNS */}
-          <SectionLabel>TOP CONCERNS</SectionLabel>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {result.concerns.map((c) => (
-              <span
-                key={c}
-                style={{
-                  fontSize: 12,
-                  padding: "6px 10px",
-                  borderRadius: 999,
-                  background: C.imageBg,
-                  color: C.espresso,
-                  fontWeight: 600,
-                  border: `0.5px solid ${C.border}`,
-                }}
-              >
-                {c}
-              </span>
-            ))}
-          </div>
-
-          {/* 2. INGREDIENT LIST */}
-          <SectionLabel>YOUR INGREDIENT LIST</SectionLabel>
-          <Card>
-            <IngredientGroup
-              title="Good for you"
-              icon={<Check size={14} />}
-              fg={C.good}
-              bg={C.goodBg}
-              items={result.ingredients.good}
-            />
-            <div style={{ height: 12 }} />
-            <IngredientGroup
-              title="Watch out"
-              icon={<AlertTriangle size={14} />}
-              fg={C.warn}
-              bg={C.warnBg}
-              items={result.ingredients.watch}
-            />
-            <div style={{ height: 12 }} />
-            <IngredientGroup
-              title="Avoid"
-              icon={<X size={14} />}
-              fg={C.bad}
-              bg={C.badBg}
-              items={result.ingredients.avoid}
-            />
-            <p style={{ marginTop: 14, marginBottom: 0, fontSize: 12, color: C.textLight, fontStyle: "italic" }}>
-              {saved ? "Saved — " : ""}These highlights follow you across the site.
-            </p>
-          </Card>
-
-          {/* 3. SKINTEA DATA */}
-          <SectionLabel>SKINTEA DATA</SectionLabel>
-          <Card>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-              <div style={{ fontSize: 36, fontWeight: 800, color: C.crimson, lineHeight: 1 }}>68%</div>
-              <div style={{ fontSize: 13, color: C.textMid }}>majority</div>
-            </div>
-            <p style={{ marginTop: 10, marginBottom: 0, fontSize: 15, fontWeight: 600, lineHeight: 1.4 }}>
-              {result.data.headline}
-            </p>
-
-            {/* Bar */}
-            <div style={{ marginTop: 16, height: 8, background: C.imageBg, borderRadius: 999, overflow: "hidden" }}>
-              <div style={{ width: "68%", height: "100%", background: C.crimson }} />
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, fontSize: 12, color: C.textLight }}>
-              <span>68% recommend lightweight</span>
-              <span>21% prefer rich creams</span>
-            </div>
-
-            <div
-              style={{
-                marginTop: 16, paddingTop: 14,
-                borderTop: `1px solid ${C.border}`,
-                fontSize: 12, color: C.textLight,
-              }}
-            >
-              {result.data.sample}
-            </div>
-          </Card>
-
-          {/* 4. PERFECT FOR YOUR SKIN (must-get 4) */}
-          <SectionLabel>PERFECT FOR YOUR SKIN</SectionLabel>
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ background: "#1C0A00", borderRadius: "14px 14px 0 0", padding: "14px 16px 12px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: "#FFFCF8", lineHeight: 1.25 }}>
-                  The 4 <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", color: "#A8001C" }}>{result.persona.name}</span> skin actually needs
-                </div>
-                <div style={{ fontSize: 10, color: "rgba(255,252,248,0.5)", marginTop: 5, lineHeight: 1.45 }}>
-                  No routine knowledge needed. Just start here.
-                </div>
+          {/* TOP CONCERNS */}
+          {concerns.length > 0 && (
+            <>
+              <SectionLabel>TOP CONCERNS</SectionLabel>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {concerns.map((c) => (
+                  <span
+                    key={c}
+                    style={{ fontSize: 12, padding: "6px 10px", borderRadius: 999, background: C.imageBg, color: C.espresso, fontWeight: 600, border: `0.5px solid ${C.border}` }}
+                  >
+                    {c}
+                  </span>
+                ))}
               </div>
-              <span style={{ background: "#A8001C", color: "#FFFCF8", fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", padding: "4px 10px", borderRadius: 99, whiteSpace: "nowrap", flexShrink: 0 }}>Must get</span>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, background: "#E8DDD4", border: "1px solid #E8DDD4", borderTop: "none", borderRadius: "0 0 14px 14px", overflow: "hidden" }}>
-              {(MUST_GET_PRODUCTS[skinTypeKey] ?? MUST_GET_PRODUCTS["oily"]).map((p) => (
-                <div key={p.name} style={{ background: "#FFFFFF", padding: "12px 10px 14px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                  <div style={{ width: 64, height: 64, background: "#FFFCF8", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, marginBottom: 7 }}>{p.emoji}</div>
-                  <div style={{ fontSize: 8, fontWeight: 700, color: "#A8001C", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2, textAlign: "center" }}>{p.type}</div>
-                  <div style={{ fontSize: 9, color: "#999", fontWeight: 600, textAlign: "center", marginBottom: 1 }}>{p.brand}</div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#1C0A00", lineHeight: 1.3, textAlign: "center", marginBottom: 5 }}>{p.name}</div>
-                  <div style={{ fontSize: 9, color: "#999", textAlign: "center", lineHeight: 1.4, marginBottom: 5, fontStyle: "italic" }}>{p.why}</div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: "#A8001C", marginBottom: 6 }}>{p.pct}</div>
-                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
-                    {p.affiliates.map((a) => (
-                      <span key={a} style={{ fontSize: 9, fontWeight: 700, color: "#1C0A00", border: "0.5px solid #E8DDD4", borderRadius: 99, padding: "3px 8px", background: "#FFFCF8" }}>{a}</span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+            </>
+          )}
 
-          {/* 5. TREATMENTS */}
-          <div>
-            <SectionLabel>RECOMMENDED TREATMENTS</SectionLabel>
-            <div style={{ fontSize: 11, color: "#999", marginBottom: 12, lineHeight: 1.4 }}>
-              Open to everyone. Real reviews are members-only.
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {(TREATMENT_DATA[skinTypeKey] ?? TREATMENT_DATA["oily"]).slice(0, 4).map((t) => (
-                <div
-                  key={t.name}
-                  onClick={() => { if (t.slug) navigate({ to: "/treatment/$slug", params: { slug: t.slug } }); }}
-                  style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 14, overflow: "hidden", cursor: t.slug ? "pointer" : "default" }}
-                >
-                  <div style={{ background: "#1C0A00", padding: "10px 10px 8px" }}>
-                    <div style={{ fontSize: 22, marginBottom: 6 }}>{t.emoji}</div>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: "#FFFCF8", lineHeight: 1.2, marginBottom: 2 }}>{t.name}</div>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: "#A8001C" }}>{t.pct}</div>
-                  </div>
-                  <div style={{ padding: "8px 10px 10px" }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00", lineHeight: 1.35, marginBottom: 6 }}>{t.hook}</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 5, background: "#FFF5F5", borderRadius: 6, padding: "5px 7px", marginBottom: 6 }}>
-                      <div style={{ width: 6, height: 6, background: "#A8001C", borderRadius: "50%", flexShrink: 0 }} />
-                      <div style={{ fontSize: 9, color: "#A8001C", fontWeight: 700, lineHeight: 1.3 }}>{t.celeb}</div>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00" }}>{t.cost}</div>
-                      {t.slug ? (
-                        <div style={{ width: 22, height: 22, background: "#1C0A00", borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#FFFCF8", fontWeight: 800 }}>→</div>
-                      ) : (
-                        <div style={{ fontSize: 8, color: "#bbb", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Coming soon</div>
-                      )}
-                    </div>
-                  </div>
-                  <div style={{ borderTop: "0.5px solid #F0E8E0", padding: "5px 10px", display: "flex", alignItems: "center", gap: 5 }}>
-                    <span style={{ fontSize: 9 }}>🔒</span>
-                    <div style={{ fontSize: 8, color: "#bbb", fontWeight: 600 }}>
-                      <span style={{ color: "#A8001C" }}>{t.reviewCount}</span> reviews · members only
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 6. YOUR FULL ROUTINE */}
-          <div>
-            <SectionLabel>YOUR FULL ROUTINE</SectionLabel>
-            <div style={{ overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", margin: "0 -16px", padding: "0 16px", display: "flex" }}>
-              <div style={{ display: "flex", gap: 8, width: "max-content", paddingBottom: 12 }}>
-                {REC_TABS.map((tab) => {
-                  const isActive = activeRecTab === tab.key;
-                  return (
-                    <button
-                      key={tab.key}
-                      type="button"
-                      onClick={() => setActiveRecTab(tab.key)}
-                      style={{
-                        background: isActive ? "#1C0A00" : "#fff",
-                        color: isActive ? "#FFFCF8" : "#999",
-                        border: isActive ? "none" : "0.5px solid #E8DDD4",
-                        borderRadius: 99,
-                        padding: "7px 14px",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 5,
-                        cursor: "pointer",
-                      }}
-                    >
-                      <span style={{ fontSize: 9, fontWeight: 800, marginRight: 2 }}>{tab.num}</span>
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 4 }}>
-              {(currentRecs[activeRecTab] ?? []).map((item) => (
-                <div key={`${activeRecTab}-${item.rank}`} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, overflow: "hidden" }}>
-                  <div style={{ height: 100, background: "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
-                    <div style={{ position: "absolute", top: 7, left: 7, width: 20, height: 20, background: "#1C0A00", color: "#FFFCF8", borderRadius: 99, fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      {item.rank}
-                    </div>
-                    {item.emoji}
-                  </div>
-                  <div style={{ padding: "8px 10px 12px" }}>
-                    <div style={{ fontSize: 10, color: "#999", fontWeight: 600, marginBottom: 2 }}>{item.brand}</div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#1C0A00", lineHeight: 1.35, marginBottom: 6 }}>{item.name}</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                      {item.good.map((g) => (
-                        <span key={g} style={{ fontSize: 9, padding: "2px 7px", borderRadius: 99, background: "#F0FAF1", color: "#2D7A3A", fontWeight: 700 }}>{g}</span>
-                      ))}
-                      {item.watch && (
-                        <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 99, background: "#FFFBEB", color: "#A87400", fontWeight: 700 }}>{item.watch}</span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 11, color: "#A8001C", fontWeight: 700, marginTop: 5 }}>{item.pct}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 7. SKIN TWIN */}
-          <SectionLabel>YOUR SKIN TWIN</SectionLabel>
-          <p style={{ margin: "-8px 0 0", fontSize: 14, color: C.textMid }}>
-            Same skin type. Same vibe. See what's working for them.
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {result.twins
-              .filter((t) => !result.ethnicity || t.ethnicity === result.ethnicity)
-              .map((t) => (
-                <TwinCard key={t.handle} twin={t} />
-              ))}
-          </div>
-          <p style={{ margin: "-4px 0 0", fontSize: 11, color: C.textLight, fontStyle: "italic" }}>
-            Matched by skin type and background — not sponsored.
-          </p>
-
-          {/* 8. SHARE AND GIFT */}
-          <SectionLabel>SHARE AND GIFT</SectionLabel>
-          <div style={{ background: "#1C0A00", borderRadius: 12, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div>
-              <div style={{ fontSize: 11, color: "rgba(255,252,248,0.6)", marginBottom: 2 }}>Your public profile</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#FFFCF8" }}>skintea.com/u/username</div>
-            </div>
-            <span style={{ fontSize: 10, fontWeight: 700, color: "#A8001C", background: "rgba(168,0,28,0.12)", border: "0.5px solid rgba(168,0,28,0.3)", borderRadius: 99, padding: "5px 12px" }}>
-              Copy link
-            </span>
-          </div>
-          <div style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, padding: 14 }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 10, background: "#FFF5F5", border: "0.5px solid #A8001C", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
-                🎁
-              </div>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 800, color: "#1C0A00", marginBottom: 3 }}>Send as a gift</div>
-                <div style={{ fontSize: 11, color: "#999", lineHeight: 1.5 }}>
-                  Share your skin profile so friends and family can pick the perfect products for you — matched to your actual skin type.
-                </div>
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 7 }}>
-              <button type="button" style={{ flex: 1, background: "#A8001C", color: "#FFFCF8", border: "none", borderRadius: 99, padding: 10, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                Share my profile
-              </button>
-              <button type="button" style={{ flex: 1, background: "transparent", color: "#1C0A00", border: "0.5px solid #E8DDD4", borderRadius: 99, padding: 10, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                Add to wishlist
-              </button>
-            </div>
-          </div>
-
-          {/* 8b. YOUR FULL ROUTINE (repeat to drive purchase) */}
-          <div>
-            <SectionLabel>YOUR FULL ROUTINE</SectionLabel>
-            <div style={{ overflowX: "auto", scrollbarWidth: "none", WebkitOverflowScrolling: "touch", margin: "0 -16px", padding: "0 16px", display: "flex" }}>
-              <div style={{ display: "flex", gap: 8, width: "max-content", paddingBottom: 12 }}>
-                {REC_TABS.map((tab) => {
-                  const isActive = activeRecTab === tab.key;
-                  return (
-                    <button
-                      key={`repeat-${tab.key}`}
-                      type="button"
-                      onClick={() => setActiveRecTab(tab.key)}
-                      style={{
-                        background: isActive ? "#1C0A00" : "#fff",
-                        color: isActive ? "#FFFCF8" : "#999",
-                        border: isActive ? "none" : "0.5px solid #E8DDD4",
-                        borderRadius: 99,
-                        padding: "7px 14px",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 5,
-                        cursor: "pointer",
-                      }}
-                    >
-                      <span style={{ fontSize: 9, fontWeight: 800, marginRight: 2 }}>{tab.num}</span>
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 4 }}>
-              {(currentRecs[activeRecTab] ?? []).map((item) => (
-                <div key={`repeat-${activeRecTab}-${item.rank}`} style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, overflow: "hidden" }}>
-                  <div style={{ height: 100, background: "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 40, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
-                    <div style={{ position: "absolute", top: 7, left: 7, width: 20, height: 20, background: "#1C0A00", color: "#FFFCF8", borderRadius: 99, fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      {item.rank}
-                    </div>
-                    {item.emoji}
-                  </div>
-                  <div style={{ padding: "8px 10px 12px" }}>
-                    <div style={{ fontSize: 10, color: "#999", fontWeight: 600, marginBottom: 2 }}>{item.brand}</div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: "#1C0A00", lineHeight: 1.35, marginBottom: 6 }}>{item.name}</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                      {item.good.map((g) => (
-                        <span key={g} style={{ fontSize: 9, padding: "2px 7px", borderRadius: 99, background: "#F0FAF1", color: "#2D7A3A", fontWeight: 700 }}>{g}</span>
-                      ))}
-                      {item.watch && (
-                        <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 99, background: "#FFFBEB", color: "#A87400", fontWeight: 700 }}>{item.watch}</span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 11, color: "#A8001C", fontWeight: 700, marginTop: 5 }}>{item.pct}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 9. SAMPLE KIT */}
-          <SectionLabel>TRY BEFORE YOU COMMIT</SectionLabel>
-          <Card>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
-              <div
-                style={{
-                  width: 64, height: 64, borderRadius: 14, background: C.imageBg,
-                  display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0,
-                }}
-                aria-hidden
-              >
-                🧴
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 700 }}>Your Sample Kit</div>
-                <p style={{ marginTop: 6, marginBottom: 0, fontSize: 13, color: C.textMid, lineHeight: 1.5 }}>
-                  A full skincare set curated for your skin type. Cleanser, toner, serum, moisturizer.
+          {/* INGREDIENT LIST */}
+          {ingredients && (
+            <>
+              <SectionLabel>YOUR INGREDIENT LIST</SectionLabel>
+              <Card>
+                <IngredientGroup title="Good for you" icon={<Check size={14} />} fg={C.good} bg={C.goodBg} items={ingredients.good ?? []} />
+                <div style={{ height: 12 }} />
+                <IngredientGroup title="Watch out" icon={<AlertTriangle size={14} />} fg={C.warn} bg={C.warnBg} items={ingredients.watch ?? []} />
+                <div style={{ height: 12 }} />
+                <IngredientGroup title="Avoid" icon={<X size={14} />} fg={C.bad} bg={C.badBg} items={ingredients.avoid ?? []} />
+                <p style={{ marginTop: 14, marginBottom: 0, fontSize: 12, color: C.textLight, fontStyle: "italic" }}>
+                  From the ingredient list, not from reviews.
                 </p>
-                <div style={{ marginTop: 10, fontSize: 18, fontWeight: 800 }}>$50</div>
+              </Card>
+            </>
+          )}
+
+          {/* FITS YOU */}
+          <SectionLabel>FITS YOU</SectionLabel>
+          <ProductSection
+            products={fits}
+            loaded={opinionsLoaded}
+            skinTypeLabel={skinTypeLabel}
+            maxTagged={maxTagged}
+          />
+
+          {/* DOES NOT FIT YOU */}
+          <SectionLabel>DOES NOT FIT YOU</SectionLabel>
+          <ProductSection
+            products={misses}
+            loaded={opinionsLoaded}
+            skinTypeLabel={skinTypeLabel}
+            maxTagged={maxTagged}
+          />
+
+          {/* TREATMENTS */}
+          {showTreatments && treatments.length > 0 && (
+            <>
+              <SectionLabel>TREATMENTS YOU PICKED</SectionLabel>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {treatments.map((t) => (
+                  <div key={t.id} style={{ background: C.surface, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: C.espresso, lineHeight: 1.3 }}>{t.name}</div>
+                    {t.subtitle && (
+                      <div style={{ fontSize: 12, color: C.textLight, marginTop: 3, lineHeight: 1.5 }}>{t.subtitle}</div>
+                    )}
+                    {(t.average_cost || t.downtime) && (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginTop: 10 }}>
+                        {t.average_cost && (
+                          <div>
+                            <div style={{ fontSize: 10, color: C.textLight, fontWeight: 600 }}>Average cost</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.espresso }}>{t.average_cost}</div>
+                          </div>
+                        )}
+                        {t.downtime && (
+                          <div>
+                            <div style={{ fontSize: 10, color: C.textLight, fontWeight: 600 }}>Downtime</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.espresso }}>{t.downtime}</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
-            </div>
-            <button
-              type="button"
-              style={{
-                marginTop: 16, width: "100%",
-                background: C.espresso, color: "#fff",
-                border: "none", borderRadius: 12,
-                padding: "14px 16px", fontWeight: 700, fontSize: 14,
-                cursor: "pointer",
-              }}
-            >
-              See Your Kit
-            </button>
-          </Card>
+            </>
+          )}
+
+          {/* EMAIL — after the result, never before it */}
+          <SectionLabel>STAY IN THE LOOP</SectionLabel>
+          <EmailCapture />
 
           {/* Retake */}
-          <div style={{ textAlign: "center", marginTop: 12 }}>
+          <div style={{ textAlign: "center", marginTop: 20 }}>
             <Link
               to="/quiz"
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                fontSize: 13, color: C.textMid, textDecoration: "underline",
-                textUnderlineOffset: 4,
-              }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: C.textMid, textDecoration: "underline", textUnderlineOffset: 4 }}
             >
               <RotateCcw size={14} /> Retake quiz
             </Link>
@@ -675,20 +393,123 @@ function QuizResultPage() {
   );
 }
 
+// ---------- Product sections ----------
+function ProductSection({
+  products,
+  loaded,
+  skinTypeLabel,
+  maxTagged,
+}: {
+  products: ProductResult[];
+  loaded: boolean;
+  skinTypeLabel: string;
+  maxTagged: number;
+}) {
+  if (!loaded) {
+    return (
+      <div style={{ border: `0.5px dashed ${C.border}`, borderRadius: 12, padding: 18, fontSize: 13, color: C.textLight }}>
+        Loading tagged opinions…
+      </div>
+    );
+  }
+  if (!products.length) {
+    return (
+      <div style={{ border: `1px dashed ${C.border}`, borderRadius: 12, padding: 18, background: C.surface }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: C.espresso }}>Not enough data yet</div>
+        <div style={{ fontSize: 12, color: C.textLight, marginTop: 5, lineHeight: 1.5 }}>
+          {maxTagged < MIN_TAGGED
+            ? `${maxTagged} of ${MIN_TAGGED} tagged opinions so far for ${skinTypeLabel.toLowerCase()} skin.`
+            : `No product falls in this range yet for ${skinTypeLabel.toLowerCase()} skin. Best so far: ${maxTagged} tagged opinions.`}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {products.map((p) => (
+        <Link
+          key={p.id}
+          to="/product-detail/$id"
+          params={{ id: p.id }}
+          style={{ textDecoration: "none", background: C.surface, border: `0.5px solid ${C.border}`, borderRadius: 12, padding: 14, display: "block" }}
+        >
+          {p.brand && <div style={{ fontSize: 11, color: C.textLight, fontWeight: 600 }}>{p.brand}</div>}
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.espresso, lineHeight: 1.3, marginTop: 2 }}>{p.name}</div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 8 }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: C.crimson, lineHeight: 1 }}>{p.pct}%</div>
+            <div style={{ fontSize: 12, color: C.textLight }}>{p.n} tagged opinions</div>
+          </div>
+          <div style={{ marginTop: 8, height: 6, background: C.imageBg, borderRadius: 999, overflow: "hidden", border: `0.5px solid ${C.border}` }}>
+            <div style={{ width: `${p.pct}%`, height: "100%", background: C.crimson }} />
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+// ---------- Email capture ----------
+function EmailCapture() {
+  const [email, setEmail] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  async function submit() {
+    const trimmed = email.trim();
+    if (!trimmed) return;
+    setSent(true);
+    try {
+      const sessionId = getLeadSessionId();
+      if (!sessionId) return;
+      await supabase.rpc("lead_upsert" as any, {
+        p_session_id: sessionId,
+        p_email: trimmed,
+        p_contact_consent: consent,
+      } as any);
+      await supabase.rpc("lead_event_add" as any, {
+        p_session_id: sessionId,
+        p_event_type: "email_submitted",
+      } as any);
+    } catch (e) {
+      console.error("Failed to submit email", e);
+    }
+  }
+
+  return (
+    <Card>
+      {sent ? (
+        <div style={{ fontSize: 13, color: C.espresso, lineHeight: 1.6 }}>Thanks — we have your email.</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@email.com"
+            aria-label="Email"
+            style={{ width: "100%", boxSizing: "border-box", border: `0.5px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", fontSize: 14, color: C.espresso, background: C.bg, outline: "none" }}
+          />
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: C.textMid, lineHeight: 1.5 }}>
+            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} style={{ marginTop: 2 }} />
+            You can contact me about treatments near me
+          </label>
+          <button
+            type="button"
+            onClick={() => void submit()}
+            style={{ background: C.crimson, color: "#FFFCF8", border: "none", borderRadius: 99, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+          >
+            Submit
+          </button>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 // ---------- Subcomponents ----------
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        fontSize: 9,
-        fontWeight: 800,
-        letterSpacing: "0.14em",
-        color: "#A8001C",
-        textTransform: "uppercase",
-        marginTop: 18,
-        marginBottom: 10,
-      }}
-    >
+    <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", color: "#A8001C", textTransform: "uppercase", marginTop: 18, marginBottom: 10 }}>
       {children}
     </div>
   );
@@ -696,14 +517,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        background: "#FFFFFF",
-        border: "0.5px solid #E8DDD4",
-        borderRadius: 12,
-        padding: 20,
-      }}
-    >
+    <div style={{ background: "#FFFFFF", border: "0.5px solid #E8DDD4", borderRadius: 12, padding: 20 }}>
       {children}
     </div>
   );
@@ -721,13 +535,7 @@ function IngredientGroup({
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-        <span
-          style={{
-            width: 22, height: 22, borderRadius: 999,
-            background: bg, color: fg,
-            display: "grid", placeItems: "center",
-          }}
-        >
+        <span style={{ width: 22, height: 22, borderRadius: 999, background: bg, color: fg, display: "grid", placeItems: "center" }}>
           {icon}
         </span>
         <span style={{ fontSize: 13, fontWeight: 700, color: fg }}>{title}</span>
@@ -736,141 +544,11 @@ function IngredientGroup({
         {items.map((i) => (
           <span
             key={i}
-            style={{
-              fontSize: 12,
-              padding: "6px 10px",
-              borderRadius: 999,
-              background: bg,
-              color: fg,
-              fontWeight: 600,
-              border: `1px solid ${fg}22`,
-            }}
+            style={{ fontSize: 12, padding: "6px 10px", borderRadius: 999, background: bg, color: fg, fontWeight: 600, border: `1px solid ${fg}22` }}
           >
             {i}
           </span>
         ))}
-      </div>
-    </div>
-  );
-}
-
-function CategoryCard({
-  item,
-}: {
-  item: {
-    category: string; emoji: string; brand: string; name: string;
-    good: string[]; watch: string; reason: string;
-  };
-}) {
-  return (
-    <div
-      style={{
-        background: C.surface,
-        border: `1px solid ${C.border}`,
-        borderRadius: 16,
-        padding: 14,
-        display: "flex",
-        gap: 12,
-        alignItems: "flex-start",
-      }}
-    >
-      <div
-        style={{
-          width: 64, height: 64, borderRadius: 12,
-          background: C.imageBg,
-          display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0,
-        }}
-        aria-hidden
-      >
-        {item.emoji}
-      </div>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: 10, color: C.crimson, fontWeight: 800, letterSpacing: "0.14em" }}>
-          {item.category.toUpperCase()}
-        </div>
-        <div style={{ fontSize: 11, color: C.textLight, fontWeight: 600, marginTop: 4 }}>{item.brand}</div>
-        <div style={{ fontSize: 14, fontWeight: 700, marginTop: 1, lineHeight: 1.3 }}>
-          {item.name}
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-          {item.good.map((g) => (
-            <span
-              key={g}
-              style={{
-                fontSize: 11, padding: "3px 8px", borderRadius: 999,
-                background: C.goodBg, color: C.good, fontWeight: 700,
-              }}
-            >
-              ✓ {g}
-            </span>
-          ))}
-          <span
-            style={{
-              fontSize: 11, padding: "3px 8px", borderRadius: 999,
-              background: C.warnBg, color: C.warn, fontWeight: 700,
-            }}
-          >
-            ⚠ {item.watch}
-          </span>
-        </div>
-        <p style={{ margin: "8px 0 0", fontSize: 12, color: C.textMid, lineHeight: 1.4 }}>
-          {item.reason}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function TwinCard({
-  twin,
-}: {
-  twin: { name: string; handle: string; avatar: string; matchLabel: string; ethnicity: string; swearsBy: string };
-}) {
-  return (
-    <div
-      style={{
-        background: C.surface, border: `1px solid ${C.border}`,
-        borderRadius: 16, padding: 14,
-        display: "flex", gap: 12, alignItems: "flex-start",
-      }}
-    >
-      <div
-        style={{
-          width: 56, height: 56, borderRadius: 999,
-          background: C.imageBg,
-          display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0,
-        }}
-        aria-hidden
-      >
-        {twin.avatar}
-      </div>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: 14, fontWeight: 700 }}>{twin.name}</div>
-        <div style={{ fontSize: 12, color: C.textLight, marginTop: 1 }}>{twin.handle}</div>
-        <div
-          style={{
-            display: "inline-block", marginTop: 8,
-            fontSize: 11, padding: "3px 8px", borderRadius: 999,
-            background: C.badBg, color: C.crimson, fontWeight: 700,
-          }}
-        >
-          {twin.matchLabel}
-        </div>
-        <p style={{ margin: "8px 0 0", fontSize: 12, color: C.textMid, lineHeight: 1.4 }}>
-          Swears by: <strong style={{ color: C.espresso }}>{twin.swearsBy}</strong>
-        </p>
-        <button
-          type="button"
-          style={{
-            marginTop: 10, background: "transparent",
-            border: `1px solid ${C.borderStrong}`,
-            color: C.espresso, borderRadius: 999,
-            padding: "6px 12px", fontSize: 12, fontWeight: 700,
-            cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4,
-          }}
-        >
-          See their routine <ArrowRight size={12} />
-        </button>
       </div>
     </div>
   );

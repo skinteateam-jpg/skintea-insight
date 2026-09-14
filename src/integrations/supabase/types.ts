@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      category_images: {
+        Row: {
+          active: boolean
+          category: string | null
+          created_at: string
+          depicts: string
+          id: string
+          identifiable_people: boolean
+          image_url: string
+          inactive_reason: string | null
+          license_name: string
+          license_url: string
+          license_verification: string
+          photo_page_url: string | null
+          photographer: string | null
+          photographer_url: string | null
+          provider: string
+          sort_order: number
+          source: string
+        }
+        Insert: {
+          active: boolean
+          category?: string | null
+          created_at?: string
+          depicts: string
+          id?: string
+          identifiable_people: boolean
+          image_url: string
+          inactive_reason?: string | null
+          license_name: string
+          license_url: string
+          license_verification: string
+          photo_page_url?: string | null
+          photographer?: string | null
+          photographer_url?: string | null
+          provider: string
+          sort_order?: number
+          source?: string
+        }
+        Update: {
+          active?: boolean
+          category?: string | null
+          created_at?: string
+          depicts?: string
+          id?: string
+          identifiable_people?: boolean
+          image_url?: string
+          inactive_reason?: string | null
+          license_name?: string
+          license_url?: string
+          license_verification?: string
+          photo_page_url?: string | null
+          photographer?: string | null
+          photographer_url?: string | null
+          provider?: string
+          sort_order?: number
+          source?: string
+        }
+        Relationships: []
+      }
       celebrity_mentions: {
         Row: {
           active: boolean
@@ -339,10 +399,11 @@ export type Database = {
           badges: string[] | null
           best_for: string[] | null
           booking_url: string | null
+          category: string | null
           closes_at: string | null
           created_at: string
           distance_miles: number | null
-          emails: string[] | null
+          field_provenance: Json
           google_maps_url: string | null
           google_place_id: string | null
           google_rating: number | null
@@ -364,12 +425,11 @@ export type Database = {
           parking_is_free: boolean | null
           parking_notes: string | null
           phone: string | null
-          photos: Json | null
+          photos: Json
           price_from: number | null
           price_tier: string | null
           review_count: number | null
           skintea_score: number | null
-          social_profiles: Json | null
           tea_quote: string | null
           tea_skin_type: string | null
           travel_minutes: number | null
@@ -385,10 +445,11 @@ export type Database = {
           badges?: string[] | null
           best_for?: string[] | null
           booking_url?: string | null
+          category?: string | null
           closes_at?: string | null
           created_at?: string
           distance_miles?: number | null
-          emails?: string[] | null
+          field_provenance?: Json
           google_maps_url?: string | null
           google_place_id?: string | null
           google_rating?: number | null
@@ -410,12 +471,11 @@ export type Database = {
           parking_is_free?: boolean | null
           parking_notes?: string | null
           phone?: string | null
-          photos?: Json | null
+          photos?: Json
           price_from?: number | null
           price_tier?: string | null
           review_count?: number | null
           skintea_score?: number | null
-          social_profiles?: Json | null
           tea_quote?: string | null
           tea_skin_type?: string | null
           travel_minutes?: number | null
@@ -431,10 +491,11 @@ export type Database = {
           badges?: string[] | null
           best_for?: string[] | null
           booking_url?: string | null
+          category?: string | null
           closes_at?: string | null
           created_at?: string
           distance_miles?: number | null
-          emails?: string[] | null
+          field_provenance?: Json
           google_maps_url?: string | null
           google_place_id?: string | null
           google_rating?: number | null
@@ -456,12 +517,11 @@ export type Database = {
           parking_is_free?: boolean | null
           parking_notes?: string | null
           phone?: string | null
-          photos?: Json | null
+          photos?: Json
           price_from?: number | null
           price_tier?: string | null
           review_count?: number | null
           skintea_score?: number | null
-          social_profiles?: Json | null
           tea_quote?: string | null
           tea_skin_type?: string | null
           travel_minutes?: number | null
@@ -1169,6 +1229,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      seed_clinic_archive: {
+        Row: {
+          archived_at: string
+          id: number
+          reason: string
+          row_data: Json
+          source_table: string
+        }
+        Insert: {
+          archived_at?: string
+          id?: number
+          reason: string
+          row_data: Json
+          source_table: string
+        }
+        Update: {
+          archived_at?: string
+          id?: number
+          reason?: string
+          row_data?: Json
+          source_table?: string
+        }
+        Relationships: []
       }
       shelf_items: {
         Row: {
@@ -1979,6 +2063,7 @@ export type Database = {
           product_count: number
         }[]
       }
+      clinic_photos_valid: { Args: { p: Json }; Returns: boolean }
       distinct_product_subcategories: {
         Args: never
         Returns: {

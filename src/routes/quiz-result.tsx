@@ -485,15 +485,17 @@ function EmailCapture() {
     try {
       const sessionId = getLeadSessionId();
       if (!sessionId) throw new Error("No session id");
-      await supabase.rpc("lead_upsert" as any, {
+      const { error: upsertErr } = await supabase.rpc("lead_upsert" as any, {
         p_session_id: sessionId,
         p_email: trimmed,
         p_contact_consent: consent,
       } as any);
-      await supabase.rpc("lead_event_add" as any, {
+      if (upsertErr) throw upsertErr;
+      const { error: eventErr } = await supabase.rpc("lead_event_add" as any, {
         p_session_id: sessionId,
         p_event_type: "email_submitted",
       } as any);
+      if (eventErr) throw eventErr;
       setSent(true);
     } catch (e) {
       console.error("Failed to submit email", e);

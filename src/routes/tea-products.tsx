@@ -443,47 +443,6 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
           </div>
         </div>
 
-        {/* Top Tea horizontal strip */}
-        <section className="px-4 pt-4">
-          <h2
-            className="mb-2 flex items-center gap-1.5"
-            style={{ fontWeight: 500, fontSize: "14px", color: "#1C0A00" }}
-          >
-            🔥 Top Tea
-          </h2>
-          <div className="no-scrollbar flex gap-3 overflow-x-auto pb-0">
-            {[
-              { img: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400", label: "B5 saved my barrier", heat: 412 },
-              { img: "https://images.unsplash.com/photo-1522335789203-aaa57bd14abc?w=400", label: "Sabrina's met gala skin secret", heat: 1200 },
-              { img: "https://images.unsplash.com/photo-1571908598047-29e7a98c1c2c?w=400", label: "GRWM date night glazed look", heat: 256 },
-              { img: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=400", label: "tretinoin purge — month 3", heat: 891 },
-            ].map((c, i) => (
-              <div
-                key={i}
-                className="relative flex-shrink-0 overflow-hidden shadow-sm"
-                style={{
-                  width: "120px",
-                  height: "150px",
-                  borderRadius: "14px",
-                  backgroundImage: `url(${c.img})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                }}
-              >
-                <div
-                  className="absolute inset-0"
-                  style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75), rgba(0,0,0,0))" }}
-                />
-                <div className="absolute bottom-0 left-0 right-0 p-2.5">
-                  <p className="font-bold leading-tight text-white" style={{ fontSize: "11px" }}>{c.label}</p>
-                  <p className="mt-1 flex items-center gap-1 font-semibold" style={{ color: "#FFD4B0", fontSize: "9px" }}>
-                    <Flame className="h-2.5 w-2.5" /> {c.heat}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
 
         {/* Today's prompt banner */}
         <section className="pt-5" style={{ margin: "0 16px 16px" }}>

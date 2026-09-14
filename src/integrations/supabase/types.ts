@@ -1973,51 +1973,75 @@ export type Database = {
       }
       treatment_reviews: {
         Row: {
+          age_bracket: string | null
           author_handle: string | null
           comment_count: number | null
           content: string | null
+          cost_paid_usd: number | null
           created_at: string | null
           field_provenance: Json
           id: string
+          is_first_time: boolean | null
           likes: number | null
           platform: string
+          regret_reason: string | null
+          sensitive_skin: boolean | null
           sentiment: string | null
           source_url: string | null
           subreddit: string | null
+          tag_confidence: string | null
+          tagged_at: string | null
           treatment_id: string | null
           upvotes: number | null
+          verdict: string | null
           views: number | null
         }
         Insert: {
+          age_bracket?: string | null
           author_handle?: string | null
           comment_count?: number | null
           content?: string | null
+          cost_paid_usd?: number | null
           created_at?: string | null
           field_provenance?: Json
           id?: string
+          is_first_time?: boolean | null
           likes?: number | null
           platform: string
+          regret_reason?: string | null
+          sensitive_skin?: boolean | null
           sentiment?: string | null
           source_url?: string | null
           subreddit?: string | null
+          tag_confidence?: string | null
+          tagged_at?: string | null
           treatment_id?: string | null
           upvotes?: number | null
+          verdict?: string | null
           views?: number | null
         }
         Update: {
+          age_bracket?: string | null
           author_handle?: string | null
           comment_count?: number | null
           content?: string | null
+          cost_paid_usd?: number | null
           created_at?: string | null
           field_provenance?: Json
           id?: string
+          is_first_time?: boolean | null
           likes?: number | null
           platform?: string
+          regret_reason?: string | null
+          sensitive_skin?: boolean | null
           sentiment?: string | null
           source_url?: string | null
           subreddit?: string | null
+          tag_confidence?: string | null
+          tagged_at?: string | null
           treatment_id?: string | null
           upvotes?: number | null
+          verdict?: string | null
           views?: number | null
         }
         Relationships: [
@@ -2147,7 +2171,9 @@ export type Database = {
         Row: {
           contactable: number | null
           day: string | null
+          drive_by_sessions: number | null
           leads_created: number | null
+          qualified_leads: number | null
           reached_stage_1: number | null
           reached_stage_2: number | null
           with_zip: number | null

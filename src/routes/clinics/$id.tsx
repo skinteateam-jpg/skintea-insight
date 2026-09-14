@@ -1,7 +1,8 @@
 // clinic detail page v2
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { leadEvent, recordConsultationClick } from "@/lib/leads";
 import {
   ArrowLeft, Heart, Share2, MapPin, Sparkles, FileText, Lock,
   Phone, Car, Map as MapIcon, Building2, Plus, Flame, Camera,
@@ -175,6 +176,13 @@ function ClinicDetailPage() {
   const [videos, setVideos] = useState<any[]>([]);
   const [activeVideoTab, setActiveVideoTab] = useState<"tiktok" | "instagram">("tiktok");
 
+  // Once per mount per clinic id; the ref also absorbs StrictMode's double effect run.
+  const viewedClinicRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (viewedClinicRef.current === id) return;
+    viewedClinicRef.current = id;
+    void leadEvent("clinic_view", { clinic_id: id });
+  }, [id]);
 
   useEffect(() => {
     try {
@@ -244,12 +252,10 @@ function ClinicDetailPage() {
     return reviews.filter((r) => r.skin_type === reviewFilter);
   }, [reviews, reviewFilter]);
 
-  const handleBook = async () => {
+  const handleBook = () => {
     if (clinic?.website_url) window.open(clinic.website_url, "_blank");
-    const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from("consultation_clicks").insert({
-      clinic_id: id, user_id: user?.id ?? null,
-    });
+    // consultation_click event, then the consultation_clicks row (linked to the lead server-side).
+    void recordConsultationClick(id);
   };
 
   if (loading) {
@@ -813,7 +819,7 @@ function ClinicDetailPage() {
             }}>
               <Phone size={14} /> {clinic.phone}
             </a>
-            <a href={clinic.website_url} target="_blank" rel="noreferrer" style={{
+            <a href={clinic.website_url} target="_blank" rel="noreferrer" onClick={() => { void leadEvent("booking_link_click", { clinic_id: id, link: "website_url" }); }} style={{
               display: "flex", alignItems: "center", gap: 8, padding: "12px 0",
               borderTop: `0.5px solid ${BORDER}`, color: CRIMSON,
               fontSize: 13, fontWeight: 700, textDecoration: "none",

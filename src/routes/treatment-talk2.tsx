@@ -460,28 +460,6 @@ function PostCard({ post, locked }: { post: Post; locked?: boolean }) {
   );
 }
 
-function InsightCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className="rounded-2xl p-4"
-      style={{ background: "#fff", border: `1px solid ${BORDER}` }}
-    >
-      <div
-        className="mb-3 text-[11px] font-bold uppercase tracking-wider"
-        style={{ color: MUTED, fontFamily: "'DM Sans', sans-serif" }}
-      >
-        {title}
-      </div>
-      {children}
-    </div>
-  );
-}
 
 function Composer({ onClose, treatments }: { onClose: () => void; treatments: string[] }) {
   return (
@@ -750,16 +728,13 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
 
             {/* Feed */}
             <section className="tt-section min-w-0">
-              <div className="mb-4 flex items-end justify-between">
+              <div className="mb-4">
                 <h1
                   className="text-2xl md:text-3xl"
                   style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }}
                 >
                   Treatment Talk
                 </h1>
-                <div className="text-[12px]" style={{ color: MUTED }}>
-                  2,841 teas
-                </div>
               </div>
 
               <div className="tt-feed space-y-4">

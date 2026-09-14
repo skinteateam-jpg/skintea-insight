@@ -484,31 +484,16 @@ function TreatmentDetailPage() {
         <AtAGlance treatment={treatment} />
       </Section>
 
-      {/* S3. How long it lasts */}
-      <Section label="How long it lasts">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
-          <NeutralCard label="Results last" value={treatment.sessions_recommended ?? "—"} subtitle="Then fades naturally" />
-          <NeutralCard label="Maintenance" value="Repeat visits" subtitle="To keep results" />
-        </div>
-      </Section>
-
-      {/* S4. Who does this */}
-      <Section label="Who does this">
-        <AgeChart category={treatment.category} />
-      </Section>
-
-      {/* S5. Popular in */}
-      <Section label="Popular in">
-        <CountryChart />
-      </Section>
-
       {/* S6. What people say */}
       <Section label="What people say">
-        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
-          <StatBar label="Would recommend" pct={treatment.majority_pct ?? 0} />
-          <StatBar label="Saw real results" pct={treatment.results_pct ?? 0} />
-          <StatBar label="Would do again" pct={Math.round((treatment.majority_pct ?? 0) * 0.95)} />
-        </div>
+        {treatment.majority_pct == null && treatment.results_pct == null ? (
+          <EmptyNote text="No recommendation data collected for this treatment yet." />
+        ) : (
+          <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+            {treatment.majority_pct != null && <StatBar label="Would recommend" pct={treatment.majority_pct} />}
+            {treatment.results_pct != null && <StatBar label="Saw real results" pct={treatment.results_pct} />}
+          </div>
+        )}
         {treatment.minority_opinion && (
           <div style={{ marginTop: 12, background: TINT, borderRadius: 8, padding: "10px 12px", borderLeft: `2px solid ${BORDER}` }}>
             <div style={{ fontSize: 9, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>

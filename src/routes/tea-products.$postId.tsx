@@ -731,33 +731,6 @@ function PostDetailPage() {
           </>
         )}
 
-        {/* Agree meter (spill only) */}
-        {post.postType === "spill" && (
-          <div style={{ padding: "0 16px 16px" }}>
-            <p
-              style={{
-                fontSize: 11,
-                fontWeight: 500,
-                color: "#aaa",
-                textTransform: "uppercase",
-                letterSpacing: 0.8,
-                marginBottom: 10,
-              }}
-            >
-              Agree meter
-            </p>
-            <div style={{ background: "#1C0A00", borderRadius: 14, padding: 14, color: "#FFFCF8" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <span style={{ fontSize: 13 }}>{post.helped} people agree</span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#FFD4B0" }}>🔥 94%</span>
-              </div>
-              <div style={{ height: 8, borderRadius: 4, background: "rgba(255,255,255,0.15)", overflow: "hidden" }}>
-                <div style={{ width: "94%", height: "100%", background: "#A8001C" }} />
-              </div>
-              <p style={{ fontSize: 11, color: "#aaa", marginTop: 8 }}>of people who tried this relate to this experience</p>
-            </div>
-          </div>
-        )}
 
         {/* Comments */}
         <div style={{ padding: "0 16px 16px" }}>

@@ -2154,6 +2154,19 @@ export type Database = {
         }
         Relationships: []
       }
+      publish_replacement_list: {
+        Row: {
+          clinic_id: string | null
+          clinic_name: string | null
+          item: string | null
+          kind: string | null
+          listing_filter: string | null
+          recorded_at: string | null
+          source: string | null
+          url: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       browse_facets: {

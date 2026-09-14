@@ -669,17 +669,19 @@ function PostDetailPage() {
                   borderRadius: 10, padding: "10px 12px", cursor: "pointer",
                 }}
               >
-                <img
-                  src={post.products[0].image}
-                  alt=""
-                  style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover", flexShrink: 0 }}
-                />
+                {post.products[0].image && (
+                  <img
+                    src={post.products[0].image}
+                    alt=""
+                    style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover", flexShrink: 0 }}
+                  />
+                )}
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 12, fontWeight: 500, color: "#1C0A00" }}>
                     {post.products[0].name} — {post.products[0].brand}
                   </div>
                   <div style={{ fontSize: 11, color: "#999", marginTop: 1 }}>
-                    See Skintea data → approval rate, timeline
+                    See product details
                   </div>
                 </div>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

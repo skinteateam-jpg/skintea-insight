@@ -435,13 +435,6 @@ function TreatmentDetailPage() {
           {treatment.subtitle && (
             <div style={{ fontSize: 12, color: "rgba(255,252,248,0.75)", fontStyle: "italic", lineHeight: 1.4, marginBottom: 12 }}>{treatment.subtitle}</div>
           )}
-          {treatment.celebrity_handles && treatment.celebrity_handles.length > 0 && (
-            <div className="no-scrollbar" style={{ display: "flex", gap: 6, overflowX: "auto", flexWrap: "nowrap" }}>
-              {treatment.celebrity_handles.map((h) => (
-                <CelebPill key={h} handle={h} />
-              ))}
-            </div>
-          )}
         </div>
       </div>
 

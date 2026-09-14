@@ -27,7 +27,7 @@ function PostDetailPage() {
   const post: Post | undefined = posts.find((p) => p.id === postId);
   const [activeImg, setActiveImg] = React.useState(0);
   const [comment, setComment] = React.useState("");
-  const [socialTab, setSocialTab] = React.useState<SocialSource>("all");
+  
   const [comments, setComments] = React.useState<
     { id: string; initials: string; bg: string; color: string; name: string; text: string; agrees: number }[]
   >([]);

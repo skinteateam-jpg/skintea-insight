@@ -68,7 +68,7 @@ function DataPending({ children }: { children: ReactNode }) {
   );
 }
 
-export const Route = createFileRoute("/product-detail/$id")({
+export const Route = createFileRoute("/product-detail/")({
   component: ProductPage,
   head: () => ({
     meta: [

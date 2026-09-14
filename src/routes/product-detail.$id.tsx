@@ -340,7 +340,7 @@ function ProductPage() {
       // Auto-tab counts display rows only (approved 2026-09-12; still raw, not deduped).
       tiktok: socialReviews.filter((r) => r.platform === "tiktok" && isDisplayRow(r)).length,
       instagram: socialReviews.filter((r) => r.platform === "instagram" && isDisplayRow(r)).length,
-      reddit: socialReviews.filter((r) => r.platform === "reddit" && ["positive", "negative", "mixed"].includes(r.sentiment)).length,
+      reddit: socialReviews.filter((r) => r.platform === "reddit" && isOpinionRow(r)).length,
     };
     const best = (["tiktok", "instagram", "reddit"] as const).reduce(
       (a, b) => (counts[b] > counts[a] ? b : a),

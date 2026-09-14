@@ -131,3 +131,67 @@ Nothing below was reconstructed from memory without a source.
   `528ad80e-9896-4fbe-92e4-a30e0bc31bee`, `604d029a-3a65-49a6-8f00-3aaaedeebd13`,
   `48016c4b-dad7-4a5a-b40a-6eb7c75cbc6b`
 - Left in place: the 4 baseline rows (`e3c6bee0…`, `184e935f…`, `b5d2805a…`, `c55b8397…`).
+
+### 07:44 UTC — seeded clinics cleaned (pipeline session)
+- Who: skintea-pipeline session (Claude Code), `sql/2026-09-14_seeded_clinics_cleanup.sql` in skintea-pipeline
+- What: created `seed_clinic_archive` (RLS on, no anon/authenticated access); archived then deleted the placeholder
+  clinic Glow Studio LA and every seeded child row of the 17 pre-August clinics: `clinic_treatments` 71,
+  `clinic_skin_scores` 85, `clinic_reviews` 28, `clinic_practitioners` 24, `clinic_who_visited` 3; unsourced fields on the
+  16 real businesses set NULL.
+- Why: invented prices, percentages, reviews and practitioners about real businesses.
+- Deleted session_ids: none (row ids are in `seed_clinic_archive`, reason "seeded child row; cleanup 2026-09-14")
+
+### 18:25–18:33 UTC — Google Places import (pipeline session)
+- Who: skintea-pipeline session, `sql/2026-09-14_google_import_*.sql`
+- What: staging table `google_import_staging`; `clinics` columns `google_categories`, `listing_filter`, `business_status`;
+  `clinic_photos_valid` accepts `google_places_scrape`; 282 existing rows filled where NULL, 161 rows inserted, every field
+  with `field_provenance` (`google_maps_scrape`).
+- Why: development use of the scrape (CLAUDE.md "Google-derived data is development-only").
+- Deleted session_ids: none
+
+### 18:32 UTC — fabricated content archived and removed (pipeline session)
+- Who: skintea-pipeline session, `sql/2026-09-14_fabrication_cleanup.sql`
+- What: archived then deleted 6 `surgery_posts` and 6 `treatment_logs` authored by the two admin accounts, 2
+  `clinic_practitioners` and 10 `clinic_treatments` on IVE MEDICAL SPA / Shiny Laser; cleared unsourced `treatments`
+  cost/downtime/sessions/skin-fit/celebrity handles (5 rows); `trending_treatments` set `is_active = false` (6); Skintea
+  Pick / Verified / known_for / price tier cleared on 2 clinics.
+- Why: unsourced or invented claims naming real businesses and people.
+- Deleted session_ids: none (row ids in `seed_clinic_archive`, reason "... audit 2026-09-14")
+
+### 18:33–18:38 UTC — provenance guards, private visits, replacement list (pipeline session)
+- Who: skintea-pipeline session, `sql/2026-09-14_provenance_guards.sql`, `..._clinic_who_visited_private.sql`,
+  `..._publish_replacement_list.sql`
+- What: `field_provenance` column + `enforce_field_provenance(<cols>)` triggers on treatments, clinic_treatments,
+  clinic_practitioners, clinic_skin_scores, trending_treatments, treatment_reviews, treatment_before_afters,
+  treatment_influencers, celebrity_mentions, clinic_videos, products; `enforce_signed_in_author` on clinic_reviews,
+  product_posts, posts, surgery_posts, surgery_comments, treatment_logs; `clinic_who_visited` SELECT limited to the
+  visitor, anon revoked; view `publish_replacement_list` (not readable by anon/authenticated).
+- Why: no user-facing number, review or claim without a recorded source.
+- Deleted session_ids: none
+
+### 20:09–20:15 UTC — clinic_treatments rebuilt from sources; review and skin-score guards (pipeline session)
+- Who: skintea-pipeline session, `sql/2026-09-14_clinic_treatments_rebuild.sql`, `..._clinic_guards_and_rebuild_policy.sql`
+- What: 85 `clinic_treatments` rows inserted (no prices; website crawl sample 50, Google category 31, business name 4),
+  through a temporary sandbox_exec INSERT policy that was dropped after the load; `clinic_reviews.field_provenance` +
+  trigger `enforce_review_integrity`; `clinic_skin_scores` trigger `enforce_skin_score_measured`
+  (`skintea_measured`, n ≥ 10).
+- Why: the treatment pages were empty after the seeded rows were removed; rebuild only from recorded sources.
+- Deleted session_ids: none
+
+### 21:25 UTC — celebrity mention removed; first-person guard (pipeline session)
+- Who: skintea-pipeline session, `sql/2026-09-14_celebrity_first_person.sql`
+- What: archived then deleted `celebrity_mentions` row `a56204ef-cd84-4309-ac77-2ba33d3c1b45` (Kylie Jenner, Fillers);
+  trigger `enforce_celebrity_first_person` on `celebrity_mentions` (a named person needs a verbatim quote with
+  `speaker = celeb_name`, `verbatim: true`, `url = source_url`) and on `treatments` (`celebrity_handles` needs a
+  verifiable first-person statement).
+- Why: the row was a journalist's paraphrase displayed in quote marks as "On the record".
+- Deleted session_ids: none (row archived in `seed_clinic_archive`)
+
+### 22:07–22:11 UTC — full clinic-website crawl loaded (pipeline session)
+- Who: skintea-pipeline session, `sql/2026-09-14_clinic_treatments_full_crawl.sql`, `..._crawl_field_staging.sql`, `..._full_crawl_provenance.sql`
+- What: 419 `clinic_treatments` rows inserted (source `clinic_website_crawl`, no prices), through a temporary
+  sandbox_exec INSERT policy dropped after the load; staging table `crawl_field_staging` created, loaded (267 rows) and
+  dropped; `clinics.field_provenance.phone` switched to `clinic_website_crawl` on 141 rows and `.address` on 119 rows
+  where the clinic's own site shows the same value (previous provenance kept under `previous`). No clinic values changed.
+- Why: the clinic's own website is a legitimate source and replaces Google provenance where it agrees.
+- Deleted session_ids: none

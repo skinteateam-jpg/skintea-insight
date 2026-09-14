@@ -28,7 +28,6 @@ import { Route as TreatmentsIndexRouteImport } from './routes/treatments.index'
 import { Route as ClinicsIndexRouteImport } from './routes/clinics.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TreatmentsSlugRouteImport } from './routes/treatments.$slug'
-import { Route as TreatmentSlugRouteImport } from './routes/treatment.$slug'
 import { Route as TeaProductsPostIdRouteImport } from './routes/tea-products.$postId'
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
 import { Route as ProductDetailIdRouteImport } from './routes/product-detail.$id'
@@ -133,11 +132,6 @@ const TreatmentsSlugRoute = TreatmentsSlugRouteImport.update({
   path: '/treatments/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TreatmentSlugRoute = TreatmentSlugRouteImport.update({
-  id: '/treatment/$slug',
-  path: '/treatment/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TeaProductsPostIdRoute = TeaProductsPostIdRouteImport.update({
   id: '/$postId',
   path: '/$postId',
@@ -203,7 +197,6 @@ export interface FileRoutesByFullPath {
   '/product-detail/$id': typeof ProductDetailIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
-  '/treatment/$slug': typeof TreatmentSlugRoute
   '/treatments/$slug': typeof TreatmentsSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/clinics/': typeof ClinicsIndexRoute
@@ -233,7 +226,6 @@ export interface FileRoutesByTo {
   '/product-detail/$id': typeof ProductDetailIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
-  '/treatment/$slug': typeof TreatmentSlugRoute
   '/treatments/$slug': typeof TreatmentsSlugRoute
   '/admin': typeof AdminIndexRoute
   '/clinics': typeof ClinicsIndexRoute
@@ -264,7 +256,6 @@ export interface FileRoutesById {
   '/product-detail/$id': typeof ProductDetailIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
-  '/treatment/$slug': typeof TreatmentSlugRoute
   '/treatments/$slug': typeof TreatmentsSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/clinics/': typeof ClinicsIndexRoute
@@ -296,7 +287,6 @@ export interface FileRouteTypes {
     | '/product-detail/$id'
     | '/profile/$username'
     | '/tea-products/$postId'
-    | '/treatment/$slug'
     | '/treatments/$slug'
     | '/admin/'
     | '/clinics/'
@@ -326,7 +316,6 @@ export interface FileRouteTypes {
     | '/product-detail/$id'
     | '/profile/$username'
     | '/tea-products/$postId'
-    | '/treatment/$slug'
     | '/treatments/$slug'
     | '/admin'
     | '/clinics'
@@ -356,7 +345,6 @@ export interface FileRouteTypes {
     | '/product-detail/$id'
     | '/profile/$username'
     | '/tea-products/$postId'
-    | '/treatment/$slug'
     | '/treatments/$slug'
     | '/admin/'
     | '/clinics/'
@@ -386,7 +374,6 @@ export interface RootRouteChildren {
   ClinicsIdRoute: typeof ClinicsIdRoute
   ProductDetailIdRoute: typeof ProductDetailIdRoute
   ProfileUsernameRoute: typeof ProfileUsernameRoute
-  TreatmentSlugRoute: typeof TreatmentSlugRoute
   TreatmentsSlugRoute: typeof TreatmentsSlugRoute
   AdminIndexRoute: typeof AdminIndexRoute
   ClinicsIndexRoute: typeof ClinicsIndexRoute
@@ -530,13 +517,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TreatmentsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/treatment/$slug': {
-      id: '/treatment/$slug'
-      path: '/treatment/$slug'
-      fullPath: '/treatment/$slug'
-      preLoaderRoute: typeof TreatmentSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/tea-products/$postId': {
       id: '/tea-products/$postId'
       path: '/$postId'
@@ -629,7 +609,6 @@ const rootRouteChildren: RootRouteChildren = {
   ClinicsIdRoute: ClinicsIdRoute,
   ProductDetailIdRoute: ProductDetailIdRoute,
   ProfileUsernameRoute: ProfileUsernameRoute,
-  TreatmentSlugRoute: TreatmentSlugRoute,
   TreatmentsSlugRoute: TreatmentsSlugRoute,
   AdminIndexRoute: AdminIndexRoute,
   ClinicsIndexRoute: ClinicsIndexRoute,

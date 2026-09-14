@@ -203,6 +203,7 @@ export type Database = {
           body: string | null
           clinic_id: string | null
           created_at: string
+          field_provenance: Json
           id: string
           skin_type: string | null
           treatment_id: string | null
@@ -213,6 +214,7 @@ export type Database = {
           body?: string | null
           clinic_id?: string | null
           created_at?: string
+          field_provenance?: Json
           id?: string
           skin_type?: string | null
           treatment_id?: string | null
@@ -223,6 +225,7 @@ export type Database = {
           body?: string | null
           clinic_id?: string | null
           created_at?: string
+          field_provenance?: Json
           id?: string
           skin_type?: string | null
           treatment_id?: string | null

@@ -13,13 +13,20 @@ export function isOpinionRow(row: any): boolean {
 
 // Recommend / Don't recommend / Mixed shares of one set of opinion rows. Each comes from its own count and the
 // three are rounded with the largest-remainder method, so what the page shows always adds up to 100 and no
-// figure is "the rest" of another.
+// figure is "the rest" of another. Equal positive and negative counts always show equal figures: a single spare point
+// that would go to only one of them goes to Mixed instead (26/26/14 shows 39/39/22, not 40/39/21).
 export function opinionShares(pos: number, neg: number, mix: number): { pos: number; neg: number; mix: number } {
   const total = pos + neg + mix;
   if (total === 0) return { pos: 0, neg: 0, mix: 0 };
   const raw = [pos, neg, mix].map((n) => (n / total) * 100);
   const floor = raw.map(Math.floor);
   let left = 100 - floor.reduce((a, b) => a + b, 0);
+  if (pos === neg && pos > 0 && left > 0) {
+    // pos and neg have identical remainders, so they take spare points only as a pair.
+    if (left >= 2) { floor[0] += 1; floor[1] += 1; left -= 2; }
+    if (left > 0) { floor[2] += left; left = 0; }
+    return { pos: floor[0], neg: floor[1], mix: floor[2] };
+  }
   const order = raw.map((v, i) => ({ i, r: v - Math.floor(v) })).sort((a, b) => b.r - a.r || a.i - b.i);
   for (const { i } of order) {
     if (left <= 0) break;

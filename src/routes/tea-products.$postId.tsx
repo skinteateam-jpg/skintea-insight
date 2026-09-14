@@ -458,17 +458,19 @@ function PostDetailPage() {
                               cursor: "pointer",
                             }}
                           >
-                            <img
-                              src={post.products[i].image}
-                              alt=""
-                              style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover", flexShrink: 0 }}
-                            />
+                            {post.products[i].image && (
+                              <img
+                                src={post.products[i].image}
+                                alt=""
+                                style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover", flexShrink: 0 }}
+                              />
+                            )}
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <p style={{ fontSize: 12, color: "#1C0A00", fontWeight: 500 }}>
-                                {post.products[i].name} · {post.products[i].price}
+                                {post.products[i].name}
                               </p>
                               <p style={{ fontSize: 10, color: "#888" }}>
-                                {post.products[i].approval}% of {skinTypeLabel(post.products[i].skinType)} skin approve
+                                {post.products[i].brand}
                               </p>
                             </div>
                             <span style={{ marginLeft: "auto", fontSize: 11, color, flexShrink: 0 }}>View →</span>

@@ -589,7 +589,7 @@ function ClinicDetailPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {["oily", "combination", "dry", "sensitive", "normal"].map((type) => {
             const score = skinScores.find((s) => s.skin_type === type);
-            const pct = score?.recommend_pct ?? 0;
+            const pct = score?.recommend_pct ?? null;
             const isYou = userSkin === type;
             return (
               <div key={type} style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -598,9 +598,9 @@ function ClinicDetailPage() {
                   <span style={{ textTransform: "capitalize" }}>{type}</span>
                 </div>
                 <div style={{ flex: 1, height: 5, background: TRACK, borderRadius: 5, overflow: "hidden" }}>
-                  <div style={{ width: `${pct}%`, height: "100%", background: CRIMSON }} />
+                  <div style={{ width: `${pct ?? 0}%`, height: "100%", background: CRIMSON }} />
                 </div>
-                <div style={{ width: 32, fontSize: 11, fontWeight: 700, color: ESPRESSO, textAlign: "right" }}>{pct}%</div>
+                <div style={{ width: 32, fontSize: 11, fontWeight: 700, color: ESPRESSO, textAlign: "right" }}>{pct != null ? `${pct}%` : "—"}</div>
                 {isYou && (
                   <span style={{ background: CRIMSON_TINT, color: CRIMSON, fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 4, textTransform: "uppercase" }}>You</span>
                 )}
@@ -733,7 +733,7 @@ function ClinicDetailPage() {
           }}
         >
           <MapPin size={16} color={ESPRESSO} />
-          <span style={{ fontSize: 8, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.08em" }}>{clinic.travel_minutes} min away</span>
+          <span style={{ fontSize: 8, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.08em" }}>{clinic.travel_minutes != null ? `${clinic.travel_minutes} min away` : "Directions"}</span>
         </a>
         <button onClick={handleBook} style={{
           flex: 2, background: CRIMSON, color: WARM_WHITE, border: "none",

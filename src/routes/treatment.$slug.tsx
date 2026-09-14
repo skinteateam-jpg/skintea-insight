@@ -346,40 +346,26 @@ function TreatmentDetailPage() {
     return d;
   }, [treatment?.downtime]);
 
-  const posts = (treatment && SOCIAL_POSTS[treatment.slug]) ?? SOCIAL_POSTS["prf-injection"];
-  const realTikTok: VideoPost[] = treatmentReviews
-    .filter((r) => r.platform === "tiktok")
-    .map((r) => ({
-      handle: r.author_handle ?? "user",
-      caption: r.content ?? "",
-      views: r.views ? `${r.views}` : "—",
-      likes: r.likes ? `${r.likes}` : "—",
-    }));
-  const realInstagram: VideoPost[] = treatmentReviews
-    .filter((r) => r.platform === "instagram")
-    .map((r) => ({
-      handle: r.author_handle ?? "user",
-      caption: r.content ?? "",
-      views: r.views ? `${r.views}` : "—",
-      likes: r.likes ? `${r.likes}` : "—",
-    }));
+  const toVideo = (r: any): VideoPost => ({
+    handle: r.author_handle ?? "user",
+    caption: r.content ?? "",
+    views: r.views ? `${r.views}` : "—",
+    likes: r.likes ? `${r.likes}` : "—",
+  });
+  const realTikTok: VideoPost[] = treatmentReviews.filter((r) => r.platform === "tiktok").map(toVideo);
+  const realInstagram: VideoPost[] = treatmentReviews.filter((r) => r.platform === "instagram").map(toVideo);
   const realReddit: RedditPost[] = treatmentReviews
     .filter((r) => r.platform === "reddit")
     .map((r) => ({
-      subreddit: r.subreddit ?? "r/SkincareAddiction",
+      subreddit: r.subreddit ?? "Reddit",
       title: (r.content ?? "").split("\n")[0] || r.content || "—",
       preview: r.content ?? "—",
       upvotes: r.upvotes ? `${r.upvotes}` : "—",
       comments: r.comment_count ?? 0,
     }));
   const activeVideos =
-    socialTab === "tiktok"
-      ? (realTikTok.length ? realTikTok : posts.tiktok)
-      : socialTab === "instagram"
-        ? (realInstagram.length ? realInstagram : posts.instagram)
-        : [];
-  const activeReddit =
-    socialTab === "reddit" ? (realReddit.length ? realReddit : posts.reddit) : [];
+    socialTab === "tiktok" ? realTikTok : socialTab === "instagram" ? realInstagram : [];
+  const activeReddit = socialTab === "reddit" ? realReddit : [];
 
   if (loading) {
     return (

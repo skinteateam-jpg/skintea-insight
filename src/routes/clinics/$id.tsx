@@ -370,7 +370,7 @@ function ClinicDetailPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {treatments.map((t) => {
             const tInf = influencers.filter((i) => i.treatment_id === t.treatment_id);
-            const tCelebs = celebMentions.filter((c) => c.treatment_id === t.treatment_id);
+            const tCelebs: CelebMention[] = []; // celebrity mentions are treatment-level; never shown on a clinic page
             const tName = t.treatments?.name ?? "Treatment";
             return (
               <div key={t.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>

@@ -82,6 +82,23 @@ function QuizResultPage() {
     return (SKIN_TYPES as readonly string[]).includes(st) ? (st as SkinType) : null;
   }, [payload]);
 
+  // Silent profile write for signed-in users — the only DB write on this page.
+  useEffect(() => {
+    if (!skinType) return;
+    void (async () => {
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (error || !data.user) return;
+        await supabase
+          .from("profiles")
+          .update({ skin_type: skinType } as any)
+          .eq("user_id", data.user.id);
+      } catch (e) {
+        console.error("Failed to save skin type to profile", e);
+      }
+    })();
+  }, [skinType]);
+
   // Computed on read, every time. Nothing is stored.
   const [fits, setFits] = useState<ProductResult[]>([]);
   const [misses, setMisses] = useState<ProductResult[]>([]);

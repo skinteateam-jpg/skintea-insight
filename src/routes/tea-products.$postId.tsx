@@ -232,41 +232,23 @@ function PostDetailPage() {
               width: 40,
               height: 40,
               borderRadius: "50%",
-              background: post.isMUA ? "#1C0A00" : SKIN_BG[post.skinType],
-              color: post.isMUA ? "#FFFCF8" : "#1C0A00",
+              background: SKIN_BG[post.skinType],
+              color: "#1C0A00",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: post.isMUA ? 13 : 18,
+              fontSize: 18,
               fontWeight: 600,
               flexShrink: 0,
             }}
           >
-            {post.isMUA ? post.authorName?.slice(0, 2).toUpperCase() : char.emoji}
+            {char.emoji}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "#1C0A00" }}>
-                {post.isMUA ? post.authorName : char.name}
-              </p>
-              {post.isMUA && (
-                <span
-                  style={{
-                    background: "#1C0A00",
-                    color: "#FFFCF8",
-                    fontSize: 9,
-                    padding: "1px 6px",
-                    borderRadius: 20,
-                    fontWeight: 600,
-                  }}
-                >
-                  MUA
-                </span>
-              )}
+              <p style={{ fontSize: 14, fontWeight: 600, color: "#1C0A00" }}>{char.name}</p>
             </div>
-            <p style={{ fontSize: 11, color: "#999999" }}>
-              {post.isMUA ? post.authorRole : `${formatAgo(post.createdAt)} ago`}
-            </p>
+            <p style={{ fontSize: 11, color: "#999999" }}>{formatAgo(post.createdAt)} ago</p>
           </div>
           <button
             style={{

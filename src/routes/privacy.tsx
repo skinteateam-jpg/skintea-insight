@@ -25,6 +25,10 @@ const SECTIONS = [
     body: "When you create an account, we collect your email address, username, and any profile information you choose to provide. Your skin profile — including skin type, concerns, and preferences — helps us match you to products, treatments, and clinics. We also collect the reviews, tea posts, and comments you submit, plus usage data such as pages visited, device type, and cookies that help us improve the platform.",
   },
   {
+    title: "If You Use Skintea Without an Account",
+    body: "You don't need an account to take the skin quiz or browse clinics, but we still collect some information when you do. Your browser is given a random session identifier, stored in your browser's local storage, and the information below is saved on our servers against that identifier. From the quiz: your answers, your skin type, your ZIP code if you enter one, your budget band, and whether you're interested in in-clinic treatments and which ones. While you browse: which clinic pages you view and when you click to book a consultation with a clinic. If you give us your email on your quiz result, we store it only when you tick the box agreeing that we can contact you, and we record that you gave that consent. We use this to show your result, show clinics near you, understand which clinics and treatments people are interested in, and, if you gave consent, email you about treatments and clinics near you. We do not currently sell this information or share it with clinics, brands or advertisers; it is stored with the hosting and database providers that run Skintea. Clearing your browser's storage removes the identifier from your device. To have the information itself deleted, email hello@getskintea.com.",
+  },
+  {
     title: "How We Use Your Information",
     body: "We use your information to personalize your Skintea experience, match products and clinics to your skin profile, rank and surface honest reviews, and improve the service. We may use anonymized and aggregated data to identify trends and share insights with the broader community, but we do not use your personal data to make automated decisions that affect you.",
   },
@@ -98,7 +102,7 @@ function PrivacyPage() {
         </h1>
 
         <div style={{ fontSize: 12, color: MUTED, marginBottom: 28 }}>
-          Last updated: July 2026
+          Last updated: September 2026
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>

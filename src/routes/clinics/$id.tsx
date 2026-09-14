@@ -406,7 +406,7 @@ function ClinicDetailPage() {
                     <span style={{ fontSize: 10, color: MUTED }}>+{tInf.length - 3} more</span>
                   )}
                   {t.treatments?.slug && (
-                    <button onClick={() => { navigate({ to: "/treatment/$slug", params: { slug: t.treatments!.slug! } }).catch(() => {}); }} style={{
+                    <button onClick={() => { navigate({ to: "/treatments/$slug", params: { slug: t.treatments!.slug! } }).catch(() => {}); }} style={{
                       background: "none", border: "none", color: CRIMSON,
                       fontSize: 10, fontWeight: 700, cursor: "pointer",
                       display: "inline-flex", alignItems: "center", gap: 4, padding: 0,

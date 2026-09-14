@@ -1,10 +1,9 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, MapPin } from "lucide-react";
+import { ArrowLeft, ChevronRight, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AppFrame from "@/components/AppFrame";
 import BottomNav from "@/components/BottomNav";
-import { leadEvent } from "@/lib/leads";
 
 export const Route = createFileRoute("/treatments/$slug")({
   component: TreatmentPage,
@@ -45,8 +44,6 @@ type ClinicLink = {
     id: string;
     name: string;
     neighborhood: string | null;
-    booking_url: string | null;
-    website_url: string | null;
   } | null;
 };
 
@@ -79,7 +76,6 @@ function Field({ label, value }: { label: string; value: string | null }) {
 
 function TreatmentPage() {
   const { slug } = Route.useParams();
-  const navigate = useNavigate();
   const [treatment, setTreatment] = useState<Treatment | null>(null);
   const [links, setLinks] = useState<ClinicLink[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,7 +94,7 @@ function TreatmentPage() {
       if (t) {
         const { data: ct } = await supabase
           .from("clinic_treatments")
-          .select("id, price_from, price_unit, clinics(id, name, neighborhood, booking_url, website_url)")
+          .select("id, price_from, price_unit, clinics(id, name, neighborhood)")
           .eq("treatment_id", (t as any).id);
         if (!alive) return;
         const rows = ((ct as any[]) ?? []).filter((r) => r.clinics) as ClinicLink[];
@@ -122,11 +118,6 @@ function TreatmentPage() {
       </div>
     );
   }
-
-  const openClinic = (clinicId: string) => {
-    void leadEvent("clinic_view", { clinic_id: clinicId, source: "treatment_page", treatment_slug: treatment.slug });
-    navigate({ to: "/clinics/$id", params: { id: clinicId } }).catch(() => {});
-  };
 
   return (
     <AppFrame>
@@ -153,10 +144,10 @@ function TreatmentPage() {
         </Section>
 
         {/*
-          Opinion figures. treatments.majority_pct / results_pct / minority_opinion are
-          deliberately not read: on 2026-09-14 the 5 rows carrying values had 0
-          treatment_reviews behind them. Wire this to a counted review source before
-          showing any number. Never hide this section.
+          Opinion figures. treatments.majority_pct / results_pct / minority_opinion were
+          nulled on all rows on 2026-09-14 (the values had no reviews behind them) and are
+          not read. Wire this to a counted review source before showing any number.
+          Never hide this section.
         */}
         <Section title="What people say">
           <div style={{ background: CREAM_TINT, borderRadius: 10, padding: "14px 12px" }}>
@@ -172,17 +163,20 @@ function TreatmentPage() {
             <div style={{ textAlign: "center", color: MUTED, fontSize: 12, padding: "16px 0" }}>No clinics linked to this treatment yet.</div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {/*
+                Cards link only to the Skintea clinic page. No outbound website or booking
+                links here: the visitor would leave before intent is captured, and most
+                website_url values come from the Google Maps scrape that is on hold.
+                clinic_view is recorded by the clinic page itself, once per mount.
+              */}
               {links.map((l) => {
                 const c = l.clinics!;
-                const outbound = c.booking_url ? { url: c.booking_url, link: "booking_url", label: "Book" } : c.website_url ? { url: c.website_url, link: "website_url", label: "Website" } : null;
                 return (
-                  <div
+                  <Link
                     key={l.id}
-                    role="link"
-                    tabIndex={0}
-                    onClick={() => openClinic(c.id)}
-                    onKeyDown={(e) => { if (e.key === "Enter") openClinic(c.id); }}
-                    style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: 12, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}
+                    to="/clinics/$id"
+                    params={{ id: c.id }}
+                    style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: 12, display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO }}>{c.name}</div>
@@ -197,21 +191,8 @@ function TreatmentPage() {
                         </div>
                       )}
                     </div>
-                    {outbound && (
-                      <a
-                        href={outbound.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void leadEvent("booking_link_click", { clinic_id: c.id, link: outbound.link, source: "treatment_page", treatment_slug: treatment.slug });
-                        }}
-                        style={{ flexShrink: 0, background: CRIMSON, color: WARM_WHITE, fontSize: 11, fontWeight: 800, padding: "7px 12px", borderRadius: 20, textDecoration: "none" }}
-                      >
-                        {outbound.label} ↗
-                      </a>
-                    )}
-                  </div>
+                    <ChevronRight size={16} color={MUTED} />
+                  </Link>
                 );
               })}
             </div>

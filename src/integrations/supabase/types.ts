@@ -271,6 +271,86 @@ export type Database = {
           },
         ]
       }
+      clinic_submissions: {
+        Row: {
+          address: string | null
+          clinic_id: string | null
+          clinic_name: string
+          created_at: string
+          hours_text: string | null
+          id: string
+          message: string | null
+          permission_granted: boolean
+          permission_granted_at: string
+          permission_signed_name: string
+          permission_statement: string
+          permission_statement_version: string
+          phone: string | null
+          photo_paths: string[]
+          review_notes: string | null
+          reviewed_at: string | null
+          status: string
+          submitter_email: string
+          submitter_name: string
+          submitter_role: string
+          website_url: string | null
+        }
+        Insert: {
+          address?: string | null
+          clinic_id?: string | null
+          clinic_name: string
+          created_at?: string
+          hours_text?: string | null
+          id: string
+          message?: string | null
+          permission_granted: boolean
+          permission_granted_at?: string
+          permission_signed_name: string
+          permission_statement: string
+          permission_statement_version: string
+          phone?: string | null
+          photo_paths?: string[]
+          review_notes?: string | null
+          reviewed_at?: string | null
+          status?: string
+          submitter_email: string
+          submitter_name: string
+          submitter_role: string
+          website_url?: string | null
+        }
+        Update: {
+          address?: string | null
+          clinic_id?: string | null
+          clinic_name?: string
+          created_at?: string
+          hours_text?: string | null
+          id?: string
+          message?: string | null
+          permission_granted?: boolean
+          permission_granted_at?: string
+          permission_signed_name?: string
+          permission_statement?: string
+          permission_statement_version?: string
+          phone?: string | null
+          photo_paths?: string[]
+          review_notes?: string | null
+          reviewed_at?: string | null
+          status?: string
+          submitter_email?: string
+          submitter_name?: string
+          submitter_role?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_submissions_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_treatments: {
         Row: {
           clinic_id: string | null
@@ -630,6 +710,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      google_import_staging: {
+        Row: {
+          address: string | null
+          business_status: string | null
+          category: string | null
+          google_categories: Json | null
+          google_maps_url: string | null
+          google_rating: number | null
+          google_review_count: number | null
+          hours: Json | null
+          is_new: boolean
+          latitude: number | null
+          listing_filter: string
+          longitude: number | null
+          name: string
+          neighborhood: string | null
+          phone: string | null
+          photos: Json
+          place_id: string
+          scraped_at: string
+          target_clinic_id: string | null
+          website_url: string | null
+        }
+        Insert: {
+          address?: string | null
+          business_status?: string | null
+          category?: string | null
+          google_categories?: Json | null
+          google_maps_url?: string | null
+          google_rating?: number | null
+          google_review_count?: number | null
+          hours?: Json | null
+          is_new: boolean
+          latitude?: number | null
+          listing_filter: string
+          longitude?: number | null
+          name: string
+          neighborhood?: string | null
+          phone?: string | null
+          photos: Json
+          place_id: string
+          scraped_at: string
+          target_clinic_id?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          address?: string | null
+          business_status?: string | null
+          category?: string | null
+          google_categories?: Json | null
+          google_maps_url?: string | null
+          google_rating?: number | null
+          google_review_count?: number | null
+          hours?: Json | null
+          is_new?: boolean
+          latitude?: number | null
+          listing_filter?: string
+          longitude?: number | null
+          name?: string
+          neighborhood?: string | null
+          phone?: string | null
+          photos?: Json
+          place_id?: string
+          scraped_at?: string
+          target_clinic_id?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
       }
       lead_events: {
         Row: {

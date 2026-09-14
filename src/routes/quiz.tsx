@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getLeadSessionId } from "@/lib/leadSession";
+import { leadFlushHeld, noteLeadCreated } from "@/lib/leads";
 
 export const Route = createFileRoute("/quiz")({
   component: QuizPage,
@@ -279,16 +281,10 @@ function buildResultPayload(answers: Answers, extras: { treatmentIds: string[]; 
 }
 
 // ---------- Session + lead helpers ----------
+// The shared lead session id (src/lib/leadSession.ts), so a clinic view held before the
+// quiz belongs to the same session as the quiz answers.
 function getSessionId(): string {
-  try {
-    const existing = localStorage.getItem("skintea.sessionId");
-    if (existing) return existing;
-    const id = crypto.randomUUID();
-    localStorage.setItem("skintea.sessionId", id);
-    return id;
-  } catch {
-    return crypto.randomUUID();
-  }
+  return getLeadSessionId() ?? crypto.randomUUID();
 }
 
 type TreatmentRow = { id: string; name: string; subtitle: string | null; what_it_is: string | null };
@@ -310,23 +306,17 @@ function QuizPage() {
     const sid = sessionIdRef.current;
     if (!sid) return;
     try {
-      await supabase.rpc("lead_upsert", { p_session_id: sid, ...args } as never);
+      const { error } = await supabase.rpc("lead_upsert", { p_session_id: sid, ...args } as never);
+      if (error) throw error;
+      noteLeadCreated();
     } catch (e) {
       console.error("lead_upsert failed", e);
     }
   }, []);
 
-  // Session id + quiz start
+  // Session id only. Opening the quiz creates no lead row: the first answer does.
   useEffect(() => {
-    const sid = getSessionId();
-    sessionIdRef.current = sid;
-    (async () => {
-      try {
-        await supabase.rpc("lead_upsert", { p_session_id: sid });
-      } catch (e) {
-        console.error("lead_upsert failed", e);
-      }
-    })();
+    sessionIdRef.current = getSessionId();
   }, []);
 
   // Treatment list (only needed for the yes / not_sure branches)
@@ -415,6 +405,8 @@ function QuizPage() {
     let shareSlug: string | null = null;
 
     if (sid) {
+      // Held clinic views land before quiz_completed.
+      await leadFlushHeld();
       try {
         const { data, error } = await supabase.rpc("quiz_response_save", {
           p_session_id: sid,
@@ -429,6 +421,7 @@ function QuizPage() {
           p_quiz_version: 1,
         });
         if (error) throw error;
+        noteLeadCreated();
         if (typeof data === "string") shareSlug = data;
       } catch (e) {
         console.error("quiz_response_save failed", e);

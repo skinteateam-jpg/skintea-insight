@@ -466,43 +466,47 @@ function ProductSection({
 }
 
 // ---------- Email capture ----------
-// Consent is its own unticked checkbox; Submit stays disabled until it is ticked.
-// leadSubmitEmail stores email + consent first, then fires email_submitted with no payload.
+// Two separate things. Submitting an email needs no box ticked. The one checkbox, unticked by
+// default, is consent for matched clinics to contact the visitor; it is never a precondition for
+// submitting. Do not merge them: if consent were required to submit, contact_consent would be true
+// for every lead and would carry no information, and the opt-in share is what the clinic side is
+// priced on. email_submitted reaches stage 2 only when consent is true (database rule, intended).
 function EmailCapture() {
   const [email, setEmail] = useState("");
-  const [consent, setConsent] = useState(false);
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "invalid" | "error">("idle");
+  const [clinicConsent, setClinicConsent] = useState(false);
+  const [status, setStatus] = useState<"idle" | "sending" | "invalid" | "error">("idle");
+  const [saved, setSaved] = useState<{ consent: boolean } | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!consent || !email.trim() || status === "sending") return;
+    if (!email.trim() || status === "sending") return;
     setStatus("sending");
-    const result = await leadSubmitEmail(email);
-    setStatus(result === "ok" ? "sent" : result === "invalid_email" ? "invalid" : "error");
+    const result = await leadSubmitEmail(email, clinicConsent);
+    if (result === "ok") {
+      setSaved({ consent: clinicConsent });
+      setStatus("idle");
+    } else {
+      setSaved(null);
+      setStatus(result === "invalid_email" ? "invalid" : "error");
+    }
   }
 
-  if (status === "sent") {
-    return (
-      <Card>
-        <div style={{ fontSize: 13, color: C.espresso, lineHeight: 1.6 }}>
-          Thanks. We'll only use this address to email you about treatments and clinics near you.
-        </div>
-      </Card>
-    );
-  }
-
-  const canSubmit = consent && email.trim().length > 0 && status !== "sending";
+  const canSubmit = email.trim().length > 0 && status !== "sending";
 
   return (
     <Card>
       <form onSubmit={(e) => void submit(e)} noValidate style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ fontSize: 13, color: C.espresso, lineHeight: 1.6 }}>
-          Want to hear about treatments and clinics near you? Leave your email and we'll email you about treatment options and clinics that match your result. Nothing else, and we don't sell or share your address.
+          Leave your email and we'll send you treatment options and clinics that match your result.
+        </div>
+        <div style={{ fontSize: 12, color: C.textMid, lineHeight: 1.6 }}>
+          We don't sell your data and we don't hand it to advertisers. When you ask us to connect you with a specific clinic, we pass along only what that clinic needs to contact you, and we tell you before we do it.{" "}
+          <Link to="/privacy" style={{ color: C.textMid, textDecoration: "underline" }}>Privacy policy</Link>
         </div>
         <input
           type="email"
           value={email}
-          onChange={(e) => { setEmail(e.target.value); if (status === "invalid" || status === "error") setStatus("idle"); }}
+          onChange={(e) => { setEmail(e.target.value); setSaved(null); if (status === "invalid" || status === "error") setStatus("idle"); }}
           placeholder="you@email.com"
           aria-label="Email"
           aria-invalid={status === "invalid"}
@@ -511,19 +515,23 @@ function EmailCapture() {
         />
         {status === "invalid" && (
           <div role="alert" style={{ fontSize: 11, fontWeight: 600, color: C.crimson, marginTop: -6 }}>
-            That doesn't look like a valid email. Check that address and try again.
+            Check that address and try again.
           </div>
         )}
         <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: C.textMid, lineHeight: 1.5 }}>
-          <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} style={{ marginTop: 2 }} />
-          <span>
-            I agree that Skintea can email me about treatments and clinics near me. See our{" "}
-            <Link to="/privacy" style={{ color: C.textMid, textDecoration: "underline" }}>privacy policy</Link>.
-          </span>
+          <input type="checkbox" checked={clinicConsent} onChange={(e) => { setClinicConsent(e.target.checked); setSaved(null); }} style={{ marginTop: 2 }} />
+          <span>Let matched clinics near me contact me about a consultation.</span>
         </label>
         {status === "error" && (
           <div role="alert" style={{ fontSize: 11, fontWeight: 600, color: C.crimson }}>
             Something went wrong saving your email. Please try again.
+          </div>
+        )}
+        {saved && (
+          <div role="status" style={{ fontSize: 12, color: C.espresso, lineHeight: 1.5 }}>
+            {saved.consent
+              ? "Saved. Matched clinics near you may contact you about a consultation."
+              : "Saved. You can tick the box above and submit again if you'd like matched clinics to contact you."}
           </div>
         )}
         <button

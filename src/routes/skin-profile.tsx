@@ -249,11 +249,11 @@ function SkinProfilePage() {
       const ids = Array.from(new Set(slugless.map(l => l.treatment_id).filter(Boolean) as string[]));
       const names = Array.from(new Set(slugless.filter(l => !l.treatment_id && l.treatment_name).map(l => l.treatment_name)));
       if (ids.length > 0) {
-        const { data } = await supabase.from("treatments").select("id,name,slug").in("id", ids);
+        const { data } = await supabase.from("treatments").select("id,name,slug").in("id", ids).eq("active", true);
         (data as any[] | null)?.forEach(t => { if (t.slug) idMap[t.id] = { id: t.id, slug: t.slug }; });
       }
       if (names.length > 0) {
-        const { data } = await supabase.from("treatments").select("id,name,slug").in("name", names);
+        const { data } = await supabase.from("treatments").select("id,name,slug").in("name", names).eq("active", true);
         (data as any[] | null)?.forEach(t => { if (t.slug) nameMap[t.name.toLowerCase()] = { id: t.id, slug: t.slug }; });
       }
       const resolve = (l: TLog) => {
@@ -1023,8 +1023,9 @@ function SavedTab({ userId }: { userId: string | null }) {
     (async () => {
       const { data: scs } = await supabase
         .from("saved_clinics")
-        .select("clinic_id, clinics(id,name,neighborhood,image_url,best_for,trust_score,skintea_score)")
-        .eq("user_id", userId);
+        .select("clinic_id, clinics!inner(id,name,neighborhood,image_url,best_for,trust_score,skintea_score,listing_filter)")
+        .eq("user_id", userId)
+        .eq("clinics.listing_filter", "passed");
       if (alive) setSavedClinics(((scs as any[]) ?? []).map(r => r.clinics).filter(Boolean));
       const { data: sps } = await supabase
         .from("saved_posts")
@@ -1699,6 +1700,7 @@ function TreatmentNameLink({ name, slug, style }: { name: string; slug: string |
         .from("treatments")
         .select("slug")
         .ilike("name", name)
+        .eq("active", true)
         .maybeSingle();
       s = (data as any)?.slug ?? null;
       if (s) setResolvedSlug(s);
@@ -1766,6 +1768,7 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
       const { data } = await supabase
         .from("clinics")
         .select("id,name")
+        .eq("listing_filter", "passed")
         .ilike("name", `%${clinicQuery}%`)
         .limit(5);
       if (alive) setSuggestions((data as any[]) ?? []);
@@ -1799,6 +1802,7 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
         .from("treatments")
         .select("slug")
         .eq("id", finalId)
+        .eq("active", true)
         .maybeSingle();
       finalSlug = (t as any)?.slug ?? null;
     }
@@ -1807,6 +1811,7 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
         .from("treatments")
         .select("id,slug")
         .ilike("name", treatmentName.trim())
+        .eq("active", true)
         .maybeSingle();
       if (t) {
         finalId = (t as any).id ?? null;

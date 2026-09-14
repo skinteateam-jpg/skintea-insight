@@ -45,6 +45,10 @@ export const Route = createFileRoute('/api/public/consultation-click')({
         if (typeof sessionId === 'string' && UUID.test(sessionId)) {
           const { data } = await db.from('leads').select('id').eq('session_id', sessionId).maybeSingle()
           leadId = data?.id ?? null
+          if (!leadId) {
+            // Server log only; the response never reveals whether a session matched.
+            console.error('[consultation-click] no lead for the given session_id; click stored without lead_id', { clinic_id: clinicId })
+          }
         }
 
         const { error } = await db

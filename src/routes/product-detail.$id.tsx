@@ -107,6 +107,24 @@ const VERBATIM_QUOTE_TYPES = new Set(["product_search_comment", "reel_comment", 
 const EDITED_QUOTE_TYPES = new Set(["plain_brand", "fan_subreddit", "product_specific_search"]);
 const QUOTE_EXCERPT_MAX = 280;
 
+// Recommend / Don't recommend / Mixed shares of one set of opinion rows. Each comes from its own count and the
+// three are rounded with the largest-remainder method, so what the page shows always adds up to 100 and no
+// figure is "the rest" of another.
+function opinionShares(pos: number, neg: number, mix: number): { pos: number; neg: number; mix: number } {
+  const total = pos + neg + mix;
+  if (total === 0) return { pos: 0, neg: 0, mix: 0 };
+  const raw = [pos, neg, mix].map((n) => (n / total) * 100);
+  const floor = raw.map(Math.floor);
+  let left = 100 - floor.reduce((a, b) => a + b, 0);
+  const order = raw.map((v, i) => ({ i, r: v - Math.floor(v) })).sort((a, b) => b.r - a.r || a.i - b.i);
+  for (const { i } of order) {
+    if (left <= 0) break;
+    floor[i] += 1;
+    left -= 1;
+  }
+  return { pos: floor[0], neg: floor[1], mix: floor[2] };
+}
+
 // Render-only excerpt of a verbatim quote. Never shortens edited text, never touches what is stored.
 function quoteDisplay(r: any): { text: string; form: "verbatim" | "edited" | null; excerpted: boolean } {
   const raw = String(r?.content ?? "").replace(/\s+/g, " ").trim();
@@ -450,10 +468,12 @@ function ProductPage() {
     return { scope: "none", rows: own };
   }
   function bucketPct(pred: (r: any) => boolean): { pct: number | null; scope: Scope; n: number } {
-    const { scope, rows } = pickScope((r) => pred(r) && (r.sentiment === "positive" || r.sentiment === "negative"));
+    // Same rows and same floor as the headline: positive + negative + mixed.
+    const { scope, rows } = pickScope((r) => pred(r) && (r.sentiment === "positive" || r.sentiment === "negative" || r.sentiment === "mixed"));
     if (scope === "none") return { pct: null, scope, n: rows.length };
     const pos = rows.filter((r) => r.sentiment === "positive").length;
-    return { pct: Math.round((pos / rows.length) * 100), scope, n: rows.length };
+    const neg = rows.filter((r) => r.sentiment === "negative").length;
+    return { pct: opinionShares(pos, neg, rows.length - pos - neg).pos, scope, n: rows.length };
   }
 
   const skinTypePct: Record<string, number | null> = {};
@@ -492,10 +512,8 @@ function ProductPage() {
   const sentimentTotal = posCount + negCount + mixedCount;
   const hasEnoughSentimentData = opinionScope !== "none";
   const majorityIsPositive = posCount >= negCount;
-  const majorityCount = majorityIsPositive ? posCount : negCount;
-  const majorityPct = sentimentTotal > 0 ? Math.round((majorityCount / sentimentTotal) * 100) : 0;
-  const minorityPct = 100 - majorityPct;
-  const recommendPct = sentimentTotal > 0 ? Math.round((posCount / sentimentTotal) * 100) : null;
+  const shares = opinionShares(posCount, negCount, mixedCount);
+  const recommendPct = sentimentTotal > 0 ? shares.pos : null;
   const confidence = sentimentTotal >= 50 ? "High" : sentimentTotal >= 10 ? "Medium" : "Low";
   function topQuote(sentiment: string) {
     const matches = taggedReviews.filter((r) => r.sentiment === sentiment).sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
@@ -503,6 +521,7 @@ function ProductPage() {
   }
   const majorityQuote = topQuote(majorityIsPositive ? "positive" : "negative");
   const minorityQuote = topQuote(majorityIsPositive ? "negative" : "positive");
+  const mixedQuote = topQuote("mixed");
 
   const redditScope: "line" | "own" = isShadeLine && opinionScope === "line" ? "line" : "own";
   const redditLineCount = socialReviews.filter(
@@ -732,11 +751,14 @@ function ProductPage() {
               )}
               <div className="grid grid-cols-2 gap-2.5">
                 {[
-                  { label: majorityIsPositive ? "Recommend" : "Don't recommend", pct: majorityPct, barCls: "bg-brand-crimson", sentence: majorityQuote ?? "Based on tagged social posts." },
-                  { label: majorityIsPositive ? "Don't recommend" : "Recommend", pct: minorityPct, barCls: "bg-brand-border", sentence: minorityQuote ?? "Based on tagged social posts." },
+                  { label: majorityIsPositive ? "Recommend" : "Don't recommend", pct: majorityIsPositive ? shares.pos : shares.neg, n: majorityIsPositive ? posCount : negCount, barCls: "bg-brand-crimson", sentence: majorityQuote ?? "Based on tagged social posts.", wide: false },
+                  { label: majorityIsPositive ? "Don't recommend" : "Recommend", pct: majorityIsPositive ? shares.neg : shares.pos, n: majorityIsPositive ? negCount : posCount, barCls: "bg-brand-crimson/40", sentence: minorityQuote ?? "Based on tagged social posts.", wide: false },
+                  ...(mixedCount > 0
+                    ? [{ label: "Mixed", pct: shares.mix, n: mixedCount, barCls: "bg-brand-espresso/30", sentence: mixedQuote ?? "Opinions with both good and bad points.", wide: true }]
+                    : []),
                 ].map((c) => (
-                  <div key={c.label} className="bg-card border border-brand-border rounded-xl p-3.5">
-                    <div className="text-[11px] text-brand-muted mb-1">{c.label}</div>
+                  <div key={c.label} className={`bg-card border border-brand-border rounded-xl p-3.5 ${c.wide ? "col-span-2" : ""}`}>
+                    <div className="text-[11px] text-brand-muted mb-1">{c.label} <span className="text-[10px]">· {c.n} of {sentimentTotal}</span></div>
                     <div className="text-3xl font-semibold text-brand-espresso leading-none">{c.pct}%</div>
                     <div className="h-[3px] bg-brand-border rounded-sm my-2 overflow-hidden">
                       <div className={`h-full ${c.barCls}`} style={{ width: `${c.pct}%` }} />

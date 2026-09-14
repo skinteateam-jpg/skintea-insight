@@ -1109,10 +1109,12 @@ function ProductSearch({
         <div style={{ marginTop: 6, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, overflow: "hidden" }}>
           {searchResults.map(p => (
             <button key={p.id} onClick={() => onSelect(p)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "none", border: "none", borderBottom: "0.5px solid #f5f0ea", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
-              <img src={p.image} style={{ width: 32, height: 32, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />
+              {p.image && (
+                <img src={p.image} style={{ width: 32, height: 32, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />
+              )}
               <div style={{ flex: 1, textAlign: "left" }}>
                 <div style={{ fontSize: 12, fontWeight: 500, color: "#1C0A00" }}>{p.name}</div>
-                <div style={{ fontSize: 11, color: "#999" }}>{p.brand} · {p.price}</div>
+                <div style={{ fontSize: 11, color: "#999" }}>{p.brand}</div>
               </div>
               <Plus size={14} color="#aaa" />
             </button>

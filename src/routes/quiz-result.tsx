@@ -417,7 +417,9 @@ function ProductSection({
       <div style={{ border: `1px dashed ${C.border}`, borderRadius: 12, padding: 18, background: C.surface }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: C.espresso }}>Not enough data yet</div>
         <div style={{ fontSize: 12, color: C.textLight, marginTop: 5, lineHeight: 1.5 }}>
-          {maxTagged} of {MIN_TAGGED} tagged opinions so far for {skinTypeLabel.toLowerCase()} skin.
+          {maxTagged < MIN_TAGGED
+            ? `${maxTagged} of ${MIN_TAGGED} tagged opinions so far for ${skinTypeLabel.toLowerCase()} skin.`
+            : `No product falls in this range yet for ${skinTypeLabel.toLowerCase()} skin. Best so far: ${maxTagged} tagged opinions.`}
         </div>
       </div>
     );

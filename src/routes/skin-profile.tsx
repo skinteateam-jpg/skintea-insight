@@ -1704,10 +1704,10 @@ function TreatmentNameLink({ name, slug, style }: { name: string; slug: string |
       if (s) setResolvedSlug(s);
     }
     if (!s && name) {
-      // Last-resort: slugify the name and let /treatment/$slug handle not-found gracefully
+      // Last-resort: slugify the name and let /treatments/$slug handle not-found gracefully
       s = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     }
-    if (s) navigate({ to: "/treatment/$slug", params: { slug: s } });
+    if (s) navigate({ to: "/treatments/$slug", params: { slug: s } });
   };
 
   const baseStyle: CSSProperties = {

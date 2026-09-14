@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Lock, Check, AlertTriangle, X, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { MIN_TAGGED, isOpinionRow, aggregate } from "@/lib/opinionAggregate";
-import { getLeadSessionId } from "@/lib/leadSession";
+import { leadSubmitEmail } from "@/lib/leads";
 
 export const Route = createFileRoute("/quiz-result")({
   component: QuizResultPage,
@@ -466,76 +466,74 @@ function ProductSection({
 }
 
 // ---------- Email capture ----------
+// Consent is its own unticked checkbox; Submit stays disabled until it is ticked.
+// leadSubmitEmail stores email + consent first, then fires email_submitted with no payload.
 function EmailCapture() {
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [errorLine, setErrorLine] = useState<string | null>(null);
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "invalid" | "error">("idle");
 
-  async function submit() {
-    const trimmed = email.trim();
-    const at = trimmed.indexOf("@");
-    if (at <= 0 || at !== trimmed.lastIndexOf("@") || at === trimmed.length - 1) {
-      setErrorLine("Enter a valid email");
-      return;
-    }
-    setSending(true);
-    setErrorLine(null);
-    try {
-      const sessionId = getLeadSessionId();
-      if (!sessionId) throw new Error("No session id");
-      const { error: upsertErr } = await supabase.rpc("lead_upsert" as any, {
-        p_session_id: sessionId,
-        p_email: trimmed,
-        p_contact_consent: consent,
-      } as any);
-      if (upsertErr) throw upsertErr;
-      const { error: eventErr } = await supabase.rpc("lead_event_add" as any, {
-        p_session_id: sessionId,
-        p_event_type: "email_submitted",
-      } as any);
-      if (eventErr) throw eventErr;
-      setSent(true);
-    } catch (e) {
-      console.error("Failed to submit email", e);
-      setErrorLine("That didn't go through. Try again.");
-    } finally {
-      setSending(false);
-    }
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!consent || !email.trim() || status === "sending") return;
+    setStatus("sending");
+    const result = await leadSubmitEmail(email);
+    setStatus(result === "ok" ? "sent" : result === "invalid_email" ? "invalid" : "error");
   }
+
+  if (status === "sent") {
+    return (
+      <Card>
+        <div style={{ fontSize: 13, color: C.espresso, lineHeight: 1.6 }}>
+          Thanks. We'll only use this address to email you about treatments and clinics near you.
+        </div>
+      </Card>
+    );
+  }
+
+  const canSubmit = consent && email.trim().length > 0 && status !== "sending";
 
   return (
     <Card>
-      {sent ? (
-        <div style={{ fontSize: 13, color: C.espresso, lineHeight: 1.6 }}>Thanks — we have your email.</div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@email.com"
-            aria-label="Email"
-            style={{ width: "100%", boxSizing: "border-box", border: `0.5px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", fontSize: 14, color: C.espresso, background: C.bg, outline: "none" }}
-          />
-          <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: C.textMid, lineHeight: 1.5 }}>
-            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} style={{ marginTop: 2 }} />
-            You can contact me about treatments near me
-          </label>
-          {errorLine && (
-            <div style={{ fontSize: 11, color: C.crimson, lineHeight: 1.5 }}>{errorLine}</div>
-          )}
-          <button
-            type="button"
-            disabled={sending}
-            onClick={() => void submit()}
-            style={{ background: C.crimson, color: "#FFFCF8", border: "none", borderRadius: 99, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: sending ? "default" : "pointer", opacity: sending ? 0.7 : 1 }}
-          >
-            {sending ? "Sending…" : "Submit"}
-          </button>
+      <form onSubmit={(e) => void submit(e)} noValidate style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ fontSize: 13, color: C.espresso, lineHeight: 1.6 }}>
+          Want to hear about treatments and clinics near you? Leave your email and we'll email you about treatment options and clinics that match your result. Nothing else, and we don't sell or share your address.
         </div>
-      )}
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => { setEmail(e.target.value); if (status === "invalid" || status === "error") setStatus("idle"); }}
+          placeholder="you@email.com"
+          aria-label="Email"
+          aria-invalid={status === "invalid"}
+          autoComplete="email"
+          style={{ width: "100%", boxSizing: "border-box", border: `0.5px solid ${status === "invalid" ? C.crimson : C.border}`, borderRadius: 10, padding: "12px 14px", fontSize: 14, color: C.espresso, background: C.bg, outline: "none" }}
+        />
+        {status === "invalid" && (
+          <div role="alert" style={{ fontSize: 11, fontWeight: 600, color: C.crimson, marginTop: -6 }}>
+            That doesn't look like a valid email. Check that address and try again.
+          </div>
+        )}
+        <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: C.textMid, lineHeight: 1.5 }}>
+          <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} style={{ marginTop: 2 }} />
+          <span>
+            I agree that Skintea can email me about treatments and clinics near me. See our{" "}
+            <Link to="/privacy" style={{ color: C.textMid, textDecoration: "underline" }}>privacy policy</Link>.
+          </span>
+        </label>
+        {status === "error" && (
+          <div role="alert" style={{ fontSize: 11, fontWeight: 600, color: C.crimson }}>
+            Something went wrong saving your email. Please try again.
+          </div>
+        )}
+        <button
+          type="submit"
+          disabled={!canSubmit}
+          style={{ background: canSubmit ? C.crimson : C.border, color: canSubmit ? "#FFFCF8" : C.textLight, border: "none", borderRadius: 99, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: canSubmit ? "pointer" : "not-allowed" }}
+        >
+          {status === "sending" ? "Saving…" : "Submit"}
+        </button>
+      </form>
     </Card>
   );
 }

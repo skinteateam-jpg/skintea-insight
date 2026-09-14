@@ -782,7 +782,8 @@ function QuizPage() {
                 : <>Next <ArrowRight size={16} /></>}
           </button>
           <div style={{ textAlign: "center", marginTop: 10, fontSize: 11, color: C.textLight }}>
-            No account needed. Your answers stay on this device.
+            No account needed. Your answers, skin type, ZIP, budget and treatment interest are saved with an anonymous ID so we can build your result and show clinics near you.{" "}
+            <Link to="/privacy" style={{ color: C.textLight, textDecoration: "underline" }}>Privacy policy</Link>
           </div>
         </div>
       </footer>

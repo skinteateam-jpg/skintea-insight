@@ -25,7 +25,18 @@ export type LeadEventType =
   | "booking_link_click"
   | "email_submitted";
 
-type RpcError = { message: string } | null;
+type RpcError = { message: string; code?: string } | null;
+
+// Mirrors the CHECK constraints on public.leads. A value that fails them makes the
+// whole lead_upsert call raise, so it is dropped here instead of sent.
+const SKIN_TYPES = ["oily", "dry", "combination", "sensitive", "normal"];
+const ZIP = /^[0-9]{5}$/;
+const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+export function isValidLeadEmail(email: string): boolean {
+  const v = email.trim().toLowerCase();
+  return v.length <= 254 && EMAIL.test(v);
+}
 
 // The RPCs are not in the generated types yet.
 function rpc(fn: string, args: Record<string, unknown>): Promise<{ error: RpcError }> {
@@ -36,6 +47,14 @@ function rpc(fn: string, args: Record<string, unknown>): Promise<{ error: RpcErr
 // PostgREST picks one by the argument names present; p_treatment_ids exists only
 // on the current one, so sending it always selects that overload.
 function upsertArgs(sessionId: string, f: Partial<LeadFields>) {
+  if (f.zip != null && !ZIP.test(f.zip)) {
+    console.warn("[leads] dropping zip that is not 5 digits");
+    f = { ...f, zip: undefined };
+  }
+  if (f.skin_type != null && !SKIN_TYPES.includes(f.skin_type)) {
+    console.warn("[leads] dropping skin_type outside the five allowed values");
+    f = { ...f, skin_type: undefined };
+  }
   return {
     p_session_id: sessionId,
     p_zip: f.zip ?? null,
@@ -76,19 +95,26 @@ function ensureLead(sessionId: string): Promise<boolean> {
   return done;
 }
 
-export async function leadUpsert(fields: Partial<LeadFields>): Promise<void> {
+// Returns the RPC error (or a synthetic one) instead of throwing.
+async function upsert(fields: Partial<LeadFields>): Promise<RpcError> {
   try {
     const sessionId = getLeadSessionId();
-    if (!sessionId) return;
+    if (!sessionId) return { message: "no session (server render)" };
     const { error } = await rpc("lead_upsert", upsertArgs(sessionId, fields));
     if (error) {
       console.warn("[leads] lead_upsert failed:", error.message);
-      return;
+      return error;
     }
     ensured = { sessionId, done: Promise.resolve(true) };
+    return null;
   } catch (e) {
     console.warn("[leads] lead_upsert failed:", e);
+    return { message: String(e) };
   }
+}
+
+export async function leadUpsert(fields: Partial<LeadFields>): Promise<void> {
+  await upsert(fields);
 }
 
 export async function leadEvent(
@@ -116,11 +142,22 @@ export async function leadEvent(
   }
 }
 
-// Email capture. Order matters: consent must be stored before email_submitted,
-// or lead_event_add will not promote the lead to stage 2.
-export async function leadSubmitEmail(email: string): Promise<void> {
-  await leadUpsert({ email, contact_consent: true });
+export type EmailSubmitResult = "ok" | "invalid_email" | "error";
+
+// Email capture, only ever called after the visitor ticked the consent box.
+// Order matters: email and consent must be stored before email_submitted, or
+// lead_event_add will not promote the lead to stage 2. The event carries no payload,
+// so the address never enters lead_events.
+export async function leadSubmitEmail(email: string): Promise<EmailSubmitResult> {
+  const value = email.trim();
+  if (!isValidLeadEmail(value)) return "invalid_email";
+  const error = await upsert({ email: value, contact_consent: true });
+  if (error) {
+    // 23514 = check_violation (leads_email_check).
+    return error.code === "23514" || /email/i.test(error.message) ? "invalid_email" : "error";
+  }
   await leadEvent("email_submitted");
+  return "ok";
 }
 
 // Consultation CTA. The event goes first so the lead row exists; the click row is

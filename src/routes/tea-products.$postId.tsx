@@ -96,7 +96,7 @@ function PostDetailPage() {
   if (!post) {
     return (
       <div style={{ padding: 24, fontFamily: "'DM Sans', system-ui" }}>
-        <p>Post not found</p>
+        <p>Post not found.</p>
         <button onClick={() => navigate({ to: "/tea-products" })}>← Back</button>
       </div>
     );
@@ -105,8 +105,6 @@ function PostDetailPage() {
   const char = CHARACTERS[post.skinType];
   const badge = POST_TYPE_BADGE[post.postType];
   const isSpill = post.postType === "spill";
-  // suppress unused import warnings if any
-  void approvalColor;
 
   return (
     <div

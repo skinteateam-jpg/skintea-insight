@@ -58,6 +58,24 @@ export type Database = {
           },
         ]
       }
+      clinic_contacts_staging: {
+        Row: {
+          emails: string[] | null
+          google_place_id: string
+          social_profiles: Json | null
+        }
+        Insert: {
+          emails?: string[] | null
+          google_place_id: string
+          social_profiles?: Json | null
+        }
+        Update: {
+          emails?: string[] | null
+          google_place_id?: string
+          social_profiles?: Json | null
+        }
+        Relationships: []
+      }
       clinic_practitioners: {
         Row: {
           clinic_id: string | null
@@ -307,6 +325,7 @@ export type Database = {
           closes_at: string | null
           created_at: string
           distance_miles: number | null
+          emails: string[] | null
           google_maps_url: string | null
           google_place_id: string | null
           google_rating: number | null
@@ -333,6 +352,7 @@ export type Database = {
           price_tier: string | null
           review_count: number | null
           skintea_score: number | null
+          social_profiles: Json | null
           tea_quote: string | null
           tea_skin_type: string | null
           travel_minutes: number | null
@@ -351,6 +371,7 @@ export type Database = {
           closes_at?: string | null
           created_at?: string
           distance_miles?: number | null
+          emails?: string[] | null
           google_maps_url?: string | null
           google_place_id?: string | null
           google_rating?: number | null
@@ -377,6 +398,7 @@ export type Database = {
           price_tier?: string | null
           review_count?: number | null
           skintea_score?: number | null
+          social_profiles?: Json | null
           tea_quote?: string | null
           tea_skin_type?: string | null
           travel_minutes?: number | null
@@ -395,6 +417,7 @@ export type Database = {
           closes_at?: string | null
           created_at?: string
           distance_miles?: number | null
+          emails?: string[] | null
           google_maps_url?: string | null
           google_place_id?: string | null
           google_rating?: number | null
@@ -421,6 +444,7 @@ export type Database = {
           price_tier?: string | null
           review_count?: number | null
           skintea_score?: number | null
+          social_profiles?: Json | null
           tea_quote?: string | null
           tea_skin_type?: string | null
           travel_minutes?: number | null

@@ -19,14 +19,12 @@ export const Route = createFileRoute("/treatment-talk2")({
       { title: "Treatment Talk — Skintea" },
       {
         name: "description",
-        content:
-          "Real outcomes, real regrets, real cost from Botox, Juvelook, Rejuran, Fillers and more. No clinic bias.",
+        content: "Share and read treatment experiences.",
       },
       { property: "og:title", content: "Treatment Talk — Skintea" },
       {
         property: "og:description",
-        content:
-          "Real outcomes from real people on Botox, Juvelook, Rejuran, Fillers and more. Spill the needle.",
+        content: "Share and read treatment experiences.",
       },
     ],
   }),
@@ -121,26 +119,6 @@ const SKIN_TYPES = [
 
 const SORTS = ["Most recent", "Most helpful", "Most detailed"];
 
-const WOULD_DO_AGAIN = [
-  { name: "Botox", pct: 78, count: 412 },
-  { name: "Juvelook", pct: 64, count: 189 },
-  { name: "Rejuran", pct: 71, count: 244 },
-  { name: "Fillers", pct: 55, count: 327 },
-];
-
-const TRENDING = [
-  { name: "Juvelook", posts: 42 },
-  { name: "Rejuran", posts: 31 },
-  { name: "Skin Boosters", posts: 24 },
-  { name: "Lumecca", posts: 19 },
-];
-
-const SURPRISES = [
-  { t: "Botox", s: "Took 10 days to fully kick in." },
-  { t: "Juvelook", s: "Bumps lasted 2 weeks longer than promised." },
-  { t: "Rejuran", s: "Way more painful than fillers." },
-  { t: "Fillers", s: "Migration after 6 months — be careful." },
-];
 
 const SKIN_BG: Record<string, string> = {
   oily: "#FCE7B3",
@@ -186,113 +164,6 @@ type Post = {
   tags: string[];
 };
 
-const POSTS: Post[] = [
-  {
-    id: "1",
-    name: "Glazed Donut",
-    skinType: "oily",
-    emoji: "🍩",
-    member: "oily skin · member",
-    treatment: "Botox",
-    fields: {
-      cost: "$520",
-      sessions: "1 session · forehead + 11s",
-      happened: "Mild bruising on left brow, gone in 4 days. Movement softened by day 7.",
-      surprised: "Took 10 full days to kick in — I almost asked for a touch-up too early.",
-      works: "Static lines that show in selfies. Sweat reduction also a perk.",
-      warn: "Don't lie down for 4 hours. I did. Got slight droop on one side.",
-    },
-    timeline: [
-      { key: "before", label: "Before", badge: "before", emoji: "🪞", note: "11s deep" },
-      { key: "after", label: "Right after", badge: "day1", emoji: "💉", note: "tiny bumps" },
-      { key: "3d", label: "3 days later", badge: "mid", emoji: "🩹", note: "small bruise" },
-      { key: "1w", label: "1 week", badge: "mid", emoji: "✨", note: "softening" },
-      { key: "1m", label: "1 month", badge: "done", emoji: "😌", note: "full effect" },
-      { key: "healed", label: "Fully healed", badge: "done", emoji: "🌟", note: "love it" },
-    ],
-    outcome: "again",
-    tags: ["#firsttimer", "#forehead", "#worthit"],
-  },
-  {
-    id: "2",
-    name: "Dr. Hwang",
-    skinType: "derm",
-    emoji: "🩺",
-    member: "board-certified · Seoul",
-    derm: true,
-    treatment: "Juvelook",
-    fields: {
-      cost: "$680/session",
-      sessions: "3 sessions · full face",
-      happened: "Used 2 vials per session, 4 weeks apart. Visible bounce by month 2.",
-      surprised: "Patient retention of bumps under eyes for ~14 days. Counsel patients up front.",
-      works: "Mid-30s and up with mild laxity. Not a wrinkle eraser.",
-      warn: "Avoid stacking with fillers in same session. Plan a 2-week gap minimum.",
-    },
-    timeline: [
-      { key: "before", label: "Before", badge: "before", emoji: "📋", note: "consult" },
-      { key: "after", label: "Right after", badge: "day1", emoji: "💉", note: "expected swelling" },
-      { key: "3d", label: "3 days", badge: "mid", emoji: "🩹", note: "bumps" },
-      { key: "1w", label: "1 week", badge: "mid", emoji: "🫧", note: "settling" },
-      { key: "1m", label: "1 month", badge: "done", emoji: "✨", note: "bounce" },
-      { key: "healed", label: "Fully healed", badge: "done", emoji: "🌟", note: "even tone" },
-    ],
-    outcome: "again",
-    tags: ["#dermtake", "#collagen", "#mid30s"],
-  },
-  {
-    id: "3",
-    name: "Sahara Skin",
-    skinType: "dry",
-    emoji: "🏜️",
-    member: "dry skin · member",
-    treatment: "Rejuran",
-    fields: {
-      cost: "$450",
-      sessions: "2 of 4 · cheeks + under-eye",
-      happened: "PAIN. Numbing cream barely helped. Bumps for 3 days, then visible plumping.",
-      surprised: "Way more painful than the fillers I had last year. Bring a stress ball.",
-      works: "Under-eye crepiness and dehydrated cheeks.",
-      warn: "Don't book a date for 4 days after. The bumps are not subtle.",
-    },
-    timeline: [
-      { key: "before", label: "Before", badge: "before", emoji: "💧", note: "tired skin" },
-      { key: "after", label: "Right after", badge: "day1", emoji: "🐸", note: "frog face" },
-      { key: "3d", label: "3 days", badge: "mid", emoji: "🩹", note: "still bumpy" },
-      { key: "1w", label: "1 week", badge: "mid", emoji: "🌿", note: "smoothing" },
-      { key: "1m", label: "1 month", badge: "done", emoji: "💎", note: "glow" },
-      { key: "healed", label: "Fully healed", badge: "done", emoji: "🌟", note: "booking #3" },
-    ],
-    outcome: "modified",
-    tags: ["#painful", "#worth_it_eventually", "#undereye"],
-  },
-  {
-    id: "4",
-    name: "Combo Queen",
-    skinType: "combo",
-    emoji: "✨",
-    member: "combo skin · member",
-    treatment: "Fillers",
-    fields: {
-      cost: "$1,200",
-      sessions: "1 syringe · cheeks",
-      happened: "Looked great for 3 months, then migration toward nasolabial fold started.",
-      surprised: "How much it moved. Had to dissolve at month 6.",
-      works: "Volume loss in mid-face, but only with a conservative injector.",
-      warn: "Ask about migration risk for YOUR product. Not all HA behaves the same.",
-    },
-    timeline: [
-      { key: "before", label: "Before", badge: "before", emoji: "🪞", note: "flat cheeks" },
-      { key: "after", label: "Right after", badge: "day1", emoji: "💉", note: "swollen" },
-      { key: "3d", label: "3 days", badge: "mid", emoji: "🩹", note: "bruising" },
-      { key: "1w", label: "1 week", badge: "mid", emoji: "🌸", note: "looking good" },
-      { key: "1m", label: "1 month", badge: "done", emoji: "💖", note: "loved it" },
-      { key: "healed", label: "Fully healed", badge: "done", emoji: "⚠️", note: "migrated" },
-    ],
-    outcome: "wouldnt",
-    tags: ["#migration", "#dissolved", "#lessons"],
-  },
-];
 
 function ChipScroll({
   items,
@@ -327,16 +198,6 @@ function ChipScroll({
   );
 }
 
-function ProgressBar({ pct }: { pct: number }) {
-  return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full" style={{ background: "#F0E7E2" }}>
-      <div
-        className="h-full rounded-full"
-        style={{ width: `${pct}%`, background: CRIMSON }}
-      />
-    </div>
-  );
-}
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
@@ -590,14 +451,8 @@ function PostCard({ post, locked }: { post: Post; locked?: boolean }) {
                 fontFamily: "'DM Sans', sans-serif",
               }}
             >
-              Join Skintea — $12/mo
+              Join Skintea
             </button>
-            <div
-              className="mt-2 text-[10px]"
-              style={{ color: MUTED, fontFamily: "'DM Sans', sans-serif" }}
-            >
-              Cancel anytime · 2,841 real teas
-            </div>
           </div>
         </div>
       )}
@@ -605,28 +460,6 @@ function PostCard({ post, locked }: { post: Post; locked?: boolean }) {
   );
 }
 
-function InsightCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className="rounded-2xl p-4"
-      style={{ background: "#fff", border: `1px solid ${BORDER}` }}
-    >
-      <div
-        className="mb-3 text-[11px] font-bold uppercase tracking-wider"
-        style={{ color: MUTED, fontFamily: "'DM Sans', sans-serif" }}
-      >
-        {title}
-      </div>
-      {children}
-    </div>
-  );
-}
 
 function Composer({ onClose, treatments }: { onClose: () => void; treatments: string[] }) {
   return (
@@ -710,15 +543,16 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
   const [chip, setChip] = useState("All");
   const [skin, setSkin] = useState("all");
   const [sort, setSort] = useState(SORTS[0]);
-  const [showInsights, setShowInsights] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const { treatments, loading: treatmentsLoading } = useTreatments();
+  // Posts the visitor writes stay local; the feed starts empty.
+  const [posts] = useState<Post[]>([]);
 
   const filtered = useMemo(() => {
-    return POSTS.filter((p) => (chip === "All" ? true : p.treatment === chip)).filter((p) =>
+    return posts.filter((p) => (chip === "All" ? true : p.treatment === chip)).filter((p) =>
       skin === "all" ? true : p.skinType === skin,
     );
-  }, [chip, skin]);
+  }, [posts, chip, skin]);
 
   const centerLabel =
     activeTab === "product" ? "Spill ☕" : activeTab === "treatment" ? "Spill the needle ✦" : "Spill it all ✦";
@@ -894,50 +728,30 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
 
             {/* Feed */}
             <section className="tt-section min-w-0">
-              <div className="mb-4 flex items-end justify-between">
+              <div className="mb-4">
                 <h1
                   className="text-2xl md:text-3xl"
                   style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }}
                 >
                   Treatment Talk
                 </h1>
-                <div className="text-[12px]" style={{ color: MUTED }}>
-                  2,841 teas
-                </div>
-              </div>
-
-              {/* Mobile insights collapsible */}
-              <div className="mb-4 lg:hidden">
-                <button
-                  onClick={() => setShowInsights(v => !v)}
-                  className="flex w-full items-center justify-between rounded-xl px-4 py-2.5"
-                  style={{ background: "#fff", border: `1px solid ${BORDER}` }}
-                >
-                  <span className="text-[12px] font-bold uppercase tracking-wider" style={{ color: ESPRESSO }}>
-                    Insights
-                  </span>
-                  <ChevronDown size={16} color={MUTED} style={{ transform: showInsights ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
-                </button>
-                {showInsights && (
-                  <div className="mt-3 space-y-3">
-                    <InsightsBlock />
-                  </div>
-                )}
               </div>
 
               <div className="tt-feed space-y-4">
-                {filtered.map((p, i) => (
-                  <PostCard key={p.id} post={p} locked={i >= 2} />
-                ))}
+                {filtered.length === 0 ? (
+                  <div
+                    className="rounded-xl p-6 text-center text-[12px]"
+                    style={{ background: "#fff", border: `1px solid ${BORDER}`, color: MUTED }}
+                  >
+                    No treatment talk yet — be the first to share.
+                  </div>
+                ) : (
+                  filtered.map((p, i) => (
+                    <PostCard key={p.id} post={p} locked={i >= 2} />
+                  ))
+                )}
               </div>
             </section>
-
-            {/* Right sidebar */}
-            <aside className="hidden lg:block">
-              <div className="sticky top-[140px] space-y-4">
-                <InsightsBlock />
-              </div>
-            </aside>
           </div>
         </main>
 
@@ -975,49 +789,3 @@ function TreatmentTalkPage() {
   return <TreatmentTalkContent />;
 }
 
-function InsightsBlock() {
-  return (
-    <>
-      <InsightCard title="Would do again">
-        <div className="space-y-3">
-          {WOULD_DO_AGAIN.map((w) => (
-            <div key={w.name}>
-              <div className="mb-1 flex items-center justify-between text-[12px]" style={{ color: ESPRESSO }}>
-                <span className="font-semibold">{w.name}</span>
-                <span style={{ color: MUTED }}>
-                  {w.pct}% · {w.count}
-                </span>
-              </div>
-              <ProgressBar pct={w.pct} />
-            </div>
-          ))}
-        </div>
-      </InsightCard>
-
-      <InsightCard title="Trending this week">
-        <ol className="space-y-2">
-          {TRENDING.map((t, i) => (
-            <li key={t.name} className="flex items-center justify-between text-[12px]">
-              <span style={{ color: ESPRESSO }}>
-                <span className="mr-2 font-bold" style={{ color: CRIMSON }}>{i + 1}</span>
-                {t.name}
-              </span>
-              <span style={{ color: MUTED }}>+{t.posts} new</span>
-            </li>
-          ))}
-        </ol>
-      </InsightCard>
-
-      <InsightCard title="Most common surprise">
-        <ul className="space-y-2.5">
-          {SURPRISES.map((s) => (
-            <li key={s.t} className="text-[11px]">
-              <div className="font-bold" style={{ color: ESPRESSO }}>{s.t}</div>
-              <div style={{ color: MUTED }}>{s.s}</div>
-            </li>
-          ))}
-        </ul>
-      </InsightCard>
-    </>
-  );
-}

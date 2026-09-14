@@ -10,9 +10,9 @@ export const Route = createFileRoute("/surgery-talk")({
   head: () => ({
     meta: [
       { title: "Surgery Talk — Skintea" },
-      { name: "description", content: "Real surgery stories from real people. Pain, recovery, cost, and what they wish they knew." },
+      { name: "description", content: "Share and read surgery experiences." },
       { property: "og:title", content: "Surgery Talk — Skintea" },
-      { property: "og:description", content: "Real surgery stories from real people. Pain, recovery, cost, and what they wish they knew." },
+      { property: "og:description", content: "Share and read surgery experiences." },
     ],
   }),
   component: SurgeryTalkPage,
@@ -85,98 +85,6 @@ type EnrichedPost = PostRow & {
   user_is_derm: boolean;
 };
 
-// ---------------- Demo / fallback posts ----------------
-const DEMO_POSTS: EnrichedPost[] = [
-  {
-    id: "demo-1",
-    user_id: "demo",
-    surgery_id: null,
-    surgery_name: "Rhinoplasty (Nose Job)",
-    clinic_name: "Banobagi",
-    country: "South Korea",
-    city: "Seoul",
-    total_cost: "$8,500 incl. travel",
-    recovery_time: "3 weeks visible, 6 mo final",
-    pain_level: 6,
-    my_thoughts_vs_reality:
-      "I expected to look like a swollen pumpkin for a week. Reality: I looked like a pumpkin for THREE weeks and the tip was numb for two months.",
-    struggle: "Sleeping upright. The cast itching. Eating without smelling food.",
-    what_happened: "Closed rhinoplasty, dorsal hump shaved, tip refined. Cast off day 7. Bruising mostly gone by day 10.",
-    surprised_me: "How much my voice sounded different for 2 weeks. Nobody warned me about that.",
-    works_for: "People with a small dorsal hump and a slightly bulbous tip who want a refined-natural result, not a dramatic change.",
-    warn_if: "You have a busy social life. Hide for 3 weeks minimum. Don't book a wedding for 6 months out.",
-    outcome: "Would do again",
-    hashtags: ["#rhinoplasty", "#korea", "#worthit", "#closedrhino"],
-    skin_type: "Combination",
-    photos: [],
-    comments_open: true,
-    likes_count: 412,
-    created_at: new Date().toISOString(),
-    user_name: "Glazed Donut",
-    user_emoji: "🍩",
-    user_member_line: "combo skin · member",
-    user_is_derm: false,
-  },
-  {
-    id: "demo-2",
-    user_id: "demo",
-    surgery_id: null,
-    surgery_name: "Buccal Fat Removal",
-    clinic_name: "Dr. M's clinic",
-    country: "USA",
-    city: "Los Angeles",
-    total_cost: "$4,200",
-    recovery_time: "2 weeks swelling",
-    pain_level: 3,
-    my_thoughts_vs_reality:
-      "I thought I'd snatched. Reality at year 3: face looks gaunt and older. Photos lie.",
-    struggle: "The 6-month plateau where you can't tell if it worked.",
-    what_happened: "20 min in-office. Local anesthesia. Two small incisions inside the mouth.",
-    surprised_me: "How much volume you keep losing as you age. This is permanent.",
-    works_for: "People under 25 with very chubby cheeks and good underlying bone structure.",
-    warn_if: "You're over 30. You will regret it by 40.",
-    outcome: "Wouldn't",
-    hashtags: ["#buccalfat", "#regret", "#thinkbeforeyoucut"],
-    skin_type: "Oily",
-    photos: [],
-    comments_open: false,
-    likes_count: 287,
-    created_at: new Date().toISOString(),
-    user_name: "Hindsight",
-    user_emoji: "🪞",
-    user_member_line: "oily skin · member",
-    user_is_derm: false,
-  },
-  {
-    id: "demo-3",
-    user_id: "demo",
-    surgery_id: null,
-    surgery_name: "Upper Blepharoplasty",
-    clinic_name: "Dr. Park",
-    country: "South Korea",
-    city: "Seoul",
-    total_cost: "$2,100",
-    recovery_time: "10 days",
-    pain_level: 2,
-    my_thoughts_vs_reality: "Thought it'd be obvious. Reality: people just say I look rested.",
-    struggle: "Stitches itching. Watery eyes for a week.",
-    what_happened: "Upper lid skin removal. Local anesthesia. 30 min.",
-    surprised_me: "How quick the recovery was. I was back at work in 10 days with concealer.",
-    works_for: "Hooded eyelids that block your lash line.",
-    warn_if: "You have very dry eyes already.",
-    outcome: "Would do again",
-    hashtags: ["#blepharoplasty", "#eyelid", "#subtle"],
-    skin_type: "Dry",
-    photos: [],
-    comments_open: true,
-    likes_count: 198,
-    created_at: new Date().toISOString(),
-    user_name: "Bright Eyes",
-    user_emoji: "🏜️",
-    user_member_line: "dry skin · member",
-    user_is_derm: false,
-  },
-];
 
 // ============= Hooks =============
 function useSurgeries() {
@@ -223,7 +131,6 @@ function useSession() {
 function usePosts(surgeries: Surgery[]) {
   const [posts, setPosts] = useState<EnrichedPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [usingDemo, setUsingDemo] = useState(false);
   const hasLoadedRef = useRef(false);
   const surgeriesRef = useRef(surgeries);
   useEffect(() => { surgeriesRef.current = surgeries; }, [surgeries]);
@@ -238,11 +145,8 @@ function usePosts(surgeries: Surgery[]) {
         .order("created_at", { ascending: false })
         .limit(100);
       if (error || !data || data.length === 0) {
-        // Don't flash to demo if we already have real posts loaded
-        if (!hasLoadedRef.current) {
-          setPosts(DEMO_POSTS);
-          setUsingDemo(true);
-        }
+        // Don't clear real posts we already loaded
+        if (!hasLoadedRef.current) setPosts([]);
       } else {
         const surgMap = new Map(surgeriesRef.current.map((s) => [s.id, s.name]));
         const userIds = Array.from(new Set(data.map((p) => p.user_id)));
@@ -268,13 +172,9 @@ function usePosts(surgeries: Surgery[]) {
           };
         });
         setPosts(enriched);
-        setUsingDemo(false);
       }
     } catch {
-      if (!hasLoadedRef.current) {
-        setPosts(DEMO_POSTS);
-        setUsingDemo(true);
-      }
+      if (!hasLoadedRef.current) setPosts([]);
     } finally {
       hasLoadedRef.current = true;
       setLoading(false);
@@ -308,7 +208,7 @@ function usePosts(surgeries: Surgery[]) {
     setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
   }, []);
 
-  return { posts, loading, usingDemo, reload, updatePost };
+  return { posts, loading, reload, updatePost };
 }
 
 // ============= UI primitives =============
@@ -874,16 +774,6 @@ function MostControversial({ post }: { post: EnrichedPost | null }) {
   );
 }
 
-function TrendingPill({ name, multiplier }: { name: string; multiplier: number }) {
-  return (
-    <div className="mb-5">
-      <span className="inline-block rounded-full text-[10px] font-medium"
-        style={{ background: "#FFF3CD", border: "1px solid #FAC775", color: ESPRESSO, padding: "6px 12px" }}>
-        📈 Trending this week: {name} — {multiplier}× more posts than usual
-      </span>
-    </div>
-  );
-}
 
 // ============= Disclaimer modal =============
 function DisclaimerModal({ onCancel, onConfirm }: { onCancel: () => void; onConfirm: () => void }) {
@@ -1172,16 +1062,6 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
     return [...posts].filter((p) => p.outcome === "Wouldn't").sort((a, b) => b.likes_count - a.likes_count)[0] ?? null;
   }, [posts]);
 
-  const trendingName = useMemo(() => {
-    if (rankCounts.size === 0) return null;
-    let best: { id: string; n: number } | null = null;
-    for (const [id, n] of rankCounts) {
-      if (!best || n > best.n) best = { id, n };
-    }
-    if (!best) return null;
-    const surg = surgeries.find((s) => s.id === best!.id);
-    return surg ? { name: surg.name, multiplier: 3 } : null;
-  }, [rankCounts, surgeries]);
 
   function handleSpillClick() {
     setDisclaimerOpen(true);
@@ -1258,7 +1138,6 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
           <TodaysTea post={todaysTea} />
           {topTea.length > 0 && <TopTea posts={topTea} />}
           <MostControversial post={controversial} />
-          {trendingName && <TrendingPill name={trendingName.name} multiplier={trendingName.multiplier} />}
 
           <div className="mb-3 flex items-end justify-between">
             <h1 className="text-[18px]" style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }}>
@@ -1284,7 +1163,7 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
             ) : filtered.length === 0 ? (
               <div className="rounded-xl p-6 text-center text-[12px]"
                 style={{ background: "#fff", border: `1px solid ${BORDER}`, color: MUTED }}>
-                No spills match those filters yet.
+                No surgery stories yet — be the first to share.
               </div>
             ) : (
               filtered.map((p, i) => (

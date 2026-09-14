@@ -524,7 +524,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
           </p>
           {feedItems.length === 0 && (
             <div className="rounded-2xl bg-white p-8 text-center text-sm text-neutral-500 shadow-sm">
-              No tea in this category yet. Be the first to spill ☕
+              No product talk yet — be the first to post.
             </div>
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>

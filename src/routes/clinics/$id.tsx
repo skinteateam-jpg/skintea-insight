@@ -365,8 +365,8 @@ function ClinicDetailPage() {
         ))}
       </div>
 
-      {/* 7. Treatments & Pricing */}
-      <Section title="Treatments & Pricing">
+      {/* 7. Treatments (each mapping carries a recorded source; prices only where a source states one) */}
+      <Section title="Treatments">
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {treatments.map((t) => {
             const tInf = influencers.filter((i) => i.treatment_id === t.treatment_id);
@@ -379,9 +379,11 @@ function ClinicDetailPage() {
                   <div style={{ width: 34, height: 34, background: CREAM_TINT, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>💉</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: ESPRESSO }}>{tName}</div>
-                    <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
-                      From ${t.price_from}{t.price_unit && t.price_unit !== "session" ? `/${t.price_unit}` : ""}
-                    </div>
+                    {t.price_from != null && (
+                      <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
+                        From ${t.price_from}{t.price_unit && t.price_unit !== "session" ? `/${t.price_unit}` : ""}
+                      </div>
+                    )}
                   </div>
                   <button onClick={() => setInquireFor(t)} style={{
                     background: CRIMSON_TINT, color: CRIMSON, border: "none",
@@ -584,7 +586,8 @@ function ClinicDetailPage() {
         </div>
       </Section>
 
-      {/* 11. Works for your skin? */}
+      {/* 11. Works for your skin? — hidden until clinic_skin_scores holds sourced rows for this clinic */}
+      {skinScores.length > 0 && (
       <Section title="Works for your skin?">
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {["oily", "combination", "dry", "sensitive", "normal"].map((type) => {
@@ -609,6 +612,7 @@ function ClinicDetailPage() {
           })}
         </div>
       </Section>
+      )}
 
       {/* 12. Reviews */}
       <Section title="Reviews" right={

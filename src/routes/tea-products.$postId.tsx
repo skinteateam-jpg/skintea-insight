@@ -6,8 +6,6 @@ import {
   setPostsStore,
   CHARACTERS,
   SKIN_BG,
-  approvalColor,
-  skinTypeLabel,
   formatAgo,
 } from "./tea-products";
 import type { Post } from "./tea-products";
@@ -15,46 +13,6 @@ import type { Post } from "./tea-products";
 export const Route = createFileRoute("/tea-products/$postId")({
   component: PostDetailPage,
 });
-
-type SocialSource = "all" | "tiktok" | "reddit" | "reviews";
-
-type RelatedSpill = {
-  id: string;
-  initials: string;
-  bg: string;
-  color: string;
-  name: string;
-  text: string;
-  agrees: number;
-};
-
-const RELATED_SPILLS: RelatedSpill[] = [
-  {
-    id: "r1", initials: "TG", bg: "#FFF0F0", color: "#A8001C",
-    name: "tretgirl",
-    text: "week 6 was my lowest point. skin was peeling and red constantly. week 10 it completely flipped — don't quit.",
-    agrees: 412,
-  },
-  {
-    id: "r2", initials: "NR", bg: "#E8F0FF", color: "#185FA5",
-    name: "noretouch",
-    text: "my dermatologist told me nothing either. found out about the purge phase from reddit at 2am. this app needs to exist.",
-    agrees: 287,
-  },
-  {
-    id: "r3", initials: "SK", bg: "#FFF3E0", color: "#B45309",
-    name: "skinjourney_",
-    text: "three months of looking worse before looking better. the before/after at month 4 made me cry.",
-    agrees: 198,
-  },
-];
-
-const SOCIAL_DATA: Record<SocialSource, { tiktok: number; reddit: number; reviews: number; majority: string[]; minority: string[] }> = {
-  all: { tiktok: 88, reddit: 95, reviews: 79, majority: ["purge is real and expected", "worth pushing through", "results after 3 months"], minority: ["no purge at all", "didn't work long term", "too harsh for skin"] },
-  tiktok: { tiktok: 88, reddit: 0, reviews: 0, majority: ["creators say stick with it", "before/after content viral", "month 3 glow up real"], minority: ["too much hype", "only works for some", "camera filters hiding results"] },
-  reddit: { tiktok: 0, reddit: 95, reviews: 0, majority: ["purge is well documented", "low % works better", "patience is everything"], minority: ["chemical burn reports", "not worth the dryness", "over-prescribed"] },
-  reviews: { tiktok: 0, reddit: 0, reviews: 79, majority: ["visible pores reduced", "acne cleared after 90 days", "skin texture improved"], minority: ["severe peeling", "gave up after 6 weeks", "dermatologist should warn you"] },
-};
 
 const POST_TYPE_BADGE = {
   "skin-tea": { label: "Skin Tea", bg: "#FFF0F0", color: "#A8001C" },

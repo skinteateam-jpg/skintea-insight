@@ -507,14 +507,14 @@ function ProductPage() {
 
   const redditScope: "line" | "own" = isShadeLine && opinionScope === "line" ? "line" : "own";
   const redditLineCount = socialReviews.filter(
-    (r) => r.platform === "reddit" && ["positive", "negative", "mixed"].includes(r.sentiment),
+    (r) => r.platform === "reddit" && isOpinionRow(r),
   ).length;
   const REDDIT_DISPLAY_CAP = 8;
   const redditAll = (() => {
     // Same scope as the headline (patch 02): a shade page lists its own shade's quotes; it lists the
     // whole line's quotes only when the headline is showing the line, and says so below the list.
     const rows = (redditScope === "line" ? socialReviews : skuReviews).filter(
-      (r) => r.platform === "reddit" && ["positive", "negative", "mixed"].includes(r.sentiment),
+      (r) => r.platform === "reddit" && isOpinionRow(r),
     );
     const sorted = rows.sort((a, b) => {
       const ra = CONFIDENCE_RANK[String(a.confidence ?? "").toLowerCase()] ?? 0;

@@ -1137,10 +1137,12 @@ function HotPickSelected({
 }) {
   return hotPick ? (
     <div style={{ display: "flex", alignItems: "center", gap: 10, background: bgColor, border: `1px solid ${borderColor}`, borderRadius: 10, padding: "10px 12px", marginBottom: 14 }}>
-      <img src={hotPick.image} style={{ width: 38, height: 38, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+      {hotPick.image && (
+        <img src={hotPick.image} style={{ width: 38, height: 38, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+      )}
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 12, fontWeight: 500, color: "#1C0A00" }}>{hotPick.name}</div>
-        <div style={{ fontSize: 11, color: "#999" }}>{hotPick.brand} · {hotPick.price}</div>
+        <div style={{ fontSize: 11, color: "#999" }}>{hotPick.brand}</div>
       </div>
       <button onClick={() => setHotPick(null)} style={{ background: "none", border: "none", cursor: "pointer" }}>
         <X size={15} color="#aaa" />

@@ -138,20 +138,15 @@ const MAKEUP_STEPS = [
 const SKIN_TEA_AUTOFILL: Record<string, {
   when: string; howMuch: string; watchOut: string; timeline: string;
 }> = {
-  "p1": { when: "AM + PM", howMuch: "2-3 drops, press gently", watchOut: "avoid direct eye area", timeline: "2-3 weeks" },
-  "p2": { when: "AM + PM", howMuch: "3-4 drops, press — don't rub", watchOut: "don't layer with Vitamin C same day", timeline: "2 weeks" },
-  "p3": { when: "PM", howMuch: "pea-sized amount, pat gently", watchOut: "patch test first", timeline: "4 weeks" },
-  "p4": { when: "AM + PM", howMuch: "1-2 pumps, pat into skin", watchOut: "refrigerate after opening", timeline: "3-4 weeks" },
-  "p5": { when: "PM only — start 2x per week", howMuch: "pea-sized for whole face", watchOut: "purge is real weeks 2-6 — don't quit", timeline: "3 months minimum" },
   "default": { when: "follow product instructions", howMuch: "as directed", watchOut: "patch test before first use", timeline: "4-6 weeks" },
 };
 
 const PRODUCT_CATALOG: TaggedProduct[] = [
-  { id: "p1", name: "Hydra B5 Serum", brand: "La Roche", price: "$32", image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=200", approval: 78, skinType: "dry" },
-  { id: "p2", name: "Niacinamide 10%", brand: "The Ordinary", price: "$8", image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=200", approval: 65, skinType: "oily" },
-  { id: "p3", name: "Cica Balm", brand: "Dr. Jart", price: "$28", image: "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=200", approval: 45, skinType: "sensitive" },
-  { id: "p4", name: "Snail Mucin", brand: "COSRX", price: "$25", image: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=200", approval: 82, skinType: "combo" },
-  { id: "p5", name: "Retinol 0.3%", brand: "Paula's", price: "$56", image: "https://images.unsplash.com/photo-1611080626919-7cf5a9dbab12?w=200", approval: 35, skinType: "sensitive" },
+  { id: "p1", name: "Hydra B5 Serum", brand: "La Roche-Posay", skinType: "dry" },
+  { id: "p2", name: "Niacinamide 10% + Zinc", brand: "The Ordinary", skinType: "oily" },
+  { id: "p3", name: "Cica Balm", brand: "Dr. Jart", skinType: "sensitive" },
+  { id: "p4", name: "Snail Mucin Essence", brand: "COSRX", skinType: "combo" },
+  { id: "p5", name: "Retinol 0.3%", brand: "Paula's Choice", skinType: "sensitive" },
 ];
 
 const PROMPTS = [
@@ -159,153 +154,6 @@ const PROMPTS = [
   "Worst skincare mistake you've ever made?",
   "Drugstore dupe that beat the luxury original?",
   "What's currently sitting on your shelf collecting dust?",
-];
-
-export const INITIAL_POSTS: Post[] = [
-  {
-    id: "6",
-    skinType: "combo",
-    tag: "night-out",
-    postType: "look-tea",
-    authorName: "sabrina.mua",
-    authorRole: "celebrity makeup artist",
-    isMUA: true,
-    text: "okay fine. here's the skin prep i did before the met gala look. one product did 80% of the work and it's $12.",
-    hashtags: ["#metgala", "#skinsecret", "#makeup", "#nightout"],
-    images: [
-      "https://images.unsplash.com/photo-1522335789203-aaa57bd14abc?w=600",
-      "https://images.unsplash.com/photo-1503236823255-94609f598e71?w=600",
-      "https://images.unsplash.com/photo-1571908598047-29e7a98c1c2c?w=600",
-    ],
-    products: [
-      {
-        id: "p6",
-        name: "Flawless Filter",
-        brand: "Charlotte Tilbury",
-        price: "$12",
-        image: "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=200",
-        approval: 89,
-        skinType: "combo",
-      },
-    ],
-    steps: [
-      { num: 1, label: "Skin Prep", product: "Flawless Filter — Charlotte Tilbury", type: "skin" },
-      { num: 2, label: "Base", product: "Armani Luminous Silk Foundation", type: "makeup" },
-      { num: 3, label: "Contour", product: "Hourglass Ambient Lighting", type: "makeup" },
-    ],
-    totalSteps: 7,
-    helped: 1200, helpedByMe: false, saved: false, comments: 387, createdAt: 60,
-  },
-  {
-    id: "1",
-    skinType: "oily",
-    tag: "review",
-    postType: "skin-tea",
-    text: "two weeks on this niacinamide and my t-zone is actually calm. shine down 50% in humidity. not exaggerating — this is the one.",
-    hashtags: ["#oilyskin", "#niacinamide", "#tzone"],
-    images: ["https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=600"],
-    products: [
-      {
-        id: "p2",
-        name: "Niacinamide 10% + Zinc",
-        brand: "The Ordinary",
-        price: "$8",
-        image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=200",
-        approval: 65,
-        skinType: "oily",
-      },
-    ],
-    steps: [
-      { num: 3, label: "Serum", product: "Niacinamide 10% — use after toner", type: "skin" },
-    ],
-    totalSteps: 1,
-    helped: 124, helpedByMe: false, saved: false, comments: 18, createdAt: 120,
-  },
-  {
-    id: "2",
-    skinType: "sensitive",
-    tag: "hot-tea",
-    postType: "spill",
-    text: "nobody warned me that tretinoin would make me look worse for 3 full months before it got better. my dermatologist said absolutely nothing. i almost quit at week 8.",
-    hashtags: ["#tretinoin", "#nobodywarned", "#realtalk"],
-    images: [
-      "https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?w=600",
-      "https://images.unsplash.com/photo-1556228841-a3c527ebefe5?w=600",
-      "https://images.unsplash.com/photo-1556228852-80b6e5eeff06?w=600",
-    ],
-    products: [
-      {
-        id: "p5",
-        name: "Tretinoin 0.025%",
-        brand: "Rx — ask your dermatologist",
-        price: "Rx only",
-        image: "https://images.unsplash.com/photo-1611080626919-7cf5a9dbab12?w=200",
-        approval: 71,
-        skinType: "oily",
-      },
-    ],
-    steps: [],
-    totalSteps: 0,
-    helped: 891, helpedByMe: false, saved: false, comments: 203, createdAt: 540,
-  },
-  {
-    id: "3",
-    skinType: "combo",
-    tag: "grwm",
-    postType: "look-tea",
-    text: "hailey bieber glazed skin but make it $40 total. skin prep is everything — makeup is just the finish.",
-    hashtags: ["#glazedskin", "#nightout", "#skinfirst"],
-    images: [
-      "https://images.unsplash.com/photo-1522335789203-aaa57bd14abc?w=600",
-      "https://images.unsplash.com/photo-1503236823255-94609f598e71?w=600",
-    ],
-    products: [
-      {
-        id: "p4",
-        name: "Centella Cica Cream",
-        brand: "COSRX",
-        price: "$16",
-        image: "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=200",
-        approval: 83,
-        skinType: "dry",
-      },
-    ],
-    steps: [
-      { num: 1, label: "Cleanse", product: "CeraVe Foaming Cleanser", type: "skin" },
-      { num: 2, label: "Moisturize", product: "Centella Cica Cream — COSRX", type: "skin" },
-      { num: 3, label: "SPF", product: "Purito Comfy Sun · $24", type: "skin" },
-    ],
-    totalSteps: 6,
-    helped: 312, helpedByMe: false, saved: false, comments: 44, createdAt: 1800,
-  },
-  {
-    id: "5",
-    skinType: "dry",
-    tag: "review",
-    postType: "skin-tea",
-    text: "B5 serum saved my flaky cheeks after two weeks straight of travel. layered under everything, zero pilling. dry skin — this is your sign.",
-    hashtags: ["#dryskin", "#b5serum", "#barrierrepair"],
-    images: [
-      "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=600",
-      "https://images.unsplash.com/photo-1556228841-a3c527ebefe5?w=600",
-    ],
-    products: [
-      {
-        id: "p1",
-        name: "Hydra B5 Serum",
-        brand: "La Roche-Posay",
-        price: "$32",
-        image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=200",
-        approval: 78,
-        skinType: "dry",
-      },
-    ],
-    steps: [
-      { num: 2, label: "Serum", product: "Hydra B5 — apply on damp skin", type: "skin" },
-    ],
-    totalSteps: 1,
-    helped: 156, helpedByMe: false, saved: false, comments: 22, createdAt: 21600,
-  },
 ];
 
 /* ---------- Helpers ---------- */

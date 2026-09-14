@@ -100,6 +100,41 @@ const CONFIDENCE_RANK: Record<string, number> = { high: 3, medium: 2, low: 1 };
 // render as a video or reel tile.
 const isDisplayRow = (r: any) => r.source_query_type === "display_candidate";
 
+// How an opinion row's stored text relates to what its author wrote. Checked row by row against the
+// source datasets on 2026-09-14: these four types store the author's words unchanged; the three below store
+// text Skintea edited (paraphrased, or trimmed with case and punctuation changed). Anything else: no claim.
+const VERBATIM_QUOTE_TYPES = new Set(["product_search_comment", "reel_comment", "negative_search_reel_comment", "search_reel_comment"]);
+const EDITED_QUOTE_TYPES = new Set(["plain_brand", "fan_subreddit", "product_specific_search"]);
+const QUOTE_EXCERPT_MAX = 280;
+
+// Render-only excerpt of a verbatim quote. Never shortens edited text, never touches what is stored.
+function quoteDisplay(r: any): { text: string; form: "verbatim" | "edited" | null; excerpted: boolean } {
+  const raw = String(r?.content ?? "").replace(/\s+/g, " ").trim();
+  const form = VERBATIM_QUOTE_TYPES.has(r?.source_query_type) ? "verbatim" : EDITED_QUOTE_TYPES.has(r?.source_query_type) ? "edited" : null;
+  if (form !== "verbatim" || raw.length <= QUOTE_EXCERPT_MAX) return { text: raw, form, excerpted: false };
+  const head = raw.slice(0, QUOTE_EXCERPT_MAX);
+  const sentenceEnd = Math.max(head.lastIndexOf(". "), head.lastIndexOf("! "), head.lastIndexOf("? "));
+  const cut = sentenceEnd >= QUOTE_EXCERPT_MAX - 120 ? sentenceEnd + 1 : head.lastIndexOf(" ") > 0 ? head.lastIndexOf(" ") : QUOTE_EXCERPT_MAX;
+  // A cut at a sentence end keeps its full stop and gets a spaced ellipsis ("... day. …"); a cut mid-sentence
+  // gets the ellipsis attached ("... the next…"). Never ".…".
+  const kept = head.slice(0, cut).trim();
+  return { text: /[.!?]$/.test(kept) ? kept + " …" : kept + "…", form, excerpted: true };
+}
+
+function quoteFormLabel(form: "verbatim" | "edited" | null, excerpted: boolean): string | null {
+  if (form === "verbatim") return excerpted ? "Excerpt, quoted as written" : "Quoted as written";
+  if (form === "edited") return "Edited by Skintea";
+  return null;
+}
+
+function sourceSiteName(url: string | null | undefined): string {
+  if (!url) return "the source";
+  if (url.includes("reddit.com")) return "Reddit";
+  if (url.includes("instagram.com")) return "Instagram";
+  if (url.includes("tiktok.com")) return "TikTok";
+  return "the source";
+}
+
 const REDDIT_SENTIMENT_META: Record<string, { cls: string; label: string }> = {
   positive: { cls: "text-emerald-700", label: "Positive" },
   negative: { cls: "text-brand-crimson", label: "Negative" },
@@ -464,7 +499,7 @@ function ProductPage() {
   const confidence = sentimentTotal >= 50 ? "High" : sentimentTotal >= 10 ? "Medium" : "Low";
   function topQuote(sentiment: string) {
     const matches = taggedReviews.filter((r) => r.sentiment === sentiment).sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
-    return matches[0]?.content ?? null;
+    return matches[0] ?? null;
   }
   const majorityQuote = topQuote(majorityIsPositive ? "positive" : "negative");
   const minorityQuote = topQuote(majorityIsPositive ? "negative" : "positive");
@@ -703,7 +738,25 @@ function ProductPage() {
                     <div className="h-[3px] bg-brand-border rounded-sm my-2 overflow-hidden">
                       <div className={`h-full ${c.barCls}`} style={{ width: `${c.pct}%` }} />
                     </div>
-                    <div className="text-xs text-brand-espresso leading-[1.5]">{c.sentence}</div>
+                    {typeof c.sentence === "string" ? (
+                      <div className="text-xs text-brand-espresso leading-[1.5]">{c.sentence}</div>
+                    ) : (() => {
+                      const q = quoteDisplay(c.sentence);
+                      const formLabel = quoteFormLabel(q.form, q.excerpted);
+                      return (
+                        <div>
+                          <div className="text-xs text-brand-espresso leading-[1.5]">{q.text}</div>
+                          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1.5 text-[10px] text-brand-muted">
+                            {formLabel && <span>{formLabel}</span>}
+                            {c.sentence.source_url && (
+                              <a href={c.sentence.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-[3px] underline">
+                                {q.excerpted ? `Read on ${sourceSiteName(c.sentence.source_url)}` : `View on ${sourceSiteName(c.sentence.source_url)}`} <ExternalLink width={10} height={10} />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>
@@ -1063,6 +1116,8 @@ function ProductPage() {
                     const sub = rv.subreddit ?? subredditFromUrl(rv.source_url);
                     const meta = REDDIT_SENTIMENT_META[rv.sentiment as string];
                     const skinLabel = rv.skin_type ? String(rv.skin_type) : null;
+                    const q = quoteDisplay(rv);
+                    const formLabel = quoteFormLabel(q.form, q.excerpted);
                     const card = (
                       <div className="bg-card border border-brand-border rounded-[10px] px-3 py-2.5">
                         <div className="flex items-center justify-between gap-2">
@@ -1076,15 +1131,18 @@ function ProductPage() {
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-brand-espresso leading-[1.55] mt-1.5">{rv.content}</div>
+                        <div className="text-xs text-brand-espresso leading-[1.55] mt-1.5">{q.text}</div>
                         <div className="flex items-center justify-between gap-2 mt-2">
-                          {skinLabel ? (
-                            <span className="text-[10px] bg-brand-cream text-brand-muted border border-brand-border rounded-full px-2 py-0.5">
-                              {skinLabel.charAt(0).toUpperCase() + skinLabel.slice(1)}
-                            </span>
-                          ) : <span />}
-                          <span className="flex items-center gap-[3px] text-[10px] text-brand-muted">
-                            View on Reddit <ExternalLink width={10} height={10} />
+                          <span className="flex flex-wrap items-center gap-1.5">
+                            {skinLabel && (
+                              <span className="text-[10px] bg-brand-cream text-brand-muted border border-brand-border rounded-full px-2 py-0.5">
+                                {skinLabel.charAt(0).toUpperCase() + skinLabel.slice(1)}
+                              </span>
+                            )}
+                            {formLabel && <span className="text-[10px] text-brand-muted">{formLabel}</span>}
+                          </span>
+                          <span className="flex items-center gap-[3px] text-[10px] text-brand-muted shrink-0">
+                            {q.excerpted ? "Read on Reddit" : "View on Reddit"} <ExternalLink width={10} height={10} />
                           </span>
                         </div>
                       </div>
@@ -1096,7 +1154,7 @@ function ProductPage() {
                     );
                   })}
                   <div className="text-[10px] text-brand-muted mt-0.5">
-                    {redditItems.length} {redditItems.length === 1 ? "quote" : "quotes"}{redditScope === "line" ? ` about the ${lineName} line` : isShadeLine ? ` naming ${shadeName ?? "this shade"}` : ""}, paraphrased by Skintea from Reddit threads. Tap a quote to read the original.
+                    {redditItems.length} {redditItems.length === 1 ? "quote" : "quotes"}{redditScope === "line" ? ` about the ${lineName} line` : isShadeLine ? ` naming ${shadeName ?? "this shade"}` : ""} from Reddit threads. Each is marked as quoted as written or edited by Skintea; tap one to read the original.
                   </div>
                 </div>
               ) : (

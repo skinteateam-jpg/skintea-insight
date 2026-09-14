@@ -310,12 +310,6 @@ export const INITIAL_POSTS: Post[] = [
 
 /* ---------- Helpers ---------- */
 
-export function approvalColor(pct: number) {
-  if (pct >= 60) return { dot: "bg-green-500", text: "text-green-700" };
-  if (pct >= 40) return { dot: "bg-amber-500", text: "text-amber-700" };
-  return { dot: "bg-red-500", text: "text-red-700" };
-}
-
 export function skinTypeLabel(t: SkinType) {
   return t === "oily" ? "oily" : t === "dry" ? "dry" : t === "combo" ? "combination" : t === "sensitive" ? "sensitive" : "normal";
 }
@@ -324,14 +318,14 @@ export function skinTypeLabel(t: SkinType) {
 
 const _STORAGE_KEY = "skintea.posts.v1";
 function _loadInitial(): Post[] {
-  if (typeof window === "undefined") return INITIAL_POSTS;
+  if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(_STORAGE_KEY);
-    if (!raw) return INITIAL_POSTS;
+    if (!raw) return [];
     const parsed = JSON.parse(raw) as Post[];
-    return Array.isArray(parsed) && parsed.length ? parsed : INITIAL_POSTS;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return INITIAL_POSTS;
+    return [];
   }
 }
 let _posts: Post[] = _loadInitial();

@@ -690,46 +690,6 @@ function PostDetailPage() {
           </>
         )}
 
-        {/* Others who relate (spill only) */}
-        {post.postType === "spill" && (
-          <>
-            <div style={{ height: "0.5px", background: "#E8DDD4", margin: "0 16px 16px" }} />
-            <div style={{ padding: "0 16px", marginBottom: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 500, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 8 }}>
-                Others who relate
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {RELATED_SPILLS.map((spill) => (
-                  <div
-                    key={spill.id}
-                    style={{
-                      background: "#fff", border: "0.5px solid #E8DDD4",
-                      borderRadius: 12, padding: 12, cursor: "pointer",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                      <div style={{
-                        width: 24, height: 24, borderRadius: "50%",
-                        background: spill.bg, color: spill.color,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 9, fontWeight: 500, flexShrink: 0,
-                      }}>
-                        {spill.initials}
-                      </div>
-                      <span style={{ fontSize: 11, fontWeight: 500, color: "#1C0A00" }}>{spill.name}</span>
-                    </div>
-                    <div style={{ fontSize: 12, color: "#555", lineHeight: 1.5, marginBottom: 6 }}>
-                      {spill.text}
-                    </div>
-                    <div style={{ fontSize: 11, color: "#D97706" }}>
-                      🔥 {spill.agrees} agree
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
 
 
         {/* Comments */}

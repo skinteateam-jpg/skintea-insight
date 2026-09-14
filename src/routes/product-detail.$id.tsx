@@ -6,7 +6,7 @@ import AppFrame from "@/components/AppFrame";
 import { supabase } from "@/integrations/supabase/client";
 import { getFlags, isFungalAcneSafe, hasIngredientData, readSkinType } from "@/lib/ingredientFlags";
 import type { SkinType } from "@/lib/ingredientFlags";
-import { MIN_TAGGED, isOpinionRow, aggregate } from "@/lib/opinionAggregate";
+import { MIN_TAGGED, isOpinionRow, opinionShares, aggregate } from "@/lib/opinionAggregate";
 
 const DISCLOSURE_LABELS: Record<string, string> = {
   ad: "#ad",
@@ -434,7 +434,7 @@ function ProductPage() {
   //   else >= MIN_TAGGED tags on the line -> the line percentage, labelled as the line
   //   else                                -> the "not enough data yet" placeholder
   // A product with no shade family keeps every fetched row, as before.
-  const MIN_TAGGED = 10;
+  // MIN_TAGGED comes from @/lib/opinionAggregate — the floor lives in exactly one place.
   const isShadeLine = shadeOptions.length > 1;
   const lineName: string | null = productData?.product_family_name ?? null;
   const shadeId: string = activeProduct?.id ?? id;
@@ -452,11 +452,9 @@ function ProductPage() {
   }
   function bucketPct(pred: (r: any) => boolean): { pct: number | null; scope: Scope; n: number } {
     // Same rows and same floor as the headline: positive + negative + mixed.
-    const { scope, rows } = pickScope((r) => pred(r) && (r.sentiment === "positive" || r.sentiment === "negative" || r.sentiment === "mixed"));
+    const { scope, rows } = pickScope((r) => pred(r) && isOpinionRow(r));
     if (scope === "none") return { pct: null, scope, n: rows.length };
-    const pos = rows.filter((r) => r.sentiment === "positive").length;
-    const neg = rows.filter((r) => r.sentiment === "negative").length;
-    return { pct: opinionShares(pos, neg, rows.length - pos - neg).pos, scope, n: rows.length };
+    return { pct: aggregate(rows).recommendPct, scope, n: rows.length };
   }
 
   const skinTypePct: Record<string, number | null> = {};
@@ -482,22 +480,23 @@ function ProductPage() {
     else navigate({ to: "/products" });
   };
 
-  const headline = pickScope((r) => r.sentiment === "positive" || r.sentiment === "negative" || r.sentiment === "mixed");
+  const headline = pickScope(isOpinionRow);
   const opinionScope = headline.scope;
   const taggedReviews = headline.rows;
   const shadeTaggedCount = isShadeLine
-    ? skuReviews.filter((r) => r.sentiment === "positive" || r.sentiment === "negative" || r.sentiment === "mixed").length
+    ? skuReviews.filter(isOpinionRow).length
     : null;
-  const lineTaggedCount = socialReviews.filter((r) => r.sentiment === "positive" || r.sentiment === "negative" || r.sentiment === "mixed").length;
-  const posCount = taggedReviews.filter((r) => r.sentiment === "positive").length;
-  const negCount = taggedReviews.filter((r) => r.sentiment === "negative").length;
-  const mixedCount = taggedReviews.filter((r) => r.sentiment === "mixed").length;
-  const sentimentTotal = posCount + negCount + mixedCount;
+  const lineTaggedCount = socialReviews.filter(isOpinionRow).length;
+  const headlineAgg = aggregate(taggedReviews);
+  const posCount = headlineAgg.pos;
+  const negCount = headlineAgg.neg;
+  const mixedCount = headlineAgg.mix;
+  const sentimentTotal = headlineAgg.total;
   const hasEnoughSentimentData = opinionScope !== "none";
   const majorityIsPositive = posCount >= negCount;
   const shares = opinionShares(posCount, negCount, mixedCount);
-  const recommendPct = sentimentTotal > 0 ? shares.pos : null;
-  const confidence = sentimentTotal >= 50 ? "High" : sentimentTotal >= 10 ? "Medium" : "Low";
+  const recommendPct = headlineAgg.recommendPct;
+  const confidence = headlineAgg.confidence;
   function topQuote(sentiment: string) {
     const matches = taggedReviews.filter((r) => r.sentiment === sentiment).sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
     return matches[0] ?? null;

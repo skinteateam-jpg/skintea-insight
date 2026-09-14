@@ -58,24 +58,6 @@ export type Database = {
           },
         ]
       }
-      clinic_contacts_staging: {
-        Row: {
-          emails: string[] | null
-          google_place_id: string
-          social_profiles: Json | null
-        }
-        Insert: {
-          emails?: string[] | null
-          google_place_id: string
-          social_profiles?: Json | null
-        }
-        Update: {
-          emails?: string[] | null
-          google_place_id?: string
-          social_profiles?: Json | null
-        }
-        Relationships: []
-      }
       clinic_practitioners: {
         Row: {
           clinic_id: string | null
@@ -461,18 +443,21 @@ export type Database = {
           clicked_at: string
           clinic_id: string | null
           id: string
+          lead_id: string | null
           user_id: string | null
         }
         Insert: {
           clicked_at?: string
           clinic_id?: string | null
           id?: string
+          lead_id?: string | null
           user_id?: string | null
         }
         Update: {
           clicked_at?: string
           clinic_id?: string | null
           id?: string
+          lead_id?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -481,6 +466,13 @@ export type Database = {
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultation_clicks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
             referencedColumns: ["id"]
           },
         ]
@@ -543,6 +535,134 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lead_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          lead_id: string
+          payload: Json | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          lead_id: string
+          payload?: Json | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          lead_id?: string
+          payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_treatments: {
+        Row: {
+          created_at: string
+          lead_id: string
+          treatment_id: string
+        }
+        Insert: {
+          created_at?: string
+          lead_id: string
+          treatment_id: string
+        }
+        Update: {
+          created_at?: string
+          lead_id?: string
+          treatment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_treatments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_treatments_treatment_id_fkey"
+            columns: ["treatment_id"]
+            isOneToOne: false
+            referencedRelation: "treatments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          age_bracket: string | null
+          budget_band: string | null
+          city: string | null
+          contact_consent: boolean
+          created_at: string
+          email: string | null
+          id: string
+          intent_stage: number
+          intent_stage_version: number
+          is_first_time: boolean | null
+          other_treatment_note: string | null
+          session_id: string
+          skin_type: string | null
+          stage_1_at: string | null
+          stage_2_at: string | null
+          updated_at: string
+          user_id: string | null
+          zip: string | null
+        }
+        Insert: {
+          age_bracket?: string | null
+          budget_band?: string | null
+          city?: string | null
+          contact_consent?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          intent_stage?: number
+          intent_stage_version?: number
+          is_first_time?: boolean | null
+          other_treatment_note?: string | null
+          session_id: string
+          skin_type?: string | null
+          stage_1_at?: string | null
+          stage_2_at?: string | null
+          updated_at?: string
+          user_id?: string | null
+          zip?: string | null
+        }
+        Update: {
+          age_bracket?: string | null
+          budget_band?: string | null
+          city?: string | null
+          contact_consent?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          intent_stage?: number
+          intent_stage_version?: number
+          is_first_time?: boolean | null
+          other_treatment_note?: string | null
+          session_id?: string
+          skin_type?: string | null
+          stage_1_at?: string | null
+          stage_2_at?: string | null
+          updated_at?: string
+          user_id?: string | null
+          zip?: string | null
+        }
+        Relationships: []
       }
       members: {
         Row: {
@@ -891,6 +1011,47 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      quiz_responses: {
+        Row: {
+          answers: Json
+          created_at: string
+          derived_concerns: string[] | null
+          derived_skin_type: string | null
+          id: string
+          lead_id: string
+          quiz_version: number
+          share_slug: string | null
+        }
+        Insert: {
+          answers: Json
+          created_at?: string
+          derived_concerns?: string[] | null
+          derived_skin_type?: string | null
+          id?: string
+          lead_id: string
+          quiz_version?: number
+          share_slug?: string | null
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          derived_concerns?: string[] | null
+          derived_skin_type?: string | null
+          id?: string
+          lead_id?: string
+          quiz_version?: number
+          share_slug?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_responses_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       saved_clinics: {
         Row: {
@@ -1672,7 +1833,17 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      lead_funnel_daily: {
+        Row: {
+          contactable: number | null
+          day: string | null
+          leads_created: number | null
+          reached_stage_1: number | null
+          reached_stage_2: number | null
+          with_zip: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       browse_facets: {
@@ -1780,6 +1951,41 @@ export type Database = {
           product_type: string
           subcategory: string
         }[]
+      }
+      lead_event_add: {
+        Args: { p_event_type: string; p_payload?: Json; p_session_id: string }
+        Returns: string
+      }
+      lead_upsert: {
+        Args: {
+          p_age_bracket?: string
+          p_budget_band?: string
+          p_city?: string
+          p_contact_consent?: boolean
+          p_email?: string
+          p_is_first_time?: boolean
+          p_other_treatment_note?: string
+          p_session_id: string
+          p_skin_type?: string
+          p_treatment_ids?: string[]
+          p_zip?: string
+        }
+        Returns: string
+      }
+      quiz_response_save: {
+        Args: {
+          p_answers: Json
+          p_budget_band?: string
+          p_derived_concerns?: string[]
+          p_derived_skin_type?: string
+          p_is_first_time?: boolean
+          p_quiz_version?: number
+          p_session_id: string
+          p_treatment_ids?: string[]
+          p_treatment_interest?: string
+          p_zip?: string
+        }
+        Returns: string
       }
       random_active_products: {
         Args: {

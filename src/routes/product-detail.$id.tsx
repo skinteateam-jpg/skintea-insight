@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getFlags, isFungalAcneSafe, hasIngredientData, readSkinType } from "@/lib/ingredientFlags";
 import type { SkinType } from "@/lib/ingredientFlags";
 import { MIN_TAGGED, isOpinionRow, opinionShares, aggregate } from "@/lib/opinionAggregate";
+import { excerptStart, excerptTerms } from "@/lib/quoteExcerpt";
 
 const DISCLOSURE_LABELS: Record<string, string> = {
   ad: "#ad",
@@ -108,18 +109,25 @@ const VERBATIM_QUOTE_TYPES = new Set(["product_search_comment", "reel_comment", 
 const EDITED_QUOTE_TYPES = new Set(["plain_brand", "fan_subreddit", "product_specific_search"]);
 const QUOTE_EXCERPT_MAX = 280;
 
-// Render-only excerpt of a verbatim quote. Never shortens edited text, never touches what is stored.
-function quoteDisplay(r: any): { text: string; form: "verbatim" | "edited" | null; excerpted: boolean } {
+// Render-only excerpt of a verbatim quote. Never shortens edited text, never touches what is stored. A long quote is
+// excerpted from the sentence where the tagged product is discussed (see @/lib/quoteExcerpt), not from its opening.
+function quoteDisplay(r: any, terms: string[] = []): { text: string; form: "verbatim" | "edited" | null; excerpted: boolean } {
   const raw = String(r?.content ?? "").replace(/\s+/g, " ").trim();
   const form = VERBATIM_QUOTE_TYPES.has(r?.source_query_type) ? "verbatim" : EDITED_QUOTE_TYPES.has(r?.source_query_type) ? "edited" : null;
   if (form !== "verbatim" || raw.length <= QUOTE_EXCERPT_MAX) return { text: raw, form, excerpted: false };
-  const head = raw.slice(0, QUOTE_EXCERPT_MAX);
+  // Located on the text with its real line breaks, then whitespace-collapsed for display.
+  const original = String(r?.content ?? "").trim();
+  const start = excerptStart(original, terms);
+  const lead = start > 0 ? "… " : "";
+  const body = start > 0 ? original.slice(start).replace(/\s+/g, " ").trim() : raw;
+  if (body.length <= QUOTE_EXCERPT_MAX) return { text: lead + body, form, excerpted: true };
+  const head = body.slice(0, QUOTE_EXCERPT_MAX);
   const sentenceEnd = Math.max(head.lastIndexOf(". "), head.lastIndexOf("! "), head.lastIndexOf("? "));
   const cut = sentenceEnd >= QUOTE_EXCERPT_MAX - 120 ? sentenceEnd + 1 : head.lastIndexOf(" ") > 0 ? head.lastIndexOf(" ") : QUOTE_EXCERPT_MAX;
   // A cut at a sentence end keeps its full stop and gets a spaced ellipsis ("... day. …"); a cut mid-sentence
   // gets the ellipsis attached ("... the next…"). Never ".…".
   const kept = head.slice(0, cut).trim();
-  return { text: /[.!?]$/.test(kept) ? kept + " …" : kept + "…", form, excerpted: true };
+  return { text: lead + (/[.!?]$/.test(kept) ? kept + " …" : kept + "…"), form, excerpted: true };
 }
 
 function quoteFormLabel(form: "verbatim" | "edited" | null, excerpted: boolean): string | null {
@@ -497,6 +505,11 @@ function ProductPage() {
   const shares = opinionShares(posCount, negCount, mixedCount);
   const recommendPct = headlineAgg.recommendPct;
   const confidence = headlineAgg.confidence;
+  // Terms that locate the tagged product inside a long quote: this page's product name for its own rows, plus the line name.
+  const quoteTerms = (r: any) => excerptTerms(
+    [r?.product_id && r.product_id === (activeProduct?.id ?? productData?.id) ? (activeProduct?.name ?? productData?.name) : null, r?.product_family_name ?? null],
+    productData?.brand,
+  );
   function topQuote(sentiment: string) {
     const matches = taggedReviews.filter((r) => r.sentiment === sentiment).sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0));
     return matches[0] ?? null;
@@ -748,7 +761,7 @@ function ProductPage() {
                     {typeof c.sentence === "string" ? (
                       <div className="text-xs text-brand-espresso leading-[1.5]">{c.sentence}</div>
                     ) : (() => {
-                      const q = quoteDisplay(c.sentence);
+                      const q = quoteDisplay(c.sentence, quoteTerms(c.sentence));
                       const formLabel = quoteFormLabel(q.form, q.excerpted);
                       return (
                         <div>
@@ -1123,7 +1136,7 @@ function ProductPage() {
                     const sub = rv.subreddit ?? subredditFromUrl(rv.source_url);
                     const meta = REDDIT_SENTIMENT_META[rv.sentiment as string];
                     const skinLabel = rv.skin_type ? String(rv.skin_type) : null;
-                    const q = quoteDisplay(rv);
+                    const q = quoteDisplay(rv, quoteTerms(rv));
                     const formLabel = quoteFormLabel(q.form, q.excerpted);
                     const card = (
                       <div className="bg-card border border-brand-border rounded-[10px] px-3 py-2.5">

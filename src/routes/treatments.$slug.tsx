@@ -94,8 +94,9 @@ function TreatmentPage() {
       if (t) {
         const { data: ct } = await supabase
           .from("clinic_treatments")
-          .select("id, price_from, price_unit, clinics(id, name, neighborhood)")
-          .eq("treatment_id", (t as any).id);
+          .select("id, price_from, price_unit, clinics!inner(id, name, neighborhood, listing_filter)")
+          .eq("treatment_id", (t as any).id)
+          .eq("clinics.listing_filter", "passed");
         if (!alive) return;
         const rows = ((ct as any[]) ?? []).filter((r) => r.clinics) as ClinicLink[];
         rows.sort((a, b) => a.clinics!.name.localeCompare(b.clinics!.name));

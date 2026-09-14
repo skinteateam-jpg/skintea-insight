@@ -55,7 +55,7 @@ function TreatmentsIndexPage() {
           .select("id, slug, name, subtitle, category, sort_order")
           .eq("active", true)
           .order("sort_order", { ascending: true }),
-        supabase.from("clinic_treatments").select("treatment_id, clinic_id"),
+        supabase.from("clinic_treatments").select("treatment_id, clinic_id, clinics!inner(listing_filter)").eq("clinics.listing_filter", "passed"),
       ]);
       if (!alive) return;
       setRows(((t.data as any[]) ?? []).filter((r) => r.slug) as TreatmentRow[]);

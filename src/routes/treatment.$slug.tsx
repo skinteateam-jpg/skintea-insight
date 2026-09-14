@@ -669,9 +669,6 @@ function TreatmentDetailPage() {
                     {c.price_from != null && (
                       <div style={{ fontSize: 13, fontWeight: 800, color: CRIMSON }}>From ${c.price_from}</div>
                     )}
-                    <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
-                      {c.skintea_score ?? c.trust_score ?? "—"}% recommend
-                    </div>
                   </div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: CRIMSON }}>Book here →</div>
                 </div>

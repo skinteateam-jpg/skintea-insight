@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
-import { Pencil, Plus, Lock, Star, X, Bookmark, Link2, Download, ArrowUp, ArrowDown, Heart, ArrowRight } from "lucide-react";
+import { Pencil, Plus, Lock, Star, X, Bookmark, Link2, Download, Heart, ArrowRight } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import AppFrame from "@/components/AppFrame";
 import { supabase } from "@/integrations/supabase/client";

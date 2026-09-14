@@ -1002,17 +1002,14 @@ function ImageGrid({ images }: { images: string[] }) {
 /* ---------- Product card ---------- */
 
 function ProductCard({ product }: { product: TaggedProduct }) {
-  const c = approvalColor(product.approval);
   return (
     <div className="flex items-center gap-3 rounded-xl border border-black/5 bg-[#faf8f5] p-2.5">
-      <img src={product.image} alt={product.name} className="h-14 w-14 flex-shrink-0 rounded-lg object-cover" />
+      {product.image && (
+        <img src={product.image} alt={product.name} className="h-14 w-14 flex-shrink-0 rounded-lg object-cover" />
+      )}
       <div className="min-w-0 flex-1">
         <p className="truncate text-[13px] font-semibold text-[#1a1a1a]">{product.name}</p>
-        <p className="truncate text-[11px] text-neutral-500">{product.brand} · {product.price}</p>
-        <p className={`mt-0.5 flex items-center gap-1 text-[10px] font-semibold ${c.text}`}>
-          <span className={`h-1.5 w-1.5 rounded-full ${c.dot}`} />
-          {product.approval}% of {skinTypeLabel(product.skinType)} skin approve · Skintea
-        </p>
+        <p className="truncate text-[11px] text-neutral-500">{product.brand}</p>
       </div>
       <button className="flex-shrink-0 rounded-full bg-[#1a1a1a] px-3 py-1.5 text-[11px] font-semibold text-white">
         View

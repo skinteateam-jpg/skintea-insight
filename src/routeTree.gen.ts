@@ -32,7 +32,6 @@ import { Route as ProductDetailIdRouteImport } from './routes/product-detail.$id
 import { Route as ClinicsIdRouteImport } from './routes/clinics/$id'
 import { Route as CategorySlugRouteImport } from './routes/category.$slug'
 import { Route as AdminTreatmentsRouteImport } from './routes/admin.treatments'
-import { Route as ProductDetailRouteImport } from './routes/product-detail.'
 import { Route as ApiPublicCacheSocialThumbnailRouteImport } from './routes/api/public/cache-social-thumbnail'
 
 const TreatmentTalk2Route = TreatmentTalk2RouteImport.update({
@@ -150,11 +149,6 @@ const AdminTreatmentsRoute = AdminTreatmentsRouteImport.update({
   path: '/admin/treatments',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProductDetailRoute = ProductDetailRouteImport.update({
-  id: '/product-detail/',
-  path: '/product-detail/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicCacheSocialThumbnailRoute =
   ApiPublicCacheSocialThumbnailRouteImport.update({
     id: '/api/public/cache-social-thumbnail',
@@ -177,7 +171,6 @@ export interface FileRoutesByFullPath {
   '/tea': typeof TeaRoute
   '/tea-products': typeof TeaProductsRouteWithChildren
   '/treatment-talk2': typeof TreatmentTalk2Route
-  '/product-detail/': typeof ProductDetailRoute
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
@@ -204,7 +197,6 @@ export interface FileRoutesByTo {
   '/tea': typeof TeaRoute
   '/tea-products': typeof TeaProductsRouteWithChildren
   '/treatment-talk2': typeof TreatmentTalk2Route
-  '/product-detail': typeof ProductDetailRoute
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
@@ -232,7 +224,6 @@ export interface FileRoutesById {
   '/tea': typeof TeaRoute
   '/tea-products': typeof TeaProductsRouteWithChildren
   '/treatment-talk2': typeof TreatmentTalk2Route
-  '/product-detail/': typeof ProductDetailRoute
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
@@ -261,7 +252,6 @@ export interface FileRouteTypes {
     | '/tea'
     | '/tea-products'
     | '/treatment-talk2'
-    | '/product-detail/'
     | '/admin/treatments'
     | '/category/$slug'
     | '/clinics/$id'
@@ -288,7 +278,6 @@ export interface FileRouteTypes {
     | '/tea'
     | '/tea-products'
     | '/treatment-talk2'
-    | '/product-detail'
     | '/admin/treatments'
     | '/category/$slug'
     | '/clinics/$id'
@@ -315,7 +304,6 @@ export interface FileRouteTypes {
     | '/tea'
     | '/tea-products'
     | '/treatment-talk2'
-    | '/product-detail/'
     | '/admin/treatments'
     | '/category/$slug'
     | '/clinics/$id'
@@ -343,7 +331,6 @@ export interface RootRouteChildren {
   TeaRoute: typeof TeaRoute
   TeaProductsRoute: typeof TeaProductsRouteWithChildren
   TreatmentTalk2Route: typeof TreatmentTalk2Route
-  ProductDetailRoute: typeof ProductDetailRoute
   AdminTreatmentsRoute: typeof AdminTreatmentsRoute
   CategorySlugRoute: typeof CategorySlugRoute
   ClinicsIdRoute: typeof ClinicsIdRoute
@@ -518,13 +505,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminTreatmentsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/product-detail/': {
-      id: '/product-detail/'
-      path: '/product-detail'
-      fullPath: '/product-detail/'
-      preLoaderRoute: typeof ProductDetailRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/cache-social-thumbnail': {
       id: '/api/public/cache-social-thumbnail'
       path: '/api/public/cache-social-thumbnail'
@@ -562,7 +542,6 @@ const rootRouteChildren: RootRouteChildren = {
   TeaRoute: TeaRoute,
   TeaProductsRoute: TeaProductsRouteWithChildren,
   TreatmentTalk2Route: TreatmentTalk2Route,
-  ProductDetailRoute: ProductDetailRoute,
   AdminTreatmentsRoute: AdminTreatmentsRoute,
   CategorySlugRoute: CategorySlugRoute,
   ClinicsIdRoute: ClinicsIdRoute,

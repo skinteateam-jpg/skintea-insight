@@ -803,11 +803,13 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
             gap: 8,
           }}
         >
-          <img
-            src={heroProduct.image}
-            alt={heroProduct.name}
-            style={{ width: 30, height: 30, borderRadius: 8, objectFit: "cover", flexShrink: 0 }}
-          />
+          {heroProduct.image && (
+            <img
+              src={heroProduct.image}
+              alt={heroProduct.name}
+              style={{ width: 30, height: 30, borderRadius: 8, objectFit: "cover", flexShrink: 0 }}
+            />
+          )}
           <div className="min-w-0 flex-1">
             <p style={{ color: "#A8001C", fontSize: 9, textTransform: "uppercase", fontWeight: 600, letterSpacing: 0.4 }}>
               Hot Pick
@@ -815,9 +817,9 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
             <p style={{ fontSize: 12, color: "#1C0A00", fontWeight: 500 }} className="truncate">
               {heroProduct.name}
             </p>
-            <p style={{ fontSize: 10, color: "#999" }} className="truncate">
-              {heroProduct.approval}% of {skinTypeLabel(heroProduct.skinType)} skin approve
-            </p>
+            {heroProduct.brand && (
+              <p style={{ fontSize: 10, color: "#999" }} className="truncate">{heroProduct.brand}</p>
+            )}
           </div>
         </div>
       )}

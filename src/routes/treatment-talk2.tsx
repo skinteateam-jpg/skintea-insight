@@ -198,16 +198,6 @@ function ChipScroll({
   );
 }
 
-function ProgressBar({ pct }: { pct: number }) {
-  return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full" style={{ background: "#F0E7E2" }}>
-      <div
-        className="h-full rounded-full"
-        style={{ width: `${pct}%`, background: CRIMSON }}
-      />
-    </div>
-  );
-}
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
@@ -461,14 +451,8 @@ function PostCard({ post, locked }: { post: Post; locked?: boolean }) {
                 fontFamily: "'DM Sans', sans-serif",
               }}
             >
-              Join Skintea — $12/mo
+              Join Skintea
             </button>
-            <div
-              className="mt-2 text-[10px]"
-              style={{ color: MUTED, fontFamily: "'DM Sans', sans-serif" }}
-            >
-              Cancel anytime · 2,841 real teas
-            </div>
           </div>
         </div>
       )}

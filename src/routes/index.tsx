@@ -71,6 +71,7 @@ function HomePage() {
         supabase
           .from("clinics")
           .select("id,name,neighborhood,image_url,best_for,photos,category")
+          .eq("listing_filter", "passed")
           .limit(4),
       ]);
       if (cancelled) return;

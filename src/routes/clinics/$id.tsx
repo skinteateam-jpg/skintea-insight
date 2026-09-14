@@ -178,13 +178,6 @@ function ClinicDetailPage() {
   const [videos, setVideos] = useState<any[]>([]);
   const [activeVideoTab, setActiveVideoTab] = useState<"tiktok" | "instagram">("tiktok");
 
-  // Once per mount per clinic id; the ref also absorbs StrictMode's double effect run.
-  const viewedClinicRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (viewedClinicRef.current === id) return;
-    viewedClinicRef.current = id;
-    void leadEvent("clinic_view", { clinic_id: id });
-  }, [id]);
 
   useEffect(() => {
     try {
@@ -201,9 +194,11 @@ function ClinicDetailPage() {
     (async () => {
       setLoading(true);
       const [c, ss, ct, pr, wv, rv, v] = await Promise.all([
-        supabase.from("clinics").select("*").eq("id", id).maybeSingle(),
+        // Only listings that passed the filter render; 'unsure' and 'dropped' read as not found.
+        supabase.from("clinics").select("*").eq("id", id).eq("listing_filter", "passed").maybeSingle(),
         supabase.from("clinic_skin_scores").select("*").eq("clinic_id", id),
-        supabase.from("clinic_treatments").select("*, treatments(id, name, slug, active)").eq("clinic_id", id),
+        // Inactive treatments (e.g. "Laser", a category) are not listed at all.
+        supabase.from("clinic_treatments").select("*, treatments!inner(id, name, slug, active)").eq("clinic_id", id).eq("treatments.active", true),
         supabase.from("clinic_practitioners").select("*").eq("clinic_id", id),
         supabase.from("clinic_who_visited").select("id, user_id, visited_at").eq("clinic_id", id).order("visited_at", { ascending: false }).limit(20),
         supabase.from("clinic_reviews").select("*, treatments(name)").eq("clinic_id", id).order("created_at", { ascending: false }),
@@ -235,6 +230,15 @@ function ClinicDetailPage() {
     })();
     return () => { alive = false; };
   }, [id]);
+
+  // clinic_view once per mount per clinic id, only after a listed clinic has loaded (the ref
+  // also absorbs StrictMode's double effect run). leads.ts holds a first view in the browser.
+  const viewedClinicRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!clinic || clinic.id !== id || viewedClinicRef.current === id) return;
+    viewedClinicRef.current = id;
+    void leadEvent("clinic_view", { clinic_id: id });
+  }, [clinic, id]);
 
   const categoryImages = useCategoryImages();
   const [failedPhotos, setFailedPhotos] = useState<Set<string>>(new Set());

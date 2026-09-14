@@ -26,7 +26,7 @@ const SECTIONS = [
   },
   {
     title: "If You Use Skintea Without an Account",
-    body: "You don't need an account to take the skin quiz or browse clinics, but we still collect some information when you do. Your browser is given a random session identifier, stored in your browser's local storage, and the information below is saved on our servers against that identifier. From the quiz: your answers, your skin type, your ZIP code if you enter one, your budget band, and whether you're interested in in-clinic treatments and which ones. While you browse: which clinic pages you view and when you click to book a consultation with a clinic. If you give us your email on your quiz result, we store it only when you tick the box agreeing that we can contact you, and we record that you gave that consent. We use this to show your result, show clinics near you, understand which clinics and treatments people are interested in, and, if you gave consent, email you about treatments and clinics near you. We do not currently sell this information or share it with clinics, brands or advertisers; it is stored with the hosting and database providers that run Skintea. Clearing your browser's storage removes the identifier from your device. To have the information itself deleted, email hello@getskintea.com.",
+    body: "You don't need an account to take the skin quiz or browse clinics, but we still collect some information when you do. Your browser is given a random session identifier, stored in your browser's local storage, and the information below is saved on our servers against that identifier. From the quiz: your answers, your skin type, your ZIP code if you enter one, your budget band, and whether you're interested in in-clinic treatments and which ones. While you browse: which clinic pages you view and when you click to book a consultation or visit a clinic's booking link. A single clinic page view stays in your browser and is saved only once you do something more, such as viewing a second clinic, finishing the quiz, clicking to book, or giving us your email. If you give us your email on your quiz result, we store it. Separately, you can tick a box letting matched clinics near you contact you about a consultation; we record whether you ticked it, and you can untick it and submit again to withdraw. We use this to show your result, show clinics near you, understand which clinics and treatments people are interested in, email you about treatments and clinics near you, and, if you ask us to, connect you with a clinic (see Information Sharing). Clearing your browser's storage removes the identifier from your device. To have the information itself deleted, email hello@getskintea.com.",
   },
   {
     title: "How We Use Your Information",
@@ -34,7 +34,7 @@ const SECTIONS = [
   },
   {
     title: "Information Sharing",
-    body: "We do not sell your personal information. When we work with clinics or brands, we only share aggregated, anonymized statistics that cannot identify you. We rely on trusted third-party service providers — such as our hosting and database partners — to operate Skintea, and they are contractually bound to protect your data.",
+    body: "We do not sell personal information, and we do not share it with advertisers or data brokers. When you ask us to connect you with a specific clinic, we share the contact details that clinic needs in order to respond to you. We do this at your request, only with that clinic, and we tell you before we do it. Apart from that, anything we share with clinics or brands is aggregated statistics that cannot identify you. We also rely on service providers, such as our hosting and database providers, to operate Skintea; they process data on our behalf and are contractually bound to protect it.",
   },
   {
     title: "User Rights",
@@ -103,6 +103,10 @@ function PrivacyPage() {
 
         <div style={{ fontSize: 12, color: MUTED, marginBottom: 28 }}>
           Last updated: September 2026
+        </div>
+
+        <div style={{ fontSize: 13, color: ESPRESSO, lineHeight: 1.6, marginBottom: 28, padding: "12px 14px", border: `0.5px solid ${BORDER}`, borderRadius: 10, background: WARM_WHITE }}>
+          <strong>What changed in September 2026:</strong> we added a section on what we collect when you use Skintea without an account, and we made our sharing statement specific. We do not sell personal information or share it with advertisers or data brokers; when you ask us to connect you with a specific clinic, we share the contact details that clinic needs, only with that clinic and at your request. We removed an earlier line saying that information was stored only with our hosting and database providers, because connecting you with a clinic you ask for means sharing your contact details with that clinic.
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>

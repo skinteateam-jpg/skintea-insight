@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronRight, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AppFrame from "@/components/AppFrame";
 import BottomNav from "@/components/BottomNav";
+import { breakdown, MIN_TAGGED, MIN_COST_VALUES, REGRET_LABELS, type TreatmentReviewRow, type VerdictCell } from "@/lib/treatmentReviews";
 
 export const Route = createFileRoute("/treatments/$slug")({
   component: TreatmentPage,
@@ -74,10 +75,63 @@ function Field({ label, value }: { label: string; value: string | null }) {
   );
 }
 
+// Same card language as the product page's Majority / Minority bars.
+function DataPending({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="border border-dashed border-brand-border rounded-[10px] px-[13px] py-3 bg-brand-cream">
+      <div className="text-[10px] font-semibold text-brand-muted mb-[5px]">Not enough data yet</div>
+      <div className="text-[11.5px] text-brand-muted leading-[1.55]">{children}</div>
+    </div>
+  );
+}
+
+function mixedNote(mixed: number) {
+  return mixed > 0 ? `${mixed} mixed ${mixed === 1 ? "review" : "reviews"} not counted in the split.` : "";
+}
+
+function VerdictBars({ cell, who }: { cell: VerdictCell; who: string }) {
+  if (cell.worthPct === null || cell.notWorthPct === null) {
+    return (
+      <DataPending>
+        {cell.n} of {MIN_TAGGED} tagged worth-it / not-worth-it reviews{who ? ` ${who}` : ""} needed. {mixedNote(cell.mixed)}
+      </DataPending>
+    );
+  }
+  const cards = [
+    { label: "Worth it", pct: cell.worthPct, count: cell.worth, barCls: "bg-brand-crimson" },
+    { label: "Not worth it", pct: cell.notWorthPct, count: cell.notWorth, barCls: "bg-brand-crimson/40" },
+  ];
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-2.5">
+        {cards.map((c) => (
+          <div key={c.label} className="bg-card border border-brand-border rounded-xl p-3.5">
+            <div className="text-[11px] text-brand-muted mb-1">{c.label} <span className="text-[10px]">· {c.count} of {cell.n}</span></div>
+            <div className="text-3xl font-semibold text-brand-espresso leading-none">{c.pct}%</div>
+            <div className="h-[3px] bg-brand-border rounded-sm my-2 overflow-hidden">
+              <div className={`h-full ${c.barCls}`} style={{ width: `${c.pct}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="text-[11px] text-brand-muted mt-1.5">{mixedNote(cell.mixed) || "No mixed reviews."}</div>
+    </>
+  );
+}
+
+function SubLabel({ children }: { children: React.ReactNode }) {
+  return <div className="text-[11px] font-semibold text-brand-espresso mt-4 mb-2">{children}</div>;
+}
+
+function formatUsd(n: number) {
+  return `$${n.toLocaleString("en-US")}`;
+}
+
 function TreatmentPage() {
   const { slug } = Route.useParams();
   const [treatment, setTreatment] = useState<Treatment | null>(null);
   const [links, setLinks] = useState<ClinicLink[]>([]);
+  const [reviewRows, setReviewRows] = useState<TreatmentReviewRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -88,6 +142,7 @@ function TreatmentPage() {
         .from("treatments")
         .select("id, slug, name, subtitle, category, what_it_is, how_it_works, who_its_for, downtime, average_cost, sessions_recommended")
         .eq("slug", slug)
+        .eq("active", true)
         .maybeSingle();
       if (!alive) return;
       setTreatment((t as Treatment | null) ?? null);
@@ -101,8 +156,16 @@ function TreatmentPage() {
         const rows = ((ct as any[]) ?? []).filter((r) => r.clinics) as ClinicLink[];
         rows.sort((a, b) => a.clinics!.name.localeCompare(b.clinics!.name));
         setLinks(rows);
+        const { data: tr } = await (supabase as any)
+          .from("treatment_reviews")
+          .select("verdict, is_first_time, sensitive_skin, regret_reason, cost_paid_usd, tagged_at")
+          .eq("treatment_id", (t as any).id)
+          .not("tagged_at", "is", null);
+        if (!alive) return;
+        setReviewRows(((tr as any[]) ?? []) as TreatmentReviewRow[]);
       } else {
         setLinks([]);
+        setReviewRows([]);
       }
       setLoading(false);
     })();
@@ -145,23 +208,74 @@ function TreatmentPage() {
         </Section>
 
         {/*
-          Opinion figures. treatments.majority_pct / results_pct / minority_opinion were
-          nulled on all rows on 2026-09-14 (the values had no reviews behind them) and are
-          not read. Wire this to a counted review source before showing any number.
-          Never hide this section.
+          Opinion figures come only from tagged treatment_reviews rows for this treatment
+          (treatments.majority_pct / results_pct / minority_opinion are not read). The axis is
+          verdict, first time vs repeat, regret reason, sensitive skin and price paid, because
+          people reviewing treatments rarely state a skin type. A percentage needs 10 tagged
+          reviews in that cell; the price needs 5 values. Never hide this section.
         */}
-        <Section title="What people say">
-          <div style={{ background: CREAM_TINT, borderRadius: 10, padding: "14px 12px" }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO }}>Not enough data yet</div>
-            <div style={{ fontSize: 12, color: MUTED, marginTop: 4, lineHeight: 1.5 }}>
-              Recommend and results figures appear here once enough real reviews of {treatment.name} are in. No estimates, no placeholders dressed up as numbers.
-            </div>
-          </div>
-        </Section>
+        {(() => {
+          const br = breakdown(reviewRows);
+          const cost = br.cost;
+          return (
+            <Section title="What people say">
+              <SubLabel>Worth it?</SubLabel>
+              <VerdictBars cell={br.overall} who="" />
+
+              <SubLabel>First time vs repeat</SubLabel>
+              <div className="text-[11px] text-brand-muted mb-1.5">First time</div>
+              <VerdictBars cell={br.firstTime} who="from first-timers" />
+              <div className="text-[11px] text-brand-muted mt-3 mb-1.5">Had it before</div>
+              <VerdictBars cell={br.repeat} who="from repeat patients" />
+
+              <SubLabel>Top regrets</SubLabel>
+              {br.regrets.n < MIN_TAGGED ? (
+                <DataPending>{br.regrets.n} of {MIN_TAGGED} tagged reviews with a recorded regret needed.</DataPending>
+              ) : br.regrets.top.length === 0 ? (
+                <div className="bg-brand-cream border border-brand-border rounded-[10px] px-[13px] py-3 text-xs text-brand-espresso">
+                  None of {br.regrets.n} tagged reviews named a regret.
+                </div>
+              ) : (
+                <div className="bg-card border border-brand-border rounded-xl p-3.5">
+                  {br.regrets.top.map((r) => (
+                    <div key={r.reason} className="flex justify-between text-xs text-brand-espresso py-1">
+                      <span>{REGRET_LABELS[r.reason] ?? r.reason}</span>
+                      <span className="text-brand-muted">{r.count} of {br.regrets.n}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <SubLabel>Sensitive skin</SubLabel>
+              <VerdictBars cell={br.sensitive} who="from people with sensitive skin" />
+
+              <SubLabel>What people actually paid</SubLabel>
+              {cost.enough ? (
+                <div className="bg-card border border-brand-border rounded-xl p-3.5">
+                  <div className="text-[11px] text-brand-muted mb-1">Median <span className="text-[10px]">· {cost.n} reported prices</span></div>
+                  <div className="text-3xl font-semibold text-brand-espresso leading-none">
+                    {cost.medianLow === cost.medianHigh ? formatUsd(cost.medianLow) : `${formatUsd(cost.medianLow)}–${formatUsd(cost.medianHigh)}`}
+                  </div>
+                  <div className="text-xs text-brand-espresso mt-2">Range {formatUsd(cost.min)} to {formatUsd(cost.max)}</div>
+                  {cost.medianLow !== cost.medianHigh && (
+                    <div className="text-[11px] text-brand-muted mt-1">Even number of prices: the two middle prices are shown, not an average of them.</div>
+                  )}
+                </div>
+              ) : (
+                <DataPending>{cost.n} of {MIN_COST_VALUES} reported prices needed.</DataPending>
+              )}
+            </Section>
+          );
+        })()}
 
         <Section title={`Clinics offering ${treatment.name}`}>
           {links.length === 0 ? (
-            <div style={{ textAlign: "center", color: MUTED, fontSize: 12, padding: "16px 0" }}>No clinics linked to this treatment yet.</div>
+            <div style={{ background: CREAM_TINT, borderRadius: 10, padding: "14px 12px" }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO }}>No listed clinics yet</div>
+              <div style={{ fontSize: 12, color: MUTED, marginTop: 4, lineHeight: 1.5 }}>
+                No clinic we list is linked to {treatment.name} yet. <Link to="/clinics" style={{ color: CRIMSON, fontWeight: 700 }}>Browse all clinics →</Link>
+              </div>
+            </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {/*

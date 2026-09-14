@@ -1,6 +1,11 @@
 // Lead-capture instrumentation. leads / lead_events / lead_treatments have RLS on,
 // no policies and no table grants for anon/authenticated: the lead_upsert and
 // lead_event_add RPCs are the only write path. Nothing here may throw into the UI.
+//
+// No lead row on a bare page load. A first clinic_view is held in this browser only
+// (localStorage) and the lead is created, with held events flushed in order, when the
+// visitor does something: views a second distinct clinic, completes the quiz, clicks a
+// consultation or booking link, or submits an email. Nothing is ever flushed on unload.
 import { supabase } from "@/integrations/supabase/client";
 import { getLeadSessionId } from "./leadSession";
 
@@ -26,26 +31,79 @@ export type LeadEventType =
   | "email_submitted";
 
 type RpcError = { message: string; code?: string } | null;
+type HeldEvent = { type: LeadEventType; payload: Record<string, unknown> };
 
-// Mirrors the CHECK constraints on public.leads. A value that fails them makes the
-// whole lead_upsert call raise, so it is dropped here instead of sent.
+// Mirrors the CHECK constraints on public.leads. A zip or skin_type that fails them
+// makes the whole lead_upsert call raise, so it is dropped here instead of sent.
+// Email is left to the database constraint, which is the authority on what is valid.
 const SKIN_TYPES = ["oily", "dry", "combination", "sensitive", "normal"];
 const ZIP = /^[0-9]{5}$/;
-const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-export function isValidLeadEmail(email: string): boolean {
-  const v = email.trim().toLowerCase();
-  return v.length <= 254 && EMAIL.test(v);
-}
+const PENDING_KEY = "skintea_lead_pending";
+const CREATED_KEY = "skintea_lead_created";
+const MAX_HELD = 20;
 
 // The RPCs are not in the generated types yet.
 function rpc(fn: string, args: Record<string, unknown>): Promise<{ error: RpcError }> {
   return (supabase as any).rpc(fn, args);
 }
 
-// Every argument is sent, nulls included. lead_upsert has two overloads and
-// PostgREST picks one by the argument names present; p_treatment_ids exists only
-// on the current one, so sending it always selects that overload.
+// ---------- local state (localStorage, with an in-memory fallback) ----------
+const memory: Record<string, string | null> = {};
+
+function store(key: string): string | null {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return memory[key] ?? null;
+  }
+}
+
+function save(key: string, value: string | null) {
+  try {
+    if (value === null) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, value);
+  } catch {
+    memory[key] = value;
+  }
+}
+
+function leadKnown(sessionId: string): boolean {
+  return store(CREATED_KEY) === sessionId;
+}
+
+function markCreated(sessionId: string | null) {
+  save(CREATED_KEY, sessionId);
+}
+
+function readHeld(sessionId: string): HeldEvent[] {
+  try {
+    const raw = store(PENDING_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as { sessionId?: string; events?: HeldEvent[] };
+    return parsed.sessionId === sessionId && Array.isArray(parsed.events) ? parsed.events : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeHeld(sessionId: string, events: HeldEvent[]) {
+  save(PENDING_KEY, events.length ? JSON.stringify({ sessionId, events: events.slice(0, MAX_HELD) }) : null);
+}
+
+// ---------- serial queue: events must land in the order they happened ----------
+let chain: Promise<unknown> = Promise.resolve();
+
+function enqueue<T>(fn: () => Promise<T>): Promise<T> {
+  const run = chain.then(fn, fn);
+  chain = run.catch(() => undefined);
+  return run;
+}
+
+// ---------- raw calls (not queued; only called from inside the queue) ----------
+
+// Every argument is sent, nulls included, so PostgREST always resolves the same
+// lead_upsert signature.
 function upsertArgs(sessionId: string, f: Partial<LeadFields>) {
   if (f.zip != null && !ZIP.test(f.zip)) {
     console.warn("[leads] dropping zip that is not 5 digits");
@@ -70,42 +128,14 @@ function upsertArgs(sessionId: string, f: Partial<LeadFields>) {
   };
 }
 
-// lead_event_add raises "unknown session" when no lead row exists yet, so the
-// first event of a session creates the row with an all-null upsert. Once per page load.
-let ensured: { sessionId: string; done: Promise<boolean> } | null = null;
-
-function ensureLead(sessionId: string): Promise<boolean> {
-  if (ensured && ensured.sessionId === sessionId) return ensured.done;
-  const done = rpc("lead_upsert", upsertArgs(sessionId, {})).then(
-    ({ error }) => {
-      if (error) {
-        ensured = null;
-        console.warn("[leads] lead_upsert (ensure) failed:", error.message);
-        return false;
-      }
-      return true;
-    },
-    (e) => {
-      ensured = null;
-      console.warn("[leads] lead_upsert (ensure) failed:", e);
-      return false;
-    },
-  );
-  ensured = { sessionId, done };
-  return done;
-}
-
-// Returns the RPC error (or a synthetic one) instead of throwing.
-async function upsert(fields: Partial<LeadFields>): Promise<RpcError> {
+async function rawUpsert(sessionId: string, fields: Partial<LeadFields>): Promise<RpcError> {
   try {
-    const sessionId = getLeadSessionId();
-    if (!sessionId) return { message: "no session (server render)" };
     const { error } = await rpc("lead_upsert", upsertArgs(sessionId, fields));
     if (error) {
       console.warn("[leads] lead_upsert failed:", error.message);
       return error;
     }
-    ensured = { sessionId, done: Promise.resolve(true) };
+    markCreated(sessionId);
     return null;
   } catch (e) {
     console.warn("[leads] lead_upsert failed:", e);
@@ -113,57 +143,142 @@ async function upsert(fields: Partial<LeadFields>): Promise<RpcError> {
   }
 }
 
-export async function leadUpsert(fields: Partial<LeadFields>): Promise<void> {
-  await upsert(fields);
+// "ok" | "unknown" (no lead row for this session) | "error"
+async function rawEvent(sessionId: string, ev: HeldEvent): Promise<"ok" | "unknown" | "error"> {
+  try {
+    const { error } = await rpc("lead_event_add", { p_session_id: sessionId, p_event_type: ev.type, p_payload: ev.payload });
+    if (!error) return "ok";
+    if (/unknown session/i.test(error.message)) {
+      markCreated(null);
+      return "unknown";
+    }
+    console.warn(`[leads] lead_event_add(${ev.type}) failed:`, error.message);
+    return "error";
+  } catch (e) {
+    console.warn(`[leads] lead_event_add(${ev.type}) failed:`, e);
+    return "error";
+  }
 }
 
-export async function leadEvent(
-  type: LeadEventType,
-  payload?: Record<string, unknown>,
-): Promise<void> {
-  try {
+// Sends held events in their original order, removing each once it has landed.
+// The lead row must already exist.
+async function flushHeld(sessionId: string): Promise<boolean> {
+  const held = readHeld(sessionId);
+  for (let i = 0; i < held.length; i++) {
+    const r = await rawEvent(sessionId, held[i]);
+    if (r !== "ok") {
+      writeHeld(sessionId, held.slice(i));
+      return false;
+    }
+  }
+  writeHeld(sessionId, []);
+  return true;
+}
+
+// Creates the lead if this browser has not seen it created, then flushes held events.
+async function ensureLeadAndFlush(sessionId: string): Promise<boolean> {
+  if (!leadKnown(sessionId)) {
+    if (await rawUpsert(sessionId, {})) return false;
+  }
+  return flushHeld(sessionId);
+}
+
+async function sendEvent(sessionId: string, ev: HeldEvent): Promise<void> {
+  if (!(await ensureLeadAndFlush(sessionId))) return;
+  if ((await rawEvent(sessionId, ev)) === "unknown") {
+    // The lead was deleted server-side after this browser created it. A clinic view alone
+    // must not recreate it, so it is held like any first view; any other action recreates it once.
+    if (ev.type === "clinic_view") {
+      writeHeld(sessionId, [...readHeld(sessionId), ev]);
+      return;
+    }
+    if (await ensureLeadAndFlush(sessionId)) await rawEvent(sessionId, ev);
+  }
+}
+
+// ---------- public API ----------
+
+export function leadEvent(type: LeadEventType, payload?: Record<string, unknown>): Promise<void> {
+  return enqueue(async () => {
+    try {
+      const sessionId = getLeadSessionId();
+      if (!sessionId) return;
+      // Never carry an email in an event payload.
+      const { email: _omit, ...clean } = payload ?? {};
+      const ev: HeldEvent = { type, payload: clean };
+
+      if (type === "clinic_view" && !leadKnown(sessionId)) {
+        const held = readHeld(sessionId);
+        const clinicId = clean.clinic_id;
+        const otherClinicHeld = held.some((h) => h.type === "clinic_view" && h.payload.clinic_id !== clinicId);
+        if (!otherClinicHeld) {
+          // A bare view: hold it. A repeat view of the same held clinic is not held twice.
+          if (!held.some((h) => h.type === "clinic_view" && h.payload.clinic_id === clinicId)) {
+            writeHeld(sessionId, [...held, ev]);
+          }
+          return;
+        }
+        // A second distinct clinic: create the lead, flush the held view, then send this one.
+      }
+      await sendEvent(sessionId, ev);
+    } catch (e) {
+      console.warn(`[leads] ${type} failed:`, e);
+    }
+  });
+}
+
+export function leadUpsert(fields: Partial<LeadFields>): Promise<void> {
+  return enqueue(async () => {
     const sessionId = getLeadSessionId();
     if (!sessionId) return;
-    // Never carry an email in an event payload.
-    const { email: _omit, ...clean } = payload ?? {};
-    const args = { p_session_id: sessionId, p_event_type: type, p_payload: clean };
+    if (!(await rawUpsert(sessionId, fields))) await flushHeld(sessionId);
+  });
+}
 
-    if (!(await ensureLead(sessionId))) return;
-    let { error } = await rpc("lead_event_add", args);
-    if (error && /unknown session/i.test(error.message)) {
-      // The lead row was removed after this page load created it; recreate once.
-      ensured = null;
-      if (!(await ensureLead(sessionId))) return;
-      ({ error } = await rpc("lead_event_add", args));
-    }
-    if (error) console.warn(`[leads] lead_event_add(${type}) failed:`, error.message);
-  } catch (e) {
-    console.warn(`[leads] lead_event_add(${type}) failed:`, e);
-  }
+// For code that creates the lead through another RPC (the quiz's quiz_response_save):
+// call before that RPC, so held clinic views land before quiz_completed.
+export function leadFlushHeld(): Promise<void> {
+  return enqueue(async () => {
+    const sessionId = getLeadSessionId();
+    if (!sessionId || readHeld(sessionId).length === 0) return;
+    await ensureLeadAndFlush(sessionId);
+  });
+}
+
+// For code that created the lead through its own lead_upsert call.
+export function noteLeadCreated(): void {
+  const sessionId = getLeadSessionId();
+  if (sessionId) markCreated(sessionId);
 }
 
 export type EmailSubmitResult = "ok" | "invalid_email" | "error";
 
-// Email capture, only ever called after the visitor ticked the consent box.
-// Order matters: email and consent must be stored before email_submitted, or
-// lead_event_add will not promote the lead to stage 2. The event carries no payload,
-// so the address never enters lead_events.
-export async function leadSubmitEmail(email: string): Promise<EmailSubmitResult> {
-  const value = email.trim();
-  if (!isValidLeadEmail(value)) return "invalid_email";
-  const error = await upsert({ email: value, contact_consent: true });
-  if (error) {
-    // 23514 = check_violation (leads_email_check).
-    return error.code === "23514" || /email/i.test(error.message) ? "invalid_email" : "error";
-  }
-  await leadEvent("email_submitted");
-  return "ok";
+// Email capture. `contactConsent` is the separate, unticked "let matched clinics contact me"
+// box; the email is accepted with or without it. Email and consent are stored first, then held
+// events, then email_submitted with no payload, so the address never enters lead_events and the
+// lead reaches stage 2 only when consent is true (the database rule). An unticked box sends
+// contact_consent false, so a visitor who unticks it withdraws consent they gave earlier.
+export function leadSubmitEmail(email: string, contactConsent: boolean): Promise<EmailSubmitResult> {
+  return enqueue(async () => {
+    const sessionId = getLeadSessionId();
+    const value = email.trim();
+    if (!sessionId) return "error";
+    if (!value) return "invalid_email";
+    // A rejected address raises inside lead_upsert and rolls back, so no lead row is created.
+    const error = await rawUpsert(sessionId, { email: value, contact_consent: contactConsent });
+    if (error) {
+      // 23514 = check_violation (leads_email_check).
+      return error.code === "23514" || /email/i.test(error.message) ? "invalid_email" : "error";
+    }
+    await sendEvent(sessionId, { type: "email_submitted", payload: {} });
+    return "ok";
+  });
 }
 
-// Consultation CTA. The event goes first so the lead row exists; the click row is
-// then written server-side, where consultation_clicks.lead_id is resolved from the
-// session id (the browser cannot read leads).
+// Consultation CTA. The event goes first so the lead row exists; the click row is then
+// written server-side, where consultation_clicks.lead_id is resolved from the session id.
 export async function recordConsultationClick(clinicId: string): Promise<void> {
+  let failure = "";
   try {
     await leadEvent("consultation_click", { clinic_id: clinicId });
     const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -176,15 +291,21 @@ export async function recordConsultationClick(clinicId: string): Promise<void> {
       body: JSON.stringify({ clinic_id: clinicId, session_id: getLeadSessionId() }),
     });
     if (res.ok) return;
-    console.warn("[leads] consultation-click route failed:", res.status);
+    failure = `HTTP ${res.status}`;
   } catch (e) {
-    console.warn("[leads] consultation-click route failed:", e);
+    failure = String(e);
   }
-  // Fallback: the original anonymous insert, without lead_id, so the click is not lost.
+  // The app has no error-reporting service; console.error is the only error path.
+  console.error(
+    "[leads] consultation-click route failed (" + failure + "). Falling back to a direct consultation_clicks " +
+      "insert WITHOUT lead_id: this click will not be linked to its lead.",
+    { clinic_id: clinicId },
+  );
   try {
     const { data } = await supabase.auth.getUser();
-    await supabase.from("consultation_clicks").insert({ clinic_id: clinicId, user_id: data.user?.id ?? null });
+    const { error } = await supabase.from("consultation_clicks").insert({ clinic_id: clinicId, user_id: data.user?.id ?? null });
+    if (error) console.error("[leads] consultation_clicks fallback insert failed too; the click is lost:", error.message);
   } catch (e) {
-    console.warn("[leads] consultation_clicks fallback insert failed:", e);
+    console.error("[leads] consultation_clicks fallback insert failed too; the click is lost:", e);
   }
 }

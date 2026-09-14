@@ -120,3 +120,14 @@ Nothing below was reconstructed from memory without a source.
 - Baseline left in place: 4 stage-0 leads created 20:17–20:25 UTC by single clinic page loads
   (crawler traffic): `e3c6bee0-323c-4c82-aaab-b664244e22eb`, `184e935f-37f9-4370-b67a-113ff3b22b20`,
   `b5d2805a-ee88-4be6-8e2b-b7c51927933a`, `c55b8397-469c-4d56-b8fb-8303bfb237ed`.
+
+### after 21:47 UTC (exact time not recorded) — final-pass walkthrough test rows deleted
+- Who: app session (final pass: privacy wording, email/consent split, held clinic views, treatment breakdown)
+- What: guarded delete (count-checked, consultation_clicks first) of 5 leads, 24 lead_events,
+  2 quiz_responses, 2 lead_treatments, 0 consultation_clicks. No schema, function or view changes.
+- Why: rows created by that session's own UI walkthrough (Runs A2, C/D, E and two failed quiz-script
+  attempts). Runs A (first attempt) and B created no rows, by design.
+- Deleted session_ids: `e97a7b8c-7c32-4582-867d-e017cfc55986`, `d614e1ba-dd0f-42eb-8383-a4891f389470`,
+  `528ad80e-9896-4fbe-92e4-a30e0bc31bee`, `604d029a-3a65-49a6-8f00-3aaaedeebd13`,
+  `48016c4b-dad7-4a5a-b40a-6eb7c75cbc6b`
+- Left in place: the 4 baseline rows (`e3c6bee0…`, `184e935f…`, `b5d2805a…`, `c55b8397…`).

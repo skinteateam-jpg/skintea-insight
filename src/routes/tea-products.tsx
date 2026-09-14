@@ -657,45 +657,17 @@ function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => voi
 
       {/* Author row */}
       <div className="flex items-center gap-2">
-        {post.isMUA ? (
-          <div
-            className="flex flex-shrink-0 items-center justify-center rounded-full font-semibold"
-            style={{ width: 28, height: 28, background: "#1C0A00", color: "#FFFCF8", fontSize: 12 }}
-          >
-            {post.authorName?.[0]?.toUpperCase() ?? "S"}
-          </div>
-        ) : (
-          <div
-            className="flex flex-shrink-0 items-center justify-center rounded-full"
-            style={{ width: 28, height: 28, background: SKIN_BG[post.skinType], fontSize: 13, lineHeight: 1 }}
-          >
-            {char.emoji}
-          </div>
-        )}
+        <div
+          className="flex flex-shrink-0 items-center justify-center rounded-full"
+          style={{ width: 28, height: 28, background: SKIN_BG[post.skinType], fontSize: 13, lineHeight: 1 }}
+        >
+          {char.emoji}
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <p className="font-semibold text-[#1C0A00]" style={{ fontSize: 13 }}>
-              {post.isMUA ? post.authorName : char.name}
-            </p>
-            {post.isMUA && (
-              <span
-                style={{
-                  background: "#1C0A00",
-                  color: "#FFFCF8",
-                  fontSize: 9,
-                  padding: "1px 5px",
-                  borderRadius: 20,
-                  fontWeight: 600,
-                  lineHeight: 1.2,
-                }}
-              >
-                MUA
-              </span>
-            )}
+            <p className="font-semibold text-[#1C0A00]" style={{ fontSize: 13 }}>{char.name}</p>
           </div>
-          <p style={{ fontSize: 10, color: post.isMUA ? "#bbb" : "#999999" }}>
-            {post.isMUA ? post.authorRole : `${formatAgo(post.createdAt)} ago`}
-          </p>
+          <p style={{ fontSize: 10, color: "#999999" }}>{formatAgo(post.createdAt)} ago</p>
         </div>
         <span
           className="flex-shrink-0"

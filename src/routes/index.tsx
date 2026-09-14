@@ -5,6 +5,8 @@ import BottomNav from "@/components/BottomNav";
 import Footer from "@/components/Footer";
 import AppFrame from "@/components/AppFrame";
 import { supabase } from "@/integrations/supabase/client";
+import { ClinicImage } from "@/components/ClinicImage";
+import { displayImages, useCategoryImages, type DisplayImage } from "@/lib/clinicPhotos";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -42,9 +44,12 @@ type DbClinic = {
   neighborhood: string | null;
   image_url: string | null;
   best_for: string[] | null;
+  photos: unknown;
+  category: string | null;
 };
 
 function HomePage() {
+  const categoryImages = useCategoryImages();
   const navigate = useNavigate();
   void navigate;
 
@@ -65,7 +70,7 @@ function HomePage() {
           .limit(6),
         supabase
           .from("clinics")
-          .select("id,name,neighborhood,image_url,best_for")
+          .select("id,name,neighborhood,image_url,best_for,photos,category")
           .limit(4),
       ]);
       if (cancelled) return;
@@ -282,7 +287,7 @@ function HomePage() {
                   name={c.name}
                   loc={c.neighborhood ?? ""}
                   tags={(c.best_for ?? []).slice(0, 3)}
-                  imageUrl={c.image_url}
+                  images={displayImages(c, categoryImages, 400)}
                 />
               </Link>
             ))
@@ -436,7 +441,7 @@ function SectionHeader({ title, linkTo }: { title: string; linkTo?: string }) {
   );
 }
 
-function ClinicCard({ name, loc, tags, imageUrl }: { name: string; loc: string; tags: string[]; imageUrl?: string | null }) {
+function ClinicCard({ name, loc, tags, images }: { name: string; loc: string; tags: string[]; images: DisplayImage[] }) {
   return (
     <div
       style={{
@@ -447,11 +452,7 @@ function ClinicCard({ name, loc, tags, imageUrl }: { name: string; loc: string; 
         padding: 14,
       }}
     >
-      <div style={{ width: "100%", height: 80, background: C.warm, borderRadius: 10, overflow: "hidden" }}>
-        {imageUrl && (
-          <img src={imageUrl} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-        )}
-      </div>
+      <ClinicImage images={images} height={80} radius={10} compact />
       <div style={{ fontSize: 13, fontWeight: 700, color: C.espresso, marginTop: 10 }}>{name}</div>
       <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{loc}</div>
       <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>

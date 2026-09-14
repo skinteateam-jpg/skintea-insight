@@ -79,6 +79,7 @@ export type Database = {
           active: boolean
           celeb_name: string
           created_at: string
+          field_provenance: Json
           id: string
           quote: string
           source_name: string
@@ -90,6 +91,7 @@ export type Database = {
           active?: boolean
           celeb_name: string
           created_at?: string
+          field_provenance?: Json
           id?: string
           quote: string
           source_name: string
@@ -101,6 +103,7 @@ export type Database = {
           active?: boolean
           celeb_name?: string
           created_at?: string
+          field_provenance?: Json
           id?: string
           quote?: string
           source_name?: string
@@ -157,6 +160,7 @@ export type Database = {
         Row: {
           clinic_id: string | null
           created_at: string
+          field_provenance: Json
           id: string
           name: string | null
           role: string | null
@@ -166,6 +170,7 @@ export type Database = {
         Insert: {
           clinic_id?: string | null
           created_at?: string
+          field_provenance?: Json
           id?: string
           name?: string | null
           role?: string | null
@@ -175,6 +180,7 @@ export type Database = {
         Update: {
           clinic_id?: string | null
           created_at?: string
+          field_provenance?: Json
           id?: string
           name?: string | null
           role?: string | null
@@ -243,6 +249,7 @@ export type Database = {
         Row: {
           clinic_id: string | null
           created_at: string
+          field_provenance: Json
           id: string
           recommend_pct: number | null
           skin_type: string | null
@@ -250,6 +257,7 @@ export type Database = {
         Insert: {
           clinic_id?: string | null
           created_at?: string
+          field_provenance?: Json
           id?: string
           recommend_pct?: number | null
           skin_type?: string | null
@@ -257,6 +265,7 @@ export type Database = {
         Update: {
           clinic_id?: string | null
           created_at?: string
+          field_provenance?: Json
           id?: string
           recommend_pct?: number | null
           skin_type?: string | null
@@ -355,6 +364,7 @@ export type Database = {
         Row: {
           clinic_id: string | null
           created_at: string
+          field_provenance: Json
           id: string
           price_from: number | null
           price_unit: string | null
@@ -363,6 +373,7 @@ export type Database = {
         Insert: {
           clinic_id?: string | null
           created_at?: string
+          field_provenance?: Json
           id?: string
           price_from?: number | null
           price_unit?: string | null
@@ -371,6 +382,7 @@ export type Database = {
         Update: {
           clinic_id?: string | null
           created_at?: string
+          field_provenance?: Json
           id?: string
           price_from?: number | null
           price_unit?: string | null
@@ -399,6 +411,7 @@ export type Database = {
           caption: string | null
           clinic_id: string
           created_at: string
+          field_provenance: Json
           id: string
           is_active: boolean
           likes: number | null
@@ -412,6 +425,7 @@ export type Database = {
           caption?: string | null
           clinic_id: string
           created_at?: string
+          field_provenance?: Json
           id?: string
           is_active?: boolean
           likes?: number | null
@@ -425,6 +439,7 @@ export type Database = {
           caption?: string | null
           clinic_id?: string
           created_at?: string
+          field_provenance?: Json
           id?: string
           is_active?: boolean
           likes?: number | null
@@ -479,11 +494,13 @@ export type Database = {
           badges: string[] | null
           best_for: string[] | null
           booking_url: string | null
+          business_status: string | null
           category: string | null
           closes_at: string | null
           created_at: string
           distance_miles: number | null
           field_provenance: Json
+          google_categories: Json | null
           google_maps_url: string | null
           google_place_id: string | null
           google_rating: number | null
@@ -498,6 +515,7 @@ export type Database = {
           last_google_sync: string | null
           last_website_sync: string | null
           latitude: number | null
+          listing_filter: string | null
           longitude: number | null
           name: string
           neighborhood: string | null
@@ -525,11 +543,13 @@ export type Database = {
           badges?: string[] | null
           best_for?: string[] | null
           booking_url?: string | null
+          business_status?: string | null
           category?: string | null
           closes_at?: string | null
           created_at?: string
           distance_miles?: number | null
           field_provenance?: Json
+          google_categories?: Json | null
           google_maps_url?: string | null
           google_place_id?: string | null
           google_rating?: number | null
@@ -544,6 +564,7 @@ export type Database = {
           last_google_sync?: string | null
           last_website_sync?: string | null
           latitude?: number | null
+          listing_filter?: string | null
           longitude?: number | null
           name: string
           neighborhood?: string | null
@@ -571,11 +592,13 @@ export type Database = {
           badges?: string[] | null
           best_for?: string[] | null
           booking_url?: string | null
+          business_status?: string | null
           category?: string | null
           closes_at?: string | null
           created_at?: string
           distance_miles?: number | null
           field_provenance?: Json
+          google_categories?: Json | null
           google_maps_url?: string | null
           google_place_id?: string | null
           google_rating?: number | null
@@ -590,6 +613,7 @@ export type Database = {
           last_google_sync?: string | null
           last_website_sync?: string | null
           latitude?: number | null
+          listing_filter?: string | null
           longitude?: number | null
           name?: string
           neighborhood?: string | null
@@ -1129,6 +1153,7 @@ export type Database = {
           created_at: string | null
           currency: string | null
           description: string | null
+          field_provenance: Json
           id: string
           image_url: string | null
           image_urls: string[] | null
@@ -1158,6 +1183,7 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           description?: string | null
+          field_provenance?: Json
           id?: string
           image_url?: string | null
           image_urls?: string[] | null
@@ -1187,6 +1213,7 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           description?: string | null
+          field_provenance?: Json
           id?: string
           image_url?: string | null
           image_urls?: string[] | null
@@ -1769,6 +1796,7 @@ export type Database = {
           age: number | null
           before_url: string | null
           created_at: string | null
+          field_provenance: Json
           id: string
           is_active: boolean | null
           outcome: string | null
@@ -1781,6 +1809,7 @@ export type Database = {
           age?: number | null
           before_url?: string | null
           created_at?: string | null
+          field_provenance?: Json
           id?: string
           is_active?: boolean | null
           outcome?: string | null
@@ -1793,6 +1822,7 @@ export type Database = {
           age?: number | null
           before_url?: string | null
           created_at?: string | null
+          field_provenance?: Json
           id?: string
           is_active?: boolean | null
           outcome?: string | null
@@ -1814,6 +1844,7 @@ export type Database = {
         Row: {
           created_at: string
           display_name: string | null
+          field_provenance: Json
           follower_count: number | null
           handle: string | null
           id: string
@@ -1827,6 +1858,7 @@ export type Database = {
         Insert: {
           created_at?: string
           display_name?: string | null
+          field_provenance?: Json
           follower_count?: number | null
           handle?: string | null
           id?: string
@@ -1840,6 +1872,7 @@ export type Database = {
         Update: {
           created_at?: string
           display_name?: string | null
+          field_provenance?: Json
           follower_count?: number | null
           handle?: string | null
           id?: string
@@ -1944,6 +1977,7 @@ export type Database = {
           comment_count: number | null
           content: string | null
           created_at: string | null
+          field_provenance: Json
           id: string
           likes: number | null
           platform: string
@@ -1959,6 +1993,7 @@ export type Database = {
           comment_count?: number | null
           content?: string | null
           created_at?: string | null
+          field_provenance?: Json
           id?: string
           likes?: number | null
           platform: string
@@ -1974,6 +2009,7 @@ export type Database = {
           comment_count?: number | null
           content?: string | null
           created_at?: string | null
+          field_provenance?: Json
           id?: string
           likes?: number | null
           platform?: string
@@ -2004,6 +2040,7 @@ export type Database = {
           created_at: string
           description: string | null
           downtime: string | null
+          field_provenance: Json
           how_it_works: string | null
           id: string
           majority_pct: number | null
@@ -2027,6 +2064,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           downtime?: string | null
+          field_provenance?: Json
           how_it_works?: string | null
           id?: string
           majority_pct?: number | null
@@ -2050,6 +2088,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           downtime?: string | null
+          field_provenance?: Json
           how_it_works?: string | null
           id?: string
           majority_pct?: number | null
@@ -2070,6 +2109,7 @@ export type Database = {
         Row: {
           created_at: string | null
           emoji: string
+          field_provenance: Json
           id: string
           is_active: boolean
           keywords: string[]
@@ -2080,6 +2120,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           emoji: string
+          field_provenance?: Json
           id?: string
           is_active?: boolean
           keywords?: string[]
@@ -2090,6 +2131,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           emoji?: string
+          field_provenance?: Json
           id?: string
           is_active?: boolean
           keywords?: string[]
@@ -2270,6 +2312,7 @@ export type Database = {
           created_at: string | null
           currency: string | null
           description: string | null
+          field_provenance: Json
           id: string
           image_url: string | null
           image_urls: string[] | null

@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { leadEvent, recordConsultationClick } from "@/lib/leads";
 import { ClinicImage } from "@/components/ClinicImage";
 import { displayImages, useCategoryImages } from "@/lib/clinicPhotos";
+import { formatClinicPrice } from "@/lib/clinicPrices";
 import {
   ArrowLeft, Heart, Share2, MapPin, Sparkles, FileText, Lock,
   Phone, Car, Map as MapIcon, Building2, Plus, Flame, Camera,
@@ -339,7 +340,7 @@ function ClinicDetailPage() {
                     <div style={{ fontSize: 13, fontWeight: 700, color: ESPRESSO }}>{tName}</div>
                     {t.price_from != null && (
                       <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
-                        From ${t.price_from}{t.price_unit && t.price_unit !== "session" ? `/${t.price_unit}` : ""}
+                        {formatClinicPrice(t.price_from, t.price_unit)}
                       </div>
                     )}
                   </div>

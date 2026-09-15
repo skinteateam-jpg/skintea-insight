@@ -6,9 +6,10 @@ import AppFrame from "@/components/AppFrame";
 import BottomNav from "@/components/BottomNav";
 import TreatmentVoices from "@/components/TreatmentVoices";
 import {
-  breakdown, MIN_TAGGED, MIN_COST_VALUES, REGRET_LABELS, VERDICT_LABELS, VERDICT_PERCENTAGES_HELD,
+  breakdown, MIN_TAGGED, MIN_COST_VALUES, MAX_SENSITIVITY_POINTS, REGRET_LABELS, VERDICT_LABELS,
   type TreatmentQuoteRow, type TreatmentReviewRow, type VerdictCell,
 } from "@/lib/treatmentReviews";
+import { clinicPriceRanges, formatClinicPrice, formatPriceRange } from "@/lib/clinicPrices";
 
 export const Route = createFileRoute("/treatments/$slug")({
   component: TreatmentPage,
@@ -93,18 +94,25 @@ function mixedNote(mixed: number) {
   return mixed > 0 ? `${mixed} mixed ${mixed === 1 ? "review" : "reviews"} not counted in the split.` : "";
 }
 
+function reviewsLabel(n: number) {
+  return `based on ${n} ${n === 1 ? "review" : "reviews"}`;
+}
+
+// A percentage renders only when its own cell passes the sensitivity test (see treatmentReviews.ts),
+// and always with the number of reviews it is based on.
 function VerdictBars({ cell, who }: { cell: VerdictCell; who: string }) {
-  if (cell.worthPct === null || cell.notWorthPct === null) {
-    if (VERDICT_PERCENTAGES_HELD) {
-      return (
-        <DataPending>
-          Held for now. Some of these reviews were found by searching for regrets, so a worth-it split would lean negative however many there are. The quotes below are unaffected.
-        </DataPending>
-      );
-    }
+  if (cell.gate !== "open" || cell.worthPct === null || cell.notWorthPct === null) {
     return (
       <DataPending>
-        {cell.n} of {MIN_TAGGED} tagged worth-it / not-worth-it reviews{who ? ` ${who}` : ""} needed. {mixedNote(cell.mixed)}
+        {cell.gate === "too_few" && (
+          <>{cell.n} of {MIN_TAGGED} counted worth-it / not-worth-it reviews{who ? ` ${who}` : ""} needed. {mixedNote(cell.mixed)}</>
+        )}
+        {cell.gate === "no_comparison" && (
+          <>Held: every counted review here was found by searching for regrets, so the figure cannot be checked for that bias yet.</>
+        )}
+        {cell.gate === "unstable" && (
+          <>Held: leaving out the reviews found by searching for regrets moves this figure by {Math.round(cell.delta ?? 0)} points (more than {MAX_SENSITIVITY_POINTS}), so it is not stable yet.</>
+        )}
       </DataPending>
     );
   }
@@ -117,11 +125,15 @@ function VerdictBars({ cell, who }: { cell: VerdictCell; who: string }) {
       <div className="grid grid-cols-2 gap-2.5">
         {cards.map((c) => (
           <div key={c.label} className="bg-card border border-brand-border rounded-xl p-3.5">
-            <div className="text-[11px] text-brand-muted mb-1">{c.label} <span className="text-[10px]">· {c.count} of {cell.n}</span></div>
-            <div className="text-3xl font-semibold text-brand-espresso leading-none">{c.pct}%</div>
+            <div className="text-[11px] text-brand-muted mb-1">{c.label}</div>
+            <div className="flex items-baseline flex-wrap gap-x-1.5">
+              <span className="text-3xl font-semibold text-brand-espresso leading-none">{c.pct}%</span>
+              <span className="text-[11px] text-brand-muted">· {reviewsLabel(cell.n)}</span>
+            </div>
             <div className="h-[3px] bg-brand-border rounded-sm my-2 overflow-hidden">
               <div className={`h-full ${c.barCls}`} style={{ width: `${c.pct}%` }} />
             </div>
+            <div className="text-[10px] text-brand-muted">{c.count} of {cell.n}</div>
           </div>
         ))}
       </div>
@@ -243,7 +255,7 @@ function TreatmentPage() {
         setLinks(rows);
         const { data: tr } = await (supabase as any)
           .from("treatment_reviews")
-          .select("verdict, is_first_time, sensitive_skin, regret_reason, cost_paid_usd, tag_confidence, tagged_at")
+          .select("verdict, is_first_time, sensitive_skin, regret_reason, cost_paid_usd, tag_confidence, tagged_at, query:field_provenance->detail->>query")
           .eq("treatment_id", (t as any).id)
           .not("tagged_at", "is", null);
         if (!alive) return;
@@ -316,13 +328,13 @@ function TreatmentPage() {
           (treatments.majority_pct / results_pct / minority_opinion are not read). The axis is
           verdict, first time vs repeat, regret reason, sensitive skin and price paid, because
           people reviewing treatments rarely state a skin type. Only high- and medium-confidence
-          rows are counted; low-confidence rows appear as quotes only. Verdict percentages are held
-          (VERDICT_PERCENTAGES_HELD: the sample is biased by a regret-seeking query shape). Regret
-          reasons are counts, not shares. The price needs 5 values. Never hide this section.
+          rows are counted; low-confidence rows appear as quotes only. Each verdict cell shows a
+          percentage only when it passes the sensitivity test (>= 10 counted rows, and removing
+          regret-seeking rows moves Worth it by <= 10 points), always with its sample size. Regret
+          reasons are counts, not shares. Never hide this section.
         */}
         {(() => {
           const br = breakdown(reviewRows);
-          const cost = br.cost;
           return (
             <Section title="What people say">
               <SubLabel>Worth it?</SubLabel>
@@ -354,10 +366,38 @@ function TreatmentPage() {
               <SubLabel>Sensitive skin</SubLabel>
               <VerdictBars cell={br.sensitive} who="from people with sensitive skin" />
 
-              <SubLabel>What people actually paid</SubLabel>
+            </Section>
+          );
+        })()}
+
+        {/*
+          Price. Two different facts, never merged: what listed clinics state on their own websites
+          (clinic_treatments, clinic_website_crawl evidence; a range per unit only with >= 3 listed
+          clinics, otherwise nothing), and what Reddit users said they paid (treatment_reviews
+          .cost_paid_usd, 5-value floor), shown below it.
+        */}
+        {(() => {
+          const ranges = clinicPriceRanges(links.map((l) => ({ clinicId: l.clinics!.id, price_from: l.price_from, price_unit: l.price_unit })));
+          const cost = breakdown(reviewRows).cost;
+          return (
+            <Section title="Price">
+              {ranges.length > 0 && (
+                <>
+                  <SubLabel>Listed by clinics</SubLabel>
+                  <div className="bg-card border border-brand-border rounded-xl p-3.5 flex flex-col gap-1.5">
+                    {ranges.map((r) => (
+                      <div key={r.unit} className="text-xs text-brand-espresso">{formatPriceRange(r)}</div>
+                    ))}
+                    <div className="text-[10px] text-brand-muted leading-[1.4]">
+                      Prices as stated on each clinic's own website. Units are never mixed in one range.
+                    </div>
+                  </div>
+                </>
+              )}
+              <SubLabel>What people said they paid</SubLabel>
               {cost.enough ? (
                 <div className="bg-card border border-brand-border rounded-xl p-3.5">
-                  <div className="text-[11px] text-brand-muted mb-1">Median <span className="text-[10px]">· {cost.n} reported prices</span></div>
+                  <div className="text-[11px] text-brand-muted mb-1">Median <span className="text-[10px]">· {cost.n} prices reported on Reddit</span></div>
                   <div className="text-3xl font-semibold text-brand-espresso leading-none">
                     {cost.medianLow === cost.medianHigh ? formatUsd(cost.medianLow) : `${formatUsd(cost.medianLow)}–${formatUsd(cost.medianHigh)}`}
                   </div>
@@ -367,7 +407,7 @@ function TreatmentPage() {
                   )}
                 </div>
               ) : (
-                <DataPending>{cost.n} of {MIN_COST_VALUES} reported prices needed.</DataPending>
+                <DataPending>{cost.n} of {MIN_COST_VALUES} prices reported on Reddit needed.</DataPending>
               )}
             </Section>
           );
@@ -409,7 +449,7 @@ function TreatmentPage() {
                       )}
                       {l.price_from != null && (
                         <div style={{ fontSize: 12, fontWeight: 800, color: CRIMSON, marginTop: 4 }}>
-                          From ${l.price_from}{l.price_unit ? ` / ${l.price_unit}` : ""}
+                          {formatClinicPrice(l.price_from, l.price_unit)}
                         </div>
                       )}
                     </div>

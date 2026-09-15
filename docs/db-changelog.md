@@ -368,3 +368,22 @@ Nothing below was reconstructed from memory without a source.
     rejuran per session).
   - What Reddit users said they paid (`cost_paid_usd`, 5-value floor) is a separate, differently labelled figure
     below it.
+
+### 20:38–22:07 UTC — clinic social links table, deep-crawl treatment mappings, crawl status staging (pipeline session, clinic layer)
+- Who: skintea-pipeline session; direct statements in `sql/2026-09-15_clinic_page_querydb_log.sql`; INSERT files
+  `sql/2026-09-15_crawl_status_staging.sql` and `sql/2026-09-15_clinic_treatments_deep_crawl.sql` (md5 `47efb259…`, loaded by
+  the Lovable agent); generator `scripts/clinics/gen_clinic_treatments_deep.py`.
+- What:
+  - New table `public.clinic_social_links` (clinic_id, platform in instagram/tiktok/facebook/youtube/x/pinterest/linkedin,
+    https url, handle, `field_provenance.url.source` required, unique per clinic/platform/url). RLS on; anon/authenticated
+    SELECT only; policy "Clinic social links are public". 249 rows copied from `clinic_contacts.social_profiles` (URLs
+    normalised, single-post/video links excluded; provenance carried with `copied_from`). Emails stay in the private
+    `clinic_contacts`. Verified as anon: links readable, `clinic_contacts` "permission denied", INSERT rejected.
+  - `clinic_treatments`: +110 mappings on 17 clinics (15 passed clinics that had none), priceless, source
+    `clinic_website_crawl`, each pair read in context. Loaded through a temporary policy
+    "sandbox inserts deep crawl treatments (temporary)" (INSERT TO sandbox_exec), created 22:04 and dropped 22:06.
+    clinic_treatments 437 → 547.
+  - Staging table `crawl_status_staging` (RLS on, sandbox_exec SELECT/INSERT only) created 20:38, used for the coverage
+    breakdown, dropped 22:07.
+- Why: the clinic page showed empty Treatments for 149 of 240 listed clinics; social profiles belong on the page, emails do not.
+- Deleted session_ids: none (no rows deleted).

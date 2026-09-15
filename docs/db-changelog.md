@@ -263,3 +263,33 @@ Nothing below was reconstructed from memory without a source.
   so dropping it means recreating that trigger while the clinic session is writing mappings. Follow-up: drop it and
   recreate the trigger without it once that session is done.
 - Deleted session_ids: none. No rows were deleted by this session.
+
+### 20:08–20:10 UTC — Reddit treatment reviews inserted; treatment page gate (pipeline session)
+- Who: skintea-pipeline session. App files `src/lib/treatmentReviews.ts` + `src/routes/treatments.$slug.tsx`
+  (Lovable `d533f51`), then `sql/2026-09-15_treatment_reviews_reddit.sql` (pipeline commit `f753dc2`, md5
+  `e85807829807e9530cec8f1d7ce7c5a1`) run by the agent (sandbox_exec, INSERT only, one transaction).
+- What: 139 rows inserted into `treatment_reviews`: botox 29, fillers 23, hydrafacial 31, morpheus8 24, rejuran 13,
+  skin-boosters 19. Verbatim Reddit excerpts, `author_handle` NULL, every row with `source_url` and provenance. No
+  deletions, no schema change.
+- Why: first sourced opinion data for the treatment pages.
+- Deleted session_ids: none
+
+#### Method note — treatment review percentages are HELD (read before turning any on)
+- **Low confidence never counts.** Rows with `tag_confidence = 'low'` are shown as quotes only. They are excluded
+  from every percentage, count, median and floor check (`isCountedReview` in `src/lib/treatmentReviews.ts`).
+- **Held cells.** Three verdict percentages show "Not enough data yet" whatever the volume: Worth it?, First time vs
+  repeat, and Sensitive skin. The switch is `VERDICT_PERCENTAGES_HELD = true`.
+- **Why: the sample is biased by construction, not thin.** The batch was collected with five query shapes per
+  treatment, and one of them is "<treatment> regret" (plus a "lip filler regret" top-up). Regret-seeking threads
+  skew the worth-it / not-worth-it ratio toward negative before anyone tags anything. The 10-review floor guards
+  volume, not bias.
+  - Share of inserted rows that came from regret queries: botox 8/29, fillers 10/23, hydrafacial 3/31, morpheus8 2/24,
+    rejuran 1/13, skin-boosters 0/19.
+- **Shown from this batch:** the quotes with source links, top regret reasons as counts (never shares), and price paid
+  (median and range, only at 5 or more counted values). Price is the one field immune to query-shape bias.
+- **To lift the hold:**
+  1. Run a rebalanced batch where regret-seeking shapes are at most 20% of runs. Add neutral shapes such as
+     "<treatment> results", "first time", "follow up" and "one year later".
+  2. Re-report the per-treatment composition: confidence, verdicts, prices, regrets and rows per query shape.
+  3. Get the owner's explicit decision.
+  - Only after all three, set `VERDICT_PERCENTAGES_HELD = false`. Do not lift it because a cell passes the review floor.

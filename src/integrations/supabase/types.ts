@@ -719,6 +719,27 @@ export type Database = {
           },
         ]
       }
+      crawl_status_staging: {
+        Row: {
+          host: string | null
+          place_id: string
+          status: string
+          text_len: number
+        }
+        Insert: {
+          host?: string | null
+          place_id: string
+          status: string
+          text_len: number
+        }
+        Update: {
+          host?: string | null
+          place_id?: string
+          status?: string
+          text_len?: number
+        }
+        Relationships: []
+      }
       gift_wishlist: {
         Row: {
           affiliate_store: string | null

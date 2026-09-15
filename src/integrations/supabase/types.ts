@@ -79,37 +79,70 @@ export type Database = {
           active: boolean
           celeb_name: string
           created_at: string
+          embed_url: string | null
+          evidence_type: string
           field_provenance: Json
+          follower_count: number | null
+          follower_count_at: string | null
           id: string
-          quote: string
+          instagram_handle: string | null
+          platform: string
+          profile_photo_url: string | null
+          profile_url: string | null
+          quote: string | null
+          said_on: string
           source_name: string
           source_url: string
           source_year: number | null
+          tier: string
           treatment_id: string
+          verified_at: string | null
         }
         Insert: {
           active?: boolean
           celeb_name: string
           created_at?: string
+          embed_url?: string | null
+          evidence_type: string
           field_provenance?: Json
+          follower_count?: number | null
+          follower_count_at?: string | null
           id?: string
-          quote: string
+          instagram_handle?: string | null
+          platform: string
+          profile_photo_url?: string | null
+          profile_url?: string | null
+          quote?: string | null
+          said_on: string
           source_name: string
           source_url: string
           source_year?: number | null
+          tier: string
           treatment_id: string
+          verified_at?: string | null
         }
         Update: {
           active?: boolean
           celeb_name?: string
           created_at?: string
+          embed_url?: string | null
+          evidence_type?: string
           field_provenance?: Json
+          follower_count?: number | null
+          follower_count_at?: string | null
           id?: string
-          quote?: string
+          instagram_handle?: string | null
+          platform?: string
+          profile_photo_url?: string | null
+          profile_url?: string | null
+          quote?: string | null
+          said_on?: string
           source_name?: string
           source_url?: string
           source_year?: number | null
+          tier?: string
           treatment_id?: string
+          verified_at?: string | null
         }
         Relationships: [
           {
@@ -674,6 +707,13 @@ export type Database = {
             foreignKeyName: "consultation_clicks_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "lead_handover_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultation_clicks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
@@ -834,6 +874,13 @@ export type Database = {
             foreignKeyName: "lead_events_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
+            referencedRelation: "lead_handover_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
@@ -856,6 +903,13 @@ export type Database = {
           treatment_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lead_treatments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "lead_handover_queue"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lead_treatments_lead_id_fkey"
             columns: ["lead_id"]
@@ -1318,6 +1372,13 @@ export type Database = {
           share_slug?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "quiz_responses_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "lead_handover_queue"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "quiz_responses_lead_id_fkey"
             columns: ["lead_id"]
@@ -2180,6 +2241,54 @@ export type Database = {
           reached_stage_1: number | null
           reached_stage_2: number | null
           with_zip: number | null
+        }
+        Relationships: []
+      }
+      lead_handover_queue: {
+        Row: {
+          age_bracket: string | null
+          budget_band: string | null
+          city: string | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          intent_stage_version: number | null
+          interest_treatments: string[] | null
+          is_first_time: boolean | null
+          session_id: string | null
+          skin_type: string | null
+          stage_2_at: string | null
+          zip: string | null
+        }
+        Insert: {
+          age_bracket?: string | null
+          budget_band?: string | null
+          city?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          intent_stage_version?: number | null
+          interest_treatments?: never
+          is_first_time?: boolean | null
+          session_id?: string | null
+          skin_type?: string | null
+          stage_2_at?: string | null
+          zip?: string | null
+        }
+        Update: {
+          age_bracket?: string | null
+          budget_band?: string | null
+          city?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string | null
+          intent_stage_version?: number | null
+          interest_treatments?: never
+          is_first_time?: boolean | null
+          session_id?: string | null
+          skin_type?: string | null
+          stage_2_at?: string | null
+          zip?: string | null
         }
         Relationships: []
       }

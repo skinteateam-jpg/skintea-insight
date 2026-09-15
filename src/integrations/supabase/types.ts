@@ -1091,6 +1091,18 @@ export type Database = {
         }
         Relationships: []
       }
+      photo_dead_staging: {
+        Row: {
+          url: string
+        }
+        Insert: {
+          url: string
+        }
+        Update: {
+          url?: string
+        }
+        Relationships: []
+      }
       posts: {
         Row: {
           cost: string | null

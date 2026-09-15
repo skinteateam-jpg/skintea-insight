@@ -1064,6 +1064,33 @@ export type Database = {
         }
         Relationships: []
       }
+      name_staging: {
+        Row: {
+          action: string
+          detail: string
+          google_name: string
+          new_name: string | null
+          place_id: string
+          url: string
+        }
+        Insert: {
+          action: string
+          detail: string
+          google_name: string
+          new_name?: string | null
+          place_id: string
+          url: string
+        }
+        Update: {
+          action?: string
+          detail?: string
+          google_name?: string
+          new_name?: string | null
+          place_id?: string
+          url?: string
+        }
+        Relationships: []
+      }
       posts: {
         Row: {
           cost: string | null

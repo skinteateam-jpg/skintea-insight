@@ -316,6 +316,44 @@ export type Database = {
           },
         ]
       }
+      clinic_social_links: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          field_provenance: Json
+          handle: string | null
+          id: string
+          platform: string
+          url: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          field_provenance: Json
+          handle?: string | null
+          id?: string
+          platform: string
+          url: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          field_provenance?: Json
+          handle?: string | null
+          id?: string
+          platform?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_social_links_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_submissions: {
         Row: {
           address: string | null

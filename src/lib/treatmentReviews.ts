@@ -5,20 +5,23 @@
 // Rules:
 // - Counted rows are tagged (tagged_at not null) with tag_confidence high or medium. Low-confidence
 //   rows are quotes only: they never enter a percentage, a count, a median or a floor check.
-// - Verdict percentages (overall, first time vs repeat, sensitive skin) are HELD. The first Reddit
-//   batch was collected with five query shapes, one of which is "<treatment> regret", so the
-//   worth-it / not-worth-it ratio is skewed toward negatives before anything is tagged. The review
-//   floor guards volume, not bias. Lift VERDICT_PERCENTAGES_HELD only after a rebalanced batch
-//   (regret-seeking shapes at most 20% of runs) has been re-reported; see docs/db-changelog.md,
-//   2026-09-15 "treatment review percentages held".
-// - Regret reasons are shown as counts, never as shares. Price paid (median and range) needs
-//   MIN_COST_VALUES values. Every figure comes from its own counts: nothing is interpolated,
+// - A verdict percentage (overall, first time, repeat, sensitive skin) is shown only when its own
+//   cell passes the SENSITIVITY TEST, computed here from the rows at render time:
+//     (a) at least MIN_TAGGED counted worth_it / not_worth_it rows, and
+//     (b) recomputing Worth it with every regret-seeking row removed (the row's search query
+//         contains "regret") moves it by MAX_SENSITIVITY_POINTS or less.
+//   The figure shown is computed from ALL counted rows; (b) only checks that the suspect rows are
+//   not what makes the number. The share of regret-seeking rows is not the test: on 2026-09-15
+//   botox had a 32% regret share and moved 4 points, fillers had 33% and moved 21.
+//   See docs/db-changelog.md, 2026-09-15 "sensitivity test".
+// - Every percentage renders with its sample size. Regret reasons are counts, never shares.
+//   Price paid (median and range) needs MIN_COST_VALUES values. Nothing is interpolated,
 //   estimated, or derived from another figure.
 import { MIN_TAGGED, opinionShares } from "./opinionAggregate";
 
 export { MIN_TAGGED };
 export const MIN_COST_VALUES = 5;
-export const VERDICT_PERCENTAGES_HELD = true;
+export const MAX_SENSITIVITY_POINTS = 10;
 
 export type TreatmentReviewRow = {
   verdict: string | null;
@@ -28,6 +31,7 @@ export type TreatmentReviewRow = {
   cost_paid_usd: number | null;
   tag_confidence: string | null;
   tagged_at: string | null;
+  query: string | null; // field_provenance->'detail'->>'query': the search that found the row
 };
 
 // Counted rows: tagged, and tagged with high or medium confidence.
@@ -35,23 +39,49 @@ export function isCountedReview(r: TreatmentReviewRow): boolean {
   return r.tagged_at != null && (r.tag_confidence === "high" || r.tag_confidence === "medium");
 }
 
+export function isRegretSeeking(r: TreatmentReviewRow): boolean {
+  return /regret/i.test(r.query ?? "");
+}
+
+export type GateState =
+  | "open"
+  | "too_few" // fewer than MIN_TAGGED counted worth_it / not_worth_it rows
+  | "no_comparison" // every counted row came from a regret-seeking query, so (b) cannot be run
+  | "unstable"; // removing regret-seeking rows moves Worth it by more than MAX_SENSITIVITY_POINTS
+
 export type VerdictCell = {
   worth: number;
   notWorth: number;
   mixed: number;
-  n: number; // worth + notWorth: the bar's denominator (mixed is excluded from the bar)
-  worthPct: number | null;
+  n: number; // worth + notWorth: the percentage's denominator (mixed is excluded)
+  nExRegret: number;
+  worthPctAll: number | null; // exact, all counted rows
+  worthPctExRegret: number | null; // exact, regret-seeking rows removed
+  delta: number | null; // |worthPctAll - worthPctExRegret| in percentage points, exact
+  gate: GateState;
+  worthPct: number | null; // displayed (largest-remainder rounding of all counted rows), only when open
   notWorthPct: number | null;
 };
 
 export function verdictCell(rows: TreatmentReviewRow[]): VerdictCell {
-  const worth = rows.filter((r) => r.verdict === "worth_it").length;
-  const notWorth = rows.filter((r) => r.verdict === "not_worth_it").length;
+  const vr = rows.filter((r) => r.verdict === "worth_it" || r.verdict === "not_worth_it");
+  const worth = vr.filter((r) => r.verdict === "worth_it").length;
+  const notWorth = vr.length - worth;
   const mixed = rows.filter((r) => r.verdict === "mixed").length;
-  const n = worth + notWorth;
+  const n = vr.length;
+  const ex = vr.filter((r) => !isRegretSeeking(r));
+  const nExRegret = ex.length;
+  const worthPctAll = n > 0 ? (100 * worth) / n : null;
+  const worthPctExRegret = nExRegret > 0 ? (100 * ex.filter((r) => r.verdict === "worth_it").length) / nExRegret : null;
+  const delta = worthPctAll !== null && worthPctExRegret !== null ? Math.abs(worthPctAll - worthPctExRegret) : null;
+  const gate: GateState =
+    n < MIN_TAGGED ? "too_few" : delta === null ? "no_comparison" : delta > MAX_SENSITIVITY_POINTS ? "unstable" : "open";
   // Largest-remainder rounding of two own counts (mix = 0), same as the product page.
-  const shares = !VERDICT_PERCENTAGES_HELD && n >= MIN_TAGGED ? opinionShares(worth, notWorth, 0) : null;
-  return { worth, notWorth, mixed, n, worthPct: shares ? shares.pos : null, notWorthPct: shares ? shares.neg : null };
+  const shares = gate === "open" ? opinionShares(worth, notWorth, 0) : null;
+  return {
+    worth, notWorth, mixed, n, nExRegret, worthPctAll, worthPctExRegret, delta, gate,
+    worthPct: shares ? shares.pos : null, notWorthPct: shares ? shares.neg : null,
+  };
 }
 
 // Quote rows: every row with text and a source link, low confidence included. Only columns the

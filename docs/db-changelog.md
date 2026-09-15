@@ -293,3 +293,24 @@ Nothing below was reconstructed from memory without a source.
   2. Re-report the per-treatment composition: confidence, verdicts, prices, regrets and rows per query shape.
   3. Get the owner's explicit decision.
   - Only after all three, set `VERDICT_PERCENTAGES_HELD = false`. Do not lift it because a cell passes the review floor.
+
+### 20:10–20:35 UTC — clinic names, Census coordinates, location guard, dead photo links (pipeline session, clinic layer)
+- Who: skintea-pipeline session; statements in `sql/2026-09-15_names_geocode_photos_querydb_log.sql`, INSERT files
+  `sql/2026-09-15_name_staging.sql` and `sql/2026-09-15_photo_dead_staging.sql` (loaded by the Lovable agent), geocoder
+  `scripts/clinics/geocode_census.py` (run in the sandbox).
+- What:
+  - `clinics.name`: 92 values replaced with the name the clinic's own website states, 143 provenance-only switches where
+    the stored name appears on the site; source `clinic_website_crawl`, Google provenance kept under `previous`.
+  - `clinics.latitude` / `longitude`: 147 rows set from the US Census Bureau Geocoder (public domain) for every address that
+    is not Google-sourced; source `census_geocoder`, Google coordinates kept under `previous`. 7 addresses did not match
+    (4 seeded rows without city/ZIP keep NULL coordinates).
+  - `clinics_enforce_provenance()`: coordinates may be sourced `census_geocoder` (and only coordinates).
+  - New trigger `clinics_enforce_location_consistency`: rejects an address change that leaves the old coordinates, a
+    non-Google address with Google coordinates, and latitude/longitude from different sources.
+  - `clinics.photos`: 4,744 Google Places photo entries removed from 344 rows — every URL returned HTTP 403 from a US
+    GitHub runner and locally (expired signed links); 1 live entry kept.
+  - Staging tables `geocode_staging`, `name_staging`, `photo_dead_staging` created (RLS on, sandbox_exec SELECT/INSERT only),
+    used and dropped.
+- Why: publishable clinic listings need a name, location and contact that do not depend on Google; dead image links render
+  as broken photos instead of the category placeholder.
+- Deleted session_ids: none (no rows deleted; photo array entries removed, list of URLs in the committed INSERT file)

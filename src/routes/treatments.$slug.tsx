@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronRight, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AppFrame from "@/components/AppFrame";
 import BottomNav from "@/components/BottomNav";
+import TreatmentVoices from "@/components/TreatmentVoices";
 import { breakdown, MIN_TAGGED, MIN_COST_VALUES, REGRET_LABELS, type TreatmentReviewRow, type VerdictCell } from "@/lib/treatmentReviews";
 
 export const Route = createFileRoute("/treatments/$slug")({
@@ -206,6 +207,13 @@ function TreatmentPage() {
           <Field label="Average cost" value={treatment.average_cost} />
           <Field label="Sessions recommended" value={treatment.sessions_recommended} />
         </Section>
+
+        {/*
+          Who has talked about it — celebrity / influencer evidence, between "About this
+          treatment" and "What people say". Treatment-scoped only: these rows are never
+          joined to a clinic and never link to one.
+        */}
+        <TreatmentVoices treatmentId={treatment.id} />
 
         {/*
           Opinion figures come only from tagged treatment_reviews rows for this treatment

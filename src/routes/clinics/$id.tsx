@@ -36,24 +36,7 @@ type CTreatment = {
   treatment_id: string;
   treatments: { id: string; name: string; slug: string | null; active?: boolean | null } | null;
 };
-type Influencer = {
-  id: string;
-  treatment_id: string;
-  handle: string;
-  display_name: string;
-  profile_photo_url: string | null;
-  profile_url: string | null;
-};
 type Practitioner = { id: string; name: string; role: string; specialty: string };
-type CelebMention = {
-  id: string;
-  treatment_id: string;
-  celeb_name: string;
-  quote: string;
-  source_name: string;
-  source_url: string;
-  source_year: number | null;
-};
 type Review = {
   id: string; skin_type: string; body: string; agree_count: number;
   treatment_id: string | null;
@@ -135,26 +118,6 @@ function Section({ title, right, children }: { title: string; right?: React.Reac
   );
 }
 
-function AvatarImg({ src, name, size = 18 }: { src: string | null; name: string; size?: number }) {
-  const [err, setErr] = useState(false);
-  const initials = name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
-  if (err || !src) {
-    return (
-      <div style={{
-        width: size, height: size, borderRadius: size,
-        background: CRIMSON_TINT, color: CRIMSON,
-        fontSize: Math.max(8, size * 0.45), fontWeight: 800,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        flexShrink: 0,
-      }}>{initials}</div>
-    );
-  }
-  return (
-    <img src={src} alt={name} onError={() => setErr(true)}
-      style={{ width: size, height: size, borderRadius: size, objectFit: "cover", flexShrink: 0 }} />
-  );
-}
-
 function ClinicDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
@@ -162,8 +125,6 @@ function ClinicDetailPage() {
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [skinScores, setSkinScores] = useState<SkinScore[]>([]);
   const [treatments, setTreatments] = useState<CTreatment[]>([]);
-  const [influencers, setInfluencers] = useState<Influencer[]>([]);
-  const [celebMentions, setCelebMentions] = useState<CelebMention[]>([]);
   const [practitioners, setPractitioners] = useState<Practitioner[]>([]);
   const [visitors, setVisitors] = useState<any[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -215,17 +176,6 @@ function ClinicDetailPage() {
       setVideos((v.data as any) || []);
 
 
-      const tIds = ctData.map((t: CTreatment) => t.treatment_id).filter(Boolean);
-      if (tIds.length) {
-        const inf = await supabase.from("treatment_influencers").select("*").in("treatment_id", tIds);
-        if (alive) setInfluencers((inf.data as any) || []);
-        const cm = await supabase
-          .from("celebrity_mentions")
-          .select("*")
-          .in("treatment_id", tIds)
-          .eq("active", true);
-        if (alive) setCelebMentions((cm.data as any) || []);
-      }
       setLoading(false);
     })();
     return () => { alive = false; };
@@ -379,8 +329,6 @@ function ClinicDetailPage() {
       <Section title="Treatments">
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {treatments.map((t) => {
-            const tInf = influencers.filter((i) => i.treatment_id === t.treatment_id);
-            const tCelebs: CelebMention[] = []; // celebrity mentions are treatment-level; never shown on a clinic page
             const tName = t.treatments?.name ?? "Treatment";
             return (
               <div key={t.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -403,20 +351,6 @@ function ClinicDetailPage() {
                 </div>
                 {/* Bottom sub-row */}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", paddingLeft: 44 }}>
-                  {tInf.slice(0, 3).map((inf) => (
-                    <button key={inf.id} onClick={() => inf.profile_url && window.open(inf.profile_url, "_blank")} style={{
-                      background: CREAM_TINT, border: "none", borderRadius: 4,
-                      padding: "4px 8px", display: "flex", alignItems: "center", gap: 5,
-                      cursor: "pointer",
-                    }}>
-                      <AvatarImg src={inf.handle ? `https://unavatar.io/instagram/${inf.handle}` : inf.profile_photo_url} name={inf.display_name} size={18} />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: ESPRESSO }}>{inf.display_name}</span>
-                      <span style={{ fontSize: 10, color: MUTED }}>did this</span>
-                    </button>
-                  ))}
-                  {tInf.length > 3 && (
-                    <span style={{ fontSize: 10, color: MUTED }}>+{tInf.length - 3} more</span>
-                  )}
                   {t.treatments?.slug && t.treatments?.active !== false && (
                     <button onClick={() => { navigate({ to: "/treatments/$slug", params: { slug: t.treatments!.slug! } }).catch(() => {}); }} style={{
                       background: "none", border: "none", color: CRIMSON,
@@ -427,30 +361,6 @@ function ClinicDetailPage() {
                     </button>
                   )}
                 </div>
-                {/* Sourced celebrity mentions — on-record quotes only */}
-                {tCelebs.map((cm) => (
-                  <div key={cm.id} style={{
-                    marginLeft: 44, background: CREAM_TINT, borderRadius: 8,
-                    padding: "10px 12px", borderLeft: `2px solid ${CRIMSON}`,
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: ESPRESSO }}>{cm.celeb_name}</span>
-                      <span style={{
-                        fontSize: 8, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase",
-                        color: CRIMSON, background: CRIMSON_TINT, borderRadius: 20, padding: "2px 6px",
-                      }}>On the record</span>
-                    </div>
-                    <div style={{ fontSize: 11, lineHeight: 1.5, color: ESPRESSO, fontStyle: "italic" }}>
-                      “{cm.quote}”
-                    </div>
-                    <a href={cm.source_url} target="_blank" rel="noopener noreferrer" style={{
-                      display: "inline-block", marginTop: 6, fontSize: 10, fontWeight: 700,
-                      color: CRIMSON, textDecoration: "none",
-                    }}>
-                      {cm.source_name}{cm.source_year ? `, ${cm.source_year}` : ""} ↗
-                    </a>
-                  </div>
-                ))}
               </div>
             );
           })}

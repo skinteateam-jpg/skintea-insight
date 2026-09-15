@@ -719,6 +719,48 @@ export type Database = {
           },
         ]
       }
+      geocode_staging: {
+        Row: {
+          address_sent: string
+          address_zip: string | null
+          benchmark: string | null
+          clinic_id: string
+          geocoded_at: string
+          lat: number | null
+          lon: number | null
+          matched_address: string | null
+          matched_zip: string | null
+          query: string
+          status: string
+        }
+        Insert: {
+          address_sent: string
+          address_zip?: string | null
+          benchmark?: string | null
+          clinic_id: string
+          geocoded_at?: string
+          lat?: number | null
+          lon?: number | null
+          matched_address?: string | null
+          matched_zip?: string | null
+          query: string
+          status: string
+        }
+        Update: {
+          address_sent?: string
+          address_zip?: string | null
+          benchmark?: string | null
+          clinic_id?: string
+          geocoded_at?: string
+          lat?: number | null
+          lon?: number | null
+          matched_address?: string | null
+          matched_zip?: string | null
+          query?: string
+          status?: string
+        }
+        Relationships: []
+      }
       gift_wishlist: {
         Row: {
           affiliate_store: string | null

@@ -230,3 +230,36 @@ Nothing below was reconstructed from memory without a source.
   (`scripts/clinics/gen_contact_replacements.py` lists the 57 not replaced and why: templates, portals, parent
   organisations, chains, other locations).
 - Deleted session_ids: none
+
+### 2026-09-15 07:2x–07:5x UTC — celebrity / influencer evidence layer (pipeline session)
+- Who: skintea-pipeline session (Claude Code), `sql/2026-09-15_celebrity_evidence_layer.sql` in skintea-pipeline
+  (branch `claude/claude-md-tagging-rules-j058m5`, commit `f9f56d8`), run through `query_database`, each DDL statement
+  as its own call and verified afterwards with `pg_catalog`.
+- What:
+  - `celebrity_mentions` gained `platform`, `embed_url`, `evidence_type`, `said_on`, `verified_at`, `tier`,
+    `instagram_handle`, `profile_url`, `profile_photo_url`, `follower_count`, `follower_count_at`.
+  - `quote` NOT NULL dropped. NOT NULL added on `platform`, `evidence_type`, `tier`, `said_on`.
+  - CHECKs: `evidence_type` in (spoken_video, spoken_audio, own_written_post); `tier` in (celebrity, influencer);
+    `platform` in (youtube, instagram, tiktok, podcast, x, threads, other); and a tier/follower rule —
+    `influencer` requires `follower_count >= 100000` and `follower_count_at`, `celebrity` requires both NULL.
+  - UNIQUE `(treatment_id, source_url)`.
+  - `enforce_celebrity_first_person` rewritten to have TWO accepted paths. **Path A is the original rule, unchanged:**
+    a non-empty `quote` still needs `field_provenance.quote {source: published_source, url = source_url, recorded_at,
+    verbatim: true, speaker = celeb_name}`. **Path B is new:** `quote` may be NULL only when `evidence_type` is
+    `spoken_video` or `spoken_audio`, `embed_url` is set, `source_url` matches `^https?://`, `verified_at` is set, and
+    `field_provenance.source_url {source: primary_source, url = source_url, recorded_at, speaker = celeb_name}`.
+    `own_written_post` is excluded from path B and still requires a quote.
+  - 8 rows inserted (7 `own_written_post` TikTok, 1 `spoken_video` YouTube) across 7 of the 16 active treatments:
+    Fillers, Hydrafacial x2, IPL Photofacial, Juvelook, Lumecca, PRF Injection, PRP.
+- Why: treatment pages needed a "who has talked about having this" layer that cannot repeat the removed Kylie Jenner
+  defect. Path B exists because nobody on this pipeline can play video or audio, so a verbatim quote from a spoken
+  source could only come from someone else's transcription — the exact route that Kylie row took. For spoken sources
+  the guard therefore moves from "the person's exact words" to "the person's own primary source, verified", which is
+  harder to fake, not looser. The original written path was not weakened.
+- Not changed: RLS on `celebrity_mentions` was already correct (SELECT only, anon + authenticated, `USING (active)`).
+  `treatment_influencers` was left completely alone and is still empty — the clinic detail page renders it per
+  treatment as "<name> did this" on a clinic page, which is the same false-association class as the removed Kylie row.
+  `treatments.celebrity_handles` was deliberately NOT dropped: it is a tracked column of `treatments_enforce_provenance`,
+  so dropping it means recreating that trigger while the clinic session is writing mappings. Follow-up: drop it and
+  recreate the trigger without it once that session is done.
+- Deleted session_ids: none. No rows were deleted by this session.

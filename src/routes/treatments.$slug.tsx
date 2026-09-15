@@ -1,11 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, ChevronRight, MapPin } from "lucide-react";
+import { ArrowLeft, ChevronRight, ExternalLink, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AppFrame from "@/components/AppFrame";
 import BottomNav from "@/components/BottomNav";
 import TreatmentVoices from "@/components/TreatmentVoices";
-import { breakdown, MIN_TAGGED, MIN_COST_VALUES, REGRET_LABELS, type TreatmentReviewRow, type VerdictCell } from "@/lib/treatmentReviews";
+import {
+  breakdown, MIN_TAGGED, MIN_COST_VALUES, REGRET_LABELS, VERDICT_LABELS, VERDICT_PERCENTAGES_HELD,
+  type TreatmentQuoteRow, type TreatmentReviewRow, type VerdictCell,
+} from "@/lib/treatmentReviews";
 
 export const Route = createFileRoute("/treatments/$slug")({
   component: TreatmentPage,
@@ -92,6 +95,13 @@ function mixedNote(mixed: number) {
 
 function VerdictBars({ cell, who }: { cell: VerdictCell; who: string }) {
   if (cell.worthPct === null || cell.notWorthPct === null) {
+    if (VERDICT_PERCENTAGES_HELD) {
+      return (
+        <DataPending>
+          Held for now. Some of these reviews were found by searching for regrets, so a worth-it split would lean negative however many there are. The quotes below are unaffected.
+        </DataPending>
+      );
+    }
     return (
       <DataPending>
         {cell.n} of {MIN_TAGGED} tagged worth-it / not-worth-it reviews{who ? ` ${who}` : ""} needed. {mixedNote(cell.mixed)}
@@ -128,11 +138,85 @@ function formatUsd(n: number) {
   return `$${n.toLocaleString("en-US")}`;
 }
 
+const QUOTE_PREVIEW = 5;
+const VERDICT_CLS: Record<string, string> = {
+  worth_it: "text-emerald-700",
+  not_worth_it: "text-brand-crimson",
+  mixed: "text-brand-muted",
+};
+
+// Reddit quotes for this treatment. Each card shows the stored text exactly, its verdict, the
+// subreddit and a link to the original. Age and price appear only when the row records them;
+// no username is read or shown. With no rows the section is not rendered at all.
+function QuoteSection({ rows }: { rows: TreatmentQuoteRow[] }) {
+  const [expanded, setExpanded] = useState(false);
+  if (rows.length === 0) return null;
+  const shown = expanded ? rows : rows.slice(0, QUOTE_PREVIEW);
+  return (
+    <Section title="In their words">
+      <div className="flex flex-col gap-2">
+        {shown.map((q) => {
+          const verdict = q.verdict ? VERDICT_LABELS[q.verdict] : null;
+          return (
+            <a key={q.id} href={q.source_url!} target="_blank" rel="noopener noreferrer" className="no-underline">
+              <div className="bg-card border border-brand-border rounded-[10px] px-3 py-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  {q.subreddit ? (
+                    <span style={SECTION_LABEL}>r/{q.subreddit}</span>
+                  ) : <span />}
+                  {verdict && (
+                    <span className={`flex items-center gap-1 ${VERDICT_CLS[q.verdict!] ?? "text-brand-muted"}`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-current inline-block" />
+                      <span className="text-[10px]">{verdict}</span>
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-brand-espresso leading-[1.55] mt-1.5 whitespace-pre-line">{q.content}</div>
+                <div className="flex items-center justify-between gap-2 mt-2">
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    {q.age_bracket != null && (
+                      <span className="text-[10px] bg-brand-cream text-brand-muted border border-brand-border rounded-full px-2 py-0.5">
+                        Age: {q.age_bracket}
+                      </span>
+                    )}
+                    {q.cost_paid_usd != null && (
+                      <span className="text-[10px] bg-brand-cream text-brand-muted border border-brand-border rounded-full px-2 py-0.5">
+                        Paid {formatUsd(q.cost_paid_usd)}
+                      </span>
+                    )}
+                    <span className="text-[10px] text-brand-muted">Excerpt, quoted as written</span>
+                  </span>
+                  <span className="flex items-center gap-[3px] text-[10px] text-brand-muted shrink-0">
+                    Read on Reddit <ExternalLink width={10} height={10} />
+                  </span>
+                </div>
+              </div>
+            </a>
+          );
+        })}
+        {rows.length > QUOTE_PREVIEW && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="self-start text-[11px] font-semibold text-brand-crimson bg-transparent border-0 p-0 mt-1 cursor-pointer"
+          >
+            {expanded ? "Show fewer" : `Show all ${rows.length} quotes`}
+          </button>
+        )}
+        <div className="text-[10px] text-brand-muted mt-0.5 leading-[1.4]">
+          {shown.length === rows.length ? rows.length : `${shown.length} of ${rows.length}`} {rows.length === 1 ? "quote" : "quotes"} from Reddit, each copied exactly from part of a post or comment. Tap one to read the original. Quotes are not a vote count.
+        </div>
+      </div>
+    </Section>
+  );
+}
+
 function TreatmentPage() {
   const { slug } = Route.useParams();
   const [treatment, setTreatment] = useState<Treatment | null>(null);
   const [links, setLinks] = useState<ClinicLink[]>([]);
   const [reviewRows, setReviewRows] = useState<TreatmentReviewRow[]>([]);
+  const [quoteRows, setQuoteRows] = useState<TreatmentQuoteRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -159,14 +243,26 @@ function TreatmentPage() {
         setLinks(rows);
         const { data: tr } = await (supabase as any)
           .from("treatment_reviews")
-          .select("verdict, is_first_time, sensitive_skin, regret_reason, cost_paid_usd, tagged_at")
+          .select("verdict, is_first_time, sensitive_skin, regret_reason, cost_paid_usd, tag_confidence, tagged_at")
           .eq("treatment_id", (t as any).id)
           .not("tagged_at", "is", null);
         if (!alive) return;
         setReviewRows(((tr as any[]) ?? []) as TreatmentReviewRow[]);
+        // Quotes: every Reddit row with text and a link, low confidence included. Newest first.
+        const { data: qr } = await (supabase as any)
+          .from("treatment_reviews")
+          .select("id, content, verdict, subreddit, source_url, age_bracket, cost_paid_usd, created_at")
+          .eq("treatment_id", (t as any).id)
+          .eq("platform", "reddit")
+          .not("content", "is", null)
+          .not("source_url", "is", null)
+          .order("created_at", { ascending: false });
+        if (!alive) return;
+        setQuoteRows(((qr as any[]) ?? []) as TreatmentQuoteRow[]);
       } else {
         setLinks([]);
         setReviewRows([]);
+        setQuoteRows([]);
       }
       setLoading(false);
     })();
@@ -219,8 +315,10 @@ function TreatmentPage() {
           Opinion figures come only from tagged treatment_reviews rows for this treatment
           (treatments.majority_pct / results_pct / minority_opinion are not read). The axis is
           verdict, first time vs repeat, regret reason, sensitive skin and price paid, because
-          people reviewing treatments rarely state a skin type. A percentage needs 10 tagged
-          reviews in that cell; the price needs 5 values. Never hide this section.
+          people reviewing treatments rarely state a skin type. Only high- and medium-confidence
+          rows are counted; low-confidence rows appear as quotes only. Verdict percentages are held
+          (VERDICT_PERCENTAGES_HELD: the sample is biased by a regret-seeking query shape). Regret
+          reasons are counts, not shares. The price needs 5 values. Never hide this section.
         */}
         {(() => {
           const br = breakdown(reviewRows);
@@ -237,20 +335,19 @@ function TreatmentPage() {
               <VerdictBars cell={br.repeat} who="from repeat patients" />
 
               <SubLabel>Top regrets</SubLabel>
-              {br.regrets.n < MIN_TAGGED ? (
-                <DataPending>{br.regrets.n} of {MIN_TAGGED} tagged reviews with a recorded regret needed.</DataPending>
-              ) : br.regrets.top.length === 0 ? (
-                <div className="bg-brand-cream border border-brand-border rounded-[10px] px-[13px] py-3 text-xs text-brand-espresso">
-                  None of {br.regrets.n} tagged reviews named a regret.
-                </div>
+              {br.regrets.top.length === 0 ? (
+                <DataPending>No counted review names a regret yet.</DataPending>
               ) : (
                 <div className="bg-card border border-brand-border rounded-xl p-3.5">
                   {br.regrets.top.map((r) => (
                     <div key={r.reason} className="flex justify-between text-xs text-brand-espresso py-1">
                       <span>{REGRET_LABELS[r.reason] ?? r.reason}</span>
-                      <span className="text-brand-muted">{r.count} of {br.regrets.n}</span>
+                      <span className="text-brand-muted">{r.count} {r.count === 1 ? "review" : "reviews"}</span>
                     </div>
                   ))}
+                  <div className="text-[10px] text-brand-muted mt-1.5 leading-[1.4]">
+                    How many reviews name each reason. A count, not a share: some reviews were found by searching for regrets.
+                  </div>
                 </div>
               )}
 
@@ -275,6 +372,8 @@ function TreatmentPage() {
             </Section>
           );
         })()}
+
+        <QuoteSection rows={quoteRows} />
 
         <Section title={`Clinics offering ${treatment.name}`}>
           {links.length === 0 ? (

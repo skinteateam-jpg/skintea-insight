@@ -60,7 +60,7 @@ function AboutPage() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <p style={{ fontSize: 15, color: ESPRESSO, lineHeight: 1.7, margin: 0 }}>
-            When I see a pretty girl — or a celebrity with insane skin — I want to know everything. What she puts on her face. How she does her makeup. What she's actually using, not what she says she's using.
+            When I see someone with insane skin, I want to know everything. What she puts on her face. How she does her makeup. What she's actually using, not what she says she's using.
           </p>
 
           <p style={{ fontSize: 15, color: ESPRESSO, lineHeight: 1.7, margin: 0 }}>

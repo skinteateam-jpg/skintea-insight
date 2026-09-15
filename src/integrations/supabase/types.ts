@@ -719,48 +719,6 @@ export type Database = {
           },
         ]
       }
-      geocode_staging: {
-        Row: {
-          address_sent: string
-          address_zip: string | null
-          benchmark: string | null
-          clinic_id: string
-          geocoded_at: string
-          lat: number | null
-          lon: number | null
-          matched_address: string | null
-          matched_zip: string | null
-          query: string
-          status: string
-        }
-        Insert: {
-          address_sent: string
-          address_zip?: string | null
-          benchmark?: string | null
-          clinic_id: string
-          geocoded_at?: string
-          lat?: number | null
-          lon?: number | null
-          matched_address?: string | null
-          matched_zip?: string | null
-          query: string
-          status: string
-        }
-        Update: {
-          address_sent?: string
-          address_zip?: string | null
-          benchmark?: string | null
-          clinic_id?: string
-          geocoded_at?: string
-          lat?: number | null
-          lon?: number | null
-          matched_address?: string | null
-          matched_zip?: string | null
-          query?: string
-          status?: string
-        }
-        Relationships: []
-      }
       gift_wishlist: {
         Row: {
           affiliate_store: string | null
@@ -1061,45 +1019,6 @@ export type Database = {
           started_at?: string
           updated_at?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      name_staging: {
-        Row: {
-          action: string
-          detail: string
-          google_name: string
-          new_name: string | null
-          place_id: string
-          url: string
-        }
-        Insert: {
-          action: string
-          detail: string
-          google_name: string
-          new_name?: string | null
-          place_id: string
-          url: string
-        }
-        Update: {
-          action?: string
-          detail?: string
-          google_name?: string
-          new_name?: string | null
-          place_id?: string
-          url?: string
-        }
-        Relationships: []
-      }
-      photo_dead_staging: {
-        Row: {
-          url: string
-        }
-        Insert: {
-          url: string
-        }
-        Update: {
-          url?: string
         }
         Relationships: []
       }

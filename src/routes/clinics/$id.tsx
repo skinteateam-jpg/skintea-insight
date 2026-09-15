@@ -129,6 +129,7 @@ function ClinicDetailPage() {
   const [practitioners, setPractitioners] = useState<Practitioner[]>([]);
   const [visitors, setVisitors] = useState<any[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [socials, setSocials] = useState<{ platform: string; url: string; handle: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [activePhotoTab, setActivePhotoTab] = useState<"interior" | "results" | "staff" | "outside">("interior");
@@ -155,7 +156,7 @@ function ClinicDetailPage() {
     let alive = true;
     (async () => {
       setLoading(true);
-      const [c, ss, ct, pr, wv, rv, v] = await Promise.all([
+      const [c, ss, ct, pr, wv, rv, v, sl] = await Promise.all([
         // Only listings that passed the filter render; 'unsure' and 'dropped' read as not found.
         supabase.from("clinics").select("*").eq("id", id).eq("listing_filter", "passed").maybeSingle(),
         supabase.from("clinic_skin_scores").select("*").eq("clinic_id", id),
@@ -165,6 +166,8 @@ function ClinicDetailPage() {
         supabase.from("clinic_who_visited").select("id, user_id, visited_at").eq("clinic_id", id).order("visited_at", { ascending: false }).limit(20),
         supabase.from("clinic_reviews").select("*, treatments(name)").eq("clinic_id", id).order("created_at", { ascending: false }),
         supabase.from("clinic_videos").select("*").eq("clinic_id", id).eq("is_active", true).order("created_at", { ascending: false }),
+        // Public social profiles (clinic_social_links); emails stay in the private clinic_contacts table.
+        (supabase as any).from("clinic_social_links").select("platform, url, handle").eq("clinic_id", id).in("platform", ["instagram", "tiktok"]).order("platform"),
       ]);
       if (!alive) return;
       setClinic(c.data);
@@ -175,6 +178,7 @@ function ClinicDetailPage() {
       setVisitors((wv.data as any) || []);
       setReviews((rv.data as any) || []);
       setVideos((v.data as any) || []);
+      setSocials((sl.data as any) || []);
 
 
       setLoading(false);
@@ -278,6 +282,18 @@ function ClinicDetailPage() {
           <MapPin size={12} />
           <span>{clinic.neighborhood ?? ""}{clinic.distance_miles != null ? ` · ${clinic.distance_miles} mi` : ""}</span>
         </div>
+        {socials.length > 0 && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+            {socials.map((s) => (
+              <a key={s.url} href={s.url} target="_blank" rel="noopener noreferrer" style={{
+                display: "inline-flex", alignItems: "center", gap: 4, background: CREAM_TINT, color: ESPRESSO,
+                fontSize: 11, fontWeight: 700, padding: "4px 9px", borderRadius: 20, textDecoration: "none",
+              }}>
+                {s.platform === "instagram" ? "Instagram" : "TikTok"}{s.handle ? ` @${s.handle}` : ""} ↗
+              </a>
+            ))}
+          </div>
+        )}
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {clinic.is_verified && (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: CRIMSON_TINT, color: CRIMSON, fontSize: 10, fontWeight: 700, padding: "4px 8px", borderRadius: 20 }}>
@@ -327,6 +343,7 @@ function ClinicDetailPage() {
       })()}
 
       {/* 7. Treatments (each mapping carries a recorded source; prices only where a source states one) */}
+      {treatments.length > 0 && (
       <Section title="Treatments">
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {treatments.map((t) => {
@@ -367,8 +384,10 @@ function ClinicDetailPage() {
           })}
         </div>
       </Section>
+      )}
 
-      {/* 8. Videos (filmstrip) */}
+      {/* 8. Videos (filmstrip) — only when the clinic has videos */}
+      {videos.length > 0 && (
       <div style={{ padding: "16px", borderBottom: `0.5px solid ${BORDER}` }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: CRIMSON }}>Videos</div>
@@ -476,17 +495,19 @@ function ClinicDetailPage() {
           );
         })()}
       </div>
+      )}
 
       {/* 9. Your visits (clinic_who_visited is private: a signed-in user only sees their own rows) */}
+      {visitors.length > 0 && (
       <Section title="Your visits">
         <div style={{ fontSize: 11, color: MUTED }}>
-          {visitors.length > 0
-            ? `You logged ${visitors.length === 1 ? "a visit" : `${visitors.length} visits`} here — last on ${new Date(visitors[0].visited_at).toLocaleDateString()}. Only you can see this.`
-            : "Visits you log here are private to you."}
+          {`You logged ${visitors.length === 1 ? "a visit" : `${visitors.length} visits`} here — last on ${new Date(visitors[0].visited_at).toLocaleDateString()}. Only you can see this.`}
         </div>
       </Section>
+      )}
 
       {/* 10. Practitioners */}
+      {practitioners.length > 0 && (
       <Section title="Practitioners">
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {practitioners.map((p) => {
@@ -506,6 +527,7 @@ function ClinicDetailPage() {
           })}
         </div>
       </Section>
+      )}
 
       {/* 11. Works for your skin? — hidden until clinic_skin_scores holds sourced rows for this clinic */}
       {skinScores.length > 0 && (
@@ -535,7 +557,8 @@ function ClinicDetailPage() {
       </Section>
       )}
 
-      {/* 12. Reviews */}
+      {/* 12. Reviews — only when the clinic has reviews */}
+      {reviews.length > 0 && (
       <Section title="Reviews" right={
         <div style={{ display: "flex", gap: 10, fontSize: 11, fontWeight: 700 }}>
           {userSkin && (
@@ -581,54 +604,63 @@ function ClinicDetailPage() {
           </button>
         </div>
       </Section>
+      )}
 
-      {/* 13. Hours & Location */}
-      <Section title="Hours & Location">
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          {groupHours(clinic.hours).map((h, i) => (
-            <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `0.5px solid ${BORDER}`, fontSize: 12 }}>
-              <span style={{ color: MUTED }}>{h.label}</span>
-              <span style={{ color: ESPRESSO, fontWeight: 600 }}>{h.hours}</span>
-            </div>
-          ))}
-          {groupHours(clinic.hours).length === 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", fontSize: 12, color: MUTED }}>
-              <span>Hours</span>
-              <span>—</span>
-            </div>
-          )}
-        </div>
-        {clinic.is_open_now && (
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, fontSize: 12 }}>
-            <span style={{ width: 7, height: 7, borderRadius: 7, background: "#2D7A3A" }} />
-            <span style={{ color: "#2D7A3A", fontWeight: 700 }}>Open now</span>
-            <span style={{ color: MUTED }}>· Closes at {clinic.closes_at}</span>
+      {/* 13. Hours & Location — hours when recorded, address when recorded, hidden when neither */}
+      {(() => {
+        const hoursGroups = groupHours(clinic.hours);
+        const hasAddress = typeof clinic.address === "string" && clinic.address.trim() !== "";
+        const hasParking = !!clinic.parking_notes || clinic.parking_is_free != null;
+        if (hoursGroups.length === 0 && !hasAddress) return null;
+        const title = hoursGroups.length > 0 && hasAddress ? "Hours & Location" : hasAddress ? "Location" : "Hours";
+        return (
+      <Section title={title}>
+        {hoursGroups.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {hoursGroups.map((h, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0", borderBottom: `0.5px solid ${BORDER}`, fontSize: 12 }}>
+                <span style={{ color: MUTED }}>{h.label}</span>
+                <span style={{ color: ESPRESSO, fontWeight: 600, textAlign: "right" }}>{h.hours}</span>
+              </div>
+            ))}
           </div>
         )}
-        <a
-          href={`https://maps.google.com/?q=${encodeURIComponent(clinic.address ?? "")}`}
-          target="_blank" rel="noreferrer"
-          style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            background: CREAM_TINT, borderRadius: 10, height: 76,
-            marginTop: 12, color: MUTED, fontSize: 11, textDecoration: "none",
-          }}
-        >
-          <MapIcon size={14} /> Open in Maps
-        </a>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, borderTop: `0.5px solid ${BORDER}`, marginTop: 12, paddingTop: 12 }}>
-          <Car size={16} color={ESPRESSO} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>Parking</div>
-            <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{clinic.parking_notes ?? "—"}</div>
+        {hasAddress && (
+          <>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 6, marginTop: hoursGroups.length > 0 ? 12 : 0, fontSize: 12, color: ESPRESSO, lineHeight: 1.45 }}>
+              <MapPin size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>{clinic.address}</span>
+            </div>
+            <a
+              href={`https://maps.google.com/?q=${encodeURIComponent(clinic.address)}`}
+              target="_blank" rel="noreferrer"
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                background: CREAM_TINT, borderRadius: 10, height: 44,
+                marginTop: 10, color: ESPRESSO, fontSize: 11, fontWeight: 700, textDecoration: "none",
+              }}
+            >
+              <MapIcon size={14} /> Open in Maps
+            </a>
+          </>
+        )}
+        {hasParking && (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, borderTop: `0.5px solid ${BORDER}`, marginTop: 12, paddingTop: 12 }}>
+            <Car size={16} color={ESPRESSO} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>Parking</div>
+              {clinic.parking_notes && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{clinic.parking_notes}</div>}
+            </div>
+            {clinic.parking_is_free != null && <span style={{
+              background: clinic.parking_is_free ? "#E8F5E9" : CREAM_TINT,
+              color: clinic.parking_is_free ? "#2D7A3A" : MUTED,
+              fontSize: 10, fontWeight: 800, padding: "4px 8px", borderRadius: 4, textTransform: "uppercase",
+            }}>{clinic.parking_is_free ? "Free" : "Paid"}</span>}
           </div>
-          {clinic.parking_is_free != null && <span style={{
-            background: clinic.parking_is_free ? "#E8F5E9" : CREAM_TINT,
-            color: clinic.parking_is_free ? "#2D7A3A" : MUTED,
-            fontSize: 10, fontWeight: 800, padding: "4px 8px", borderRadius: 4, textTransform: "uppercase",
-          }}>{clinic.parking_is_free ? "Free" : "Paid"}</span>}
-        </div>
+        )}
       </Section>
+        );
+      })()}
 
 
       {/* 14. Spacer */}

@@ -274,7 +274,7 @@ Nothing below was reconstructed from memory without a source.
 - Why: first sourced opinion data for the treatment pages.
 - Deleted session_ids: none
 
-#### Method note — treatment review percentages are HELD (read before turning any on)
+#### Method note — treatment review percentages are HELD (SUPERSEDED the same day by the sensitivity test, 20:45 UTC entry below)
 - **Low confidence never counts.** Rows with `tag_confidence = 'low'` are shown as quotes only. They are excluded
   from every percentage, count, median and floor check (`isCountedReview` in `src/lib/treatmentReviews.ts`).
 - **Held cells.** Three verdict percentages show "Not enough data yet" whatever the volume: Worth it?, First time vs
@@ -314,3 +314,57 @@ Nothing below was reconstructed from memory without a source.
 - Why: publishable clinic listings need a name, location and contact that do not depend on Google; dead image links render
   as broken photos instead of the category placeholder.
 - Deleted session_ids: none (no rows deleted; photo array entries removed, list of URLs in the committed INSERT file)
+
+### 20:45–20:50 UTC — clinic prices from clinic websites; fillers rebalancing batch (pipeline session)
+- Who: skintea-pipeline session. App: `src/lib/treatmentReviews.ts`, new `src/lib/clinicPrices.ts`,
+  `src/routes/treatments.$slug.tsx`, `src/routes/clinics/$id.tsx` (Lovable `7deda0d`). Database:
+  - `sql/2026-09-15_clinic_treatments_prices.sql` (pipeline `fc5c9de`, payload md5 `bed341e8…`), UPDATE through
+    `query_database`.
+  - `sql/2026-09-15_treatment_reviews_reddit_fillers_neutral.sql` (md5 `dd2d5439…`), INSERT through the agent
+    (sandbox_exec).
+- What:
+  - **Clinic prices:** `price_from` / `price_unit` set on 14 `clinic_treatments` rows (0 before). The units are
+    per_unit, per_session, per_area and starting_from.
+    - Each row carries `field_provenance.price_from` and `.price_unit` = {source clinic_website_crawl, recorded_at,
+      url, dataset, quote (the price string as it appears on the page), detail}. `field_provenance.treatment_id` is
+      unchanged.
+    - 29 other price mentions were read and left NULL, with reasons in
+      `data/clinics/clinic_prices_decisions_2026-09-15.json`: packages, promotions, bundles, column layouts that lost
+      the name-to-price pairing, a unit the page does not state, and a device priced on another treatment's page.
+    - Jubilee Aesthetics Botox "$12.50 / unit" is not stored because `price_from` is an integer. Rounding was refused.
+      A numeric column is a schema change and was not made.
+  - **Fillers rebalancing batch:** 23 fillers rows inserted into `treatment_reviews` from five neutral-shape Reddit
+    queries: results, "first time", "one year later" (0 items), "follow up", honest experience.
+- Why: prices come from the clinic's own website, not Reddit; fillers was the only treatment failing the sensitivity
+  test.
+- Deleted session_ids: none. No deletions.
+
+#### Method note — the sensitivity test (replaces the held-percentages note above)
+- **The rule (in `verdictCell`, `src/lib/treatmentReviews.ts`, computed from the rows at render time).** A verdict
+  percentage (Worth it?, first time, had it before, sensitive skin) shows only when its own cell passes both:
+  - (a) at least 10 counted rows: tag_confidence high or medium, verdict worth_it or not_worth_it;
+  - (b) recomputing Worth it with every regret-seeking row removed moves it by 10 percentage points or less. A row
+    is regret-seeking when `field_provenance->'detail'->>'query'` contains "regret". The difference is taken
+    unrounded.
+- **What is displayed.** The figure comes from ALL counted rows. (b) is a sensitivity check, not a filter: if dropping
+  the suspect rows barely moves the number, the number is robust and every real row stays in it.
+  - Every percentage renders with its sample size ("64% · based on 22 reviews").
+  - A held cell says why: too few rows; the removal moves it by N points; or every row came from a regret query.
+- **Why share-based rules were rejected.** Neither "regret shapes ≤ 20% of runs" nor "≤ 20% of counted rows"
+  predicts bias. Measured on the 139 rows:
+  - botox: 32% regret share, but the figure moves only 4 points (63.6% → 60.0%);
+  - fillers: 33% regret share, and it moves 21 points (41.7% → 62.5%).
+  - Similar shares, opposite effects: sensitivity, not share, is what matters.
+- **Result on 2026-09-15 before the fillers batch.**
+  - Worth it? opened for botox, skin-boosters, morpheus8, hydrafacial and rejuran.
+  - Had it before opened for botox (60%, n 15, 6.2 pts) and morpheus8 (80%, n 10, 8.9 pts).
+  - Fillers was held at a 20.8-point delta.
+- **Result after the fillers batch.** Fillers: n 12 → 28, Worth it 46.4% (54.2% without regret rows), delta 7.7 →
+  the gate opens.
+- **Prices.** Treatment prices come from clinic_website_crawl evidence on `clinic_treatments`; Reddit supplies quotes
+  and regret reasons, not prices.
+  - A clinic price range shows per unit only with at least 3 listed clinics in that unit, and units are never mixed.
+    No treatment reaches that today; the most is 2 clinics in one unit (botox per unit, fillers starting from,
+    rejuran per session).
+  - What Reddit users said they paid (`cost_paid_usd`, 5-value floor) is a separate, differently labelled figure
+    below it.

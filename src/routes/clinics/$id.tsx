@@ -1085,19 +1085,6 @@ function ClinicDetailPage() {
           {/* Distance needs an origin; there is none, so it stays off (see userOrigin). */}
           <span>{clinic.neighborhood ?? ""}{userOrigin && clinic.distance_miles != null ? ` · ${clinic.distance_miles} mi` : ""}</span>
         </div>
-        {socials.length > 0 && (
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
-            {socials.map((s) => (
-              <a key={s.url} href={s.url} target="_blank" rel="noopener noreferrer"
-                onClick={() => logIntent("social", s.platform === "instagram" ? "instagram" : "tiktok", "social_chips")} style={{
-                display: "inline-flex", alignItems: "center", gap: 4, background: CREAM_TINT, color: ESPRESSO,
-                fontSize: 11, fontWeight: 700, padding: "4px 9px", borderRadius: 20, textDecoration: "none",
-              }}>
-                {s.platform === "instagram" ? "Instagram" : "TikTok"}{s.handle ? ` @${s.handle}` : ""} ↗
-              </a>
-            ))}
-          </div>
-        )}
         {/* The figure always carries its sample size and states no verdict of its own. */}
         {userSkin && userSkinScore && (
           <div style={{
@@ -1111,45 +1098,24 @@ function ClinicDetailPage() {
         )}
       </div>
 
-      {/*
-        6. Stats row — a tile renders only when its value exists AND its basis can be stated
-        beside it. Hidden when no tile qualifies; every figure it could show also has its own section below.
-        - Reviews is Skintea's own count (the clinic_reviews rows fetched above), never
-          clinics.review_count / google_review_count, which count someone else's reviews.
-        - A percentage or an average needs a sample size and the same floor as the rest of the
-          app (MIN_TAGGED, @/lib/opinionAggregate); the sample is Skintea's review count.
-        - Price tier renders only with the number of prices it rests on — prices read from the
-          clinic's own site, each dated and linked in the Treatments section.
-      */}
-      {(() => {
-        const reviewN = reviews.length;
-        const pricedN = treatments.filter((t) => shownPrice(t.price_from, t.price_unit, t.field_provenance)).length;
-        const enoughReviews = reviewN >= MIN_TAGGED;
-        const stats = [
-          clinic.skintea_score != null && enoughReviews
-            ? { v: `${clinic.skintea_score}%`, l: "Recommend", sub: `of ${reviewN} reviews` } : null,
-          reviewN > 0 ? { v: `${reviewN}`, l: "Reviews", sub: "on Skintea" } : null,
-          clinic.avg_score != null && enoughReviews
-            ? { v: `${clinic.avg_score}`, l: "Score", sub: `from ${reviewN} reviews` } : null,
-          clinic.price_tier != null && pricedN > 0
-            ? { v: `${clinic.price_tier}`, l: "Price", sub: `${pricedN} listed price${pricedN === 1 ? "" : "s"}` } : null,
-        ].filter(Boolean) as { v: string; l: string; sub: string }[];
-        if (stats.length === 0) return null;
-        return (
+      {/* Always-visible Skintea summary: no Google or Yelp values enter these cells. */}
       <div style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}` }}>
-        {stats.map((s, i, arr) => (
-          <div key={i} style={{
-            flex: 1, padding: "14px 0", textAlign: "center",
-            borderRight: i < arr.length - 1 ? `0.5px solid ${BORDER}` : "none",
-          }}>
-            <div style={{ fontSize: 19, fontWeight: 800, color: ESPRESSO }}>{s.v}</div>
-            <div style={{ fontSize: 9, textTransform: "uppercase", color: MUTED, letterSpacing: "0.08em", marginTop: 2 }}>{s.l}</div>
-            <div style={{ fontSize: 9, color: MUTED, marginTop: 2 }}>{s.sub}</div>
+        {[
+          clinic.skintea_score != null && reviews.length >= MIN_TAGGED
+            ? { v: `${clinic.skintea_score}%`, l: "Recommend", sub: `of ${reviews.length} reviews`, pending: false }
+            : { v: "Not enough yet", l: "Recommend", sub: `needs ${MIN_TAGGED} reviews`, pending: true },
+          { v: `${reviews.length}`, l: "Tea", sub: "on Skintea", pending: false },
+          clinic.trust_score != null && sourced(clinic, "trust_score")
+            ? { v: `${clinic.trust_score}`, l: "Trust", sub: "", pending: false }
+            : { v: "Not measured", l: "Trust", sub: "", pending: true },
+        ].map((stat, index) => (
+          <div key={stat.l} style={{ flex: 1, minWidth: 0, padding: "14px 4px", textAlign: "center", borderRight: index < 2 ? `0.5px solid ${BORDER}` : "none" }}>
+            <div style={{ fontSize: stat.pending ? 11 : 19, fontWeight: stat.pending ? 700 : 800, color: stat.pending ? MUTED : ESPRESSO, minHeight: 23, display: "flex", alignItems: "center", justifyContent: "center" }}>{stat.v}</div>
+            <div style={{ fontSize: 9, textTransform: "uppercase", color: MUTED, letterSpacing: "0.08em", marginTop: 2 }}>{stat.l}</div>
+            {stat.sub && <div style={{ fontSize: 9, color: MUTED, marginTop: 2 }}>{stat.sub}</div>}
           </div>
         ))}
       </div>
-        );
-      })()}
 
       {/* Shared page tabs; local state only. */}
       <div role="tablist" aria-label="Clinic details" style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}` }}>
@@ -1175,363 +1141,33 @@ function ClinicDetailPage() {
 
       {pageTab === "info" ? (
         <>
-      {/*
-        7. Badges — clinics.badges, clinics.is_verified ("Verified"), clinics.is_featured ("Skintea Pick").
-        Each is gated on a recorded decision, not on a bare boolean. Nothing writes these provenance keys today and there is
-        no written rule for awarding any of them, so all stay off:
-        - Verified switches on when clinics.field_provenance.is_verified records who verified this listing and when — a
-          signed /for-clinics submission from the clinic, or a Skintea visit. Never a Google listing, never an unsourced flag.
-        - Skintea Pick switches on when clinics.field_provenance.is_featured records the editor and the date of the
-          editorial decision. It is never a paid placement and never a score threshold.
-        - badges render only with field_provenance.badges.
-      */}
-      {(() => {
-        const verified = clinic.is_verified === true
-          && clinic.field_provenance?.is_verified?.source != null
-          && clinic.field_provenance?.is_verified?.recorded_at != null;
-        const featured = clinic.is_featured === true
-          && clinic.field_provenance?.is_featured?.source != null
-          && clinic.field_provenance?.is_featured?.recorded_at != null;
-        const badges: string[] = Array.isArray(clinic.badges) && sourced(clinic, "badges") ? clinic.badges : [];
-        return (
-          <Section title="Badges">
-            {verified || featured || badges.length > 0 ? (
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {verified && (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: CRIMSON_TINT, color: CRIMSON, fontSize: 10, fontWeight: 700, padding: "4px 8px", borderRadius: 20 }}>
-                    <span style={{ width: 5, height: 5, borderRadius: 5, background: CRIMSON }} /> Verified
-                  </span>
-                )}
-                {featured && (
-                  <span style={{ background: ESPRESSO, color: WARM_WHITE, fontSize: 10, fontWeight: 700, padding: "4px 8px", borderRadius: 20 }}>
-                    Skintea Pick
-                  </span>
-                )}
-                {badges.map((b) => (
-                  <span key={b} style={{ background: CREAM_TINT, color: ESPRESSO, fontSize: 10, fontWeight: 700, padding: "4px 8px", borderRadius: 20 }}>{b}</span>
-                ))}
-              </div>
-            ) : (
-              <EmptyState>
-                Verified, Skintea Pick and other badges. Each is awarded only against a written rule and recorded with who
-                awarded it and when. No rule exists yet, so no clinic holds a badge.
-              </EmptyState>
-            )}
-          </Section>
-        );
-      })()}
+          {sortedSectionNodes.map((section) => <div key={section.key}>{section.node}</div>)}
 
-      {/* 8. Skintea's take — Skintea's own one-line read on this clinic (clinics.tea_quote). Not the tea: the tea is
-           visitors' accounts, below. */}
-      <Section title="Skintea's take">
-        {typeof clinic.tea_quote === "string" && clinic.tea_quote.trim() !== "" && sourced(clinic, "tea_quote") ? (
-          <div style={{ fontSize: 13, lineHeight: 1.6, color: ESPRESSO, fontStyle: "italic" }}>“{clinic.tea_quote}”</div>
-        ) : (
-          <EmptyState>Skintea's own one-line read on this clinic: who it suits and what it is actually good at. Not written yet.</EmptyState>
-        )}
-      </Section>
-
-      {/* 10. What it's best for (clinics.best_for). Every chip is a phrase from the clinic's own website, with the page it
-           came from in field_provenance.best_for (see CLAUDE.md "WHAT IT'S BEST FOR"). */}
-      <Section title="What it's best for">
-        {Array.isArray(clinic.best_for) && clinic.best_for.length > 0 ? (
-          <>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {clinic.best_for.map((b: string) => (
-                <span key={b} style={{ background: CREAM_TINT, color: ESPRESSO, fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 20 }}>{b}</span>
-              ))}
-            </div>
-            <div style={{ fontSize: 9.5, color: MUTED, marginTop: 8 }}>As the clinic describes itself on its own website.</div>
-          </>
-        ) : (
-          <EmptyState>The concerns, audiences and ways of working this clinic states on its own website. Nothing recorded for this clinic yet.</EmptyState>
-        )}
-      </Section>
-
-      {/* 11. Known for (clinics.known_for). */}
-      <Section title="Known for">
-        {typeof clinic.known_for === "string" && clinic.known_for.trim() !== "" && sourced(clinic, "known_for") ? (
-          <div style={{ fontSize: 12.5, lineHeight: 1.6, color: ESPRESSO }}>{clinic.known_for}</div>
-        ) : (
-          <EmptyState>What this clinic is known for in its own right — a signature treatment, a technique, a following. Nothing recorded yet.</EmptyState>
-        )}
-      </Section>
-
-      {/* 13. Treatments and prices (each mapping carries a recorded source; prices only where a source states one) */}
-      <Section title="Treatments">
-        {treatments.length === 0 ? (
-          <EmptyState>The treatments this clinic offers, each read from the clinic's own website, with a price only where the site states one. None recorded for this clinic yet.</EmptyState>
-        ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {treatments.map((t) => {
-            const tName = t.treatments?.name ?? "Treatment";
-            return (
-              <div key={t.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {/* Top sub-row */}
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 34, height: 34, background: CREAM_TINT, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>💉</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: ESPRESSO }}>{tName}</div>
-                    {/*
-                      Price, the date it was recorded, and a link to the page it was read from. A price older than
-                      120 days (or with no readable date) is hidden until it is checked again; nothing re-crawls itself.
-                    */}
-                    {(() => {
-                      const price = shownPrice(t.price_from, t.price_unit, t.field_provenance);
-                      if (!price) return null;
-                      return (
-                        <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
-                          <span style={{ fontWeight: 700, color: ESPRESSO }}>{price.text}</span>
-                          {" · "}
-                          {price.url ? (
-                            <a href={price.url} target="_blank" rel="noopener noreferrer" style={{ color: MUTED }}>
-                              {price.dateLabel}
-                            </a>
-                          ) : (
-                            price.dateLabel
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                  <button onClick={() => setInquireFor(t)} style={{
-                    background: CRIMSON_TINT, color: CRIMSON, border: "none",
-                    fontSize: 10, fontWeight: 800, textTransform: "uppercase",
-                    padding: "6px 12px", borderRadius: 20, cursor: "pointer",
-                  }}>Inquire</button>
-                </div>
-                {/* Bottom sub-row */}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", paddingLeft: 44 }}>
-                  {t.treatments?.slug && t.treatments?.active !== false && (
-                    <button onClick={() => { navigate({ to: "/treatments/$slug", params: { slug: t.treatments!.slug! } }).catch(() => {}); }} style={{
-                      background: "none", border: "none", color: CRIMSON,
-                      fontSize: 10, fontWeight: 700, cursor: "pointer",
-                      display: "inline-flex", alignItems: "center", gap: 4, padding: 0,
-                    }}>
-                      <FileText size={11} /> What is {tName}?
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        )}
-      </Section>
-
-      {/* 12. Price tier (clinics.price_tier, clinics.price_from). A tier or a "from" price renders only with its source;
-           the per-treatment prices, each dated and linked, are in Treatments below. */}
-      {(() => {
-        const pricedN = treatments.filter((t) => shownPrice(t.price_from, t.price_unit, t.field_provenance)).length;
-        const tier = clinic.price_tier != null && sourced(clinic, "price_tier") ? String(clinic.price_tier) : null;
-        const from = clinic.price_from != null && sourced(clinic, "price_from") ? Number(clinic.price_from) : null;
-        return (
-          <Section title="Price tier">
-            {tier || from != null ? (
-              <div style={{ fontSize: 12.5, color: ESPRESSO }}>
-                {tier && <span style={{ fontWeight: 800 }}>{tier}</span>}
-                {tier && from != null ? " · " : ""}
-                {from != null && <span>from ${from}</span>}
-              </div>
-            ) : (
-              <EmptyState>
-                How expensive this clinic is overall, from the prices it publishes. {pricedN > 0
-                  ? `${pricedN} treatment price${pricedN === 1 ? " is" : "s are"} listed below; that is not enough to place the clinic in a tier yet.`
-                  : "No tier recorded yet."}
-              </EmptyState>
-            )}
-          </Section>
-        );
-      })()}
-
-      {/* 14. Hours and open now (clinics.hours). "Open now" is computed from the listed hours in Los Angeles time. */}
-      {(() => {
-        const hoursGroups = groupHours(clinic.hours);
-        const now = openNow(clinic.hours);
-        return (
-          <Section title="Hours">
-            {hoursGroups.length > 0 ? (
-              <>
-                {now && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, fontSize: 12 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: 7, background: now.open ? "#2D7A3A" : MUTED }} />
-                    <span style={{ color: now.open ? "#2D7A3A" : MUTED, fontWeight: 700 }}>{now.label}</span>
-                    <span style={{ color: MUTED, fontSize: 10.5 }}>· from the listed hours</span>
-                  </div>
-                )}
-                <div style={{ display: "flex", flexDirection: "column" }}>
-                  {hoursGroups.map((h, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0", borderBottom: `0.5px solid ${BORDER}`, fontSize: 12 }}>
-                      <span style={{ color: MUTED }}>{h.label}</span>
-                      <span style={{ color: ESPRESSO, fontWeight: 600, textAlign: "right" }}>{h.hours}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <EmptyState>Opening hours, and whether the clinic is open right now. No hours recorded for this clinic yet; a clinic can send its own through the link at the bottom of this page.</EmptyState>
-            )}
-          </Section>
-        );
-      })()}
-
-      {/* 15. Location — address, the map when both coordinates exist, and a link out. Without coordinates: the address and
-           a link (google_maps_url when recorded, else a search for the address), never an empty map frame. */}
-      {(() => {
-        const hasAddress = typeof clinic.address === "string" && clinic.address.trim() !== "";
-        const lat = typeof clinic.latitude === "number" ? clinic.latitude : clinic.latitude != null ? Number(clinic.latitude) : NaN;
-        const lng = typeof clinic.longitude === "number" ? clinic.longitude : clinic.longitude != null ? Number(clinic.longitude) : NaN;
-        const hasCoords = Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0);
-        const mapsHref = hasAddress
-          ? `https://maps.google.com/?q=${encodeURIComponent(clinic.address)}`
-          : typeof clinic.google_maps_url === "string" && /^https:\/\//.test(clinic.google_maps_url) ? clinic.google_maps_url : null;
-        return (
-          <Section title="Location">
-            {!hasAddress && !hasCoords ? (
-              <EmptyState>The clinic's address and a map. No address recorded for this clinic yet.</EmptyState>
-            ) : (
-              <>
-                {hasAddress && (
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 6, fontSize: 12, color: ESPRESSO, lineHeight: 1.45 }}>
-                    <MapPin size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-                    <span>{clinic.address}</span>
-                  </div>
-                )}
-                {hasCoords && <ClinicMap lat={lat} lng={lng} name={clinic.name} />}
-                {mapsHref && (
-                  <a
-                    href={mapsHref}
-                    target="_blank" rel="noreferrer"
-                    onClick={() => logIntent("directions", "maps", "location_section")}
-                    style={{
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                      background: CREAM_TINT, borderRadius: 10, height: 44,
-                      marginTop: 10, color: ESPRESSO, fontSize: 11, fontWeight: 700, textDecoration: "none",
-                    }}
-                  >
-                    <MapIcon size={14} /> Open in Maps
+          <Section title="Contact and links">
+            {hasContactLinks ? (
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                {clinic.website_url && (
+                  <a href={clinic.website_url} target="_blank" rel="noopener noreferrer" onClick={() => {
+                    void leadEvent("booking_link_click", { clinic_id: id, link: "website_url" });
+                    if (websiteKind) logIntent("website", websiteChannel(websiteKind), "contact_links");
+                  }} style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 0", borderBottom: `0.5px solid ${BORDER}`, color: ESPRESSO, textDecoration: "none", fontSize: 12 }}>
+                    <Globe2 size={14} /><span style={{ flex: 1 }}>{websiteKind ? websiteLinkLabel(clinic.website_url, websiteKind).replace(/ →$/, "") : (() => { try { return new URL(clinic.website_url).hostname.replace(/^www\./, ""); } catch { return clinic.website_url; } })()}</span><span style={{ color: MUTED }}>↗</span>
                   </a>
                 )}
-              </>
-            )}
+                {contactSocials.map((social) => (
+                  <a key={`${social.platform}:${social.url}`} href={social.url} target="_blank" rel="noopener noreferrer" onClick={() => logIntent("social", social.platform as "instagram" | "tiktok" | "youtube", "contact_links")} style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 0", borderBottom: `0.5px solid ${BORDER}`, color: ESPRESSO, textDecoration: "none", fontSize: 12 }}>
+                    <span style={{ width: 14, textAlign: "center", fontWeight: 800 }}>{social.platform === "instagram" ? "◎" : social.platform === "tiktok" ? "♪" : "▶"}</span><span style={{ flex: 1 }}>{social.handle ? `@${social.handle.replace(/^@/, "")}` : social.url}</span><span style={{ color: MUTED }}>↗</span>
+                  </a>
+                ))}
+                {clinic.phone && <a href={`tel:${clinic.phone}`} onClick={() => logIntent("call", "tel", "contact_links")} style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 0", borderBottom: `0.5px solid ${BORDER}`, color: ESPRESSO, textDecoration: "none", fontSize: 12 }}><Phone size={14} /><span style={{ flex: 1 }}>{clinic.phone}</span><span style={{ color: MUTED }}>↗</span></a>}
+                {mapsHref && <a href={mapsHref} target="_blank" rel="noopener noreferrer" onClick={() => logIntent("directions", "maps", "contact_links")} style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 0", color: ESPRESSO, textDecoration: "none", fontSize: 12 }}><MapPin size={14} /><span style={{ flex: 1 }}>{hasAddress ? clinic.address : "Open in Maps"}</span><span style={{ color: MUTED }}>↗</span></a>}
+              </div>
+            ) : <EmptyState>The clinic's website, social accounts and phone number. None recorded for this clinic yet.</EmptyState>}
           </Section>
-        );
-      })()}
 
-      {/* Parking text and section-tagged photos share the Outside/Interior source and permission rules. */}
-      {(() => {
-        const hasParkingText = clinic.parking_available != null || !!clinic.parking_notes || clinic.parking_is_free != null;
-        const hasParkingPhotos = parkingPhotos.length > 0;
-        return (
-          <Section title="Parking">
-            {hasParkingText || hasParkingPhotos ? (
-              <>
-                {hasParkingText && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <Car size={16} color={ESPRESSO} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>
-                        {clinic.parking_available === true ? "Parking available" : clinic.parking_available === false ? "No parking" : "Parking"}
-                      </div>
-                      {clinic.parking_notes && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{clinic.parking_notes}</div>}
-                    </div>
-                    {clinic.parking_is_free != null && <span style={{
-                      background: clinic.parking_is_free ? "#E8F5E9" : CREAM_TINT,
-                      color: clinic.parking_is_free ? "#2D7A3A" : MUTED,
-                      fontSize: 10, fontWeight: 800, padding: "4px 8px", borderRadius: 4, textTransform: "uppercase",
-                    }}>{clinic.parking_is_free ? "Free" : "Paid"}</span>}
-                  </div>
-                )}
-                {hasParkingPhotos ? (
-                  <div style={{ marginTop: hasParkingText ? 10 : 0 }}>
-                    <PhotoGrid photos={parkingPhotos} alt={`Parking at ${clinic.name}`} />
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 10.5, color: MUTED, marginTop: 8 }}>No parking photos yet.</div>
-                )}
-              </>
-            ) : (
-              <EmptyState>Whether there is parking, whether it is free, and photos of where to park and the entrance from the lot. Nothing recorded yet; photos come only from the clinic itself, with permission, or from Skintea.</EmptyState>
-            )}
-          </Section>
-        );
-      })()}
-
-      {/* 26. Practitioners (clinic_practitioners) — only what the clinic publishes about its own staff. */}
-      <Section title="Practitioners">
-        {practitioners.length === 0 ? (
-          <EmptyState>The doctors, nurses and aestheticians who treat patients here, as the clinic lists them. None recorded yet; a clinic can send its team through the link at the bottom of this page.</EmptyState>
-        ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {practitioners.map((p) => {
-            const initials = p.name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
-            return (
-              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 42, height: 42, borderRadius: 42, background: BORDER, color: ESPRESSO, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{initials}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: ESPRESSO }}>{p.name}</div>
-                  <div style={{ fontSize: 11, color: MUTED }}>{p.role}</div>
-                </div>
-                {p.specialty && (
-                  <span style={{ background: CRIMSON_TINT, color: CRIMSON, fontSize: 9, fontWeight: 800, padding: "4px 8px", borderRadius: 4, textTransform: "uppercase" }}>{p.specialty}</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        )}
-      </Section>
-
-      {/* 21. Yelp rating (clinics.yelp_rating, yelp_review_count). Only from a licensed Yelp source, named on screen.
-           Google's rating and review count never render anywhere. */}
-      <Section title="Yelp rating">
-        {clinic.yelp_rating != null && sourced(clinic, "yelp_rating") ? (
-          <div style={{ fontSize: 12.5, color: ESPRESSO }}>
-            <span style={{ fontWeight: 800 }}>{clinic.yelp_rating}</span> on Yelp
-            {clinic.yelp_review_count != null && sourced(clinic, "yelp_review_count") ? ` · ${clinic.yelp_review_count} reviews` : ""}
-            <div style={{ fontSize: 9.5, color: MUTED, marginTop: 4 }}>Source: Yelp</div>
+          <div style={{ padding: "14px 16px", borderBottom: `0.5px solid ${BORDER}`, textAlign: "center" }}>
+            <Link to="/for-clinics" style={{ fontSize: 11, fontWeight: 700, color: MUTED, textDecoration: "none" }}>Own this clinic? Send your photos and details →</Link>
           </div>
-        ) : (
-          <EmptyState>This clinic's Yelp rating and review count, shown with Yelp named as the source. Skintea has no licensed Yelp data yet, so nothing is shown.</EmptyState>
-        )}
-      </Section>
-
-      {/* 28. Trust score and Skintea score. Both are Skintea's own measurements; neither is ever computed from Google
-           ratings or review counts, and neither is derived from the other. */}
-      <Section title="Trust & Skintea score">
-        {(clinic.trust_score != null && sourced(clinic, "trust_score")) || (clinic.skintea_score != null && sourced(clinic, "skintea_score")) ? (
-          <div style={{ display: "flex", gap: 24 }}>
-            {clinic.trust_score != null && sourced(clinic, "trust_score") && (
-              <div>
-                <div style={{ fontSize: 19, fontWeight: 800, color: ESPRESSO }}>{clinic.trust_score}</div>
-                <div style={{ fontSize: 9, textTransform: "uppercase", color: MUTED, letterSpacing: "0.08em", marginTop: 2 }}>Trust score</div>
-              </div>
-            )}
-            {clinic.skintea_score != null && sourced(clinic, "skintea_score") && (
-              <div>
-                <div style={{ fontSize: 19, fontWeight: 800, color: ESPRESSO }}>{clinic.skintea_score}%</div>
-                <div style={{ fontSize: 9, textTransform: "uppercase", color: MUTED, letterSpacing: "0.08em", marginTop: 2 }}>Skintea score</div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <EmptyState>
-            Skintea's own scores: how much of what this clinic publishes is verified, and how many signed-in visitors
-            recommend it. Neither is computed from Google's rating or review count. Not measured for this clinic yet.
-          </EmptyState>
-        )}
-      </Section>
-
-      {/*
-        14. Owner route — /for-clinics is the only way a clinic can supply its own photos,
-        hours and details (with written permission). Nothing else on the site links to it.
-      */}
-      <div style={{ padding: "14px 16px", borderBottom: `0.5px solid ${BORDER}`, textAlign: "center" }}>
-        <Link to="/for-clinics" style={{ fontSize: 11, fontWeight: 700, color: MUTED, textDecoration: "none" }}>
-          Own this clinic? Send your photos and details →
-        </Link>
-      </div>
-
         </>
       ) : (
         <>
@@ -1681,6 +1317,22 @@ function ClinicDetailPage() {
       </Section>
 
         </>
+      )}
+
+      {activeVideo && (
+        <div onClick={() => setActiveVideo(null)} data-clinic-video-lightbox style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(28,10,0,0.88)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div onClick={(event) => event.stopPropagation()} style={{ width: "100%", maxWidth: 360, maxHeight: "88vh", overflowY: "auto", background: WARM_WHITE, borderRadius: 8, padding: 10 }}>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}><button type="button" aria-label="Close video" onClick={() => setActiveVideo(null)} style={{ border: "none", background: "none", color: ESPRESSO, fontSize: 22, lineHeight: 1, cursor: "pointer", padding: 4 }}>×</button></div>
+            {!videoEmbedFailed && videoPlatform === "tiktok" && extractTikTokVideoId(activeVideo.source_url) ? (
+              <blockquote className="tiktok-embed" cite={activeVideo.source_url} data-video-id={extractTikTokVideoId(activeVideo.source_url) ?? undefined} style={{ maxWidth: 325, minWidth: 260, margin: "0 auto" }}><section /></blockquote>
+            ) : !videoEmbedFailed && videoPlatform === "instagram" && instagramEmbedUrl(activeVideo.source_url) ? (
+              <iframe src={instagramEmbedUrl(activeVideo.source_url) ?? undefined} title={`Instagram video from ${activeVideo.author_handle || clinic.name}`} onError={() => setVideoEmbedFailed(true)} allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" style={{ display: "block", width: "100%", height: 560, border: 0 }} />
+            ) : (
+              <div style={{ padding: "22px 12px", textAlign: "center" }}><Camera size={24} color={MUTED} /><div style={{ fontSize: 12, color: ESPRESSO, lineHeight: 1.5, marginTop: 10 }}>{activeVideo.caption || "This video could not be loaded inside Skintea."}</div></div>
+            )}
+            <a href={activeVideo.source_url} target="_blank" rel="noopener noreferrer" onClick={() => logIntent("social", videoPlatform, "clinic_posts")} style={{ display: "block", padding: "10px 4px 4px", textAlign: "center", color: CRIMSON, fontSize: 11.5, fontWeight: 700, textDecoration: "none" }}>Open on {videoPlatformLabel} ↗</a>
+          </div>
+        </div>
       )}
 
       {/* 15. Spacer — only when the fixed bar below renders */}

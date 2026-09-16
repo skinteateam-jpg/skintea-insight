@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { leadEvent, recordConsultationClick } from "@/lib/leads";
 import { ClinicImage } from "@/components/ClinicImage";
 import { displayImages, useCategoryImages } from "@/lib/clinicPhotos";
-import { formatClinicPrice } from "@/lib/clinicPrices";
+import { shownPrice } from "@/lib/clinicPrices";
 import {
   ArrowLeft, Heart, Share2, MapPin, Sparkles, FileText, Lock,
   Phone, Car, Map as MapIcon, Building2, Plus, Flame, Camera,
@@ -34,6 +34,7 @@ type CTreatment = {
   id: string;
   price_from: number | null;
   price_unit: string | null;
+  field_provenance?: any;
   treatment_id: string;
   treatments: { id: string; name: string; slug: string | null; active?: boolean | null } | null;
 };
@@ -355,11 +356,27 @@ function ClinicDetailPage() {
                   <div style={{ width: 34, height: 34, background: CREAM_TINT, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>💉</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: ESPRESSO }}>{tName}</div>
-                    {t.price_from != null && (
-                      <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
-                        {formatClinicPrice(t.price_from, t.price_unit)}
-                      </div>
-                    )}
+                    {/*
+                      Price, the date it was recorded, and a link to the page it was read from. A price older than
+                      120 days (or with no readable date) is hidden until it is checked again; nothing re-crawls itself.
+                    */}
+                    {(() => {
+                      const price = shownPrice(t.price_from, t.price_unit, t.field_provenance);
+                      if (!price) return null;
+                      return (
+                        <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>
+                          <span style={{ fontWeight: 700, color: ESPRESSO }}>{price.text}</span>
+                          {" · "}
+                          {price.url ? (
+                            <a href={price.url} target="_blank" rel="noopener noreferrer" style={{ color: MUTED }}>
+                              {price.dateLabel}
+                            </a>
+                          ) : (
+                            price.dateLabel
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                   <button onClick={() => setInquireFor(t)} style={{
                     background: CRIMSON_TINT, color: CRIMSON, border: "none",

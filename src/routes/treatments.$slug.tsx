@@ -9,7 +9,7 @@ import {
   breakdown, MIN_TREATMENT_REVIEWS, MIN_COST_VALUES, MAX_SENSITIVITY_POINTS, REGRET_LABELS, VERDICT_LABELS,
   type TreatmentQuoteRow, type TreatmentReviewRow, type VerdictCell,
 } from "@/lib/treatmentReviews";
-import { clinicPriceRanges, formatClinicPrice, formatPriceRange } from "@/lib/clinicPrices";
+import { clinicPriceRanges, formatPriceRange, shownPrice } from "@/lib/clinicPrices";
 
 export const Route = createFileRoute("/treatments/$slug")({
   component: TreatmentPage,
@@ -46,6 +46,7 @@ type ClinicLink = {
   id: string;
   price_from: number | null;
   price_unit: string | null;
+  field_provenance: any;
   clinics: {
     id: string;
     name: string;
@@ -246,7 +247,7 @@ function TreatmentPage() {
       if (t) {
         const { data: ct } = await supabase
           .from("clinic_treatments")
-          .select("id, price_from, price_unit, clinics!inner(id, name, neighborhood, listing_filter)")
+          .select("id, price_from, price_unit, field_provenance, clinics!inner(id, name, neighborhood, listing_filter)")
           .eq("treatment_id", (t as any).id)
           .eq("clinics.listing_filter", "passed");
         if (!alive) return;
@@ -379,7 +380,7 @@ function TreatmentPage() {
           .cost_paid_usd, 5-value floor), shown below it.
         */}
         {(() => {
-          const ranges = clinicPriceRanges(links.map((l) => ({ clinicId: l.clinics!.id, price_from: l.price_from, price_unit: l.price_unit })));
+          const ranges = clinicPriceRanges(links.map((l) => ({ clinicId: l.clinics!.id, price_from: l.price_from, price_unit: l.price_unit, field_provenance: l.field_provenance })));
           const cost = breakdown(reviewRows).cost;
           return (
             <Section title="Price">
@@ -391,7 +392,8 @@ function TreatmentPage() {
                       <div key={r.unit} className="text-xs text-brand-espresso">{formatPriceRange(r)}</div>
                     ))}
                     <div className="text-[10px] text-brand-muted leading-[1.4]">
-                      Prices as stated on each clinic's own website. Units are never mixed in one range.
+                      Prices as stated on each clinic's own website, on the date shown with each clinic below. Units are
+                      never mixed in one range, and a price older than 120 days is left out until it is checked again.
                     </div>
                   </div>
                 </>
@@ -435,28 +437,43 @@ function TreatmentPage() {
               */}
               {links.map((l) => {
                 const c = l.clinics!;
+                const price = shownPrice(l.price_from, l.price_unit, l.field_provenance);
                 return (
-                  <Link
-                    key={l.id}
-                    to="/clinics/$id"
-                    params={{ id: c.id }}
-                    style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: 12, display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO }}>{c.name}</div>
-                      {c.neighborhood && (
-                        <div style={{ fontSize: 11, color: MUTED, marginTop: 3, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                          <MapPin size={11} /> {c.neighborhood}
-                        </div>
-                      )}
-                      {l.price_from != null && (
-                        <div style={{ fontSize: 12, fontWeight: 800, color: CRIMSON, marginTop: 4 }}>
-                          {formatClinicPrice(l.price_from, l.price_unit)}
-                        </div>
-                      )}
-                    </div>
-                    <ChevronRight size={16} color={MUTED} />
-                  </Link>
+                  <div key={l.id} style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 10 }}>
+                    <Link
+                      to="/clinics/$id"
+                      params={{ id: c.id }}
+                      style={{ padding: 12, display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
+                    >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO }}>{c.name}</div>
+                        {c.neighborhood && (
+                          <div style={{ fontSize: 11, color: MUTED, marginTop: 3, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                            <MapPin size={11} /> {c.neighborhood}
+                          </div>
+                        )}
+                        {price && (
+                          <div style={{ fontSize: 12, fontWeight: 800, color: CRIMSON, marginTop: 4 }}>{price.text}</div>
+                        )}
+                      </div>
+                      <ChevronRight size={16} color={MUTED} />
+                    </Link>
+                    {/*
+                      The price's date and its evidence page. Outside the card Link, because an anchor cannot be nested
+                      inside another. A stale price (over 120 days) is not rendered at all, so there is no line here.
+                    */}
+                    {price && (
+                      <div style={{ padding: "0 12px 10px", fontSize: 10, color: MUTED }}>
+                        {price.url ? (
+                          <a href={price.url} target="_blank" rel="noopener noreferrer" style={{ color: MUTED, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                            {price.dateLabel} <ExternalLink width={10} height={10} />
+                          </a>
+                        ) : (
+                          price.dateLabel
+                        )}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>

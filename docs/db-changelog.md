@@ -544,3 +544,24 @@ Nothing below was reconstructed from memory without a source.
 - Why: owner's rule — a solo practice with its own site and booking is a business; a physician page inside a hospital
   group or directory is not; a product brand, shop or telehealth service is not a clinic.
 - Deleted session_ids: none. No rows deleted.
+
+### 2026-09-16 19:00–19:45 UTC — clinic intent logging table, admin report function (pipeline session, clinic layer)
+- Who: skintea-pipeline session; statements in `sql/2026-09-16_clinic_intent_events_querydb_log.sql` (pipeline repo).
+- What:
+  - New table `public.clinic_intent_events` (clinic_id FK, action call/book/directions/website/social, channel, page
+    clinic_page/treatment_page/clinics_index, surface, treatment_id FK, anonymous session_id, user_id, occurred_at).
+    NOT NULL + CHECK on action and page; at least one of session_id/user_id; index (clinic_id, occurred_at).
+  - Trigger `clinic_intent_events_guard`: occurred_at forced to now(); a user_id other than auth.uid() is rejected;
+    page treatment_page requires treatment_id.
+  - RLS on. anon/authenticated: column-level INSERT on the eight client columns only, policy "Visitors log clinic intent"
+    (user_id null or own). authenticated: SELECT granted, policy "Admins read clinic intent" (profiles.is_admin). anon has
+    no SELECT.
+  - New function `public.clinic_intent_report(p_from, p_to)`, SECURITY INVOKER; EXECUTE revoked from PUBLIC/anon, granted
+    to authenticated (non-admins get 0 rows through RLS).
+  - Guard tests (valid insert accepted; missing action, fake clinic, spoofed user, bad action, backdated occurred_at,
+    no identity, treatment_page without treatment, anon read all rejected; report: admin rows, non-admin 0, anon denied)
+    ran inside rolled-back blocks.
+- Why: attribution evidence for the B2B layer before any clinic signs — each outbound tap on a listing is logged, the
+  link follows at once.
+- Deleted session_ids: `fb06a078-951d-471c-8e2a-23f567724a55`, `6051a502-711c-4467-83c8-ada46ad77acd` — 6 production
+  smoke-test rows from this session's "Intent smoke test" workflow runs. Table held 0 rows afterwards.

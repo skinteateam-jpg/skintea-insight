@@ -667,3 +667,40 @@ Nothing below was reconstructed from memory without a source.
 - Not applied: `sql/2026-09-16_clinic_videos_01..28.sql` (1,056 official videos). A parallel session had already
   inserted 1,366 `clinic_videos` rows at 22:06 UTC; applying these would duplicate them.
 - Deleted session_ids: none. No rows deleted.
+
+### 2026-09-16 21:50–22:30 UTC — clinic page structure: social links reconciled, official clinic videos, last Google photo cleared
+- Who: skintea-pipeline session "clinic detail page: restore the structure, then fill it". No schema, function, view,
+  trigger, grant or policy was created or changed. Deletions: only this session's own rows, listed below.
+- `clinic_social_links` +47 rows (249 → 296, then −1 below: 295): every `clinics.instagram_url` /
+  `clinics.tiktok_url` value with no link for that clinic and platform (38 Instagram, 9 TikTok; the other 90 already
+  matched, 0 disagreed). One guarded DO block through `query_database` (expected count 47, source check, before/after
+  count). Provenance copied from `clinics.field_provenance.<platform>_url` with `evidence_url`, `copied_from`,
+  `copied_at`. `clinic_social_links` is now the one source of truth; no app code reads the two `clinics` columns (checked
+  in `skinteateam-jpg/skintea-insight` at 7ae8f94), so they can be dropped by an owner decision. Not dropped.
+- `clinic_videos` 0 → 1,366 → **1,087 rows** (854 Instagram videos on 85 clinics, 233 TikTok on 23; one listing per video),
+  all `relationship = 'official'`. Source: each listed clinic's own account from `clinic_social_links`, Apify
+  `apify/instagram-reel-scraper` run `knJozUzUpE5DHRBfR` (dataset `YvIK8njwhWHUFUuaF`, $2.6391) and
+  `clockworks/tiktok-scraper` run `7vQJ77ioi0UnrRI9c` (dataset `9EuB4gAiLSK0LzLmF`, $1.09), 12 per profile. Generator
+  `scripts/clinics/gen_clinic_videos_official.py` → `sql/2026-09-16_clinic_videos_official.sql` (md5 `ae86b7fb…`), INSERT
+  only, run by the Lovable agent at 22:06 UTC (1,366 rows; distinct-URL md5 Instagram `397bdabb…`, TikTok `5673d7a6…`,
+  equal to the local files). Not collected: 179 reels owned by another account (collabs/creators), 51 TikTok slideshows,
+  14 profile errors. 15 TikTok rows carry `field_provenance.disclosure.platform_ad` (labelled "Ad"); `disclosed_paid` 0.
+- **Deleted, this session's own rows only** (provenance run ids above), adopting the multi-location HELD rule of the
+  parallel session (pipeline commit `8bb6ac2`): a video from an account that speaks for several locations cannot be tied to
+  this listing. 231 rows for laseraway, heydayskincare, joinbhrc, schweigerderm, schweigerdermofficial, moov.health,
+  skinlaundry, skinlaundryusa, metropolisdermatology, formulafig, sculptdtla, drseansatey, blossommedav, lineps_irvine
+  (ids md5 in the query_database NOTICE), then 48 rows for drpearlgrimes and sculpt.medspa (one account, two listings).
+  No session's rows but this one's were touched. The parallel session's 28 batches (`sql/2026-09-16_clinic_videos_NN.sql`)
+  are not applied and must not be: the same videos are now stored.
+- `clinic_social_links` −1, this session's own row: `massage_laser_moodspa` (account does not exist; both scrapes). Three
+  other dead links (socalsurgerycenter, blossommedla, msclinic5 on TikTok) predate this session and were not touched.
+- `clinics.photos` on Blo Blow Dry Bar (`12ef7214…`, listing_filter dropped): its single remaining
+  `google_places_scrape` photo was cleared to `[]` (guarded: exactly one such clinic, one row updated). No clinic now holds a
+  Google Places photo.
+- Read-only findings reported, not changed: `clinic_photos_valid` still accepts `google_places_scrape` and has no
+  per-section / results rule; no source value exists for a photo taken from a clinic's own website; `clinic_who_visited`
+  rows that are not public cannot be counted below 5 visitors (only `clinic_visitor_profile` counts them); no table or
+  column exists for a clinic's reply to a review; `enforce_review_integrity` does not cover `surprised_by` / `wish_known`
+  on UPDATE; anon and authenticated hold INSERT/UPDATE/DELETE grants on `clinic_videos` and on the
+  `clinic_visitor_profile` view (blocked by RLS / not updatable, but broader than needed).
+- Apify spend: account cycle 2026-09-14 at 15.71 of 180 before these two runs (caps 5.00 + 3.00 USD), 22.59 after (other sessions ran in between); these runs 3.73.

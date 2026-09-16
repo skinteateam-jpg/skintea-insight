@@ -236,33 +236,42 @@ export type Database = {
           body: string | null
           clinic_id: string | null
           created_at: string
+          display_name_public: boolean
           field_provenance: Json
           id: string
           skin_type: string | null
+          surprised_by: string | null
           treatment_id: string | null
           user_id: string | null
+          wish_known: string | null
         }
         Insert: {
           agree_count?: number | null
           body?: string | null
           clinic_id?: string | null
           created_at?: string
+          display_name_public?: boolean
           field_provenance?: Json
           id?: string
           skin_type?: string | null
+          surprised_by?: string | null
           treatment_id?: string | null
           user_id?: string | null
+          wish_known?: string | null
         }
         Update: {
           agree_count?: number | null
           body?: string | null
           clinic_id?: string | null
           created_at?: string
+          display_name_public?: boolean
           field_provenance?: Json
           id?: string
           skin_type?: string | null
+          surprised_by?: string | null
           treatment_id?: string | null
           user_id?: string | null
+          wish_known?: string | null
         }
         Relationships: [
           {
@@ -485,11 +494,14 @@ export type Database = {
           caption: string | null
           clinic_id: string
           created_at: string
+          disclosed_paid: boolean | null
           field_provenance: Json
           id: string
           is_active: boolean
           likes: number | null
           platform: string
+          posted_at: string | null
+          relationship: string | null
           source_url: string
           thumbnail_url: string | null
           views: number | null
@@ -499,11 +511,14 @@ export type Database = {
           caption?: string | null
           clinic_id: string
           created_at?: string
+          disclosed_paid?: boolean | null
           field_provenance?: Json
           id?: string
           is_active?: boolean
           likes?: number | null
           platform: string
+          posted_at?: string | null
+          relationship?: string | null
           source_url: string
           thumbnail_url?: string | null
           views?: number | null
@@ -513,11 +528,14 @@ export type Database = {
           caption?: string | null
           clinic_id?: string
           created_at?: string
+          disclosed_paid?: boolean | null
           field_provenance?: Json
           id?: string
           is_active?: boolean
           likes?: number | null
           platform?: string
+          posted_at?: string | null
+          relationship?: string | null
           source_url?: string
           thumbnail_url?: string | null
           views?: number | null
@@ -536,18 +554,24 @@ export type Database = {
         Row: {
           clinic_id: string | null
           id: string
+          is_public: boolean
+          source: string | null
           user_id: string | null
           visited_at: string
         }
         Insert: {
           clinic_id?: string | null
           id?: string
+          is_public?: boolean
+          source?: string | null
           user_id?: string | null
           visited_at?: string
         }
         Update: {
           clinic_id?: string | null
           id?: string
+          is_public?: boolean
+          source?: string | null
           user_id?: string | null
           visited_at?: string
         }
@@ -582,6 +606,7 @@ export type Database = {
           hours: Json | null
           id: string
           image_url: string | null
+          instagram_url: string | null
           is_featured: boolean | null
           is_open_now: boolean | null
           is_verified: boolean
@@ -604,6 +629,7 @@ export type Database = {
           skintea_score: number | null
           tea_quote: string | null
           tea_skin_type: string | null
+          tiktok_url: string | null
           travel_minutes: number | null
           trust_score: number | null
           updated_at: string
@@ -631,6 +657,7 @@ export type Database = {
           hours?: Json | null
           id?: string
           image_url?: string | null
+          instagram_url?: string | null
           is_featured?: boolean | null
           is_open_now?: boolean | null
           is_verified?: boolean
@@ -653,6 +680,7 @@ export type Database = {
           skintea_score?: number | null
           tea_quote?: string | null
           tea_skin_type?: string | null
+          tiktok_url?: string | null
           travel_minutes?: number | null
           trust_score?: number | null
           updated_at?: string
@@ -680,6 +708,7 @@ export type Database = {
           hours?: Json | null
           id?: string
           image_url?: string | null
+          instagram_url?: string | null
           is_featured?: boolean | null
           is_open_now?: boolean | null
           is_verified?: boolean
@@ -702,6 +731,7 @@ export type Database = {
           skintea_score?: number | null
           tea_quote?: string | null
           tea_skin_type?: string | null
+          tiktok_url?: string | null
           travel_minutes?: number | null
           trust_score?: number | null
           updated_at?: string

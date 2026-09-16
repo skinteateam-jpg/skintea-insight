@@ -10,11 +10,20 @@
 //   - a price recorded more than MAX_PRICE_AGE_DAYS ago, or with no readable date, is HIDDEN everywhere
 //     (per-clinic lines and ranges alike) until it is re-verified. Nothing re-crawls automatically.
 //
-// A range is shown per price_unit, never mixing units, and only when at least MIN_PRICED_CLINICS listed clinics state a
-// fresh price in that unit.
+// A range is shown per price_unit, never mixing units, and only when at least MIN_PRICED_CLINICS independent price
+// sources state a fresh price in that unit.
+//
+// A chain publishes ONE price page for every location (LaserAway, BHRC), so its locations are not independent sources:
+// counting them separately inflates both the minimum-3 test and the displayed count. Rows whose price provenance
+// carries the chain-wide caution are therefore collapsed to one source per brand (the host of the evidence page) for
+// the aggregate. The chain's price still counts in the range, every row stays in the database, and each location keeps
+// showing its own price on its own clinic page.
 
 export const MIN_PRICED_CLINICS = 3;
 export const MAX_PRICE_AGE_DAYS = 120;
+
+// The caution the price pass writes on a row read from a chain-wide price page.
+const CHAIN_CAUTION = /chain-wide|chain site|chain price/i;
 
 export const PRICE_UNIT_LABELS: Record<string, string> = {
   per_session: "per session",
@@ -35,12 +44,29 @@ export function formatClinicPrice(price: number, unit: string | null): string {
   return label ? `${usd(price)} ${label}` : usd(price);
 }
 
-export type PriceProvenance = { recordedAt: string | null; url: string | null };
+export type PriceProvenance = { recordedAt: string | null; url: string | null; caution: string | null };
 
 // field_provenance.price_from as stored by the price backfill.
 export function priceProvenance(fieldProvenance: any): PriceProvenance {
   const p = fieldProvenance?.price_from ?? null;
-  return { recordedAt: typeof p?.recorded_at === "string" ? p.recorded_at : null, url: typeof p?.url === "string" ? p.url : null };
+  return {
+    recordedAt: typeof p?.recorded_at === "string" ? p.recorded_at : null,
+    url: typeof p?.url === "string" ? p.url : null,
+    caution: typeof p?.caution === "string" ? p.caution : null,
+  };
+}
+
+// One independent price source. A chain's locations share the brand's price page, so they share a key.
+export function priceSourceKey(clinicId: string, prov: PriceProvenance): { key: string; chain: boolean } {
+  if (prov.caution && CHAIN_CAUTION.test(prov.caution) && prov.url) {
+    try {
+      const host = new URL(prov.url).hostname.toLowerCase().replace(/^www\./, "");
+      return { key: `chain:${host}`, chain: true };
+    } catch {
+      // An unparseable URL falls back to the clinic: never merge rows we cannot attribute to one brand.
+    }
+  }
+  return { key: `clinic:${clinicId}`, chain: false };
 }
 
 export function priceAgeDays(recordedAt: string | null, now: Date = new Date()): number | null {
@@ -75,31 +101,37 @@ export type PricedLink = {
   field_provenance?: any;
 };
 
-export type PriceRange = { unit: string; min: number; max: number; clinics: number };
+export type PriceRange = { unit: string; min: number; max: number; clinics: number; chainCollapsed: boolean };
 
-// Ranges across the given links (callers pass listed clinics only), grouped by unit. Stale prices are left out.
+// Ranges across the given links (callers pass listed clinics only), grouped by unit. Stale prices are left out, and a
+// chain's locations count as one source (see CHAIN_CAUTION above).
 export function clinicPriceRanges(links: PricedLink[], now: Date = new Date()): PriceRange[] {
   const byUnit = new Map<string, Map<string, number>>();
+  const collapsed = new Map<string, boolean>();
   for (const l of links) {
     if (l.price_from == null || !l.price_unit) continue;
-    if (!isPriceFresh(priceProvenance(l.field_provenance).recordedAt, now)) continue;
+    const prov = priceProvenance(l.field_provenance);
+    if (!isPriceFresh(prov.recordedAt, now)) continue;
+    const { key, chain } = priceSourceKey(l.clinicId, prov);
     const m = byUnit.get(l.price_unit) ?? new Map<string, number>();
-    // One price per clinic per unit: a clinic has one link per treatment, so this never averages.
-    m.set(l.clinicId, Math.min(m.get(l.clinicId) ?? Infinity, l.price_from));
+    // One price per source per unit: the lowest the source states. Never an average.
+    if (chain && m.has(key)) collapsed.set(l.price_unit, true);
+    m.set(key, Math.min(m.get(key) ?? Infinity, l.price_from));
     byUnit.set(l.price_unit, m);
   }
   const out: PriceRange[] = [];
   for (const [unit, m] of byUnit) {
     if (m.size < MIN_PRICED_CLINICS) continue;
     const v = [...m.values()];
-    out.push({ unit, min: Math.min(...v), max: Math.max(...v), clinics: m.size });
+    out.push({ unit, min: Math.min(...v), max: Math.max(...v), clinics: m.size, chainCollapsed: collapsed.get(unit) === true });
   }
   return out.sort((a, b) => b.clinics - a.clinics || a.unit.localeCompare(b.unit));
 }
 
 // e.g. "From $450 to $900 per session, across 7 listed clinics"; "Starting prices from $325 to $500, across 3 listed clinics".
 export function formatPriceRange(r: PriceRange): string {
-  const across = `across ${r.clinics} listed clinics`;
+  const across = `across ${r.clinics} listed clinics`
+    + (r.chainCollapsed ? " (a chain's locations count once)" : "");
   if (r.unit === "starting_from") {
     return r.min === r.max ? `Starting at ${usd(r.min)}, ${across}` : `Starting prices from ${usd(r.min)} to ${usd(r.max)}, ${across}`;
   }

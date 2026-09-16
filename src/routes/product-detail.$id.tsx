@@ -711,7 +711,7 @@ function ProductPage() {
             <button
               key={t}
               onClick={() => setPageTab(t)}
-              className={`flex-1 py-[11px] bg-transparent border-none cursor-pointer font-[inherit] text-[13px] border-b-2 ${
+              className={`flex-1 py-[11px] bg-transparent cursor-pointer font-[inherit] text-[13px] border-b-2 ${
                 pageTab === t
                   ? "border-brand-crimson text-brand-espresso font-semibold"
                   : "border-transparent text-brand-muted font-medium"

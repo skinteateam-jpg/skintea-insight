@@ -101,12 +101,9 @@ function reviewsLabel(n: number) {
 
 // A percentage renders only when its own cell passes the sensitivity test (see treatmentReviews.ts),
 // and always with the number of reviews it is based on.
-// Display only: a shown worth-it figure is rounded to the nearest 5 (owner, 2026-09-16). At 30–50 counted reviews the
-// interval is roughly ±13–16 points, so "70%" would claim precision the sample does not have. The gate, the floor, the
-// sensitivity test and the stored computation all use the exact figure; only the number on screen is rounded.
-function roundToFive(pct: number): number {
-  return Math.round(pct / 5) * 5;
-}
+// The count leads and the percentage is secondary (owner, 2026-09-16). The count is the evidence; the percentage is
+// shown exactly as computed. Rounding to the nearest 5 was tried and removed: beside "21 of 40" a "55%" contradicted
+// the count the reader could see, so it bought no honesty and created an inconsistency.
 
 function VerdictBars({ cell, who }: { cell: VerdictCell; who: string }) {
   if (cell.gate !== "open" || cell.worthPct === null || cell.notWorthPct === null) {
@@ -125,8 +122,8 @@ function VerdictBars({ cell, who }: { cell: VerdictCell; who: string }) {
     );
   }
   const cards = [
-    { label: "Worth it", pct: roundToFive(cell.worthPct), count: cell.worth, barCls: "bg-brand-crimson" },
-    { label: "Not worth it", pct: roundToFive(cell.notWorthPct), count: cell.notWorth, barCls: "bg-brand-crimson/40" },
+    { label: "Worth it", pct: cell.worthPct, count: cell.worth, barCls: "bg-brand-crimson" },
+    { label: "Not worth it", pct: cell.notWorthPct, count: cell.notWorth, barCls: "bg-brand-crimson/40" },
   ];
   return (
     <>
@@ -134,18 +131,17 @@ function VerdictBars({ cell, who }: { cell: VerdictCell; who: string }) {
         {cards.map((c) => (
           <div key={c.label} className="bg-card border border-brand-border rounded-xl p-3.5">
             <div className="text-[11px] text-brand-muted mb-1">{c.label}</div>
-            <div className="flex items-baseline flex-wrap gap-x-1.5">
-              <span className="text-3xl font-semibold text-brand-espresso leading-none">{c.pct}%</span>
-              <span className="text-[11px] text-brand-muted">· {reviewsLabel(cell.n)}</span>
-            </div>
-            <div className="h-[3px] bg-brand-border rounded-sm my-2 overflow-hidden">
+            <div className="text-2xl font-semibold text-brand-espresso leading-none">{c.count} of {cell.n}</div>
+            <div className="text-[12px] text-brand-muted mt-1">{c.pct}%</div>
+            <div className="h-[3px] bg-brand-border rounded-sm mt-2 overflow-hidden">
               <div className={`h-full ${c.barCls}`} style={{ width: `${c.pct}%` }} />
             </div>
-            <div className="text-[10px] text-brand-muted">{c.count} of {cell.n}</div>
           </div>
         ))}
       </div>
-      <div className="text-[11px] text-brand-muted mt-1.5">{mixedNote(cell.mixed) || "No mixed reviews."}</div>
+      <div className="text-[11px] text-brand-muted mt-1.5">
+        {reviewsLabel(cell.n).replace(/^b/, "B")}. {mixedNote(cell.mixed) || "No mixed reviews."}
+      </div>
     </>
   );
 }
@@ -172,8 +168,11 @@ function QuoteSection({ rows }: { rows: TreatmentQuoteRow[] }) {
   const [expanded, setExpanded] = useState(false);
   if (rows.length === 0) return null;
   const shown = expanded ? rows : rows.slice(0, QUOTE_PREVIEW);
+  // Rendered inside "What people say", directly under the Worth it? figure (owner, 2026-09-16): the quotes are the
+  // evidence for that figure, so they sit next to it rather than two sections below.
   return (
-    <Section title="In their words">
+    <>
+      <SubLabel>In their words</SubLabel>
       <div className="flex flex-col gap-2">
         {shown.map((q) => {
           const verdict = q.verdict ? VERDICT_LABELS[q.verdict] : null;
@@ -227,7 +226,7 @@ function QuoteSection({ rows }: { rows: TreatmentQuoteRow[] }) {
           {shown.length === rows.length ? rows.length : `${shown.length} of ${rows.length}`} {rows.length === 1 ? "quote" : "quotes"} from Reddit, each copied exactly from part of a post or comment. Tap one to read the original. Quotes are not a vote count.
         </div>
       </div>
-    </Section>
+    </>
   );
 }
 
@@ -316,14 +315,26 @@ function TreatmentPage() {
           {treatment.subtitle && <div style={{ fontSize: 13, color: MUTED, marginTop: 4, lineHeight: 1.45 }}>{treatment.subtitle}</div>}
         </div>
 
-        <Section title="About this treatment">
-          <Field label="What it is" value={treatment.what_it_is} />
-          <Field label="How it works" value={treatment.how_it_works} />
-          <Field label="Who it's for" value={treatment.who_its_for} />
-          <Field label="Downtime" value={treatment.downtime} />
-          <Field label="Average cost" value={treatment.average_cost} />
-          <Field label="Sessions recommended" value={treatment.sessions_recommended} />
-        </Section>
+        {(() => {
+          // Only fields that have a value render; with none, one line says so (owner, 2026-09-16).
+          const about = [
+            { label: "What it is", value: treatment.what_it_is },
+            { label: "How it works", value: treatment.how_it_works },
+            { label: "Who it's for", value: treatment.who_its_for },
+            { label: "Downtime", value: treatment.downtime },
+            { label: "Average cost", value: treatment.average_cost },
+            { label: "Sessions recommended", value: treatment.sessions_recommended },
+          ].filter((f) => f.value);
+          return (
+            <Section title="About this treatment">
+              {about.length === 0 ? (
+                <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>Details not added yet.</div>
+              ) : (
+                about.map((f) => <Field key={f.label} label={f.label} value={f.value} />)
+              )}
+            </Section>
+          );
+        })()}
 
         {/*
           Who has talked about it — celebrity / influencer evidence, between "About this
@@ -349,34 +360,53 @@ function TreatmentPage() {
               <SubLabel>Worth it?</SubLabel>
               <VerdictBars cell={br.overall} who="" />
 
-              <SubLabel>First time vs repeat</SubLabel>
-              <div className="text-[11px] text-brand-muted mb-1.5">First time</div>
-              <VerdictBars cell={br.firstTime} who="from first-timers" />
-              <div className="text-[11px] text-brand-muted mt-3 mb-1.5">Had it before</div>
-              <VerdictBars cell={br.repeat} who="from repeat patients" />
+              <QuoteSection rows={quoteRows} />
 
-              <SubLabel>Top regrets</SubLabel>
-              {br.regrets.named < MIN_TREATMENT_REVIEWS ? (
-                <DataPending>{br.regrets.named} of {MIN_TREATMENT_REVIEWS} counted reviews naming a regret needed.</DataPending>
-              ) : br.regrets.top.length === 0 ? (
-                <DataPending>No counted review names a regret yet.</DataPending>
-              ) : (
-                <div className="bg-card border border-brand-border rounded-xl p-3.5">
-                  {br.regrets.top.map((r) => (
-                    <div key={r.reason} className="flex justify-between text-xs text-brand-espresso py-1">
-                      <span>{REGRET_LABELS[r.reason] ?? r.reason}</span>
-                      <span className="text-brand-muted">{r.count} {r.count === 1 ? "review" : "reviews"}</span>
-                    </div>
-                  ))}
-                  <div className="text-[10px] text-brand-muted mt-1.5 leading-[1.4]">
-                    How many reviews name each reason. A count, not a share: some reviews were found by searching for regrets.
-                  </div>
-                </div>
-              )}
-
-              <SubLabel>Sensitive skin</SubLabel>
-              <VerdictBars cell={br.sensitive} who="from people with sensitive skin" />
-
+              {(() => {
+                // A breakdown that clears its gate renders in full. Every held one is listed in ONE line instead of a
+                // dashed card each (owner, 2026-09-16); the counts in the line are the counts the cards showed.
+                const cells = [
+                  { key: "first", label: "First time", short: "first-timers", cell: br.firstTime, who: "from first-timers" },
+                  { key: "repeat", label: "Had it before", short: "repeat patients", cell: br.repeat, who: "from repeat patients" },
+                  { key: "sensitive", label: "Sensitive skin", short: "sensitive skin", cell: br.sensitive, who: "from people with sensitive skin" },
+                ];
+                const heldText = (c: VerdictCell) =>
+                  c.gate === "too_few" ? `${c.n}/${MIN_TREATMENT_REVIEWS}` : c.gate === "unstable" ? "held, not stable" : "held";
+                const regretsOpen = br.regrets.named >= MIN_TREATMENT_REVIEWS && br.regrets.top.length > 0;
+                const held = cells.filter((c) => c.cell.gate !== "open").map((c) => `${c.short} ${heldText(c.cell)}`);
+                if (!regretsOpen) held.push(`top regrets ${br.regrets.named}/${MIN_TREATMENT_REVIEWS}`);
+                return (
+                  <>
+                    {cells.filter((c) => c.cell.gate === "open").map((c) => (
+                      <div key={c.key}>
+                        <SubLabel>{c.label}</SubLabel>
+                        <VerdictBars cell={c.cell} who={c.who} />
+                      </div>
+                    ))}
+                    {regretsOpen && (
+                      <>
+                        <SubLabel>Top regrets</SubLabel>
+                        <div className="bg-card border border-brand-border rounded-xl p-3.5">
+                          {br.regrets.top.map((r) => (
+                            <div key={r.reason} className="flex justify-between text-xs text-brand-espresso py-1">
+                              <span>{REGRET_LABELS[r.reason] ?? r.reason}</span>
+                              <span className="text-brand-muted">{r.count} {r.count === 1 ? "review" : "reviews"}</span>
+                            </div>
+                          ))}
+                          <div className="text-[10px] text-brand-muted mt-1.5 leading-[1.4]">
+                            How many reviews name each reason. A count, not a share: some reviews were found by searching for regrets.
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    {held.length > 0 && (
+                      <div className="text-[11px] text-brand-muted mt-4 leading-[1.5]">
+                        Not enough counted reviews yet for: {held.join(" · ")}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </Section>
           );
         })()}
@@ -424,8 +454,6 @@ function TreatmentPage() {
             </Section>
           );
         })()}
-
-        <QuoteSection rows={quoteRows} />
 
         <Section title={`Clinics offering ${treatment.name}`}>
           {links.length === 0 ? (

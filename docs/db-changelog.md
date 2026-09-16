@@ -565,3 +565,50 @@ Nothing below was reconstructed from memory without a source.
   link follows at once.
 - Deleted session_ids: `fb06a078-951d-471c-8e2a-23f567724a55`, `6051a502-711c-4467-83c8-ada46ad77acd` — 6 production
   smoke-test rows from this session's "Intent smoke test" workflow runs. Table held 0 rows afterwards.
+
+### 2026-09-16 20:10-20:40 UTC - clinics.best_for filled from the website crawl already on disk (pipeline session)
+- Who: skintea-pipeline session. Database only: `sql/2026-09-16_clinics_best_for.sql` (pipeline commit `ed29421`),
+  six guarded DO blocks through `query_database`. No app file changed, no new Apify run, $0 spent.
+- What: **`clinics.best_for` 0 -> 352 chips on 107 clinics**, all of them `listing_filter = 'passed'`. Of the 184 listed
+  clinics, 138 have a `website_url`; 107 of those now carry 1-5 chips (average 3.3) and 31 keep the empty array on
+  purpose. The 46 with no website were never in scope. Every row also gained
+  `field_provenance.best_for = {source: clinic_website_crawl, recorded_at: 2026-09-16, url, detail}`.
+  - **The detail carries the evidence for every chip**: the exact phrase, the page it was read from and the Apify
+    dataset id, chip by chip.
+  - Chips per clinic: 5 on 9 clinics, 4 on 48, 3 on 25, 2 on 16, 1 on 9.
+  - Guards: payload md5, the batch id count, a listed-clinic count, a before-count of 0 clinics already carrying
+    `best_for`, a per-row `GET DIAGNOSTICS` check and an after-count. The batch-2 guard fired once on a wrong md5
+    constant and wrote nothing, which is the guard doing its job; it was re-run with the file's constant.
+  - Verified after the run: 107 rows, 352 chips, all listed, all sourced, and the chip set hashes identically in the
+    database and in the local decision file (`c829440601eb0f0055df015210850be9`).
+  - Rendered check (Playwright, localhost:8080): Shiny Laser Skin Clinic shows the five chips; Viora MedSpa shows the
+    honest empty state, "Nothing recorded for this clinic yet."
+- Why: the section existed with nothing to render. It now renders what each clinic says about itself, and nothing else.
+- Deleted session_ids: none. No rows deleted, no schema, function, view, policy or grant changed.
+
+#### Method note - what earns a chip, and what does not
+- **Source: the clinic's own crawled pages only** (price pass, full crawl, deep crawl, names crawl and the two samples;
+  dataset list in `scripts/clinics/best_for_evidence.py`). Nothing is derived from `clinic_treatments`, from a Google
+  category, from review or social text, or from the clinic's name.
+- **Earns a chip:** what the page says it specialises in, focuses on or is known for; who it serves; the languages it
+  speaks; and how it operates (walk-ins, memberships, at-home visits, insurance accepted, payment plans, appointment
+  only). Concerns and audiences are preferred over modality names - "acne scars", "melasma", "Korean-speaking staff",
+  "teen acne", not "Botox".
+- **Rejected, by reason:** marketing superlatives ("#1 best med spa", "premier", "luxury", "award-winning",
+  "world-class"); outcome and safety claims ("painless", "guaranteed", "safe for every skin tone"); keyword-stuffed meta
+  descriptions; quoted customer reviews and embedded TikTok/Instagram captions; device-manufacturer marketing copy; and
+  any page that is not the clinic's own site - parent organisations (keckmedicine.org), portals (koreaportal.com),
+  link shorteners (bit.ly), platform pages (Instagram, Square, Mailchimp) and a parked host page (Bluehost).
+- **An empty array is a correct answer.** 31 listed clinics with a website have none, each with a recorded reason in
+  `data/clinics/best_for_decisions_2026-09-16.json`: 11 state only generic marketing, 9 have a website that is a
+  platform/portal/shortener rather than their own site, 4 have no crawled pages, 3 name only bare modalities or a single
+  menu item, 2 are parent-organisation sites, 1 site carries unfinished template text from another business, and 1
+  belongs to the hair salon the esthetician works inside.
+- **Chains carry a caution.** LaserAway (2 locations), BHRC (2), Heyday (2), Skin Laundry and Schweiger publish one
+  site for every location, so their chips record that the statement is chain-wide, not specific to that location - the
+  same rule already used for chain prices.
+- **Nothing is written from memory.** `scripts/clinics/verify_best_for.py` requires each chip's phrase to be an exact
+  substring of that clinic's own crawled page, fails the run otherwise, and supplies the evidence URL and dataset id, so
+  no URL is ever hand-transcribed.
+- **Re-verification.** These chips have no expiry rule today (unlike prices, which die at 120 days). A clinic that
+  rewrites its site will drift; re-run the evidence, verification and generator scripts against a fresh crawl to refresh.

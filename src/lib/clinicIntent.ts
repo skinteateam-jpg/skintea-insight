@@ -8,12 +8,12 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getLeadSessionId } from "@/lib/leadSession";
 
-export type IntentAction = "call" | "book" | "directions" | "website" | "social";
+export type IntentAction = "call" | "book" | "directions" | "website" | "social" | "video_play";
 export type IntentChannel =
-  | "tel" | "website" | "booking_platform" | "maps" | "instagram" | "tiktok"
+  | "tel" | "website" | "booking_platform" | "maps" | "instagram" | "tiktok" | "youtube"
   | "profile_page" | "directory_page" | "short_link";
 export type IntentPage = "clinic_page" | "treatment_page" | "clinics_index";
-export type IntentSurface = "action_bar" | "inquire_sheet" | "location_section" | "social_chips";
+export type IntentSurface = "action_bar" | "inquire_sheet" | "location_section" | "social_chips" | "contact_links" | "clinic_posts";
 
 export type ClinicIntent = {
   clinicId: string;

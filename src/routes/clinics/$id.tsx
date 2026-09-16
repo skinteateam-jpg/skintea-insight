@@ -12,7 +12,7 @@ import { shownPrice } from "@/lib/clinicPrices";
 import { MIN_TAGGED } from "@/lib/opinionAggregate";
 import {
   ArrowLeft, Heart, Share2, MapPin, Sparkles, FileText,
-  Phone, Car, Map as MapIcon, ChevronLeft, ChevronRight,
+  Phone, Car, Map as MapIcon, ChevronLeft, ChevronRight, Camera, Play, Globe2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/clinics/$id")({
@@ -386,6 +386,67 @@ function TeaCarousel({ reviews }: { reviews: Review[] }) {
   );
 }
 
+function extractTikTokVideoId(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const match = url.match(/\/video\/(\d+)/);
+  return match ? match[1] : null;
+}
+
+function instagramEmbedUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    const match = parsed.pathname.match(/^\/(?:p|reel|reels)\/([^/]+)/);
+    return match ? `https://www.instagram.com/p/${match[1]}/embed/` : null;
+  } catch {
+    return null;
+  }
+}
+
+// Every card says whose account posted it and carries the recorded disclosure labels. Thumbnail URLs may expire, so a
+// failed image falls back to a plain frame; tapping the card is handled by the page and never navigates away.
+function VideoCard({ v, onPlay }: { v: any; onPlay: () => void }) {
+  const [thumbFailed, setThumbFailed] = useState(false);
+  const relationship =
+    v.relationship === "official" ? "Clinic's own account" : v.relationship === "creator" ? "Creator video" : "Account not identified";
+  return (
+    <button type="button" onClick={onPlay} style={{ textAlign: "left", padding: 0, border: "none", width: "100%", cursor: "pointer", background: "none" }}>
+      <div style={{ width: "100%", aspectRatio: "9/16", borderRadius: 8, overflow: "hidden", background: ESPRESSO, position: "relative" }}>
+        {v.thumbnail_url && !thumbFailed ? (
+          <img src={v.thumbnail_url} alt={v.caption || `Video posted by ${v.author_handle || "this account"}`} loading="lazy" onError={() => setThumbFailed(true)}
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        ) : (
+          <div style={{ width: "100%", height: "100%", background: ESPRESSO, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Camera size={20} color={MUTED} />
+          </div>
+        )}
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ width: 30, height: 30, borderRadius: 30, background: "rgba(255,252,248,0.88)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Play size={13} color={ESPRESSO} fill={ESPRESSO} />
+          </span>
+        </div>
+        <div style={{ position: "absolute", top: 5, left: 5, right: 5, display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-start" }}>
+          <span style={{ background: "rgba(255,252,248,0.92)", color: ESPRESSO, fontSize: 7.5, fontWeight: 800, padding: "2px 4px", borderRadius: 3 }}>{relationship}</span>
+          {v.disclosed_paid === true && <span style={{ background: CRIMSON, color: WARM_WHITE, fontSize: 7.5, fontWeight: 800, padding: "2px 4px", borderRadius: 3 }}>Paid partnership</span>}
+          {v.field_provenance?.disclosure?.platform_ad === true && <span style={{ background: ESPRESSO, color: WARM_WHITE, fontSize: 7.5, fontWeight: 800, padding: "2px 4px", borderRadius: 3 }}>Ad</span>}
+        </div>
+        {(Number(v.views) > 0 || Number(v.likes) > 0) && (
+          <div style={{ position: "absolute", bottom: 5, right: 5, display: "flex", gap: 3 }}>
+            {Number(v.views) > 0 && <span style={{ background: "rgba(28,10,0,0.75)", color: WARM_WHITE, fontSize: 7.5, fontWeight: 700, padding: "2px 4px", borderRadius: 3 }}>{compactCount(Number(v.views))} views</span>}
+            {Number(v.likes) > 0 && <span style={{ background: "rgba(28,10,0,0.75)", color: WARM_WHITE, fontSize: 7.5, fontWeight: 700, padding: "2px 4px", borderRadius: 3 }}>{compactCount(Number(v.likes))} likes</span>}
+          </div>
+        )}
+      </div>
+      {(v.author_handle || v.caption) && (
+        <div style={{ paddingTop: 5 }}>
+          {v.author_handle && <div style={{ fontSize: 9.5, fontWeight: 700, color: ESPRESSO }}>@{String(v.author_handle).replace(/^@/, "")}</div>}
+          {v.caption && <div style={{ fontSize: 8.5, lineHeight: 1.35, color: MUTED, marginTop: 2, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{v.caption}</div>}
+        </div>
+      )}
+    </button>
+  );
+}
+
 function ClinicDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
@@ -410,6 +471,7 @@ function ClinicDetailPage() {
   const [visitors, setVisitors] = useState<any[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [socials, setSocials] = useState<{ platform: string; url: string; handle: string | null }[]>([]);
+  const [videos, setVideos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [activeGallerySection, setActiveGallerySection] = useState<Exclude<PhotoSection, "parking">>("outside");
@@ -422,6 +484,10 @@ function ClinicDetailPage() {
   const [inquireFor, setInquireFor] = useState<CTreatment | null>(null);
   const [userSkin, setUserSkin] = useState<string | null>(null);
   const [reviewFilter, setReviewFilter] = useState<string>("all");
+  const [activeVideoTab, setActiveVideoTab] = useState<"about" | "official">("about");
+  const [showAllVideos, setShowAllVideos] = useState(false);
+  const [activeVideo, setActiveVideo] = useState<any | null>(null);
+  const [videoEmbedFailed, setVideoEmbedFailed] = useState(false);
   // Who goes here: opted-in visits (RLS "Public sees opted-in visits": is_public), their profiles, the signed-in
   // visitor's own visits, and the aggregate view (clinic_visitor_profile returns a clinic only at 5+ visitors).
   const [publicVisitors, setPublicVisitors] = useState<{ user_id: string; visited_at: string; name: string | null; username: string | null; avatar_url: string | null }[]>([]);
@@ -519,7 +585,7 @@ function ClinicDetailPage() {
       // query is sent only with a session (2026-09-16).
       const { data: sessionData } = await supabase.auth.getSession();
       const signedIn = !!sessionData.session;
-      const [c, ss, ct, pr, pv, rv, sl, vp] = await Promise.all([
+      const [c, ss, ct, pr, pv, rv, cv, sl, vp] = await Promise.all([
         // Only listings that passed the filter render; 'unsure' and 'dropped' read as not found.
         supabase.from("clinics").select("*").eq("id", id).eq("listing_filter", "passed").maybeSingle(),
         supabase.from("clinic_skin_scores").select("*").eq("clinic_id", id),
@@ -530,9 +596,10 @@ function ClinicDetailPage() {
           ? supabase.from("clinic_who_visited").select("user_id, visited_at").eq("clinic_id", id).eq("is_public", true).order("visited_at", { ascending: false }).limit(24)
           : Promise.resolve({ data: [] as { user_id: string; visited_at: string }[] }),
         supabase.from("clinic_reviews").select(REVIEW_COLUMNS).eq("clinic_id", id).order("created_at", { ascending: false }),
+        supabase.from("clinic_videos").select("*").eq("clinic_id", id).eq("is_active", true).order("posted_at", { ascending: false, nullsFirst: false }),
         // Public social profiles: clinic_social_links is the one source of truth for handles (clinics.instagram_url and
         // clinics.tiktok_url were reconciled into it on 2026-09-16 and are not read anywhere in the app).
-        (supabase as any).from("clinic_social_links").select("platform, url, handle").eq("clinic_id", id).in("platform", ["instagram", "tiktok"]).order("platform"),
+        (supabase as any).from("clinic_social_links").select("platform, url, handle").eq("clinic_id", id).in("platform", ["instagram", "tiktok", "youtube"]).order("platform"),
         (supabase as any).from("clinic_visitor_profile").select("*").eq("clinic_id", id).maybeSingle(),
       ]);
       if (!alive) return;
@@ -542,6 +609,7 @@ function ClinicDetailPage() {
       setTreatments(ctData);
       setPractitioners((pr.data as any) || []);
       setReviews((rv.data as any) || []);
+      setVideos((cv.data as any) || []);
       // Handles are unique per platform on the page: a clinic listing the same account twice shows it once.
       const seen = new Set<string>();
       setSocials((((sl.data as any) || []) as { platform: string; url: string; handle: string | null }[]).filter((s) => {
@@ -569,6 +637,30 @@ function ClinicDetailPage() {
     })();
     return () => { alive = false; };
   }, [id]);
+
+  useEffect(() => {
+    const aboutCount = videos.filter((v) => v.relationship !== "official").length;
+    setActiveVideoTab(aboutCount > 0 ? "about" : "official");
+    setShowAllVideos(false);
+  }, [videos]);
+
+  useEffect(() => {
+    setVideoEmbedFailed(false);
+    if (!activeVideo || activeVideo.platform !== "tiktok") return;
+    const existing = document.getElementById("tiktok-embed-script");
+    if (existing) existing.remove();
+    const script = document.createElement("script");
+    script.id = "tiktok-embed-script";
+    script.async = true;
+    script.src = "https://www.tiktok.com/embed.js";
+    script.onerror = () => setVideoEmbedFailed(true);
+    document.body.appendChild(script);
+    const timeout = window.setTimeout(() => {
+      const rendered = document.querySelector("[data-clinic-video-lightbox] iframe");
+      if (!rendered) setVideoEmbedFailed(true);
+    }, 8000);
+    return () => window.clearTimeout(timeout);
+  }, [activeVideo]);
 
   // clinic_view once per mount per clinic id, only after a listed clinic has loaded (the ref
   // also absorbs StrictMode's double effect run). leads.ts holds a first view in the browser.
@@ -767,7 +859,7 @@ function ClinicDetailPage() {
 
   // One intent row per outbound action; fire-and-forget, never awaited, so the link follows at once.
   const logIntent = (
-    action: "call" | "book" | "directions" | "website" | "social",
+    action: Parameters<typeof logClinicIntent>[0]["action"],
     channel: Parameters<typeof logClinicIntent>[0]["channel"],
     surface: Parameters<typeof logClinicIntent>[0]["surface"],
     treatmentId?: string | null,

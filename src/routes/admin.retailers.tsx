@@ -107,7 +107,7 @@ function AdminRetailers() {
 
   async function reload() {
     const [{ data: rs }, { data: ps }, { data: prods }] = await Promise.all([
-      (supabase as any).from("retailers").select("id,slug,name,search_url_template,affiliate_id,affiliate_param_template,is_active,sort_order").order("sort_order", { ascending: true }),
+      (supabase as any).from("retailers").select("id,slug,name,search_url_template,affiliate_id,affiliate_param_template,network,notes,is_active,sort_order").order("sort_order", { ascending: true }),
       (supabase as any).from("brand_retailers").select("brand,retailer_id"),
       (supabase as any).from("products").select("brand").not("brand", "is", null).limit(5000),
     ]);
@@ -132,7 +132,13 @@ function AdminRetailers() {
     setRetailers((prev) => prev.map((x) => (x.id === r.id ? next : x)));
     const { error } = await (supabase as any)
       .from("retailers")
-      .update({ affiliate_id: next.affiliate_id, is_active: next.is_active })
+      .update({
+        affiliate_id: next.affiliate_id,
+        affiliate_param_template: next.affiliate_param_template,
+        network: next.network,
+        notes: next.notes,
+        is_active: next.is_active,
+      })
       .eq("id", r.id);
     setMsg(error ? `Couldn't save ${r.name}: ${error.message}` : `Saved ${r.name}`);
   }

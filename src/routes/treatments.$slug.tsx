@@ -10,6 +10,7 @@ import {
   type TreatmentQuoteRow, type TreatmentReviewRow, type VerdictCell,
 } from "@/lib/treatmentReviews";
 import { clinicPriceRanges, formatPriceRange, shownPrice } from "@/lib/clinicPrices";
+import { excerptStart, excerptTerms } from "@/lib/quoteExcerpt";
 
 export const Route = createFileRoute("/treatments/$slug")({
   component: TreatmentPage,
@@ -37,10 +38,40 @@ type Treatment = {
   what_it_is: string | null;
   how_it_works: string | null;
   who_its_for: string | null;
+  who_its_not_for: string | null;
   downtime: string | null;
+  results_duration: string | null;
   average_cost: string | null;
   sessions_recommended: string | null;
+  field_provenance: Record<string, FieldSource> | null;
 };
+
+// Every copy field carries its sources in treatments.field_provenance (enforced by the provenance trigger):
+// { source: "published_source", url, recorded_at, sources: [{ url, publisher, title, quote }] }.
+type FieldSource = {
+  source?: string;
+  url?: string;
+  sources?: { url: string; publisher?: string; title?: string }[];
+};
+
+type SourceLink = { url: string; publisher?: string; title?: string };
+
+function sourcesOf(t: Treatment, field: string): SourceLink[] {
+  const p = t.field_provenance?.[field];
+  if (!p) return [];
+  if (Array.isArray(p.sources) && p.sources.length > 0) return p.sources.filter((x) => typeof x?.url === "string");
+  return p.url ? [{ url: p.url }] : [];
+}
+
+function sourceName(src: SourceLink): string {
+  const named = [src.publisher, src.title].filter(Boolean).join(" — ");
+  if (named) return named;
+  try {
+    return new URL(src.url).hostname.replace(/^www\./, "");
+  } catch {
+    return "Source";
+  }
+}
 
 type ClinicLink = {
   id: string;
@@ -68,17 +99,47 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Field({ label, value }: { label: string; value: string | null }) {
+// A field with no sourced text is not rendered at all (no "Not added yet."). A field with text always shows
+// where it comes from.
+function Field({ label, value, sources }: { label: string; value: string | null; sources: SourceLink[] }) {
+  if (!value || !value.trim()) return null;
   return (
     <div style={{ padding: "10px 0", borderBottom: `0.5px solid ${BORDER}` }}>
       <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, marginBottom: 3 }}>{label}</div>
-      {value ? (
-        <div style={{ fontSize: 13, lineHeight: 1.55, color: ESPRESSO, whiteSpace: "pre-line" }}>{value}</div>
-      ) : (
-        <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>Not added yet.</div>
+      <div style={{ fontSize: 13, lineHeight: 1.55, color: ESPRESSO, whiteSpace: "pre-line" }}>{value}</div>
+      {sources.length > 0 && (
+        <div style={{ fontSize: 10.5, color: MUTED, marginTop: 5, lineHeight: 1.45 }}>
+          {sources.length === 1 ? "Source: " : "Sources: "}
+          {sources.map((src, i) => (
+            <span key={`${src.url}-${i}`}>
+              {i > 0 && " · "}
+              <a href={src.url} target="_blank" rel="noopener noreferrer" style={{ color: MUTED, textDecoration: "underline" }}>
+                {sourceName(src)}
+              </a>
+            </span>
+          ))}
+        </div>
       )}
     </div>
   );
+}
+
+// The product page's quote rule (patch 04): a verbatim quote over 280 characters renders as an excerpt, starting
+// where the treatment is discussed, and says so; a shorter one is shown whole. Stored text is never shortened.
+const QUOTE_EXCERPT_MAX = 280;
+function quoteDisplay(content: string, terms: string[]): { text: string; excerpted: boolean } {
+  const raw = content.replace(/\s+/g, " ").trim();
+  if (raw.length <= QUOTE_EXCERPT_MAX) return { text: raw, excerpted: false };
+  const original = content.trim();
+  const start = excerptStart(original, terms);
+  const lead = start > 0 ? "… " : "";
+  const body = start > 0 ? original.slice(start).replace(/\s+/g, " ").trim() : raw;
+  if (body.length <= QUOTE_EXCERPT_MAX) return { text: lead + body, excerpted: true };
+  const head = body.slice(0, QUOTE_EXCERPT_MAX);
+  const sentenceEnd = Math.max(head.lastIndexOf(". "), head.lastIndexOf("! "), head.lastIndexOf("? "));
+  const cut = sentenceEnd >= QUOTE_EXCERPT_MAX - 120 ? sentenceEnd + 1 : head.lastIndexOf(" ") > 0 ? head.lastIndexOf(" ") : QUOTE_EXCERPT_MAX;
+  const kept = head.slice(0, cut).trim();
+  return { text: lead + (/[.!?]$/.test(kept) ? kept + " …" : kept + "…"), excerpted: true };
 }
 
 // Same card language as the product page's Majority / Minority bars.
@@ -164,10 +225,11 @@ const VERDICT_CLS: Record<string, string> = {
 // Reddit quotes for this treatment. Each card shows the stored text exactly, its verdict, the
 // subreddit and a link to the original. Age and price appear only when the row records them;
 // no username is read or shown. With no rows the section is not rendered at all.
-function QuoteSection({ rows }: { rows: TreatmentQuoteRow[] }) {
+function QuoteSection({ rows, treatmentName }: { rows: TreatmentQuoteRow[]; treatmentName: string }) {
   const [expanded, setExpanded] = useState(false);
   if (rows.length === 0) return null;
   const shown = expanded ? rows : rows.slice(0, QUOTE_PREVIEW);
+  const terms = excerptTerms([treatmentName], null);
   // Rendered inside "What people say", directly under the Worth it? figure (owner, 2026-09-16): the quotes are the
   // evidence for that figure, so they sit next to it rather than two sections below.
   return (
@@ -176,6 +238,7 @@ function QuoteSection({ rows }: { rows: TreatmentQuoteRow[] }) {
       <div className="flex flex-col gap-2">
         {shown.map((q) => {
           const verdict = q.verdict ? VERDICT_LABELS[q.verdict] : null;
+          const shownQuote = quoteDisplay(String(q.content ?? ""), terms);
           return (
             <a key={q.id} href={q.source_url!} target="_blank" rel="noopener noreferrer" className="no-underline">
               <div className="bg-card border border-brand-border rounded-[10px] px-3 py-2.5">
@@ -190,7 +253,7 @@ function QuoteSection({ rows }: { rows: TreatmentQuoteRow[] }) {
                     </span>
                   )}
                 </div>
-                <div className="text-xs text-brand-espresso leading-[1.55] mt-1.5 whitespace-pre-line">{q.content}</div>
+                <div className="text-xs text-brand-espresso leading-[1.55] mt-1.5 whitespace-pre-line">{shownQuote.text}</div>
                 <div className="flex items-center justify-between gap-2 mt-2">
                   <span className="flex flex-wrap items-center gap-1.5">
                     {q.age_bracket != null && (
@@ -203,7 +266,7 @@ function QuoteSection({ rows }: { rows: TreatmentQuoteRow[] }) {
                         Paid {formatUsd(q.cost_paid_usd)}
                       </span>
                     )}
-                    <span className="text-[10px] text-brand-muted">Quoted as written</span>
+                    <span className="text-[10px] text-brand-muted">{shownQuote.excerpted ? "Excerpt, quoted as written" : "Quoted as written"}</span>
                   </span>
                   <span className="flex items-center gap-[3px] text-[10px] text-brand-muted shrink-0">
                     Read on Reddit <ExternalLink width={10} height={10} />
@@ -223,7 +286,7 @@ function QuoteSection({ rows }: { rows: TreatmentQuoteRow[] }) {
           </button>
         )}
         <div className="text-[10px] text-brand-muted mt-0.5 leading-[1.4]">
-          {shown.length === rows.length ? rows.length : `${shown.length} of ${rows.length}`} {rows.length === 1 ? "quote" : "quotes"} from Reddit, each copied exactly from part of a post or comment. Tap one to read the original. Quotes are not a vote count.
+          {shown.length === rows.length ? rows.length : `${shown.length} of ${rows.length}`} {rows.length === 1 ? "quote" : "quotes"} from Reddit, copied exactly as written; a long one is shown as an excerpt and says so. Tap one to read the original. Quotes are not a vote count.
         </div>
       </div>
     </>
@@ -244,12 +307,13 @@ function TreatmentPage() {
       setLoading(true);
       const { data: t } = await supabase
         .from("treatments")
-        .select("id, slug, name, subtitle, category, what_it_is, how_it_works, who_its_for, downtime, average_cost, sessions_recommended")
+        .select("id, slug, name, subtitle, category, what_it_is, how_it_works, who_its_for, who_its_not_for, downtime, results_duration, average_cost, sessions_recommended, field_provenance")
         .eq("slug", slug)
         .eq("active", true)
         .maybeSingle();
       if (!alive) return;
-      setTreatment((t as Treatment | null) ?? null);
+      setTreatment((t as unknown as Treatment | null) ?? null);
+      if (t) document.title = `${(t as { name: string }).name} — Skintea treatments`;
       if (t) {
         const { data: ct } = await supabase
           .from("clinic_treatments")
@@ -316,22 +380,26 @@ function TreatmentPage() {
         </div>
 
         {(() => {
-          // Only fields that have a value render; with none, one line says so (owner, 2026-09-16).
-          const about = [
-            { label: "What it is", value: treatment.what_it_is },
-            { label: "How it works", value: treatment.how_it_works },
-            { label: "Who it's for", value: treatment.who_its_for },
-            { label: "Downtime", value: treatment.downtime },
-            { label: "Average cost", value: treatment.average_cost },
-            { label: "Sessions recommended", value: treatment.sessions_recommended },
-          ].filter((f) => f.value);
+          const fields: { key: "what_it_is" | "how_it_works" | "who_its_for" | "who_its_not_for" | "downtime" | "results_duration" | "sessions_recommended"; label: string }[] = [
+            { key: "what_it_is", label: "What it is" },
+            { key: "how_it_works", label: "How it works" },
+            { key: "who_its_for", label: "Who it's for" },
+            { key: "who_its_not_for", label: "Who should skip it" },
+            { key: "downtime", label: "Recovery" },
+            { key: "results_duration", label: "How long results last" },
+            { key: "sessions_recommended", label: "Sessions" },
+          ];
+          const filled = fields.filter((f) => (treatment[f.key] ?? "").trim() !== "");
+          if (filled.length === 0) return null;
           return (
             <Section title="About this treatment">
-              {about.length === 0 ? (
-                <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>Details not added yet.</div>
-              ) : (
-                about.map((f) => <Field key={f.label} label={f.label} value={f.value} />)
-              )}
+              <div style={{ fontSize: 11, color: MUTED, lineHeight: 1.5, marginBottom: 2 }}>
+                Written by Skintea from FDA labelling, manufacturer clinical documentation, peer-reviewed studies and
+                professional bodies. Each part links to its source. Not medical advice.
+              </div>
+              {filled.map((f) => (
+                <Field key={f.key} label={f.label} value={treatment[f.key]} sources={sourcesOf(treatment, f.key)} />
+              ))}
             </Section>
           );
         })()}
@@ -360,7 +428,7 @@ function TreatmentPage() {
               <SubLabel>Worth it?</SubLabel>
               <VerdictBars cell={br.overall} who="" />
 
-              <QuoteSection rows={quoteRows} />
+              <QuoteSection rows={quoteRows} treatmentName={treatment.name} />
 
               {(() => {
                 // A breakdown that clears its gate renders in full. Every held one is listed in ONE line instead of a
@@ -422,9 +490,25 @@ function TreatmentPage() {
           const cost = breakdown(reviewRows).cost;
           return (
             <Section title="Price">
+              {treatment.average_cost && (
+                <>
+                  <SubLabel>US average fee</SubLabel>
+                  <div className="bg-card border border-brand-border rounded-xl p-3.5 flex flex-col gap-1.5">
+                    <div className="text-xs text-brand-espresso">{treatment.average_cost}</div>
+                    <div className="text-[10px] text-brand-muted leading-[1.4]">
+                      A national figure from a professional body, not a Los Angeles price and not a quote.{" "}
+                      {sourcesOf(treatment, "average_cost").map((src, i) => (
+                        <a key={`${src.url}-${i}`} href={src.url} target="_blank" rel="noopener noreferrer" className="underline text-brand-muted">
+                          {sourceName(src)}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
               {ranges.length > 0 && (
                 <>
-                  <SubLabel>Listed by clinics</SubLabel>
+                  <SubLabel>Listed by Los Angeles clinics</SubLabel>
                   <div className="bg-card border border-brand-border rounded-xl p-3.5 flex flex-col gap-1.5">
                     {ranges.map((r) => (
                       <div key={r.unit} className="text-xs text-brand-espresso">{formatPriceRange(r)}</div>

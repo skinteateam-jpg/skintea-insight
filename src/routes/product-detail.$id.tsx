@@ -394,6 +394,7 @@ function ProductPage() {
     } else {
       const { error } = await (supabase as any).from("shelf_items").delete().eq("user_id", userId).eq("product_id", id);
       if (!error) { setIsInShelf(false); showToast("Removed from shelf"); }
+      else { showToast("Couldn't remove from shelf"); }
     }
     setShelving(false);
   }
@@ -421,6 +422,7 @@ function ProductPage() {
     } else {
       const { error } = await (supabase as any).from("gift_wishlist").delete().eq("user_id", userId).eq("product_id", id);
       if (!error) { setIsInGift(false); showToast("Removed from Gift Me"); }
+      else { showToast("Couldn't remove from Gift Me"); }
     }
     setGifting(false);
   }
@@ -432,9 +434,11 @@ function ProductPage() {
     if (!isSaved) {
       const { error } = await (supabase as any).from("saved_products").insert({ user_id: userId, product_id: id, created_at: new Date().toISOString() });
       if (!error) { setIsSaved(true); showToast("Saved! View in your profile"); }
+      else { showToast("Couldn't save"); }
     } else {
       const { error } = await (supabase as any).from("saved_products").delete().eq("user_id", userId).eq("product_id", id);
       if (!error) { setIsSaved(false); showToast("Removed from saved"); }
+      else { showToast("Couldn't remove from saved"); }
     }
     setSaving(false);
   }
@@ -1303,6 +1307,7 @@ function TeaTab({
   const [formVerdict, setFormVerdict] = useState("");
   const [formDuration, setFormDuration] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const CHARS: Record<string, { name: string }> = {
     oily: { name: "The Butter Girl" },
@@ -1334,12 +1339,13 @@ function TeaTab({
     if (!userId) { navigate({ to: "/login" }); return; }
     if (!formBody.trim()) return;
     setSubmitting(true);
+    setSubmitError(null);
     const { data: profile } = await (supabase as any)
       .from("profiles")
       .select("username, avatar_url, skin_type")
       .eq("user_id", userId)
       .maybeSingle();
-    await (supabase as any).from("product_posts").insert({
+    const { error } = await (supabase as any).from("product_posts").insert({
       product_id: productId,
       user_id: userId,
       username: profile?.username ?? null,
@@ -1353,6 +1359,8 @@ function TeaTab({
       agree_count: 0,
     });
     setSubmitting(false);
+    // The form stays open with what was typed when the insert fails; it only closes on a real write.
+    if (error) { setSubmitError(`Couldn't post: ${error.message}`); return; }
     setShowForm(false);
     setFormHeadline(""); setFormBody(""); setFormVerdict(""); setFormDuration("");
     onPostAdded();
@@ -1412,8 +1420,11 @@ function TeaTab({
               >{v}</button>
             ))}
           </div>
+          {submitError && (
+            <div role="alert" className="text-xs text-brand-crimson mb-2">{submitError}</div>
+          )}
           <div className="flex gap-2">
-            <button onClick={() => setShowForm(false)} className="flex-1 p-2.5 bg-transparent border border-brand-border rounded-[10px] text-[13px] cursor-pointer font-[inherit] text-brand-muted">Cancel</button>
+            <button onClick={() => { setShowForm(false); setSubmitError(null); }} className="flex-1 p-2.5 bg-transparent border border-brand-border rounded-[10px] text-[13px] cursor-pointer font-[inherit] text-brand-muted">Cancel</button>
             <button onClick={handleSubmit} disabled={!formBody.trim() || submitting} className={`flex-[2] p-2.5 bg-brand-crimson text-brand-cream border-none rounded-[10px] text-[13px] font-semibold cursor-pointer font-[inherit] ${!formBody.trim() ? "opacity-50" : ""}`}>
               {submitting ? "Posting…" : "Post tea"}
             </button>

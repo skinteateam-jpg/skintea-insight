@@ -57,6 +57,10 @@ type Review = {
   treatments: { name: string } | null;
 };
 
+// Only the columns this page renders. clinic_reviews is readable by everyone, so "*" would send every reviewer's
+// user_id to every visitor; the page never needs it (it does not show or compare authors).
+const REVIEW_COLUMNS = "id, skin_type, body, agree_count, treatment_id, treatments(name)";
+
 type HoursEntry = { day: string; hours: string };
 const DAY_ORDER = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const DAY_SHORT: Record<string, string> = {
@@ -204,7 +208,10 @@ function ClinicDetailPage() {
   const [loading, setLoading] = useState(true);
 
   const [activeThumbIndex, setActiveThumbIndex] = useState(0);
+  // Saved state comes from saved_clinics (RLS: a user reads and writes only their own rows). Signed out it is false.
   const [saved, setSaved] = useState(false);
+  const [savePending, setSavePending] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [inquireFor, setInquireFor] = useState<CTreatment | null>(null);
   const [userSkin, setUserSkin] = useState<string | null>(null);
   const [reviewFilter, setReviewFilter] = useState<string>("all");
@@ -232,6 +239,42 @@ function ClinicDetailPage() {
   }, []);
 
   useEffect(() => {
+    setSaved(false);
+    setSaveError(null);
+    if (!userId) return;
+    let alive = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from("saved_clinics")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("clinic_id", id)
+        .maybeSingle();
+      if (!alive) return;
+      if (error) { setSaveError("Could not check whether this clinic is saved."); return; }
+      setSaved(!!data);
+    })();
+    return () => { alive = false; };
+  }, [userId, id]);
+
+  // The heart only changes after the write succeeds; on failure it stays as it was and says so.
+  async function toggleSaved() {
+    if (!userId) { navigate({ to: "/login" }).catch(() => {}); return; }
+    if (savePending) return;
+    setSavePending(true);
+    setSaveError(null);
+    const { error } = saved
+      ? await supabase.from("saved_clinics").delete().eq("user_id", userId).eq("clinic_id", id)
+      : await supabase.from("saved_clinics").insert({ user_id: userId, clinic_id: id });
+    setSavePending(false);
+    if (error) {
+      setSaveError(saved ? "Could not remove from saved. Try again." : "Could not save. Try again.");
+      return;
+    }
+    setSaved(!saved);
+  }
+
+  useEffect(() => {
     try {
       const s = localStorage.getItem("skintea_skin_type");
       if (s) {
@@ -253,7 +296,7 @@ function ClinicDetailPage() {
         supabase.from("clinic_treatments").select("*, treatments!inner(id, name, slug, active)").eq("clinic_id", id).eq("treatments.active", true),
         supabase.from("clinic_practitioners").select("*").eq("clinic_id", id),
         supabase.from("clinic_who_visited").select("id, user_id, visited_at").eq("clinic_id", id).order("visited_at", { ascending: false }).limit(20),
-        supabase.from("clinic_reviews").select("*, treatments(name)").eq("clinic_id", id).order("created_at", { ascending: false }),
+        supabase.from("clinic_reviews").select(REVIEW_COLUMNS).eq("clinic_id", id).order("created_at", { ascending: false }),
         supabase.from("clinic_videos").select("*").eq("clinic_id", id).eq("is_active", true).order("created_at", { ascending: false }),
         // Public social profiles (clinic_social_links); emails stay in the private clinic_contacts table.
         (supabase as any).from("clinic_social_links").select("platform, url, handle").eq("clinic_id", id).in("platform", ["instagram", "tiktok"]).order("platform"),
@@ -311,7 +354,7 @@ function ClinicDetailPage() {
     }
     setReviewState("saved");
     setReviewBody("");
-    const { data } = await supabase.from("clinic_reviews").select("*, treatments(name)").eq("clinic_id", id).order("created_at", { ascending: false });
+    const { data } = await supabase.from("clinic_reviews").select(REVIEW_COLUMNS).eq("clinic_id", id).order("created_at", { ascending: false });
     setReviews((data as any) || []);
     setShowReviewForm(false);
   }
@@ -458,8 +501,17 @@ function ClinicDetailPage() {
         }}>
           <ArrowLeft size={16} /> Clinics
         </Link>
+        {saveError && (
+          <span role="alert" style={{ flex: 1, textAlign: "right", marginRight: 12, fontSize: 11, color: CRIMSON }}>{saveError}</span>
+        )}
         <div style={{ display: "flex", gap: 14 }}>
-          <button onClick={() => setSaved(!saved)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+          <button
+            onClick={() => { void toggleSaved(); }}
+            disabled={savePending}
+            aria-label={saved ? "Remove from saved clinics" : "Save clinic"}
+            aria-pressed={saved}
+            style={{ background: "none", border: "none", cursor: savePending ? "default" : "pointer", padding: 0, opacity: savePending ? 0.5 : 1 }}
+          >
             <Heart size={18} color={saved ? CRIMSON : ESPRESSO} fill={saved ? CRIMSON : "none"} />
           </button>
           <button

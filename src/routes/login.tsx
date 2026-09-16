@@ -48,6 +48,9 @@ function LoginPage() {
       <Field label="Password">
         <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} />
       </Field>
+      <div style={{ marginTop: -4, textAlign: "right" }}>
+        <Link to="/reset-password" style={{ ...linkStyle, fontSize: 12, color: MUTED }}>Forgot password?</Link>
+      </div>
       {err && <div style={{ color: CRIMSON, fontSize: 13 }}>{err}</div>}
       <button type="submit" disabled={loading} style={primaryBtn(loading)}>
         {loading ? "Signing in…" : "Sign in"}

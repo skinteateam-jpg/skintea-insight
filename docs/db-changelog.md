@@ -612,3 +612,34 @@ Nothing below was reconstructed from memory without a source.
   no URL is ever hand-transcribed.
 - **Re-verification.** These chips have no expiry rule today (unlike prices, which die at 120 days). A clinic that
   rewrites its site will drift; re-run the evidence, verification and generator scripts against a fresh crawl to refresh.
+
+### 2026-09-16 21:50 UTC — treatment page copy with sources, provenance trigger extended, save-table uniqueness, test data removed
+- Who: "get the site ready to show people" session (pipeline repo `scripts/treatments/gen_treatment_copy.py`).
+- What (schema):
+  - `treatments` gained `who_its_not_for text` and `results_duration text` (ADD COLUMN IF NOT EXISTS).
+  - `shelf_items` UNIQUE `(user_id, product_id)` (`shelf_items_user_id_product_id_key`) and `gift_wishlist` UNIQUE
+    `(user_id, product_id)` (`gift_wishlist_user_id_product_id_key`). 0 duplicates existed. Before this the same product
+    could be added to a shelf twice (found by a rolled-back RLS simulation).
+  - Trigger `treatments_enforce_provenance` replaced: `enforce_field_provenance` now covers `subtitle`, `description`,
+    `what_it_is`, `how_it_works`, `who_its_for`, `who_its_not_for`, `downtime`, `results_duration`, `average_cost`,
+    `sessions_recommended`, `best_for_skin`, `celebrity_handles`, `majority_pct`, `results_pct`, `minority_opinion`
+    (was 8 columns). Tested in a rolled-back block: unsourced value rejected, change without a new provenance entry
+    rejected, `published_source` without url rejected, unrelated update accepted. `treatments_celebrity_first_person`
+    untouched. **Consequence:** `/admin/treatments` can no longer save a non-empty description or copy field without
+    provenance.
+  - Temporary `public.treatment_copy_staging` (RLS on, sandbox_exec SELECT/INSERT only) created, loaded by the Lovable
+    agent from `sql/2026-09-16_treatment_copy_staging.sql` (md5 `e674a884…`, 144 rows, 124 filled), then dropped.
+- What (rows): the 16 active treatments' copy fields were replaced from staging in one guarded UPDATE (16 rows).
+  124 fields filled, each with `field_provenance.<field> = {source: published_source, url, recorded_at, sources[{url,
+  publisher, title, quote}]}`; sources are FDA labelling / 510(k) / PMA documents, manufacturer clinical documentation,
+  peer-reviewed literature and AAD / ASDS / ASPS pages. Empty (NULL, hidden on the page): `average_cost` on all 16 (no
+  dated professional-body fee), `results_duration` on hydrafacial, ipl-photofacial, potenza, rejuran. The previous
+  unsourced subtitle / what_it_is / how_it_works / who_its_for text on botox, hydrafacial, ipl-photofacial,
+  laser-resurfacing and prf-injection was overwritten.
+- Why: treatment pages must carry sourced copy only ("sourced or absent"); the trigger stops unsourced copy returning.
+- Deleted (this session's own anonymous E2E test data, run tag e2e1, 20:54 UTC): lead `2f5fca5e-3bf4-4d7a-acf1-3809f11b2d67`
+  (session_id `269378b8-c21a-429a-924c-bb204ae68d27`, email skintea-e2e+e2e1@example.com) with its 10 lead_events,
+  1 lead_treatments and 1 quiz_responses row; clinic_submissions `0060c3b4-8c9d-42eb-b2dc-7c98c5a400ac`
+  ("E2E TEST CLINIC e2e1 (delete me)"). Storage object `clinic-submissions/pending/0060c3b4-8c9d-42eb-b2dc-7c98c5a400ac/01-test-photo.png`
+  (id `0148cfdd-e7d0-43e1-a616-7ddde379e7ee`) must be removed through the Storage API (direct SQL delete is blocked).
+- Deleted session_ids: `269378b8-c21a-429a-924c-bb204ae68d27`

@@ -367,6 +367,20 @@ function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog, userId, 
   userId: string | null;
   profile: UserProfile | null;
 }) {
+  const navigate = useNavigate();
+  const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    setSignOutError(null);
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      setSigningOut(false);
+      setSignOutError(`Could not sign out: ${error.message}`);
+      return;
+    }
+    navigate({ to: "/" }).catch(() => {});
+  };
   const tabs: Array<{ id: Tab; icon: string; label: string; private?: boolean }> = [
     { id: "tea", icon: "☕", label: "The Tea" },
     { id: "shelf", icon: "🧴", label: "My Shelf" },
@@ -381,7 +395,7 @@ function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog, userId, 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <div>
               <div style={{ fontWeight: 700, fontSize: 15 }}>Sign in to see your skin profile</div>
-              <div style={{ fontSize: 12, color: C.textLight, marginTop: 2 }}>Your shelf, saved products and treatment log stay private to you.</div>
+              <div style={{ fontSize: 12, color: C.textLight, marginTop: 2 }}>Your treatment log and saved products stay private to you. Shelf and Gift Me items can be shown on your public profile.</div>
             </div>
             <Link to="/login" style={{ background: C.ink, color: "#fff", borderRadius: 8, padding: "9px 16px", fontSize: 12, fontWeight: 700, textDecoration: "none", flexShrink: 0 }}>Sign in</Link>
           </div>
@@ -412,6 +426,7 @@ function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog, userId, 
                 )}
               </div>
             </div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
             <button
               type="button"
               disabled
@@ -419,6 +434,15 @@ function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog, userId, 
               style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, background: C.surface, color: C.textLight, fontSize: 12, fontWeight: 600, border: `1px solid ${C.border}`, cursor: "not-allowed", flexShrink: 0 }}>
               <Pencil size={12} /> Edit · not yet
             </button>
+            <button
+              type="button"
+              onClick={() => { void handleSignOut(); }}
+              disabled={signingOut}
+              style={{ background: "none", border: "none", padding: 0, color: C.textMid, fontSize: 12, fontWeight: 600, textDecoration: "underline", cursor: signingOut ? "default" : "pointer" }}>
+              {signingOut ? "Signing out…" : "Sign out"}
+            </button>
+            {signOutError && <div role="alert" style={{ fontSize: 11, color: C.bad, maxWidth: 180, textAlign: "right" }}>{signOutError}</div>}
+            </div>
           </div>
         )}
 

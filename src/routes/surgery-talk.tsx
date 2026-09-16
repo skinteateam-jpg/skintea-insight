@@ -840,13 +840,15 @@ function Composer({ onClose, surgeries, userId, onCreated }: {
   onClose: () => void; surgeries: Surgery[]; userId: string; onCreated: () => void;
 }) {
   const [form, setForm] = useState({
-    surgery_id: surgeries[0]?.id ?? "",
+    // The surgery is the poster's own claim too: nothing pre-chosen.
+    surgery_id: "",
     clinic_name: "", country: "", city: "", total_cost: "", recovery_time: "",
-    pain_level: 5,
+    // Pain, outcome and skin type start unset: they are the poster's own claims, so nothing is pre-chosen for them.
+    pain_level: null as number | null,
     my_thoughts_vs_reality: "", struggle: "", what_happened: "",
     surprised_me: "", works_for: "", warn_if: "",
-    outcome: "Would do again" as PostRow["outcome"],
-    skin_type: "Combination" as string,
+    outcome: null as PostRow["outcome"],
+    skin_type: null as string | null,
     hashtags: "",
     comments_open: true,
   });
@@ -858,7 +860,15 @@ function Composer({ onClose, surgeries, userId, onCreated }: {
     setForm((f) => ({ ...f, [k]: v }));
   }
 
+  const missing = [
+    form.surgery_id === "" ? "surgery" : null,
+    form.pain_level == null ? "pain level" : null,
+    form.outcome == null ? "outcome" : null,
+    form.skin_type == null ? "skin type" : null,
+  ].filter((m): m is string => m !== null);
+
   async function submit() {
+    if (missing.length > 0) return;
     setSubmitting(true); setError(null);
     const tags = form.hashtags
       .split(",").map((t) => t.trim()).filter(Boolean)
@@ -891,7 +901,7 @@ function Composer({ onClose, surgeries, userId, onCreated }: {
     onCreated(); onClose();
   }
 
-  const painLabel = painScaleLabel(form.pain_level);
+  const painLabel = form.pain_level != null ? painScaleLabel(form.pain_level) : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" style={{ background: "rgba(28,10,0,0.5)" }}>
@@ -908,6 +918,7 @@ function Composer({ onClose, surgeries, userId, onCreated }: {
           <Field label="Surgery type">
             <select value={form.surgery_id} onChange={(e) => update("surgery_id", e.target.value)}
               className="w-full rounded-md px-2 py-2" style={{ border: `1px solid ${BORDER}` }}>
+              <option value="" disabled>Choose a surgery</option>
               {surgeries.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </Field>
@@ -927,11 +938,22 @@ function Composer({ onClose, surgeries, userId, onCreated }: {
           </Field>
 
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: MUTED }}>Pain level: {form.pain_level}/10 — {painLabel}</div>
-            <PainBar level={form.pain_level} />
-            <input type="range" min={1} max={10} value={form.pain_level}
-              onChange={(e) => update("pain_level", Number(e.target.value))}
-              className="w-full mt-2" />
+            <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: MUTED }}>
+              {form.pain_level != null ? `Pain level: ${form.pain_level}/10 — ${painLabel}` : "Pain level: choose 1–10"}
+            </div>
+            {form.pain_level != null && <PainBar level={form.pain_level} />}
+            <div className="grid grid-cols-10 gap-1 mt-2">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                <button key={n} type="button" onClick={() => update("pain_level", n)}
+                  aria-pressed={form.pain_level === n}
+                  className="rounded-md py-1.5 text-[11px] font-semibold"
+                  style={{
+                    background: form.pain_level === n ? ESPRESSO : "#fff",
+                    color: form.pain_level === n ? "#fff" : ESPRESSO,
+                    border: `1px solid ${form.pain_level === n ? ESPRESSO : BORDER}`,
+                  }}>{n}</button>
+              ))}
+            </div>
           </div>
 
           {(["my_thoughts_vs_reality","struggle","what_happened","surprised_me","works_for","warn_if"] as const).map((k) => (
@@ -1008,9 +1030,13 @@ function Composer({ onClose, surgeries, userId, onCreated }: {
 
           {error && <div className="text-[11px]" style={{ color: CRIMSON }}>{error}</div>}
 
-          <button onClick={submit} disabled={submitting}
+          {missing.length > 0 && (
+            <div className="text-[11px]" style={{ color: MUTED }}>Still to choose: {missing.join(", ")}</div>
+          )}
+
+          <button onClick={submit} disabled={submitting || missing.length > 0}
             className="w-full rounded-full py-3 text-[13px] font-bold"
-            style={{ background: CRIMSON, color: "#fff", opacity: submitting ? 0.6 : 1 }}>
+            style={{ background: CRIMSON, color: "#fff", opacity: submitting || missing.length > 0 ? 0.6 : 1 }}>
             {submitting ? "Spilling…" : "Spill it ✦"}
           </button>
         </div>

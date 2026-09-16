@@ -1,17 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
-import {
-  Lock,
-  Plus,
-  Bell,
-  Home,
-  User,
-  Compass,
-  X,
-  ChevronDown,
-} from "lucide-react";
+import { Lock, X, ChevronDown, Bookmark } from "lucide-react";
 
 export const Route = createFileRoute("/treatment-talk")({
   head: () => ({
@@ -38,57 +29,46 @@ const WARM_WHITE = "#FFFCF8";
 const BORDER = "#E8DDD4";
 const MUTED = "#999999";
 
-// Hardcoded fallback — used while loading and if the fetch fails or returns empty
-const FALLBACK_TREATMENT_NAMES = [
-  "Botox",
-  "Hydrafacial",
-  "IPL Photofacial",
-  "Juvelook",
-  "Rejuran",
-  "Fillers",
-  "Lumecca",
-  "Potenza",
-  "Morpheus8",
-  "Skin Boosters",
-  "Laser",
-  "Laser Resurfacing",
-  "Peels",
-  "PRF Injection",
-  "RF Microneedling",
-  "PRP",
-  "Sculptra",
-];
-const FALLBACK_TREATMENTS = ["All", ...FALLBACK_TREATMENT_NAMES];
+// Posts are written to and read from public.posts (2026-09-16). The table's own guards apply: RLS lets a signed-in user
+// insert only their own row (auth.uid() = user_id), and enforce_signed_in_author rejects any row not written by its
+// signed-in author, so posts cannot be seeded. No author name is shown on a post (profiles.name is the full sign-up name).
 
+type TreatmentOption = { id: string; name: string };
+
+// Active treatments from the table only. There is no hard-coded fallback list: while loading the chips show a skeleton,
+// and a failed load says so (a stale list once included the inactive "Laser").
 function useTreatments() {
-  const [treatments, setTreatments] = useState<string[]>(FALLBACK_TREATMENTS);
+  const [treatments, setTreatments] = useState<TreatmentOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const { data, error } = await supabase
-          .from("treatments")
-          .select("name")
-          .eq("active", true)
-          .order("sort_order", { ascending: true });
-        if (cancelled) return;
-        if (error || !data || data.length === 0) {
-          setTreatments(FALLBACK_TREATMENTS);
-        } else {
-          setTreatments(["All", ...data.map((t) => t.name as string)]);
-        }
-      } catch {
-        if (!cancelled) setTreatments(FALLBACK_TREATMENTS);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+      const { data, error } = await supabase
+        .from("treatments")
+        .select("id, name")
+        .eq("active", true)
+        .order("sort_order", { ascending: true });
+      if (cancelled) return;
+      if (error) setFailed(true);
+      else setTreatments(((data ?? []) as TreatmentOption[]).filter((t) => t.id && t.name));
+      setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
   }, []);
-  return { treatments, loading };
+  return { treatments, loading, failed };
+}
+
+function useUserId() {
+  const [userId, setUserId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user?.id ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => setUserId(session?.user?.id ?? null));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+  return userId;
 }
 
 function ChipSkeletonRow() {
@@ -115,55 +95,48 @@ const SKIN_TYPES = [
   { id: "dry", label: "Dry", emoji: "🏜️" },
   { id: "sensitive", label: "Sensitive", emoji: "🌸" },
   { id: "combo", label: "Combo", emoji: "✨" },
+  { id: "normal", label: "Normal", emoji: "🌿" },
 ];
+const SKIN_LABEL: Record<string, string> = Object.fromEntries(SKIN_TYPES.filter((s) => s.id !== "all").map((s) => [s.id, `${s.emoji} ${s.label}`]));
 
-const SORTS = ["Most recent", "Most helpful", "Most detailed"];
-
+// Only "Most recent" can order the feed. "Most helpful" needs helpful votes and "Most detailed" a detail measure; neither
+// is collected, so both stay visible and disabled.
+const SORTS: { label: string; enabled: boolean }[] = [
+  { label: "Most recent", enabled: true },
+  { label: "Most helpful", enabled: false },
+  { label: "Most detailed", enabled: false },
+];
 
 const SKIN_BG: Record<string, string> = {
   oily: "#FCE7B3",
   dry: "#DCE9F5",
   sensitive: "#F8DCE8",
   combo: "#EDE6F8",
-  derm: "#EAE3F4",
+  normal: "#E4F0E4",
 };
 
-type Stage = {
-  key: string;
-  label: string;
-  badge: "before" | "day1" | "mid" | "done";
-  emoji: string;
-  note?: string;
-};
+type Outcome = "would_again" | "modified" | "wouldnt";
+const OUTCOMES: { key: Outcome; label: string; bg: string; fg: string; border: string }[] = [
+  { key: "would_again", label: "Would do again", bg: "#DDF1DD", fg: "#1F5E2E", border: "#C5E4C5" },
+  { key: "modified", label: "Modified", bg: "#FCE7B3", fg: "#7A4E00", border: "#E8C97A" },
+  { key: "wouldnt", label: "Wouldn't", bg: "#FBD9DD", fg: "#8B0E20", border: "#F1B8C0" },
+];
 
-const BADGE_COLORS: Record<Stage["badge"], { bg: string; fg: string; label: string }> = {
-  before: { bg: "#DDF1DD", fg: "#1F5E2E", label: "Before" },
-  day1: { bg: "#FBD9DD", fg: "#8B0E20", label: "Day 1" },
-  mid: { bg: "#FCE7B3", fg: "#7A4E00", label: "Healing" },
-  done: { bg: "#EDE6F8", fg: "#4A3580", label: "Done" },
-};
-
-type Post = {
+type PostRow = {
   id: string;
-  name: string;
-  skinType: "oily" | "dry" | "sensitive" | "combo" | "derm";
-  emoji: string;
-  member: string;
-  derm?: boolean;
-  treatment: string;
-  fields: {
-    cost: string;
-    sessions: string;
-    happened: string;
-    surprised: string;
-    works: string;
-    warn: string;
-  };
-  timeline: Stage[];
-  outcome: "again" | "modified" | "wouldnt";
+  user_id: string;
+  treatment_id: string | null;
+  cost: string | null;
+  sessions: string | null;
+  what_happened: string | null;
+  surprised_me: string | null;
+  works_for: string | null;
+  warn_if: string | null;
+  outcome: Outcome | null;
   tags: string[];
+  skin_type: string | null;
+  created_at: string;
 };
-
 
 function ChipScroll({
   items,
@@ -198,8 +171,7 @@ function ChipScroll({
   );
 }
 
-
-function Field({ label, value }: { label: string; value: string }) {
+function Field({ label, value }: { label: string; value: string | null }) {
   return (
     <div className="tt-field rounded-lg p-2.5" style={{ background: CREAM }}>
       <div
@@ -210,83 +182,18 @@ function Field({ label, value }: { label: string; value: string }) {
       </div>
       <div
         className="tt-field-value mt-1 text-[12px] leading-snug"
-        style={{ color: ESPRESSO, fontFamily: "'DM Sans', sans-serif" }}
+        style={{ color: value ? ESPRESSO : MUTED, fontFamily: "'DM Sans', sans-serif", whiteSpace: "pre-line" }}
       >
-        {value}
+        {value || "—"}
       </div>
     </div>
   );
 }
 
-function TimelineStrip({ stages }: { stages: Stage[] }) {
-  return (
-    <div className="flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {stages.map((s) => {
-        const c = BADGE_COLORS[s.badge];
-        return (
-          <div key={s.key} className="shrink-0" style={{ width: 64 }}>
-            <div
-              className="relative flex items-center justify-center overflow-hidden rounded-lg"
-              style={{
-                width: 64,
-                height: 64,
-                background: CREAM,
-                border: `1px solid ${BORDER}`,
-              }}
-            >
-              <span className="text-2xl">{s.emoji}</span>
-              <span
-                className="absolute bottom-0.5 left-0.5 rounded-full text-[7px] font-bold"
-                style={{ background: c.bg, color: c.fg, padding: "1px 4px" }}
-              >
-                {c.label}
-              </span>
-            </div>
-            <div
-              className="mt-1 text-[9px] font-bold leading-tight"
-              style={{ color: ESPRESSO, fontFamily: "'DM Sans', sans-serif" }}
-            >
-              {s.label}
-            </div>
-            {s.note && (
-              <div
-                className="text-[8px] leading-tight"
-                style={{ color: MUTED, fontFamily: "'DM Sans', sans-serif" }}
-              >
-                {s.note}
-              </div>
-            )}
-          </div>
-        );
-      })}
-      <button
-        className="flex shrink-0 flex-col items-center justify-center rounded-lg"
-        style={{
-          width: 64,
-          height: 64,
-          background: "#fff",
-          border: `1px dashed ${BORDER}`,
-          color: MUTED,
-        }}
-      >
-        <Plus size={14} />
-        <span className="mt-0.5 text-[8px] font-medium" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-          Add stage
-        </span>
-      </button>
-    </div>
-  );
-}
-
-function OutcomeRow({ outcome }: { outcome: Post["outcome"] }) {
-  const items: { key: Post["outcome"]; label: string; bg: string; fg: string; border: string }[] = [
-    { key: "again", label: "Would do again", bg: "#DDF1DD", fg: "#1F5E2E", border: "#C5E4C5" },
-    { key: "modified", label: "Modified", bg: "#FCE7B3", fg: "#7A4E00", border: "#E8C97A" },
-    { key: "wouldnt", label: "Wouldn't", bg: "#FBD9DD", fg: "#8B0E20", border: "#F1B8C0" },
-  ];
+function OutcomeRow({ outcome }: { outcome: Outcome | null }) {
   return (
     <div className="grid grid-cols-3 gap-2">
-      {items.map((it) => {
+      {OUTCOMES.map((it) => {
         const selected = it.key === outcome;
         return (
           <div
@@ -307,8 +214,21 @@ function OutcomeRow({ outcome }: { outcome: Post["outcome"] }) {
   );
 }
 
-function PostCard({ post, locked }: { post: Post; locked?: boolean }) {
-  const avatarBg = SKIN_BG[post.skinType] ?? CREAM;
+function PostCard({
+  post,
+  treatmentName,
+  locked,
+  saved,
+  onToggleSave,
+}: {
+  post: PostRow;
+  treatmentName: string | null;
+  locked?: boolean;
+  saved: boolean;
+  onToggleSave: () => void;
+}) {
+  const skin = post.skin_type ?? "";
+  const avatarBg = SKIN_BG[skin] ?? CREAM;
   return (
     <div className="tt-post-card relative">
       <article
@@ -326,133 +246,84 @@ function PostCard({ post, locked }: { post: Post; locked?: boolean }) {
             pointerEvents: locked ? "none" : "auto",
           }}
         >
-          {/* Header */}
+          {/* Header: no author name, only the poster's own skin type and the date */}
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
               <div
                 className="flex items-center justify-center rounded-full"
                 style={{ width: 38, height: 38, background: avatarBg, fontSize: 18 }}
               >
-                {post.emoji}
+                {SKIN_LABEL[skin]?.split(" ")[0] ?? "☕"}
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <div
-                    className="text-[13px] font-bold"
-                    style={{ color: ESPRESSO, fontFamily: "'DM Sans', sans-serif" }}
-                  >
-                    {post.name}
-                  </div>
-                  {post.derm && (
-                    <span
-                      className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
-                      style={{ background: "#F0EDF8", color: "#4A3580" }}
-                    >
-                      ✓ Derm
-                    </span>
-                  )}
+                <div className="text-[13px] font-bold" style={{ color: ESPRESSO, fontFamily: "'DM Sans', sans-serif" }}>
+                  {SKIN_LABEL[skin] ? `${SKIN_LABEL[skin].split(" ").slice(1).join(" ")} skin` : "Skin type not given"}
                 </div>
                 <div className="text-[11px]" style={{ color: MUTED, fontFamily: "'DM Sans', sans-serif" }}>
-                  {post.member}
+                  {new Date(post.created_at).toLocaleDateString()}
                 </div>
               </div>
             </div>
-            <span
-              className="rounded-full px-2.5 py-1 text-[10px] font-bold"
-              style={{
-                background: "rgba(28,10,0,0.08)",
-                color: ESPRESSO,
-                fontFamily: "'DM Sans', sans-serif",
-              }}
-            >
-              {post.treatment}
-            </span>
-          </div>
-
-          {/* Fields */}
-          <div className="tt-fields mt-3 grid grid-cols-2 gap-2">
-            <Field label="Cost" value={post.fields.cost} />
-            <Field label="Sessions / Area" value={post.fields.sessions} />
-            <Field label="What happened" value={post.fields.happened} />
-            <Field label="What surprised me" value={post.fields.surprised} />
-            <Field label="Works for" value={post.fields.works} />
-            <Field label="Warn if" value={post.fields.warn} />
-          </div>
-
-          {/* Timeline */}
-          <div className="mt-3">
-            <div
-              className="mb-1.5 text-[10px] font-bold uppercase tracking-wider"
-              style={{ color: MUTED, fontFamily: "'DM Sans', sans-serif" }}
-            >
-              Timeline
+            <div className="flex items-center gap-2">
+              {treatmentName && (
+                <span
+                  className="rounded-full px-2.5 py-1 text-[10px] font-bold"
+                  style={{ background: "rgba(28,10,0,0.08)", color: ESPRESSO, fontFamily: "'DM Sans', sans-serif" }}
+                >
+                  {treatmentName}
+                </span>
+              )}
+              <button onClick={onToggleSave} aria-label={saved ? "Remove from saved" : "Save"} title={saved ? "Saved" : "Save"}>
+                <Bookmark size={16} color={saved ? CRIMSON : MUTED} fill={saved ? CRIMSON : "none"} />
+              </button>
             </div>
-            <TimelineStrip stages={post.timeline} />
           </div>
 
-          {/* Outcome */}
+          <div className="tt-fields mt-3 grid grid-cols-2 gap-2">
+            <Field label="Cost" value={post.cost} />
+            <Field label="Sessions / Area" value={post.sessions} />
+            <Field label="What happened" value={post.what_happened} />
+            <Field label="What surprised me" value={post.surprised_me} />
+            <Field label="Works for" value={post.works_for} />
+            <Field label="Warn if" value={post.warn_if} />
+          </div>
+
           <div className="mt-3">
             <OutcomeRow outcome={post.outcome} />
           </div>
 
-          {/* Tags */}
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {post.tags.map((t) => (
-              <span
-                key={t}
-                className="rounded-full px-2 py-0.5 text-[10px]"
-                style={{
-                  background: CREAM,
-                  border: `1px solid ${BORDER}`,
-                  color: MUTED,
-                  fontFamily: "'DM Sans', sans-serif",
-                }}
-              >
-                {t}
-              </span>
-            ))}
-          </div>
+          {post.tags.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {post.tags.map((t) => (
+                <span
+                  key={t}
+                  className="rounded-full px-2 py-0.5 text-[10px]"
+                  style={{ background: CREAM, border: `1px solid ${BORDER}`, color: MUTED, fontFamily: "'DM Sans', sans-serif" }}
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </article>
 
+      {/* Members lock: kept for a paid tier. There is no paid tier, so no caller passes locked (no post is ever locked). */}
       {locked && (
         <div className="absolute inset-0 flex items-center justify-center p-4">
           <div
             className="w-full max-w-sm rounded-2xl p-5 text-center"
-            style={{
-              background: "#fff",
-              border: `1px solid ${BORDER}`,
-              boxShadow: "0 8px 24px rgba(28,10,0,0.12)",
-            }}
+            style={{ background: "#fff", border: `1px solid ${BORDER}`, boxShadow: "0 8px 24px rgba(28,10,0,0.12)" }}
           >
-            <div
-              className="mx-auto flex items-center justify-center rounded-full"
-              style={{ width: 44, height: 44, background: CREAM }}
-            >
+            <div className="mx-auto flex items-center justify-center rounded-full" style={{ width: 44, height: 44, background: CREAM }}>
               <Lock size={20} color={ESPRESSO} />
             </div>
-            <h3
-              className="mt-3 text-lg leading-tight"
-              style={{ color: ESPRESSO, fontFamily: "'Playfair Display', serif" }}
-            >
-              Spill the needle — members only
+            <h3 className="mt-3 text-lg leading-tight" style={{ color: ESPRESSO, fontFamily: "'Playfair Display', serif" }}>
+              Members only
             </h3>
-            <p
-              className="mt-1.5 text-[12px]"
-              style={{ color: MUTED, fontFamily: "'DM Sans', sans-serif" }}
-            >
-              Real outcomes, real regrets, real cost. No clinic bias. No filtered truth.
+            <p className="mt-1.5 text-[12px]" style={{ color: MUTED, fontFamily: "'DM Sans', sans-serif" }}>
+              Memberships aren't open yet.
             </p>
-            <button
-              className="mt-4 w-full rounded-full py-2.5 text-[13px] font-bold"
-              style={{
-                background: ESPRESSO,
-                color: "#fff",
-                fontFamily: "'DM Sans', sans-serif",
-              }}
-            >
-              Join Skintea
-            </button>
           </div>
         </div>
       )}
@@ -460,92 +331,158 @@ function PostCard({ post, locked }: { post: Post; locked?: boolean }) {
   );
 }
 
+function Composer({
+  onClose,
+  treatments,
+  userId,
+  onCreated,
+}: {
+  onClose: () => void;
+  treatments: TreatmentOption[];
+  userId: string;
+  onCreated: () => void;
+}) {
+  // Treatment, outcome and skin type are the poster's own claims: nothing is pre-chosen.
+  const [treatmentId, setTreatmentId] = useState("");
+  const [cost, setCost] = useState("");
+  const [sessions, setSessions] = useState("");
+  const [text, setText] = useState({ what_happened: "", surprised_me: "", works_for: "", warn_if: "" });
+  const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const [skinType, setSkinType] = useState<string | null>(null);
+  const [tags, setTags] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-// Posting is not wired: none of the fields below is sent anywhere. The form is kept as a feature and shown
-// read-only behind an honest notice; flip POSTING_ENABLED once treatment_logs writes are in place, and the
-// fields, the submit button and the FAB come back with it.
-const POSTING_ENABLED: boolean = false;
+  const missing = [
+    treatmentId === "" ? "treatment" : null,
+    outcome == null ? "outcome" : null,
+    skinType == null ? "skin type" : null,
+    Object.values(text).every((v) => !v.trim()) ? "at least one of the four written answers" : null,
+  ].filter((m): m is string => m !== null);
 
-function Composer({ onClose, treatments }: { onClose: () => void; treatments: string[] }) {
+  async function submit() {
+    if (missing.length > 0 || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    const tagList = tags
+      .split(/[\s,]+/)
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .map((t) => (t.startsWith("#") ? t : `#${t}`));
+    const { error: insertError } = await supabase.from("posts").insert({
+      user_id: userId,
+      treatment_id: treatmentId,
+      cost: cost.trim() || null,
+      sessions: sessions.trim() || null,
+      what_happened: text.what_happened.trim() || null,
+      surprised_me: text.surprised_me.trim() || null,
+      works_for: text.works_for.trim() || null,
+      warn_if: text.warn_if.trim() || null,
+      outcome,
+      skin_type: skinType,
+      tags: tagList,
+    } as any);
+    setSubmitting(false);
+    // On failure the form stays open with everything the poster typed.
+    if (insertError) {
+      setError(`Couldn't post: ${insertError.message}`);
+      return;
+    }
+    onCreated();
+    onClose();
+  }
+
+  const inputStyle = { border: `1px solid ${BORDER}`, background: "#fff", color: ESPRESSO, fontFamily: "'DM Sans', sans-serif" };
+  const label = "mb-1 block text-[11px] font-bold uppercase tracking-wider";
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center md:items-center" style={{ background: "rgba(28,10,0,0.5)" }}>
-      <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-3xl md:rounded-3xl"
-        style={{ background: WARM_WHITE }}
-      >
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-3xl md:rounded-3xl" style={{ background: WARM_WHITE }}>
         <div className="sticky top-0 flex items-center justify-between px-5 py-4" style={{ background: WARM_WHITE, borderBottom: `1px solid ${BORDER}` }}>
           <h2 style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }} className="text-xl">
             Spill the needle
           </h2>
           <button onClick={onClose} aria-label="Close"><X size={20} color={ESPRESSO} /></button>
         </div>
-        <div className="px-5 pt-4">
-          <div className="rounded-xl px-3 py-2.5 text-[12px] font-semibold" style={{ background: "#F5EFE9", color: ESPRESSO, border: `1px solid ${BORDER}` }}>
-            Posting isn't open yet. You can look through the form, but nothing here is saved or posted.
-          </div>
-        </div>
         <div className="space-y-4 px-5 py-4">
           <div>
-            <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Treatment</label>
+            <label className={label} style={{ color: MUTED }}>Treatment</label>
             <div className="relative">
-              <select className="w-full appearance-none rounded-lg px-3 py-2.5 text-[13px]" style={{ border: `1px solid ${BORDER}`, background: "#fff", color: ESPRESSO, fontFamily: "'DM Sans', sans-serif" }}>
-                {treatments.filter((t) => t !== "All").concat("Other").map((t: string) => <option key={t}>{t}</option>)}
+              <select value={treatmentId} onChange={(e) => setTreatmentId(e.target.value)} className="w-full appearance-none rounded-lg px-3 py-2.5 text-[13px]" style={inputStyle}>
+                <option value="" disabled>Choose a treatment</option>
+                {treatments.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
               <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" color={MUTED} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Cost</label>
-              <input className="w-full rounded-lg px-3 py-2.5 text-[13px]" style={{ border: `1px solid ${BORDER}`, background: "#fff" }} placeholder="$520" />
+              <label className={label} style={{ color: MUTED }}>Cost</label>
+              <input value={cost} onChange={(e) => setCost(e.target.value)} className="w-full rounded-lg px-3 py-2.5 text-[13px]" style={inputStyle} placeholder="What you paid" />
             </div>
             <div>
-              <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Sessions / Area</label>
-              <input className="w-full rounded-lg px-3 py-2.5 text-[13px]" style={{ border: `1px solid ${BORDER}`, background: "#fff" }} placeholder="1 · forehead" />
+              <label className={label} style={{ color: MUTED }}>Sessions / Area</label>
+              <input value={sessions} onChange={(e) => setSessions(e.target.value)} className="w-full rounded-lg px-3 py-2.5 text-[13px]" style={inputStyle} placeholder="e.g. 1 · forehead" />
             </div>
           </div>
-          {[
-            ["What happened", "Walk us through it..."],
-            ["What surprised me", "The thing nobody told you..."],
-            ["Works for", "Who is this actually good for?"],
-            ["Warn if", "Red flags or who should skip..."],
-          ].map(([label, ph]) => (
-            <div key={label}>
-              <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>{label}</label>
-              <textarea rows={2} className="w-full rounded-lg px-3 py-2 text-[13px]" style={{ border: `1px solid ${BORDER}`, background: "#fff" }} placeholder={ph} />
+          {([
+            ["what_happened", "What happened", "Walk us through it..."],
+            ["surprised_me", "What surprised me", "The thing nobody told you..."],
+            ["works_for", "Works for", "Who is this actually good for?"],
+            ["warn_if", "Warn if", "Red flags or who should skip..."],
+          ] as const).map(([key, lab, ph]) => (
+            <div key={key}>
+              <label className={label} style={{ color: MUTED }}>{lab}</label>
+              <textarea rows={2} value={text[key]} onChange={(e) => setText((t) => ({ ...t, [key]: e.target.value }))} className="w-full rounded-lg px-3 py-2 text-[13px]" style={inputStyle} placeholder={ph} />
             </div>
           ))}
           <div>
             <label className="mb-2 block text-[11px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Timeline photos</label>
-            <div className="grid grid-cols-3 gap-2">
-              {["Before", "Right after", "3 days later", "1 week later", "1 month later", "Fully healed"].map(s => (
-                <button key={s} className="aspect-square rounded-lg p-2 text-[10px] font-medium" style={{ border: `1px dashed ${BORDER}`, background: CREAM, color: MUTED }}>
-                  + {s}
-                </button>
-              ))}
+            <div className="rounded-lg px-3 py-2.5 text-[12px]" style={{ border: `1px dashed ${BORDER}`, background: CREAM, color: MUTED }}>
+              Photo uploads aren't open yet. Your written post can go up now.
             </div>
-            <button className="mt-2 w-full rounded-lg py-2 text-[11px] font-medium" style={{ border: `1px dashed ${BORDER}`, color: MUTED }}>+ Add custom stage</button>
           </div>
           <div>
             <label className="mb-2 block text-[11px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Outcome</label>
             <div className="grid grid-cols-3 gap-2">
-              {["Would do again", "Modified", "Wouldn't"].map(o => (
-                <button key={o} className="rounded-lg py-2 text-[11px] font-semibold" style={{ border: `1px solid ${BORDER}`, background: "#fff", color: ESPRESSO }}>{o}</button>
+              {OUTCOMES.map((o) => (
+                <button key={o.key} type="button" onClick={() => setOutcome(o.key)} className="rounded-lg py-2 text-[11px] font-semibold"
+                  style={{ border: `1px solid ${outcome === o.key ? o.border : BORDER}`, background: outcome === o.key ? o.bg : "#fff", color: outcome === o.key ? o.fg : ESPRESSO }}>
+                  {o.label}
+                </button>
               ))}
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Tags</label>
-            <input className="w-full rounded-lg px-3 py-2.5 text-[13px]" style={{ border: `1px solid ${BORDER}`, background: "#fff" }} placeholder="#firsttimer #forehead" />
+            <label className="mb-2 block text-[11px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Your skin type</label>
+            <div className="flex flex-wrap gap-2">
+              {SKIN_TYPES.filter((s) => s.id !== "all").map((s) => (
+                <button key={s.id} type="button" onClick={() => setSkinType(s.id)} className="rounded-full px-3 py-1.5 text-[11px] font-medium"
+                  style={{ background: skinType === s.id ? ESPRESSO : "#fff", color: skinType === s.id ? "#fff" : ESPRESSO, border: `1px solid ${skinType === s.id ? ESPRESSO : BORDER}` }}>
+                  {s.emoji} {s.label}
+                </button>
+              ))}
+            </div>
           </div>
+          <div>
+            <label className={label} style={{ color: MUTED }}>Tags</label>
+            <input value={tags} onChange={(e) => setTags(e.target.value)} className="w-full rounded-lg px-3 py-2.5 text-[13px]" style={inputStyle} placeholder="#firsttimer #forehead" />
+          </div>
+          {missing.length > 0 && (
+            <div className="text-[11px]" style={{ color: MUTED }}>Still to fill in: {missing.join(", ")}.</div>
+          )}
+          {error && <div className="text-[12px] font-semibold" style={{ color: CRIMSON }}>{error}</div>}
           <button
-            disabled={!POSTING_ENABLED}
-            title={POSTING_ENABLED ? undefined : "Posting isn't open yet"}
+            onClick={submit}
+            disabled={submitting || missing.length > 0}
             className="w-full rounded-full py-3 text-[14px] font-bold"
-            style={{ background: CRIMSON, color: "#fff", fontFamily: "'DM Sans', sans-serif", opacity: POSTING_ENABLED ? 1 : 0.4, cursor: POSTING_ENABLED ? "pointer" : "not-allowed" }}
+            style={{ background: CRIMSON, color: "#fff", fontFamily: "'DM Sans', sans-serif", opacity: submitting || missing.length > 0 ? 0.4 : 1, cursor: submitting || missing.length > 0 ? "not-allowed" : "pointer" }}
           >
-            {POSTING_ENABLED ? "Spill the needle ✦" : "Posting opens soon"}
+            {submitting ? "Posting…" : "Spill the needle ✦"}
           </button>
+          <div className="text-[10px] leading-snug" style={{ color: MUTED }}>
+            Your post is public on Skintea without your name: it shows your skin type, the treatment and the date.
+          </div>
         </div>
       </div>
     </div>
@@ -553,24 +490,79 @@ function Composer({ onClose, treatments }: { onClose: () => void; treatments: st
 }
 
 export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean } = {}) {
-  // declared below
-  const [activeTab, setActiveTab] = useState<"product" | "treatment" | "surgery">("treatment");
+  const navigate = useNavigate();
   const [chip, setChip] = useState("All");
   const [skin, setSkin] = useState("all");
-  const [sort, setSort] = useState(SORTS[0]);
+  const [sort, setSort] = useState(SORTS[0].label);
   const [composerOpen, setComposerOpen] = useState(false);
-  const { treatments, loading: treatmentsLoading } = useTreatments();
-  // Posts the visitor writes stay local; the feed starts empty.
-  const [posts] = useState<Post[]>([]);
+  const { treatments, loading: treatmentsLoading, failed: treatmentsFailed } = useTreatments();
+  const userId = useUserId();
+  const [posts, setPosts] = useState<PostRow[]>([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [postsError, setPostsError] = useState(false);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const loadPosts = useCallback(async () => {
+    setPostsLoading(true);
+    const { data, error } = await supabase
+      .from("posts")
+      .select("id, user_id, treatment_id, cost, sessions, what_happened, surprised_me, works_for, warn_if, outcome, tags, skin_type, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    setPostsError(!!error);
+    setPosts(((data ?? []) as unknown as PostRow[]).map((p) => ({ ...p, tags: p.tags ?? [] })));
+    setPostsLoading(false);
+  }, []);
+  useEffect(() => { void loadPosts(); }, [loadPosts]);
+
+  // Saved treatment posts live in saved_posts (post_type 'treatment'; RLS: each user reads and writes only their own).
+  useEffect(() => {
+    if (!userId) { setSavedIds(new Set()); return; }
+    let alive = true;
+    (async () => {
+      const { data } = await supabase.from("saved_posts").select("post_id").eq("user_id", userId).eq("post_type", "treatment");
+      if (alive) setSavedIds(new Set(((data ?? []) as { post_id: string }[]).map((r) => r.post_id)));
+    })();
+    return () => { alive = false; };
+  }, [userId]);
+
+  async function toggleSave(postId: string) {
+    if (!userId) { navigate({ to: "/login" }).catch(() => {}); return; }
+    setSaveError(null);
+    const isSaved = savedIds.has(postId);
+    const { error } = isSaved
+      ? await supabase.from("saved_posts").delete().eq("user_id", userId).eq("post_id", postId)
+      : await supabase.from("saved_posts").insert({ user_id: userId, post_id: postId, post_type: "treatment" });
+    if (error) { setSaveError(isSaved ? "Couldn't remove from saved. Try again." : "Couldn't save. Try again."); return; }
+    setSavedIds((prev) => {
+      const next = new Set(prev);
+      if (isSaved) next.delete(postId); else next.add(postId);
+      return next;
+    });
+  }
+
+  const nameById = useMemo(() => new Map(treatments.map((t) => [t.id, t.name])), [treatments]);
+  const chipItems = useMemo(() => ["All", ...treatments.map((t) => t.name)], [treatments]);
 
   const filtered = useMemo(() => {
-    return posts.filter((p) => (chip === "All" ? true : p.treatment === chip)).filter((p) =>
-      skin === "all" ? true : p.skinType === skin,
-    );
-  }, [posts, chip, skin]);
+    return posts
+      .filter((p) => (chip === "All" ? true : (p.treatment_id && nameById.get(p.treatment_id)) === chip))
+      .filter((p) => (skin === "all" ? true : p.skin_type === skin));
+  }, [posts, chip, skin, nameById]);
 
-  const centerLabel =
-    activeTab === "product" ? "Spill ☕" : activeTab === "treatment" ? "Spill the needle ✦" : "Spill it all ✦";
+  function openComposer() {
+    if (!userId) { navigate({ to: "/login" }).catch(() => {}); return; }
+    setComposerOpen(true);
+  }
+
+  const treatmentChips = treatmentsLoading ? (
+    <ChipSkeletonRow />
+  ) : treatmentsFailed ? (
+    <div className="px-4 pt-1.5 pb-3 text-[11px]" style={{ color: MUTED }}>Couldn't load treatments. Reload to try again.</div>
+  ) : (
+    <ChipScroll items={chipItems} active={chip} onChange={setChip} />
+  );
 
   return (
     <>
@@ -583,62 +575,24 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
       <div className="min-h-screen overflow-x-hidden pb-24 md:pb-8" style={{ background: CREAM, fontFamily: "'DM Sans', sans-serif", maxWidth: "100vw" }}>
         <style>{`
           @media (max-width: 767px) {
-            .tt-feed {
-              padding: 0;
-              box-sizing: border-box;
-              max-width: 100vw;
-            }
-            .tt-post-card {
-              width: 100%;
-              max-width: 100%;
-              overflow: hidden;
-              box-sizing: border-box;
-            }
-            .tt-post-card > article {
-              width: 100%;
-              max-width: 100%;
-              box-sizing: border-box;
-              padding: 11px;
-            }
-            .tt-fields {
-              display: grid;
-              grid-template-columns: 1fr 1fr;
-              width: 100%;
-              box-sizing: border-box;
-            }
-            .tt-field {
-              min-width: 0;
-              box-sizing: border-box;
-            }
-            .tt-field, .tt-field-value {
-              word-break: break-word;
-              overflow-wrap: break-word;
-            }
+            .tt-feed { padding: 0; box-sizing: border-box; max-width: 100vw; }
+            .tt-post-card { width: 100%; max-width: 100%; overflow: hidden; box-sizing: border-box; }
+            .tt-post-card > article { width: 100%; max-width: 100%; box-sizing: border-box; padding: 11px; }
+            .tt-fields { display: grid; grid-template-columns: 1fr 1fr; width: 100%; box-sizing: border-box; }
+            .tt-field { min-width: 0; box-sizing: border-box; }
+            .tt-field, .tt-field-value { word-break: break-word; overflow-wrap: break-word; }
             .tt-main { padding-left: 12px; padding-right: 12px; }
             .tt-section { min-width: 0; }
           }
         `}</style>
-        {/* Top nav */}
-        <header
-          className="sticky top-0 z-30"
-          style={{ background: WARM_WHITE, borderBottom: `1px solid ${BORDER}` }}
-        >
-          {/* Filter chip rows */}
+        <header className="sticky top-0 z-30" style={{ background: WARM_WHITE, borderBottom: `1px solid ${BORDER}` }}>
           <div style={{ background: WARM_WHITE }}>
             <div className="px-4 pt-2">
-              <div className="text-[8px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>
-                Treatment
-              </div>
+              <div className="text-[8px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Treatment</div>
             </div>
-            {treatmentsLoading ? (
-              <ChipSkeletonRow />
-            ) : (
-              <ChipScroll items={treatments} active={chip} onChange={setChip} />
-            )}
+            {treatmentChips}
             <div className="px-4">
-              <div className="text-[8px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>
-                Skin type
-              </div>
+              <div className="text-[8px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Skin type</div>
             </div>
             <div className="flex gap-2 overflow-x-auto px-4 pt-1.5 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {SKIN_TYPES.map((s) => {
@@ -668,38 +622,35 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
 
         <main className="tt-main mx-auto max-w-7xl overflow-x-hidden px-4 pt-4">
           <div className="grid gap-6 md:grid-cols-[220px_1fr] lg:grid-cols-[220px_1fr_220px]">
-            {/* Left sidebar */}
             <aside className="hidden md:block">
               <div className="sticky top-[140px] space-y-4">
                 <div className="rounded-2xl p-4" style={{ background: "#fff", border: `1px solid ${BORDER}` }}>
-                  <div className="mb-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>
-                    Treatment
-                  </div>
-                  <div className="space-y-1">
-                    {treatments.map((t: string) => {
-                      const active = chip === t;
-                      return (
-                        <button
-                          key={t}
-                          onClick={() => setChip(t)}
-                          className="block w-full rounded-md px-2 py-1.5 text-left text-[12px]"
-                          style={{
-                            background: active ? CREAM : "transparent",
-                            color: active ? ESPRESSO : MUTED,
-                            fontWeight: active ? 700 : 500,
-                          }}
-                        >
-                          {t}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <div className="mb-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Treatment</div>
+                  {treatmentsLoading ? (
+                    <div className="text-[12px]" style={{ color: MUTED }}>Loading…</div>
+                  ) : treatmentsFailed ? (
+                    <div className="text-[12px]" style={{ color: MUTED }}>Couldn't load treatments.</div>
+                  ) : (
+                    <div className="space-y-1">
+                      {chipItems.map((t) => {
+                        const active = chip === t;
+                        return (
+                          <button
+                            key={t}
+                            onClick={() => setChip(t)}
+                            className="block w-full rounded-md px-2 py-1.5 text-left text-[12px]"
+                            style={{ background: active ? CREAM : "transparent", color: active ? ESPRESSO : MUTED, fontWeight: active ? 700 : 500 }}
+                          >
+                            {t}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 <div className="rounded-2xl p-4" style={{ background: "#fff", border: `1px solid ${BORDER}` }}>
-                  <div className="mb-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>
-                    Skin type
-                  </div>
+                  <div className="mb-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Skin type</div>
                   <div className="flex flex-wrap gap-1.5">
                     {SKIN_TYPES.map((s) => {
                       const active = skin === s.id;
@@ -708,11 +659,7 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
                           key={s.id}
                           onClick={() => setSkin(s.id)}
                           className="rounded-full px-2.5 py-1 text-[11px] font-medium"
-                          style={{
-                            background: active ? ESPRESSO : "#fff",
-                            color: active ? "#fff" : ESPRESSO,
-                            border: `1px solid ${active ? ESPRESSO : BORDER}`,
-                          }}
+                          style={{ background: active ? ESPRESSO : "#fff", color: active ? "#fff" : ESPRESSO, border: `1px solid ${active ? ESPRESSO : BORDER}` }}
                         >
                           {s.emoji && <span className="mr-1">{s.emoji}</span>}
                           {s.label}
@@ -723,9 +670,7 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
                 </div>
 
                 <div className="rounded-2xl p-4" style={{ background: "#fff", border: `1px solid ${BORDER}` }}>
-                  <div className="mb-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>
-                    Sort by
-                  </div>
+                  <div className="mb-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Sort by</div>
                   <div className="relative">
                     <select
                       value={sort}
@@ -733,7 +678,11 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
                       className="w-full appearance-none rounded-md px-2.5 py-1.5 text-[12px]"
                       style={{ border: `1px solid ${BORDER}`, background: "#fff", color: ESPRESSO }}
                     >
-                      {SORTS.map((s) => <option key={s}>{s}</option>)}
+                      {SORTS.map((s) => (
+                        <option key={s.label} value={s.label} disabled={!s.enabled}>
+                          {s.enabled ? s.label : `${s.label} (not collected yet)`}
+                        </option>
+                      ))}
                     </select>
                     <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2" color={MUTED} />
                   </div>
@@ -741,28 +690,37 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
               </div>
             </aside>
 
-            {/* Feed */}
             <section className="tt-section min-w-0">
               <div className="mb-4">
-                <h1
-                  className="text-2xl md:text-3xl"
-                  style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }}
-                >
+                <h1 className="text-2xl md:text-3xl" style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }}>
                   Treatment Talk
                 </h1>
               </div>
 
+              {saveError && <div className="mb-3 text-[12px] font-semibold" style={{ color: CRIMSON }}>{saveError}</div>}
+
               <div className="tt-feed space-y-4">
-                {filtered.length === 0 ? (
-                  <div
-                    className="rounded-xl p-6 text-center text-[12px]"
-                    style={{ background: "#fff", border: `1px solid ${BORDER}`, color: MUTED }}
-                  >
-                    No treatment talk yet — be the first to share.
+                {postsLoading ? (
+                  <div className="rounded-xl p-6 text-center text-[12px]" style={{ background: "#fff", border: `1px solid ${BORDER}`, color: MUTED }}>
+                    Loading…
+                  </div>
+                ) : postsError ? (
+                  <div className="rounded-xl p-6 text-center text-[12px]" style={{ background: "#fff", border: `1px solid ${BORDER}`, color: MUTED }}>
+                    Couldn't load treatment talk. Reload to try again.
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <div className="rounded-xl p-6 text-center text-[12px]" style={{ background: "#fff", border: `1px solid ${BORDER}`, color: MUTED }}>
+                    {posts.length === 0 ? "No treatment talk yet — be the first to share." : "No posts match these filters."}
                   </div>
                 ) : (
-                  filtered.map((p, i) => (
-                    <PostCard key={p.id} post={p} locked={i >= 2} />
+                  filtered.map((p) => (
+                    <PostCard
+                      key={p.id}
+                      post={p}
+                      treatmentName={p.treatment_id ? nameById.get(p.treatment_id) ?? null : null}
+                      saved={savedIds.has(p.id)}
+                      onToggleSave={() => void toggleSave(p.id)}
+                    />
                   ))
                 )}
               </div>
@@ -772,11 +730,12 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
 
         {!embedded && <BottomNav />}
 
-        {composerOpen && <Composer onClose={() => setComposerOpen(false)} treatments={treatments} />}
+        {composerOpen && userId && (
+          <Composer onClose={() => setComposerOpen(false)} treatments={treatments} userId={userId} onCreated={() => void loadPosts()} />
+        )}
 
         <button
-          onClick={() => setComposerOpen(true)}
-          title={POSTING_ENABLED ? undefined : "Posting isn't open yet — the form is read-only"}
+          onClick={openComposer}
           style={{
             position: "fixed",
             bottom: 72,
@@ -794,7 +753,7 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
             fontFamily: "'DM Sans', sans-serif",
           }}
         >
-          {POSTING_ENABLED ? "Spill the tea ☕" : "Posting opens soon"}
+          Spill the needle ✦
         </button>
       </div>
     </>
@@ -804,4 +763,3 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
 function TreatmentTalkPage() {
   return <TreatmentTalkContent />;
 }
-

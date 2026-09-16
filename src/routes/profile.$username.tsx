@@ -115,21 +115,7 @@ function PublicProfilePage() {
     if (!profile?.user_id) return;
     const uid = profile.user_id;
     let alive = true;
-    (async () => {
-      try {
-        const { data, error } = await supabase
-          .from("tea_posts" as any)
-          .select("id,emoji,bg_color,caption,created_at,likes_count")
-          .eq("user_id", uid)
-          .eq("is_public", true)
-          .order("created_at", { ascending: false })
-          .limit(18);
-        if (error) throw error;
-        if (alive) { setPosts(((data as any[]) ?? []) as TeaPost[]); setPostsError(false); }
-      } catch (e: any) {
-        if (alive) { setPosts([]); setPostsError(/does not exist|42P01|schema cache/i.test(String(e?.message ?? e)) ? "missing" : "error"); }
-      }
-    })();
+    // Posts are not read here (see the Tea tab below). There is no tea_posts table.
     (async () => {
       // This is a public page: every shelf query on it is filtered to is_public. There is no fallback query —
       // the previous one retried WITHOUT that filter, so any error on the first query published private items.
@@ -254,8 +240,12 @@ function PublicProfilePage() {
 
       <main style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px 80px", fontFamily: "'DM Sans', system-ui, -apple-system, sans-serif" }}>
         {tab === "tea" && (
-          postsError === "missing" ? (
-            <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "32px 12px" }}>Posting isn't open yet.</div>
+          // A public profile lists no posts (2026-09-16). Treatment Talk posts are published without a name and must never be
+          // traceable to a profile; product and surgery posts carry no per-post choice to appear here. The tab stays.
+          true ? (
+            <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "32px 12px", lineHeight: 1.5 }}>
+              Posts aren't shown on profiles. Treatment Talk posts are published without a name, so they are never linked to a person.
+            </div>
           ) : postsError ? (
             <div style={{ fontSize: 13, color: C.crimson, textAlign: "center", padding: "32px 12px", fontWeight: 600 }}>Couldn't load posts. Reload the page to try again.</div>
           ) : posts.length === 0 ? (

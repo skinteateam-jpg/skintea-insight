@@ -6,6 +6,7 @@ import AppFrame from "@/components/AppFrame";
 import { ClinicImage } from "@/components/ClinicImage";
 import { displayImages, useCategoryImages } from "@/lib/clinicPhotos";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchSavedPosts, fetchUserPosts, USER_POST_LABEL, type UserPost } from "@/lib/userPosts";
 import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/skin-profile")({
@@ -76,15 +77,8 @@ const matchStyle = (m: Match) =>
 
 // ---------- Live data types ----------
 export type TopPick = { id: string; name: string; brand: string | null; image_url: string | null; is_top_pick: boolean };
-export type Post = {
-  id: string;
-  emoji: string | null;
-  bg_color: string | null;
-  caption: string | null;
-  created_at: string;
-  likes_count: number;
-  comments_count: number;
-};
+// The user's own posts from product_posts, posts and surgery_posts (src/lib/userPosts.ts). There is no tea_posts table.
+export type Post = UserPost;
 export type ShelfItem = {
   id: string;
   product_id: string | null;
@@ -160,8 +154,7 @@ function SkinProfilePage() {
   const [loadingTopPicks, setLoadingTopPicks] = useState(true);
   const [topPicksError, setTopPicksError] = useState(false);
   const [loadingPosts, setLoadingPosts] = useState(true);
-  // "missing" = the tea_posts table does not exist yet (the Tea post feature is not built), "error" = a real failure.
-  const [postsError, setPostsError] = useState<false | "missing" | "error">(false);
+  const [postsError, setPostsError] = useState(false);
   const [loadingShelf, setLoadingShelf] = useState(true);
   const [shelfError, setShelfError] = useState(false);
 
@@ -226,16 +219,10 @@ function SkinProfilePage() {
     })();
     (async () => {
       try {
-        const { data, error } = await supabase
-          .from("tea_posts" as any)
-          .select("id,emoji,bg_color,caption,created_at,likes_count,comments_count")
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(18);
-        if (error) throw error;
-        if (alive) { setPosts(((data as any[]) ?? []) as Post[]); setPostsError(false); }
-      } catch (e: any) {
-        if (alive) { setPosts([]); setPostsError(/does not exist|42P01|schema cache/i.test(String(e?.message ?? e)) ? "missing" : "error"); }
+        const { posts: rows, error } = await fetchUserPosts(userId);
+        if (alive) { setPosts(rows); setPostsError(error); }
+      } catch {
+        if (alive) { setPosts([]); setPostsError(true); }
       }
       finally { if (alive) setLoadingPosts(false); }
     })();
@@ -602,20 +589,15 @@ function TopPicksRow({ picks, loading, error, emptyHint }: { picks: PickCard[]; 
   );
 }
 
-function TeaTab({ posts, topPicks, loadingPosts, loadingTopPicks, topPicksError, postsError }: { posts: Post[]; topPicks: TopPick[]; loadingPosts: boolean; loadingTopPicks: boolean; topPicksError: boolean; postsError: false | "missing" | "error" }) {
-  const [openPost, setOpenPost] = useState<Post | null>(null);
+function TeaTab({ posts, topPicks, loadingPosts, loadingTopPicks, topPicksError, postsError }: { posts: Post[]; topPicks: TopPick[]; loadingPosts: boolean; loadingTopPicks: boolean; topPicksError: boolean; postsError: boolean }) {
   return (
     <>
       <TopPicksRow picks={topPicks} loading={loadingTopPicks} error={topPicksError} />
 
       <SectionTitle>Posts {posts.length > 0 && <span style={{ fontWeight: 500, color: C.textLight, textTransform: "none", letterSpacing: 0 }}>({posts.length})</span>}</SectionTitle>
       {loadingPosts ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
-          {[0,1,2,3,4,5].map(i => <Skel key={i} h={120} r={0} />)}
-        </div>
-      ) : postsError === "missing" ? (
-        <div style={{ fontSize: 12, color: C.textLight, textAlign: "center", padding: "20px 10px", border: `0.5px dashed ${C.border}`, borderRadius: 10 }}>
-          Posting isn't open yet. Your posts will appear here.
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {[0,1,2].map(i => <Skel key={i} h={64} r={10} />)}
         </div>
       ) : postsError ? (
         <div style={{ fontSize: 12, color: C.bad, background: C.badBg, borderRadius: 10, padding: "12px 14px", fontWeight: 600 }}>
@@ -623,35 +605,36 @@ function TeaTab({ posts, topPicks, loadingPosts, loadingTopPicks, topPicksError,
         </div>
       ) : posts.length === 0 ? (
         <div style={{ fontSize: 12, color: C.textLight, textAlign: "center", padding: "20px 10px", border: `0.5px dashed ${C.border}`, borderRadius: 10 }}>
-          No posts yet.
+          No posts yet. What you post on a product page, in Treatment Talk or in Surgery Talk appears here.
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
-          {posts.map(p => (
-            <button key={p.id} onClick={() => setOpenPost(p)}
-              style={{ position: "relative", aspectRatio: "1", background: p.bg_color ?? "#F5F0EB", border: "none", cursor: "pointer", display: "grid", placeItems: "center", padding: 0 }}>
-              <span style={{ fontSize: 56 }}>{p.emoji ?? "🌸"}</span>
-            </button>
-          ))}
-        </div>
+        <UserPostList posts={posts} />
       )}
-
-      {openPost && <PostSheet post={openPost} onClose={() => setOpenPost(null)} />}
     </>
   );
 }
 
-function PostSheet({ post, onClose }: { post: Post; onClose: () => void }) {
-  const dateStr = post.created_at ? new Date(post.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "";
+// One row per post: its kind, what it is about, the start of what was written, the date, and a link to where it lives.
+function UserPostList({ posts }: { posts: UserPost[] }) {
   return (
-    <Sheet onClose={onClose}>
-      <div style={{ aspectRatio: "1", background: post.bg_color ?? "#F5F0EB", display: "grid", placeItems: "center", fontSize: 120, borderRadius: 12, marginBottom: 16 }}>{post.emoji ?? "🌸"}</div>
-      {dateStr && <div style={{ fontSize: 11, color: C.textLight }}>{dateStr}</div>}
-      {post.caption && <p style={{ marginTop: 10, fontSize: 14, lineHeight: 1.5 }}>{post.caption}</p>}
-      <div style={{ display: "flex", gap: 16, fontSize: 13, color: C.textMid, marginTop: 8 }}>
-        <span>♥ {post.likes_count ?? 0}</span><span>💬 {post.comments_count ?? 0}</span>
-      </div>
-    </Sheet>
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {posts.map((p) => {
+        const s = USER_POST_LABEL[p.kind];
+        return (
+          <Link key={p.key} to={p.href as any}
+            style={{ display: "block", padding: "10px 12px", border: `0.5px solid ${C.border}`, borderRadius: 10, background: "#FFFFFF", textDecoration: "none", color: C.text }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ background: s.bg, color: "#FFFCF8", fontSize: 10, fontWeight: 800, padding: "3px 6px", borderRadius: 3, letterSpacing: "0.08em", flexShrink: 0 }}>{s.label}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</span>
+              <span style={{ marginLeft: "auto", fontSize: 11, color: C.textLight, flexShrink: 0 }}>{new Date(p.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+            </div>
+            {p.snippet && (
+              <div style={{ fontSize: 12, color: C.textMid, marginTop: 4, lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{p.snippet}</div>
+            )}
+          </Link>
+        );
+      })}
+    </div>
   );
 }
 
@@ -1106,7 +1089,8 @@ function SavedTab({ userId }: { userId: string | null }) {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const categoryImages = useCategoryImages();
   const [savedClinics, setSavedClinics] = useState<Array<{ id: string; name: string; neighborhood: string | null; best_for: string[] | null; photos: unknown; category: string | null; }>>([]);
-  const [savedPosts, setSavedPosts] = useState<Array<{ id: string; post_id: string; post_type: string }>>([]);
+  const [savedPosts, setSavedPosts] = useState<UserPost[]>([]);
+  const [savedPostsError, setSavedPostsError] = useState(false);
 
   useEffect(() => {
     if (!userId) { setLoadingProducts(false); return; }
@@ -1129,12 +1113,8 @@ function SavedTab({ userId }: { userId: string | null }) {
         .eq("user_id", userId)
         .eq("clinics.listing_filter", "passed");
       if (alive) setSavedClinics(((scs as any[]) ?? []).map(r => r.clinics).filter(Boolean));
-      const { data: sps } = await supabase
-        .from("saved_posts")
-        .select("id, post_id, post_type")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-      if (alive) setSavedPosts((sps as any[]) ?? []);
+      const saved = await fetchSavedPosts(userId);
+      if (alive) { setSavedPosts(saved.posts); setSavedPostsError(saved.error); }
     })();
     return () => { alive = false; };
   }, [userId]);
@@ -1183,15 +1163,6 @@ function SavedTab({ userId }: { userId: string | null }) {
     if (userId) await supabase.from("saved_clinics").delete().eq("user_id", userId).eq("clinic_id", id);
   };
 
-  const postTypeStyle = (t: string) => {
-    switch (t) {
-      case "skin_tea": return { bg: "#A8001C", label: "SKIN TEA" };
-      case "look_tea": return { bg: "#5B3FA6", label: "LOOK TEA" };
-      case "spill": return { bg: "#B45309", label: "SPILL" };
-      case "treatment": return { bg: "#1C0A00", label: "TREATMENT" };
-      default: return { bg: "#999", label: t.toUpperCase() };
-    }
-  };
 
   return (
     <>
@@ -1271,24 +1242,19 @@ function SavedTab({ userId }: { userId: string | null }) {
         </div>
       )}
 
-      {/* Section 3 — Saved Posts. The query returns only the saved row (post id + type), never the post's content,
-          so nothing can be drawn for it. It renders the real type it has and says the preview is missing, instead of
-          a blank grey square standing in for a post image. The heading is hidden while there is nothing saved. */}
-      {savedPosts.length > 0 && (
-        <>
-          <CrimsonLabel>Saved Posts</CrimsonLabel>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {savedPosts.map(sp => {
-              const s = postTypeStyle(sp.post_type);
-              return (
-                <div key={sp.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", border: `0.5px solid #E8DDD4`, borderRadius: 10, background: "#FFFFFF" }}>
-                  <span style={{ background: s.bg, color: "#FFFCF8", fontSize: 10, fontWeight: 800, padding: "3px 6px", borderRadius: 3, letterSpacing: "0.08em", flexShrink: 0 }}>{s.label}</span>
-                  <span style={{ fontSize: 11, color: C.textLight }}>Preview not available yet</span>
-                </div>
-              );
-            })}
-          </div>
-        </>
+      {/* Section 3 — Saved Posts: Treatment Talk saves (saved_posts) and Surgery Talk saves (surgery_saves), each with its
+          post's content. The section always renders; with nothing saved it says so. */}
+      <CrimsonLabel>Saved Posts</CrimsonLabel>
+      {savedPostsError ? (
+        <div style={{ fontSize: 12, color: C.bad, background: C.badBg, borderRadius: 10, padding: "12px 14px", fontWeight: 600 }}>
+          Couldn't load your saved posts. Reload the page to try again.
+        </div>
+      ) : savedPosts.length === 0 ? (
+        <div style={{ fontSize: 12, color: C.textLight, textAlign: "center", padding: "20px 10px", border: `0.5px dashed ${C.border}`, borderRadius: 10 }}>
+          No saved posts yet. Tap the bookmark on a Treatment Talk or Surgery Talk post to save it.
+        </div>
+      ) : (
+        <UserPostList posts={savedPosts} />
       )}
     </>
   );

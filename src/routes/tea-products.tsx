@@ -328,6 +328,7 @@ function useProductSearch(term: string): ProductSearchState {
 export function TeaProductsContent({ embedded = false }: { embedded?: boolean } = {}) {
   const [activeTag, setActiveTag] = React.useState<TagKey | "all">("all");
   const [posts, setPosts] = usePostsStore();
+  const navigate = useNavigate();
   const [composeOpen, setComposeOpen] = React.useState(false);
   const [composePrompt, setComposePrompt] = React.useState<string | undefined>();
 
@@ -357,7 +358,11 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
     setActiveTag("all");
   };
 
+  // While posting is closed the composer does not open at all: a form that can be filled in and then saves nothing loses
+  // what someone typed (owner, 2026-09-16). A notice says posting here isn't open and where product posts can be written.
+  const [closedNoticeOpen, setClosedNoticeOpen] = React.useState(false);
   const openCompose = (prompt?: string) => {
+    if (!POSTING_ENABLED) { setClosedNoticeOpen(true); return; }
     setComposePrompt(prompt);
     setComposeOpen(true);
   };
@@ -496,8 +501,25 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
           fontFamily: "'DM Sans', sans-serif",
         }}
       >
-        Spill the tea 🫖
+        {POSTING_ENABLED ? "Spill the tea 🫖" : "Posting opens soon"}
       </button>
+
+      {/* Posting closed: a notice, never the form. */}
+      <Sheet open={closedNoticeOpen} onOpenChange={setClosedNoticeOpen}>
+        <SheetContent side="bottom" className="mx-auto max-w-[480px] rounded-t-3xl border-0 p-6" style={{ background: "#FFFCF8" }}>
+          <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: "#1C0A00", margin: 0 }}>Posting isn't open here yet</p>
+          <p style={{ fontSize: 13, color: "#1C0A00", lineHeight: 1.5, marginTop: 10 }}>
+            Product Talk posts can't be written on this page yet, so there is no form to fill in and nothing you type here could
+            be lost. To post about a product now, open the product and use Post tea on its page.
+          </p>
+          <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+            <Button onClick={() => { setClosedNoticeOpen(false); void navigate({ to: "/products" }); }} style={{ background: "#A8001C", color: "#FFFCF8" }}>
+              Browse products
+            </Button>
+            <Button variant="outline" onClick={() => setClosedNoticeOpen(false)}>Close</Button>
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* Compose sheet */}
       <ComposeSheet

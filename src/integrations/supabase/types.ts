@@ -2269,6 +2269,27 @@ export type Database = {
       }
     }
     Views: {
+      clinic_visitor_profile: {
+        Row: {
+          clinic_id: string | null
+          combination: number | null
+          dry: number | null
+          normal: number | null
+          oily: number | null
+          sensitive: number | null
+          skin_type_unknown: number | null
+          visitors: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_who_visited_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_funnel_daily: {
         Row: {
           contactable: number | null

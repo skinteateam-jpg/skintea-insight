@@ -41,14 +41,17 @@ export type ShopButton = {
   price: number | null;
 };
 
+// These three always render a button on every product, whether or not brand_retailers or
+// product_retailer_links hold a row. brand_retailers is optional enrichment data, not a gate.
+export const ALWAYS_SHOWN_SLUGS = new Set(["amazon", "sephora", "ulta"]);
+
 function appendParam(url: string, param: string): string {
   const sep = url.includes("?") ? "&" : "?";
   return `${url}${sep}${param}`;
 }
 
-// Order of resolution (spec): affiliate_url, then product_url + affiliate param, then product_url,
-// then the retailer's search page — search only when the brand is officially carried there.
-// Anything else: no button for that retailer.
+// Order of resolution: affiliate_url, then product_url + affiliate param, then product_url,
+// then the retailer's search page with "{brand} {product name}".
 export function resolveRetailerLink(
   retailer: RetailerRow,
   link: ProductRetailerLinkRow | undefined,
@@ -66,7 +69,9 @@ export function resolveRetailerLink(
     return { url: link.product_url, linkType: "direct" };
   }
 
-  if (opts.brandCarried && retailer.search_url_template) {
+  // Search fallback: always available to the three fixed retailers, otherwise only when the
+  // brand is recorded as carried there.
+  if ((opts.brandCarried || ALWAYS_SHOWN_SLUGS.has(retailer.slug)) && retailer.search_url_template) {
     const q = [opts.brand ?? "", opts.productName ?? ""].join(" ").trim();
     if (!q) return null;
     return { url: retailer.search_url_template.replace("{q}", encodeURIComponent(q)), linkType: "search" };
@@ -75,22 +80,43 @@ export function resolveRetailerLink(
   return null;
 }
 
-// A retailer never appears unless it carries the brand: either it has a real link row for this
-// product, or the brand is listed in brand_retailers for it.
+// Amazon, Sephora and Ulta are never hidden. Every other retailer (YesStyle, Olive Young Global,
+// the brand's own site) appears only with a product link row or a brand_retailers entry.
 export function buildShopButtons(args: {
   retailers: RetailerRow[];
   links: ProductRetailerLinkRow[];
   carriedRetailerIds: Set<string>;
   brand: string | null;
   productName: string | null;
+  productUrl?: string | null;
+  productPrice?: number | null;
 }): ShopButton[] {
   const byRetailer = new Map(args.links.map((l) => [l.retailer_id, l]));
   const buttons: ShopButton[] = [];
   for (const r of args.retailers) {
-    const link = byRetailer.get(r.id);
+    let link = byRetailer.get(r.id);
+    const always = ALWAYS_SHOWN_SLUGS.has(r.slug);
     const carried = args.carriedRetailerIds.has(r.id);
-    if (!link && !carried) continue;
-    if (link && link.in_stock === false) continue;
+    // The brand's own shop URL on the product row is this product's original "Shop" link.
+    if (!link && r.slug === "brand_site" && args.productUrl) {
+      link = {
+        id: `product-url-${r.id}`,
+        product_id: "",
+        retailer_id: r.id,
+        product_url: args.productUrl,
+        affiliate_url: null,
+        price: args.productPrice ?? null,
+        in_stock: true,
+        verified: false,
+      };
+    }
+    if (!link && !carried && !always) continue;
+    // An out-of-stock link hides the retailer, except for the three that always show — they fall
+    // back to their search page.
+    if (link && link.in_stock === false) {
+      if (!always) continue;
+      link = undefined;
+    }
     const resolved = resolveRetailerLink(r, link, {
       brandCarried: carried,
       brand: args.brand,
@@ -100,16 +126,18 @@ export function buildShopButtons(args: {
     buttons.push({
       retailerId: r.id,
       slug: r.slug,
-      name: r.name,
+      name: r.slug === "brand_site" ? "Shop" : r.name,
       logoUrl: r.logo_url,
       url: resolved.url,
       linkType: resolved.linkType,
       price: link?.price ?? null,
     });
   }
-  // Price ascending, unknown price last, then the retailer's own sort order. Never by commission.
+  // The product's own Shop link leads, then price ascending, unknown price last, then the
+  // retailer's own sort order. Never by commission.
   const order = new Map(args.retailers.map((r, i) => [r.id, i]));
   return buttons.sort((a, b) => {
+    if (a.slug === "brand_site" !== (b.slug === "brand_site")) return a.slug === "brand_site" ? -1 : 1;
     const ap = a.price ?? Number.POSITIVE_INFINITY;
     const bp = b.price ?? Number.POSITIVE_INFINITY;
     if (ap !== bp) return ap - bp;

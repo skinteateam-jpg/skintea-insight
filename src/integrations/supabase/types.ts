@@ -2256,6 +2256,7 @@ export type Database = {
           majority_pct: number | null
           minority_opinion: string | null
           name: string
+          results_duration: string | null
           results_pct: number | null
           sessions_recommended: string | null
           slug: string | null
@@ -2264,6 +2265,7 @@ export type Database = {
           updated_at: string
           what_it_is: string | null
           who_its_for: string | null
+          who_its_not_for: string | null
         }
         Insert: {
           active?: boolean
@@ -2280,6 +2282,7 @@ export type Database = {
           majority_pct?: number | null
           minority_opinion?: string | null
           name: string
+          results_duration?: string | null
           results_pct?: number | null
           sessions_recommended?: string | null
           slug?: string | null
@@ -2288,6 +2291,7 @@ export type Database = {
           updated_at?: string
           what_it_is?: string | null
           who_its_for?: string | null
+          who_its_not_for?: string | null
         }
         Update: {
           active?: boolean
@@ -2304,6 +2308,7 @@ export type Database = {
           majority_pct?: number | null
           minority_opinion?: string | null
           name?: string
+          results_duration?: string | null
           results_pct?: number | null
           sessions_recommended?: string | null
           slug?: string | null
@@ -2312,6 +2317,7 @@ export type Database = {
           updated_at?: string
           what_it_is?: string | null
           who_its_for?: string | null
+          who_its_not_for?: string | null
         }
         Relationships: []
       }

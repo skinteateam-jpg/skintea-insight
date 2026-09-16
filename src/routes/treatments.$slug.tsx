@@ -6,7 +6,7 @@ import AppFrame from "@/components/AppFrame";
 import BottomNav from "@/components/BottomNav";
 import TreatmentVoices from "@/components/TreatmentVoices";
 import {
-  breakdown, MIN_TREATMENT_REVIEWS, MIN_COST_VALUES, MAX_SENSITIVITY_POINTS, REGRET_LABELS, VERDICT_LABELS,
+  breakdown, COUNTED_PLATFORMS, MIN_TREATMENT_REVIEWS, MIN_COST_VALUES, MAX_SENSITIVITY_POINTS, REGRET_LABELS, VERDICT_LABELS,
   type TreatmentQuoteRow, type TreatmentReviewRow, type VerdictCell,
 } from "@/lib/treatmentReviews";
 import { clinicPriceRanges, formatPriceRange, shownPrice } from "@/lib/clinicPrices";
@@ -263,8 +263,9 @@ function TreatmentPage() {
         setLinks(rows);
         const { data: tr } = await (supabase as any)
           .from("treatment_reviews")
-          .select("verdict, is_first_time, sensitive_skin, regret_reason, cost_paid_usd, tag_confidence, tagged_at, query:field_provenance->detail->>query")
+          .select("verdict, is_first_time, sensitive_skin, regret_reason, cost_paid_usd, tag_confidence, tagged_at, platform, query:field_provenance->detail->>query")
           .eq("treatment_id", (t as any).id)
+          .in("platform", [...COUNTED_PLATFORMS]) // allowlist, also enforced row by row in isCountedReview
           .not("tagged_at", "is", null);
         if (!alive) return;
         setReviewRows(((tr as any[]) ?? []) as TreatmentReviewRow[]);

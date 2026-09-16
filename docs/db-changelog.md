@@ -725,3 +725,22 @@ Nothing below was reconstructed from memory without a source.
   visitors; the What people say video tabs had already been removed by the clinic-page session), `src/routes/surgery-talk.tsx`
   (Derm badge gate).
 - Deleted session_ids: none.
+
+### 2026-09-16 23:15 UTC — clinic_submissions.results_patient_authorization_at (Results photos need patient authorization)
+- Who: pipeline session, /for-clinics photo categories (owner-approved).
+- Why: /for-clinics now asks for a category per photo (Outside, Interior, Results, Staff, Parking; the category is in the
+  stored file name, `pending/<id>/NN-<category>-<name>`, which the existing path regexes already accept). Results photos
+  show patients, so the clinic must attest that every patient shown gave written authorization. No existing column fit.
+- Schema (via query_database, one statement each; file `sql/2026-09-16_clinic_submissions_results_authorization.sql` in
+  skintea-pipeline):
+  - `ALTER TABLE public.clinic_submissions ADD COLUMN results_patient_authorization_at timestamptz` (nullable).
+  - `GRANT INSERT (results_patient_authorization_at) ON public.clinic_submissions TO anon, authenticated`.
+  - `ALTER POLICY "Anyone can submit a clinic intake"`: every existing clause kept verbatim, two added: the value is NULL or
+    within 15 minutes of the server clock, and a photo path matching `/NN-results-` requires a non-NULL value.
+- Verified in pg_catalog: column timestamptz nullable; INSERT column grant for anon and authenticated; policy expression
+  contains the original four clauses plus the two new ones. Tested as `anon` inside a block that raised at the end: results
+  photo without attestation rejected (42501); results photo attested now accepted; parking photo without attestation
+  accepted; attestation 2 hours old rejected; a path without a category accepted. 0 rows persisted (checked).
+- Note: the timestamp is the sender's clock at submission, bounded by the policy to ±15 minutes of the server; `created_at`
+  and `permission_granted_at` remain the server times.
+- Deleted session_ids: none.

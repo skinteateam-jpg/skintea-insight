@@ -462,6 +462,7 @@ export type Database = {
           permission_statement_version: string
           phone: string | null
           photo_paths: string[]
+          results_patient_authorization_at: string | null
           review_notes: string | null
           reviewed_at: string | null
           status: string
@@ -485,6 +486,7 @@ export type Database = {
           permission_statement_version: string
           phone?: string | null
           photo_paths?: string[]
+          results_patient_authorization_at?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           status?: string
@@ -508,6 +510,7 @@ export type Database = {
           permission_statement_version?: string
           phone?: string | null
           photo_paths?: string[]
+          results_patient_authorization_at?: string | null
           review_notes?: string | null
           reviewed_at?: string | null
           status?: string

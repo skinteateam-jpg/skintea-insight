@@ -1,15 +1,19 @@
-# Clinic detail Info / Tea tabs
+# Clinic summary, videos, and contact links
 
 ## Changes
-- Keep the sticky controls, clinic identity, social links, skin-type line, gated stats, fixed action bar, inquiry sheet, and all tracking behavior shared across both tabs.
-- Replace the current photo presentation with an Outside / Interior / Results / Staff gallery. Each category keeps the existing source and permission rules, resets to its first photo when selected, and falls back through the existing marked category image or placeholder.
-- Add equal-width Info and Tea tabs with local state, defaulting to Info.
-- Reorder the existing Info sections exactly as requested and keep their existing data gates and empty states.
-- Reorder the Tea sections exactly as requested. Move the skin-type review filter into The tea, pass filtered reviews to the carousel, and keep the review form under the section that opened it.
-- Add permission-gated parking photos inside Parking without adding Parking to the top gallery.
-- Remove the named block headings, duplicate What people say UI, Video section, old four photo text sections, video state/component/query, and unused imports/state.
+- Extend clinic intent types for video plays, YouTube, contact links, and clinic posts without changing existing logging behavior.
+- Update the clinic data load to include YouTube social links and active clinic videos, preserving every existing fetch and gate.
+- Replace the conditional stats strip with an always-visible Recommend / Tea / Trust summary, using only Skintea reviews and sourced clinic values.
+- Move social links from the clinic name area into a new Contact and links section with tracked website, social, phone, and map rows.
+- Restore clinic videos with creator/visitor and official tabs, six-item expansion, disclosure labels, and in-page TikTok/Instagram playback with fallback links.
+- Build the first twelve Info sections as a stable data-first list in the requested base order; keep Contact and links second-to-last and the owner link last. Leave the Tea tab and all existing sections intact.
+
+## Technical details
+- Reuse the established TikTok embed script pattern and Instagram's official embed URL inside one closeable lightbox; detect failed embeds and show the caption plus tracked source link.
+- Preserve all current provenance checks, photo behavior, booking/contact gating, existing intent and lead calls, and fixed controls.
+- Modify only `src/routes/clinics/$id.tsx` and `src/lib/clinicIntent.ts`.
 
 ## Validation
-- Run the TypeScript check.
-- Open a clinic page and verify both tabs, gallery category switching, empty/fallback photo behavior, section order, and preserved fixed controls.
-- Confirm only `src/routes/clinics/$id.tsx` changed.
+- Run `bunx tsgo --noEmit`.
+- In the preview, check Jubilee Aesthetics and a sparse clinic across Info and Tea, including summary cells, sorted Info sections, both video tabs, playback/fallback, Contact and links, and console errors.
+- Confirm the final changed-file set contains only the two requested source files.

@@ -2422,6 +2422,65 @@ export type Database = {
           },
         ]
       }
+      treatment_videos: {
+        Row: {
+          created_at: string
+          disclosure: string[] | null
+          display_approved: boolean
+          display_approved_at: string | null
+          display_slot: number | null
+          evidence: string
+          id: string
+          platform: string
+          platform_video_id: string
+          posted_at: string | null
+          scrape_run_id: string | null
+          source: string
+          source_url: string | null
+          treatment_id: string
+        }
+        Insert: {
+          created_at?: string
+          disclosure?: string[] | null
+          display_approved?: boolean
+          display_approved_at?: string | null
+          display_slot?: number | null
+          evidence: string
+          id?: string
+          platform: string
+          platform_video_id: string
+          posted_at?: string | null
+          scrape_run_id?: string | null
+          source: string
+          source_url?: string | null
+          treatment_id: string
+        }
+        Update: {
+          created_at?: string
+          disclosure?: string[] | null
+          display_approved?: boolean
+          display_approved_at?: string | null
+          display_slot?: number | null
+          evidence?: string
+          id?: string
+          platform?: string
+          platform_video_id?: string
+          posted_at?: string | null
+          scrape_run_id?: string | null
+          source?: string
+          source_url?: string | null
+          treatment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_videos_treatment_id_fkey"
+            columns: ["treatment_id"]
+            isOneToOne: false
+            referencedRelation: "treatments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       treatments: {
         Row: {
           active: boolean

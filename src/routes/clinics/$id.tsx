@@ -6,13 +6,13 @@ import { leadEvent, recordConsultationClick } from "@/lib/leads";
 import { logClinicIntent, previousTreatmentSlug, websiteChannel } from "@/lib/clinicIntent";
 import { classifyWebsite, isBookingPath, websiteLinkLabel } from "@/lib/bookingPath";
 import { ClinicImage } from "@/components/ClinicImage";
-import { displayImages, useCategoryImages } from "@/lib/clinicPhotos";
+import { clinicPhotos, displayImages, useCategoryImages, type ClinicPhoto } from "@/lib/clinicPhotos";
 import { shownPrice } from "@/lib/clinicPrices";
 // The app-wide floor under any displayed percentage. It lives in exactly one place.
 import { MIN_TAGGED } from "@/lib/opinionAggregate";
 import {
   ArrowLeft, Heart, Share2, MapPin, Sparkles, FileText, Lock,
-  Phone, Car, Map as MapIcon, Building2, Plus, Flame, Camera,
+  Phone, Car, Map as MapIcon, Building2, Plus, Flame, Camera, ChevronLeft, ChevronRight,
 } from "lucide-react";
 
 export const Route = createFileRoute("/clinics/$id")({
@@ -52,14 +52,81 @@ type CTreatment = {
 };
 type Practitioner = { id: string; name: string; role: string; specialty: string };
 type Review = {
-  id: string; skin_type: string; body: string; agree_count: number;
+  id: string; skin_type: string | null; body: string; agree_count: number;
+  surprised_by: string | null; wish_known: string | null; created_at: string;
   treatment_id: string | null;
   treatments: { name: string } | null;
 };
 
 // Only the columns this page renders. clinic_reviews is readable by everyone, so "*" would send every reviewer's
-// user_id to every visitor; the page never needs it (it does not show or compare authors).
-const REVIEW_COLUMNS = "id, skin_type, body, agree_count, treatment_id, treatments(name)";
+// user_id to every visitor; the page never needs it (it does not show or compare authors). display_name_public is not
+// read either: it governs "Who goes here" only (through clinic_who_visited), never a review or a tea card.
+const REVIEW_COLUMNS = "id, skin_type, body, surprised_by, wish_known, created_at, agree_count, treatment_id, treatments(name)";
+
+// ---------- Clinic photos by section ----------
+// clinics.photos is an ordered array validated by clinic_photos_valid (url, source, and permission_granted_at for
+// clinic_supplied). Each entry names the section it belongs to with a `section` key: outside, interior, results, staff.
+// An entry without a section appears in no section. Google Places photos never render anywhere (removed for licensing).
+const PHOTO_SECTIONS =["outside", "interior", "results", "staff"] as const;
+type PhotoSection = (typeof PHOTO_SECTIONS)[number];
+type SectionPhoto = ClinicPhoto & { section?: string; published_by?: string };
+
+function sectionPhotos(photos: unknown, section: PhotoSection): SectionPhoto[] {
+  return (clinicPhotos(photos) as SectionPhoto[]).filter((p) => {
+    if (p.section !== section) return false;
+    if (p.source === "google_places_scrape") return false;
+    if (p.source === "clinic_supplied" && !/^\d{4}-\d{2}-\d{2}/.test(p.permission_granted_at ?? "")) return false;
+    if (section === "results") {
+      // HARD RULE (CLAUDE.md): a results photo is this clinic's own before and after, published by the clinic or by the
+      // patient it belongs to, supplied with permission. Never stock, never another clinic's work, never a creator result
+      // with an unnamed provider, never a Skintea shot. Anything short of that stays out and the section stays empty.
+      return p.source === "clinic_supplied" && (p.published_by === "clinic" || p.published_by === "patient");
+    }
+    return p.source === "clinic_supplied" || p.source === "skintea_shot";
+  });
+}
+
+// ---------- Open now, from the listed hours ----------
+// Computed at render time in Los Angeles time from clinics.hours; the stored is_open_now / closes_at columns describe a
+// single past moment and are never shown. Only a day entry that parses completely ("10 AM to 7 PM", "Closed",
+// "Open 24 hours") produces a line; anything else produces nothing rather than a guess.
+function parseClock(h: string, m: string | undefined, ap: string): number {
+  let hour = Number(h) % 12;
+  if (ap.toUpperCase() === "PM") hour += 12;
+  return hour * 60 + (m ? Number(m) : 0);
+}
+
+function openNow(hours: any, now: Date = new Date()): { open: boolean; label: string } | null {
+  if (!Array.isArray(hours)) return null;
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles", weekday: "long", hour: "numeric", minute: "numeric", hour12: false,
+  }).formatToParts(now);
+  const day = parts.find((p) => p.type === "weekday")?.value;
+  const hh = Number(parts.find((p) => p.type === "hour")?.value) % 24;
+  const mm = Number(parts.find((p) => p.type === "minute")?.value);
+  const entry = hours.find((e: any) => e && e.day === day);
+  if (!entry || typeof entry.hours !== "string") return null;
+  const text = entry.hours.replace(/ | /g, " ").trim();
+  if (/^closed$/i.test(text)) return { open: false, label: "Closed today" };
+  if (/^open 24 hours$/i.test(text)) return { open: true, label: "Open 24 hours" };
+  const m = text.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)\s*(?:to|–|-)\s*(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$/i);
+  if (!m) return null;
+  const start = parseClock(m[1], m[2], m[3]);
+  const end = parseClock(m[4], m[5], m[6]);
+  if (end <= start) return null;
+  const cur = hh * 60 + mm;
+  const endLabel = `${m[4]}${m[5] ? `:${m[5]}` : ""} ${m[6].toUpperCase()}`;
+  const startLabel = `${m[1]}${m[2] ? `:${m[2]}` : ""} ${m[3].toUpperCase()}`;
+  if (cur >= start && cur < end) return { open: true, label: `Open now · closes ${endLabel}` };
+  if (cur < start) return { open: false, label: `Closed now · opens ${startLabel}` };
+  return { open: false, label: "Closed now" };
+}
+
+// A tracked clinics value renders only with its recorded source (clinics_enforce_provenance writes it).
+function sourced(clinic: any, field: string): boolean {
+  const p = clinic?.field_provenance?.[field];
+  return p != null && typeof p.source === "string" && p.source !== "";
+}
 
 type HoursEntry = { day: string; hours: string };
 const DAY_ORDER = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -151,9 +218,9 @@ function EmptyState({ children, cta }: { children: React.ReactNode; cta?: React.
   );
 }
 
-// One line under the sections that can only be filled by someone who went. No lead event fires: the allowed
-// lead_events.event_type values are stage_change, field_set, quiz_completed, clinic_view, consultation_click,
-// booking_link_click and email_submitted, and none of them describes this click. Adding one is a schema change.
+// One line under the sections that can only be filled by someone who went. The click fires lead_events
+// 'experience_cta_click' {clinic_id, section} before any sign-in step (see openExperience in the page), and
+// lead_event_add never promotes the intent stage for it: a past patient is not a purchase-intent lead.
 function ExperienceCta({ onClick }: { onClick: () => void }) {
   return (
     <button
@@ -176,6 +243,188 @@ function Section({ title, right, children }: { title: string; right?: React.Reac
         <div style={SECTION_LABEL}>{title}</div>
         {right}
       </div>
+      {children}
+    </div>
+  );
+}
+
+// ---------- Photo grid for one of the four photo sections ----------
+function PhotoGrid({ photos, alt }: { photos: SectionPhoto[]; alt: string }) {
+  const [failed, setFailed] = useState<Set<string>>(new Set());
+  const shown = photos.filter((p) => !failed.has(p.url));
+  return (
+    <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none" }}>
+      {shown.map((p) => (
+        <img
+          key={p.url}
+          src={p.url}
+          alt={p.alt || alt}
+          loading="lazy"
+          onError={() => setFailed((prev) => new Set(prev).add(p.url))}
+          style={{ width: 132, height: 100, objectFit: "cover", borderRadius: 8, flexShrink: 0, background: CREAM_TINT }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ---------- Map ----------
+// OpenStreetMap's embed needs no API key and no script, so there is nothing to fail to load: the frame is a plain iframe
+// at a fixed height, with OpenStreetMap's attribution. It renders only with both coordinates; without them the section
+// shows the address and a link out, never an empty map frame.
+function ClinicMap({ lat, lng, name }: { lat: number; lng: number; name: string }) {
+  const d = 0.004;
+  const bbox = [lng - d, lat - d, lng + d, lat + d].map((n) => n.toFixed(6)).join(",");
+  const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat.toFixed(6)},${lng.toFixed(6)}`;
+  return (
+    <div style={{ marginTop: 10 }}>
+      <iframe
+        title={`Map showing ${name}`}
+        src={src}
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+        style={{ width: "100%", height: 180, border: `0.5px solid ${BORDER}`, borderRadius: 10, display: "block" }}
+      />
+      <div style={{ fontSize: 9.5, color: MUTED, marginTop: 4 }}>
+        Map ©{" "}
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style={{ color: MUTED }}>OpenStreetMap contributors</a>
+      </div>
+    </div>
+  );
+}
+
+// ---------- "From the clinic" reply slot ----------
+// A clinic answers a review here; it never writes the review. Clinics can NEVER author tea (CLAUDE.md): the layer's only
+// value is that the business did not write it. There is no clinic login and no column or table for a reply yet, so every
+// card passes no reply and the slot only says what it is for.
+function ClinicReplySlot({ reply }: { reply?: { body: string; at: string } | null }) {
+  return (
+    <div style={{ marginTop: 10, borderTop: `0.5px dashed ${BORDER}`, paddingTop: 8 }}>
+      <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: MUTED }}>From the clinic</div>
+      {reply ? (
+        <div style={{ fontSize: 11.5, color: ESPRESSO, lineHeight: 1.5, marginTop: 3 }}>{reply.body}</div>
+      ) : (
+        <div style={{ fontSize: 10.5, color: MUTED, marginTop: 3 }}>Clinics will be able to reply here once they can sign in. They cannot edit or remove what was written.</div>
+      )}
+    </div>
+  );
+}
+
+// ---------- The tea: one slide per review, always anonymous ----------
+function TeaCarousel({ reviews }: { reviews: Review[] }) {
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const [index, setIndex] = useState(0);
+  const go = (next: number) => {
+    const el = trackRef.current;
+    const i = Math.max(0, Math.min(reviews.length - 1, next));
+    if (el) el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
+    setIndex(i);
+  };
+  const field = (label: string, text: string | null) =>
+    text && text.trim() !== "" ? (
+      <div style={{ marginTop: 10 }}>
+        <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: CRIMSON }}>{label}</div>
+        <div style={{ fontSize: 12.5, color: ESPRESSO, lineHeight: 1.55, marginTop: 3, whiteSpace: "pre-wrap" }}>{text}</div>
+      </div>
+    ) : null;
+  return (
+    <div>
+      <div
+        ref={trackRef}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          if (el.clientWidth > 0) setIndex(Math.round(el.scrollLeft / el.clientWidth));
+        }}
+        style={{ display: "flex", overflowX: "auto", scrollSnapType: "x mandatory", scrollbarWidth: "none" }}
+      >
+        {reviews.map((r) => (
+          <div key={r.id} style={{ flex: "0 0 100%", scrollSnapAlign: "start", boxSizing: "border-box", paddingRight: 2 }}>
+            {/* Anonymous always: no name, handle or avatar, whatever the author chose for "Who goes here". */}
+            <div style={{ background: "#fff", border: `0.5px solid ${BORDER}`, borderRadius: 12, padding: 14 }}>
+              <div style={{ fontSize: 10, color: MUTED }}>A signed-in visitor · name never shown</div>
+              {field("What actually happened", r.body)}
+              {field("What surprised them", r.surprised_by)}
+              {field("What they wish they knew before", r.wish_known)}
+              <ClinicReplySlot reply={null} />
+            </div>
+          </div>
+        ))}
+      </div>
+      {reviews.length > 1 && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginTop: 10 }}>
+          <button type="button" aria-label="Previous" onClick={() => go(index - 1)} disabled={index === 0}
+            style={{ background: "none", border: `0.5px solid ${BORDER}`, borderRadius: 20, width: 30, height: 30, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: index === 0 ? "default" : "pointer", opacity: index === 0 ? 0.4 : 1 }}>
+            <ChevronLeft size={14} color={ESPRESSO} />
+          </button>
+          <span style={{ fontSize: 11, color: MUTED }}>{index + 1} / {reviews.length}</span>
+          <button type="button" aria-label="Next" onClick={() => go(index + 1)} disabled={index >= reviews.length - 1}
+            style={{ background: "none", border: `0.5px solid ${BORDER}`, borderRadius: 20, width: 30, height: 30, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: index >= reviews.length - 1 ? "default" : "pointer", opacity: index >= reviews.length - 1 ? 0.4 : 1 }}>
+            <ChevronRight size={14} color={ESPRESSO} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- One video card (clinic_videos) ----------
+// Every card says whose account posted it ('official' = the clinic's own account, 'creator' = someone else) and carries a
+// paid-partnership label wherever disclosed_paid is true. Thumbnails are platform CDN links that expire; a failed image
+// falls back to a plain frame.
+function VideoCard({ v }: { v: any }) {
+  const [thumbFailed, setThumbFailed] = useState(false);
+  const relationship =
+    v.relationship === "official" ? "Clinic's own account" : v.relationship === "creator" ? "Creator video" : "Account not identified";
+  return (
+    <a href={v.source_url} target="_blank" rel="noreferrer"
+      style={{ textDecoration: "none", display: "block", borderRadius: 10, overflow: "hidden", background: ESPRESSO, position: "relative" }}>
+      <div style={{ width: "100%", aspectRatio: "9/16", position: "relative", overflow: "hidden" }}>
+        {v.thumbnail_url && !thumbFailed ? (
+          <img src={v.thumbnail_url} alt={v.caption ?? ""} loading="lazy" referrerPolicy="no-referrer" onError={() => setThumbFailed(true)}
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        ) : (
+          <div style={{ width: "100%", height: "100%", background: "#2a1408", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Camera size={20} color={MUTED} />
+          </div>
+        )}
+        <div style={{ position: "absolute", top: 6, left: 6, display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-start" }}>
+          <span style={{ background: "rgba(255,252,248,0.92)", color: ESPRESSO, fontSize: 8.5, fontWeight: 800, padding: "2px 5px", borderRadius: 4 }}>{relationship}</span>
+          {v.disclosed_paid === true && (
+            <span style={{ background: CRIMSON, color: "#fff", fontSize: 8.5, fontWeight: 800, padding: "2px 5px", borderRadius: 4 }}>Paid partnership</span>
+          )}
+          {/* The platform marks this post as an ad (the account paid to promote it). Not a partnership, still labelled. */}
+          {v.field_provenance?.disclosure?.platform_ad === true && (
+            <span style={{ background: ESPRESSO, color: "#fff", fontSize: 8.5, fontWeight: 800, padding: "2px 5px", borderRadius: 4 }}>Ad</span>
+          )}
+        </div>
+        {(v.views > 0 || v.likes > 0) && (
+          <div style={{ position: "absolute", bottom: 6, right: 6, display: "flex", gap: 4 }}>
+            {v.views > 0 && (
+              <span style={{ background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 5px", borderRadius: 4 }}>{compactCount(v.views)} views</span>
+            )}
+            {v.likes > 0 && (
+              <span style={{ background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 5px", borderRadius: 4 }}>{compactCount(v.likes)} likes</span>
+            )}
+          </div>
+        )}
+      </div>
+      <div style={{ padding: "7px 8px", background: ESPRESSO }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: WARM_WHITE, marginBottom: 2 }}>
+          {v.author_handle ? `@${v.author_handle}` : ""}
+          {v.posted_at ? <span style={{ fontWeight: 500, color: "#c0a89a" }}> · {new Date(v.posted_at).toLocaleDateString()}</span> : null}
+        </div>
+        {v.caption && (
+          <div style={{ fontSize: 9, color: "#c0a89a", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{v.caption}</div>
+        )}
+      </div>
+    </a>
+  );
+}
+
+// A block heading between the page's four blocks (info, the tea, what people say, people and scores).
+function BlockLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ padding: "18px 16px 6px", fontSize: 10, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: MUTED, background: CREAM_TINT, borderBottom: `0.5px solid ${BORDER}` }}>
       {children}
     </div>
   );
@@ -218,10 +467,22 @@ function ClinicDetailPage() {
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [videos, setVideos] = useState<any[]>([]);
   const [activeVideoTab, setActiveVideoTab] = useState<"tiktok" | "instagram">("tiktok");
+  const [sayTab, setSayTab] = useState<"skintea" | "tiktok" | "instagram">("skintea");
+  // Who goes here: opted-in visits (RLS "Public sees opted-in visits": is_public), their profiles, the signed-in
+  // visitor's own visits, and the aggregate view (clinic_visitor_profile returns a clinic only at 5+ visitors).
+  const [publicVisitors, setPublicVisitors] = useState<{ user_id: string; visited_at: string; name: string | null; username: string | null; avatar_url: string | null }[]>([]);
+  const [visitorProfile, setVisitorProfile] = useState<Record<string, number> | null>(null);
   // Review submission. clinic_reviews already accepts a signed-in author's own row (RLS "Users can create reviews":
   // auth.uid() = user_id, plus the signed-in-author and integrity triggers), so no schema or policy change is needed.
   const [userId, setUserId] = useState<string | null>(null);
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewSurprised, setReviewSurprised] = useState("");
+  const [reviewWish, setReviewWish] = useState("");
+  // "Show my name on this clinic's page." Unticked by default, always. It sets display_name_public, which the
+  // clinic_reviews_mark_visit trigger copies to clinic_who_visited.is_public. It never puts a name on a review.
+  const [reviewShowName, setReviewShowName] = useState(false);
+  // The form opens under the section whose "Been here?" link was tapped.
+  const [formSection, setFormSection] = useState<string>("what_people_say");
   const [reviewBody, setReviewBody] = useState("");
   const [reviewSkin, setReviewSkin] = useState("");
   const [reviewTreatment, setReviewTreatment] = useState("");
@@ -257,6 +518,18 @@ function ClinicDetailPage() {
     return () => { alive = false; };
   }, [userId, id]);
 
+  // The signed-in visitor's own visits to this clinic (RLS "Users see only their own visits"). Private to them.
+  useEffect(() => {
+    setVisitors([]);
+    if (!userId) return;
+    let alive = true;
+    (async () => {
+      const { data } = await supabase.from("clinic_who_visited").select("id, visited_at, is_public").eq("clinic_id", id).eq("user_id", userId).order("visited_at", { ascending: false });
+      if (alive) setVisitors((data as any) || []);
+    })();
+    return () => { alive = false; };
+  }, [userId, id]);
+
   // The heart only changes after the write succeeds; on failure it stays as it was and says so.
   async function toggleSaved() {
     if (!userId) { navigate({ to: "/login" }).catch(() => {}); return; }
@@ -288,18 +561,20 @@ function ClinicDetailPage() {
     let alive = true;
     (async () => {
       setLoading(true);
-      const [c, ss, ct, pr, wv, rv, v, sl] = await Promise.all([
+      const [c, ss, ct, pr, pv, rv, v, sl, vp] = await Promise.all([
         // Only listings that passed the filter render; 'unsure' and 'dropped' read as not found.
         supabase.from("clinics").select("*").eq("id", id).eq("listing_filter", "passed").maybeSingle(),
         supabase.from("clinic_skin_scores").select("*").eq("clinic_id", id),
         // Inactive treatments (e.g. "Laser", a category) are not listed at all.
         supabase.from("clinic_treatments").select("*, treatments!inner(id, name, slug, active)").eq("clinic_id", id).eq("treatments.active", true),
         supabase.from("clinic_practitioners").select("*").eq("clinic_id", id),
-        supabase.from("clinic_who_visited").select("id, user_id, visited_at").eq("clinic_id", id).order("visited_at", { ascending: false }).limit(20),
+        supabase.from("clinic_who_visited").select("user_id, visited_at").eq("clinic_id", id).eq("is_public", true).order("visited_at", { ascending: false }).limit(24),
         supabase.from("clinic_reviews").select(REVIEW_COLUMNS).eq("clinic_id", id).order("created_at", { ascending: false }),
-        supabase.from("clinic_videos").select("*").eq("clinic_id", id).eq("is_active", true).order("created_at", { ascending: false }),
-        // Public social profiles (clinic_social_links); emails stay in the private clinic_contacts table.
+        supabase.from("clinic_videos").select("*").eq("clinic_id", id).eq("is_active", true).order("posted_at", { ascending: false, nullsFirst: false }),
+        // Public social profiles: clinic_social_links is the one source of truth for handles (clinics.instagram_url and
+        // clinics.tiktok_url were reconciled into it on 2026-09-16 and are not read anywhere in the app).
         (supabase as any).from("clinic_social_links").select("platform, url, handle").eq("clinic_id", id).in("platform", ["instagram", "tiktok"]).order("platform"),
+        (supabase as any).from("clinic_visitor_profile").select("*").eq("clinic_id", id).maybeSingle(),
       ]);
       if (!alive) return;
       setClinic(c.data);
@@ -307,11 +582,30 @@ function ClinicDetailPage() {
       const ctData = (ct.data as any) || [];
       setTreatments(ctData);
       setPractitioners((pr.data as any) || []);
-      setVisitors((wv.data as any) || []);
       setReviews((rv.data as any) || []);
       setVideos((v.data as any) || []);
-      setSocials((sl.data as any) || []);
-
+      // Handles are unique per platform on the page: a clinic listing the same account twice shows it once.
+      const seen = new Set<string>();
+      setSocials((((sl.data as any) || []) as { platform: string; url: string; handle: string | null }[]).filter((s) => {
+        const key = `${s.platform}:${(s.handle ?? s.url).toLowerCase()}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }));
+      setVisitorProfile((vp.data as any) ?? null);
+      const pvRows = ((pv.data as any) || []) as { user_id: string; visited_at: string }[];
+      if (pvRows.length > 0) {
+        const { data: profs } = await supabase.from("profiles").select("user_id, name, username, avatar_url").in("user_id", pvRows.map((r) => r.user_id));
+        if (!alive) return;
+        const byUser = new Map(((profs as any[]) || []).map((p) => [p.user_id, p]));
+        setPublicVisitors(pvRows.map((r) => ({
+          user_id: r.user_id, visited_at: r.visited_at,
+          name: byUser.get(r.user_id)?.name ?? null, username: byUser.get(r.user_id)?.username ?? null,
+          avatar_url: byUser.get(r.user_id)?.avatar_url ?? null,
+        })));
+      } else {
+        setPublicVisitors([]);
+      }
 
       setLoading(false);
     })();
@@ -335,7 +629,8 @@ function ClinicDetailPage() {
   }, [clinic?.name]);
 
   // A visitor's own review. agree_count is left at its default 0 (the integrity trigger rejects a seeded count) and
-  // field_provenance stays {} — a signed-in author is the source, recorded by user_id.
+  // field_provenance stays {} — a signed-in author is the source, recorded by user_id. body is required; surprised_by and
+  // wish_known are optional. display_name_public comes only from the unticked-by-default checkbox.
   async function submitReview() {
     if (!userId || reviewBody.trim().length < 10) return;
     setReviewState("saving");
@@ -344,6 +639,9 @@ function ClinicDetailPage() {
       clinic_id: id,
       user_id: userId,
       body: reviewBody.trim(),
+      surprised_by: reviewSurprised.trim() || null,
+      wish_known: reviewWish.trim() || null,
+      display_name_public: reviewShowName === true,
       skin_type: reviewSkin || null,
       treatment_id: reviewTreatment || null,
     } as any);
@@ -354,10 +652,27 @@ function ClinicDetailPage() {
     }
     setReviewState("saved");
     setReviewBody("");
+    setReviewSurprised("");
+    setReviewWish("");
+    setReviewShowName(false);
     const { data } = await supabase.from("clinic_reviews").select(REVIEW_COLUMNS).eq("clinic_id", id).order("created_at", { ascending: false });
     setReviews((data as any) || []);
     setShowReviewForm(false);
   }
+
+  // "Been here?" — the lead event is sent first, before the form opens and before any sign-in step, so the number of
+  // people the sign-in wall turns away can be measured. lead_event_add does not promote the stage for this type.
+  function openExperience(section: string) {
+    void leadEvent("experience_cta_click", { clinic_id: id, section });
+    setFormSection(section);
+    setShowReviewForm(true);
+  }
+
+  const textareaStyle: React.CSSProperties = {
+    width: "100%", padding: "8px", fontSize: 12, border: `0.5px solid ${BORDER}`, borderRadius: 6, resize: "vertical",
+    color: ESPRESSO, fontFamily: "inherit", boxSizing: "border-box",
+  };
+  const fieldLabel: React.CSSProperties = { fontSize: 10.5, fontWeight: 700, color: ESPRESSO, margin: "10px 0 4px" };
 
   // The submission form itself. Shown only when the visitor asks for it, and only usable when signed in: the table's
   // policy requires user_id = auth.uid(), so an anonymous insert is refused by the database, not just by this UI.
@@ -370,7 +685,9 @@ function ClinicDetailPage() {
         </div>
       ) : (
         <>
-          <div style={{ fontSize: 11.5, color: ESPRESSO, marginBottom: 8 }}>What actually happened? Your review is published under your account, not your name.</div>
+          <div style={{ fontSize: 11.5, color: ESPRESSO, marginBottom: 8, lineHeight: 1.5 }}>
+            Your review is always shown without your name. The clinic cannot write, edit or remove it.
+          </div>
           <select
             value={reviewTreatment}
             onChange={(e) => setReviewTreatment(e.target.value)}
@@ -391,14 +708,26 @@ function ClinicDetailPage() {
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
+          <div style={fieldLabel}>What actually happened? <span style={{ color: CRIMSON }}>*</span></div>
           <textarea
             value={reviewBody}
             onChange={(e) => setReviewBody(e.target.value)}
             rows={4}
-            placeholder="What you had done, how it went, anything you wish you had known."
-            style={{ width: "100%", padding: "8px", fontSize: 12, border: `0.5px solid ${BORDER}`, borderRadius: 6, resize: "vertical", color: ESPRESSO, fontFamily: "inherit" }}
+            placeholder="What you had done and how it went."
+            style={textareaStyle}
           />
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+          <div style={fieldLabel}>What surprised you? <span style={{ color: MUTED, fontWeight: 500 }}>(optional)</span></div>
+          <textarea value={reviewSurprised} onChange={(e) => setReviewSurprised(e.target.value)} rows={2} style={textareaStyle} />
+          <div style={fieldLabel}>What do you wish you had known before? <span style={{ color: MUTED, fontWeight: 500 }}>(optional)</span></div>
+          <textarea value={reviewWish} onChange={(e) => setReviewWish(e.target.value)} rows={2} style={textareaStyle} />
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginTop: 10, fontSize: 11.5, color: ESPRESSO, cursor: "pointer" }}>
+            <input type="checkbox" checked={reviewShowName} onChange={(e) => setReviewShowName(e.target.checked)} style={{ marginTop: 2 }} />
+            <span>
+              Show my name on this clinic's page.
+              <span style={{ display: "block", color: MUTED, fontSize: 10.5 }}>Only in "Who goes here". Your review stays anonymous either way.</span>
+            </span>
+          </label>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
             <button
               type="button"
               onClick={() => { void submitReview(); }}
@@ -425,7 +754,18 @@ function ClinicDetailPage() {
   const [failedPhotos, setFailedPhotos] = useState<Set<string>>(new Set());
   const markFailed = (url: string) => setFailedPhotos((prev) => (prev.has(url) ? prev : new Set(prev).add(url)));
   // Failed photos are removed from the list itself, so the hero and the strip always show the same set.
-  const galleryImages = clinic ? displayImages(clinic as any, categoryImages, 800, failedPhotos) : [];
+  // The hero shows the clinic's own outside and interior photos only (never results or staff, never a Google photo), then
+  // the marked category image. clinics.image_url renders first only with a recorded source (it held stock images before
+  // 2026-09-14 and holds nothing today).
+  const heroPhotos = clinic ? [...sectionPhotos(clinic.photos, "outside"), ...sectionPhotos(clinic.photos, "interior")] : [];
+  const heroImageUrl = clinic && typeof clinic.image_url === "string" && /^https:\/\//.test(clinic.image_url)
+    && ["clinic_supplied", "skintea_shot"].includes(clinic.field_provenance?.image_url?.source) ? clinic.image_url as string : null;
+  const galleryImages = clinic
+    ? [
+        ...(heroImageUrl && !failedPhotos.has(heroImageUrl) ? [{ url: heroImageUrl, kind: "clinic" as const, alt: clinic.name as string }] : []),
+        ...displayImages({ ...(clinic as any), photos: heroPhotos }, categoryImages, 800, failedPhotos),
+      ]
+    : [];
   const galleryIndex = Math.min(activeThumbIndex, Math.max(galleryImages.length - 1, 0));
 
   // A skin score is displayable only with its own sample size, at or above the same floor as
@@ -545,7 +885,13 @@ function ClinicDetailPage() {
         </div>
       )}
 
-      {/* 5. Clinic hero block */}
+      {/*
+        ===== THE CLINIC DETAIL PAGE, IN ORDER (CLAUDE.md "CLINIC DETAIL PAGE — SECTION ORDER") =====
+        A section is never removed for being empty: it renders its heading, its frame and an honest empty state saying
+        what it will hold. Never placeholder content, never a hidden section. Removing one needs an instruction naming it.
+      */}
+
+      {/* 5. Clinic hero block: name, neighbourhood, social profiles */}
       <div style={{ padding: "14px 16px", borderBottom: `0.5px solid ${BORDER}` }}>
         <div style={{ fontSize: 20, fontWeight: 800, color: ESPRESSO, marginBottom: 6 }}>{clinic.name}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: MUTED, marginBottom: 10 }}>
@@ -566,31 +912,6 @@ function ClinicDetailPage() {
             ))}
           </div>
         )}
-        {/*
-          Badges are gated on a recorded decision, not on a bare boolean. Both conditions are
-          unreachable today because nothing writes these provenance keys:
-          - Verified switches on when clinics.field_provenance.is_verified records who verified
-            this listing and when — a signed /for-clinics submission from the clinic, or a
-            Skintea visit. Never a Google listing, never an unsourced flag.
-          - Featured switches on when clinics.field_provenance.is_featured records the editor
-            and the date of the editorial decision. It is never a paid placement.
-        */}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {clinic.is_verified === true
-            && clinic.field_provenance?.is_verified?.source != null
-            && clinic.field_provenance?.is_verified?.recorded_at != null && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: CRIMSON_TINT, color: CRIMSON, fontSize: 10, fontWeight: 700, padding: "4px 8px", borderRadius: 20 }}>
-              <span style={{ width: 5, height: 5, borderRadius: 5, background: CRIMSON }} /> Verified
-            </span>
-          )}
-          {clinic.is_featured === true
-            && clinic.field_provenance?.is_featured?.source != null
-            && clinic.field_provenance?.is_featured?.recorded_at != null && (
-            <span style={{ background: ESPRESSO, color: WARM_WHITE, fontSize: 10, fontWeight: 700, padding: "4px 8px", borderRadius: 20 }}>
-              Featured
-            </span>
-          )}
-        </div>
         {/* The figure always carries its sample size and states no verdict of its own. */}
         {userSkin && userSkinScore && (
           <div style={{
@@ -606,7 +927,7 @@ function ClinicDetailPage() {
 
       {/*
         6. Stats row — a tile renders only when its value exists AND its basis can be stated
-        beside it. Hidden entirely when no tile qualifies.
+        beside it. Hidden when no tile qualifies; every figure it could show also has its own section below.
         - Reviews is Skintea's own count (the clinic_reviews rows fetched above), never
           clinics.review_count / google_review_count, which count someone else's reviews.
         - A percentage or an average needs a sample size and the same floor as the rest of the
@@ -644,41 +965,132 @@ function ClinicDetailPage() {
         );
       })()}
 
-      {/* 6b. The tea — Skintea's own line on this clinic (clinics.tea_quote). */}
-      <Section title="The tea">
-        {typeof clinic.tea_quote === "string" && clinic.tea_quote.trim() !== "" ? (
+      {/* ===== BLOCK 1: INFO ===== */}
+      <BlockLabel>About this clinic</BlockLabel>
+
+      {/*
+        7. Badges — clinics.badges, clinics.is_verified ("Verified"), clinics.is_featured ("Skintea Pick").
+        Each is gated on a recorded decision, not on a bare boolean. Nothing writes these provenance keys today and there is
+        no written rule for awarding any of them, so all stay off:
+        - Verified switches on when clinics.field_provenance.is_verified records who verified this listing and when — a
+          signed /for-clinics submission from the clinic, or a Skintea visit. Never a Google listing, never an unsourced flag.
+        - Skintea Pick switches on when clinics.field_provenance.is_featured records the editor and the date of the
+          editorial decision. It is never a paid placement and never a score threshold.
+        - badges render only with field_provenance.badges.
+      */}
+      {(() => {
+        const verified = clinic.is_verified === true
+          && clinic.field_provenance?.is_verified?.source != null
+          && clinic.field_provenance?.is_verified?.recorded_at != null;
+        const featured = clinic.is_featured === true
+          && clinic.field_provenance?.is_featured?.source != null
+          && clinic.field_provenance?.is_featured?.recorded_at != null;
+        const badges: string[] = Array.isArray(clinic.badges) && sourced(clinic, "badges") ? clinic.badges : [];
+        return (
+          <Section title="Badges">
+            {verified || featured || badges.length > 0 ? (
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {verified && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: CRIMSON_TINT, color: CRIMSON, fontSize: 10, fontWeight: 700, padding: "4px 8px", borderRadius: 20 }}>
+                    <span style={{ width: 5, height: 5, borderRadius: 5, background: CRIMSON }} /> Verified
+                  </span>
+                )}
+                {featured && (
+                  <span style={{ background: ESPRESSO, color: WARM_WHITE, fontSize: 10, fontWeight: 700, padding: "4px 8px", borderRadius: 20 }}>
+                    Skintea Pick
+                  </span>
+                )}
+                {badges.map((b) => (
+                  <span key={b} style={{ background: CREAM_TINT, color: ESPRESSO, fontSize: 10, fontWeight: 700, padding: "4px 8px", borderRadius: 20 }}>{b}</span>
+                ))}
+              </div>
+            ) : (
+              <EmptyState>
+                Verified, Skintea Pick and other badges. Each is awarded only against a written rule and recorded with who
+                awarded it and when. No rule exists yet, so no clinic holds a badge.
+              </EmptyState>
+            )}
+          </Section>
+        );
+      })()}
+
+      {/* 8. Skintea's take — Skintea's own one-line read on this clinic (clinics.tea_quote). Not the tea: the tea is
+           visitors' accounts, below. */}
+      <Section title="Skintea's take">
+        {typeof clinic.tea_quote === "string" && clinic.tea_quote.trim() !== "" && sourced(clinic, "tea_quote") ? (
           <div style={{ fontSize: 13, lineHeight: 1.6, color: ESPRESSO, fontStyle: "italic" }}>“{clinic.tea_quote}”</div>
         ) : (
           <EmptyState>Skintea's own one-line read on this clinic: who it suits and what it is actually good at. Not written yet.</EmptyState>
         )}
       </Section>
 
-      {/* 6c. What it's best for (clinics.best_for). Every row in the table currently holds an empty array, so this
-           renders its empty state until the column carries sourced values. */}
-      <Section title="What it's best for">
-        {Array.isArray(clinic.best_for) && clinic.best_for.length > 0 ? (
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {clinic.best_for.map((b: string) => (
-              <span key={b} style={{ background: CREAM_TINT, color: ESPRESSO, fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 20 }}>{b}</span>
-            ))}
+      {/* 9. Skin type it suits (clinics.tea_skin_type) */}
+      <Section title="Skin type it suits">
+        {typeof clinic.tea_skin_type === "string" && clinic.tea_skin_type.trim() !== "" && sourced(clinic, "tea_skin_type") ? (
+          <div style={{ fontSize: 12.5, color: ESPRESSO, textTransform: "capitalize" }}>
+            {SKIN_EMOJI[clinic.tea_skin_type.toLowerCase()] ?? ""} {clinic.tea_skin_type}
           </div>
         ) : (
-          <EmptyState>The concerns and treatments this clinic is strongest on. Nothing recorded for this clinic yet.</EmptyState>
+          <EmptyState>The skin type this clinic works best for, once enough signed-in visitors with that skin type have said so. Not measured yet.</EmptyState>
         )}
       </Section>
 
-      {/* 6d. Known for (clinics.known_for). */}
+      {/* 10. What it's best for (clinics.best_for). Every chip is a phrase from the clinic's own website, with the page it
+           came from in field_provenance.best_for (see CLAUDE.md "WHAT IT'S BEST FOR"). */}
+      <Section title="What it's best for">
+        {Array.isArray(clinic.best_for) && clinic.best_for.length > 0 ? (
+          <>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {clinic.best_for.map((b: string) => (
+                <span key={b} style={{ background: CREAM_TINT, color: ESPRESSO, fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 20 }}>{b}</span>
+              ))}
+            </div>
+            <div style={{ fontSize: 9.5, color: MUTED, marginTop: 8 }}>As the clinic describes itself on its own website.</div>
+          </>
+        ) : (
+          <EmptyState>The concerns, audiences and ways of working this clinic states on its own website. Nothing recorded for this clinic yet.</EmptyState>
+        )}
+      </Section>
+
+      {/* 11. Known for (clinics.known_for). */}
       <Section title="Known for">
-        {typeof clinic.known_for === "string" && clinic.known_for.trim() !== "" ? (
+        {typeof clinic.known_for === "string" && clinic.known_for.trim() !== "" && sourced(clinic, "known_for") ? (
           <div style={{ fontSize: 12.5, lineHeight: 1.6, color: ESPRESSO }}>{clinic.known_for}</div>
         ) : (
           <EmptyState>What this clinic is known for in its own right — a signature treatment, a technique, a following. Nothing recorded yet.</EmptyState>
         )}
       </Section>
 
-      {/* 7. Treatments (each mapping carries a recorded source; prices only where a source states one) */}
-      {treatments.length > 0 && (
+      {/* 12. Price tier (clinics.price_tier, clinics.price_from). A tier or a "from" price renders only with its source;
+           the per-treatment prices, each dated and linked, are in Treatments below. */}
+      {(() => {
+        const pricedN = treatments.filter((t) => shownPrice(t.price_from, t.price_unit, t.field_provenance)).length;
+        const tier = clinic.price_tier != null && sourced(clinic, "price_tier") ? String(clinic.price_tier) : null;
+        const from = clinic.price_from != null && sourced(clinic, "price_from") ? Number(clinic.price_from) : null;
+        return (
+          <Section title="Price tier">
+            {tier || from != null ? (
+              <div style={{ fontSize: 12.5, color: ESPRESSO }}>
+                {tier && <span style={{ fontWeight: 800 }}>{tier}</span>}
+                {tier && from != null ? " · " : ""}
+                {from != null && <span>from ${from}</span>}
+              </div>
+            ) : (
+              <EmptyState>
+                How expensive this clinic is overall, from the prices it publishes. {pricedN > 0
+                  ? `${pricedN} treatment price${pricedN === 1 ? " is" : "s are"} listed below; that is not enough to place the clinic in a tier yet.`
+                  : "No tier recorded yet."}
+              </EmptyState>
+            )}
+          </Section>
+        );
+      })()}
+
+      {/* 13. Treatments and prices (each mapping carries a recorded source; prices only where a source states one) */}
       <Section title="Treatments">
+        {treatments.length === 0 ? (
+          <EmptyState>The treatments this clinic offers, each read from the clinic's own website, with a price only where the site states one. None recorded for this clinic yet.</EmptyState>
+        ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {treatments.map((t) => {
             const tName = t.treatments?.name ?? "Treatment";
@@ -733,20 +1145,303 @@ function ClinicDetailPage() {
             );
           })}
         </div>
+        )}
       </Section>
-      )}
 
-      {/* 8. Video — the section always renders; with no rows it says what it will hold. */}
-      {videos.length === 0 && (
-        <Section title="Video">
-          <EmptyState>Clips showing this clinic's own work, from its TikTok and Instagram. None recorded for this clinic yet.</EmptyState>
-        </Section>
-      )}
-      {videos.length > 0 && (
-      <div style={{ padding: "16px", borderBottom: `0.5px solid ${BORDER}` }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: CRIMSON }}>Videos</div>
-          {/* TikTok / Instagram tab switcher */}
+      {/* 14. Hours and open now (clinics.hours). "Open now" is computed from the listed hours in Los Angeles time. */}
+      {(() => {
+        const hoursGroups = groupHours(clinic.hours);
+        const now = openNow(clinic.hours);
+        return (
+          <Section title="Hours">
+            {hoursGroups.length > 0 ? (
+              <>
+                {now && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, fontSize: 12 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: 7, background: now.open ? "#2D7A3A" : MUTED }} />
+                    <span style={{ color: now.open ? "#2D7A3A" : MUTED, fontWeight: 700 }}>{now.label}</span>
+                    <span style={{ color: MUTED, fontSize: 10.5 }}>· from the listed hours</span>
+                  </div>
+                )}
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  {hoursGroups.map((h, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0", borderBottom: `0.5px solid ${BORDER}`, fontSize: 12 }}>
+                      <span style={{ color: MUTED }}>{h.label}</span>
+                      <span style={{ color: ESPRESSO, fontWeight: 600, textAlign: "right" }}>{h.hours}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <EmptyState>Opening hours, and whether the clinic is open right now. No hours recorded for this clinic yet; a clinic can send its own through the link at the bottom of this page.</EmptyState>
+            )}
+          </Section>
+        );
+      })()}
+
+      {/* 15. Location — address, the map when both coordinates exist, and a link out. Without coordinates: the address and
+           a link (google_maps_url when recorded, else a search for the address), never an empty map frame. */}
+      {(() => {
+        const hasAddress = typeof clinic.address === "string" && clinic.address.trim() !== "";
+        const lat = typeof clinic.latitude === "number" ? clinic.latitude : clinic.latitude != null ? Number(clinic.latitude) : NaN;
+        const lng = typeof clinic.longitude === "number" ? clinic.longitude : clinic.longitude != null ? Number(clinic.longitude) : NaN;
+        const hasCoords = Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0);
+        const mapsHref = hasAddress
+          ? `https://maps.google.com/?q=${encodeURIComponent(clinic.address)}`
+          : typeof clinic.google_maps_url === "string" && /^https:\/\//.test(clinic.google_maps_url) ? clinic.google_maps_url : null;
+        return (
+          <Section title="Location">
+            {!hasAddress && !hasCoords ? (
+              <EmptyState>The clinic's address and a map. No address recorded for this clinic yet.</EmptyState>
+            ) : (
+              <>
+                {hasAddress && (
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 6, fontSize: 12, color: ESPRESSO, lineHeight: 1.45 }}>
+                    <MapPin size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <span>{clinic.address}</span>
+                  </div>
+                )}
+                {hasCoords && <ClinicMap lat={lat} lng={lng} name={clinic.name} />}
+                {mapsHref && (
+                  <a
+                    href={mapsHref}
+                    target="_blank" rel="noreferrer"
+                    onClick={() => logIntent("directions", "maps", "location_section")}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                      background: CREAM_TINT, borderRadius: 10, height: 44,
+                      marginTop: 10, color: ESPRESSO, fontSize: 11, fontWeight: 700, textDecoration: "none",
+                    }}
+                  >
+                    <MapIcon size={14} /> Open in Maps
+                  </a>
+                )}
+              </>
+            )}
+          </Section>
+        );
+      })()}
+
+      {/* 16. Parking (clinics.parking_available, parking_notes, parking_is_free) */}
+      {(() => {
+        const hasParking = clinic.parking_available != null || !!clinic.parking_notes || clinic.parking_is_free != null;
+        return (
+          <Section title="Parking">
+            {hasParking ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Car size={16} color={ESPRESSO} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>
+                    {clinic.parking_available === true ? "Parking available" : clinic.parking_available === false ? "No parking" : "Parking"}
+                  </div>
+                  {clinic.parking_notes && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{clinic.parking_notes}</div>}
+                </div>
+                {clinic.parking_is_free != null && <span style={{
+                  background: clinic.parking_is_free ? "#E8F5E9" : CREAM_TINT,
+                  color: clinic.parking_is_free ? "#2D7A3A" : MUTED,
+                  fontSize: 10, fontWeight: 800, padding: "4px 8px", borderRadius: 4, textTransform: "uppercase",
+                }}>{clinic.parking_is_free ? "Free" : "Paid"}</span>}
+              </div>
+            ) : (
+              <EmptyState>Whether there is parking, and whether it is free. Not recorded for this clinic yet.</EmptyState>
+            )}
+          </Section>
+        );
+      })()}
+
+      {/* 17–20. The four photo sections (clinics.photos entries by `section`). Only the clinic's own photos, supplied with
+           permission, or Skintea's own shots. Never stock, never Google Places. Results carries the hardest rule. */}
+      <Section title="Outside">
+        {sectionPhotos(clinic.photos, "outside").length > 0 ? (
+          <PhotoGrid photos={sectionPhotos(clinic.photos, "outside")} alt={`${clinic.name} from the street`} />
+        ) : (
+          <EmptyState>The clinic from the street, so you know it when you arrive. No photos yet; they come only from the clinic itself, with permission, or from Skintea.</EmptyState>
+        )}
+      </Section>
+      <Section title="Interior">
+        {sectionPhotos(clinic.photos, "interior").length > 0 ? (
+          <PhotoGrid photos={sectionPhotos(clinic.photos, "interior")} alt={`Inside ${clinic.name}`} />
+        ) : (
+          <EmptyState>Inside the clinic: reception and treatment rooms. No photos yet; they come only from the clinic itself, with permission, or from Skintea.</EmptyState>
+        )}
+      </Section>
+      <Section title="Results">
+        {sectionPhotos(clinic.photos, "results").length > 0 ? (
+          <>
+            <PhotoGrid photos={sectionPhotos(clinic.photos, "results")} alt={`Before and after at ${clinic.name}`} />
+            <div style={{ fontSize: 9.5, color: MUTED, marginTop: 6 }}>This clinic's own before and after photos, supplied with permission.</div>
+          </>
+        ) : (
+          <EmptyState>
+            Before and after photos of this clinic's own work, published by the clinic or by the patient they belong to. Never
+            stock images, never another clinic's results. None yet.
+          </EmptyState>
+        )}
+      </Section>
+      <Section title="Staff">
+        {sectionPhotos(clinic.photos, "staff").length > 0 ? (
+          <PhotoGrid photos={sectionPhotos(clinic.photos, "staff")} alt={`The team at ${clinic.name}`} />
+        ) : (
+          <EmptyState>The doctors and staff who treat you. No photos yet; they come only from the clinic itself, with permission.</EmptyState>
+        )}
+      </Section>
+
+      {/* 21. Yelp rating (clinics.yelp_rating, yelp_review_count). Only from a licensed Yelp source, named on screen.
+           Google's rating and review count never render anywhere. */}
+      <Section title="Yelp rating">
+        {clinic.yelp_rating != null && sourced(clinic, "yelp_rating") ? (
+          <div style={{ fontSize: 12.5, color: ESPRESSO }}>
+            <span style={{ fontWeight: 800 }}>{clinic.yelp_rating}</span> on Yelp
+            {clinic.yelp_review_count != null && sourced(clinic, "yelp_review_count") ? ` · ${clinic.yelp_review_count} reviews` : ""}
+            <div style={{ fontSize: 9.5, color: MUTED, marginTop: 4 }}>Source: Yelp</div>
+          </div>
+        ) : (
+          <EmptyState>This clinic's Yelp rating and review count, shown with Yelp named as the source. Skintea has no licensed Yelp data yet, so nothing is shown.</EmptyState>
+        )}
+      </Section>
+
+      {/* ===== BLOCK 2: THE TEA ===== */}
+      <BlockLabel>The tea</BlockLabel>
+
+      {/* 22. The tea — one slide per review, three fields each (body, surprised_by, wish_known). Anonymous always.
+           Written only by signed-in visitors; a clinic can never author tea. */}
+      <Section title="The tea">
+        {reviews.length > 0 ? (
+          <TeaCarousel reviews={reviews} />
+        ) : (
+          <EmptyState cta={<ExperienceCta onClick={() => openExperience("the_tea")} />}>
+            What actually happened, what surprised people, and what they wish they had known before — from people who went,
+            always without their names. Nobody has shared theirs yet.
+          </EmptyState>
+        )}
+        {reviews.length > 0 && <ExperienceCta onClick={() => openExperience("the_tea")} />}
+        {formSection === "the_tea" && reviewFormBlock}
+      </Section>
+
+      {/* ===== BLOCK 3: WHAT PEOPLE SAY ===== */}
+      <BlockLabel>What people say</BlockLabel>
+
+      {/* 23. What people say — three tabs: Reviews on Skintea | TikTok | Instagram. Every tab keeps its own empty state;
+           no tab is hidden for being empty. */}
+      <Section title="What people say">
+        <div role="tablist" style={{ display: "flex", border: `0.5px solid ${BORDER}`, borderRadius: 8, overflow: "hidden", marginBottom: 12 }}>
+          {([
+            ["skintea", `Reviews on Skintea${reviews.length ? ` (${reviews.length})` : ""}`],
+            ["tiktok", `TikTok${videos.filter((v) => v.platform === "tiktok").length ? ` (${videos.filter((v) => v.platform === "tiktok").length})` : ""}`],
+            ["instagram", `Instagram${videos.filter((v) => v.platform === "instagram").length ? ` (${videos.filter((v) => v.platform === "instagram").length})` : ""}`],
+          ] as const).map(([key, label]) => (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={sayTab === key}
+              type="button"
+              onClick={() => setSayTab(key)}
+              style={{
+                flex: 1, background: sayTab === key ? ESPRESSO : "transparent", color: sayTab === key ? WARM_WHITE : MUTED,
+                border: "none", fontSize: 10.5, fontWeight: 700, padding: "8px 4px", cursor: "pointer",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {sayTab === "skintea" && (
+          reviews.length === 0 ? (
+            <EmptyState cta={<ExperienceCta onClick={() => openExperience("what_people_say")} />}>
+              First-hand reviews from signed-in visitors: what they had done, how it went, and their skin type. No reviews for
+              this clinic yet.
+            </EmptyState>
+          ) : (
+            <>
+              <div style={{ display: "flex", gap: 10, fontSize: 11, fontWeight: 700, marginBottom: 10 }}>
+                {userSkin && (
+                  <button onClick={() => setReviewFilter(userSkin)} style={{
+                    background: "none", border: "none", cursor: "pointer", padding: "2px 0",
+                    color: reviewFilter === userSkin ? CRIMSON : MUTED,
+                    borderBottom: reviewFilter === userSkin ? `2px solid ${CRIMSON}` : "2px solid transparent",
+                    textTransform: "capitalize",
+                  }}>{userSkin}</button>
+                )}
+                <button onClick={() => setReviewFilter("all")} style={{
+                  background: "none", border: "none", cursor: "pointer", padding: "2px 0",
+                  color: reviewFilter === "all" ? CRIMSON : MUTED,
+                  borderBottom: reviewFilter === "all" ? `2px solid ${CRIMSON}` : "2px solid transparent",
+                }}>All</button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {(showAllReviews ? filteredReviews : filteredReviews.slice(0, 2)).map((r) => {
+                  // Every review has a real, signed-in author (enforce_signed_in_author). Reviews never show a name.
+                  const agree = r.agree_count ?? 0;
+                  return (
+                  <div key={r.id} style={{ background: "#fff", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: 12 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>Signed-in reviewer · name not shown</div>
+                      {r.skin_type && (
+                        <div style={{ fontSize: 11, color: MUTED, display: "flex", alignItems: "center", gap: 4 }}>
+                          <span>{SKIN_EMOJI[r.skin_type] ?? ""}</span><span style={{ textTransform: "capitalize" }}>{r.skin_type}</span>
+                        </div>
+                      )}
+                    </div>
+                    {r.treatments?.name && (
+                      <span style={{ display: "inline-block", background: CRIMSON_TINT, color: CRIMSON, fontSize: 9, fontWeight: 800, padding: "3px 7px", borderRadius: 4, textTransform: "uppercase", marginBottom: 8 }}>{r.treatments.name}</span>
+                    )}
+                    <div style={{ fontSize: 12, color: ESPRESSO, lineHeight: 1.55 }}>{r.body}</div>
+                    {/* The bare number said nothing; it now says what it counts, and stays off at zero. */}
+                    {agree > 0 && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 8, fontSize: 11, color: MUTED }}>
+                        <Flame size={12} /> {agree} {agree === 1 ? "person agrees" : "people agree"}
+                      </div>
+                    )}
+                  </div>
+                  );
+                })}
+                {filteredReviews.length === 0 && (
+                  <div style={{ fontSize: 11, color: MUTED, textAlign: "center", padding: 12 }}>No reviews for this filter yet.</div>
+                )}
+              </div>
+              {/*
+                The count is the Skintea reviews this page actually holds, not clinics.review_count
+                (Google's). There is no all-reviews route, so the button expands the list in place.
+              */}
+              {filteredReviews.length > 2 && (
+                <div style={{ textAlign: "center", marginTop: 12 }}>
+                  <button
+                    onClick={() => setShowAllReviews((v) => !v)}
+                    style={{ background: "none", border: "none", color: CRIMSON, fontSize: 11, fontWeight: 700, textTransform: "uppercase", cursor: "pointer" }}
+                  >
+                    {showAllReviews ? "Show fewer reviews" : `See all ${filteredReviews.length} reviews →`}
+                  </button>
+                </div>
+              )}
+              <ExperienceCta onClick={() => openExperience("what_people_say")} />
+            </>
+          )
+        )}
+
+        {(sayTab === "tiktok" || sayTab === "instagram") && (() => {
+          const list = videos.filter((v) => v.platform === sayTab);
+          const platformName = sayTab === "tiktok" ? "TikTok" : "Instagram";
+          if (list.length === 0) {
+            return (
+              <EmptyState>
+                {platformName} videos about this clinic. Each card says whether it was posted by the clinic's own account or by a
+                creator, and carries a paid-partnership label where one was disclosed. None recorded for this clinic yet.
+              </EmptyState>
+            );
+          }
+          return (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {list.map((v) => <VideoCard key={v.id} v={v} />)}
+            </div>
+          );
+        })()}
+        {formSection === "what_people_say" && reviewFormBlock}
+      </Section>
+
+      {/* 24. Video — the clinic's own clips, both platforms. Kept as its own section (a section is never removed without an
+           instruction naming it); the same rows also appear under the TikTok and Instagram tabs above. */}
+      <Section title="Video" right={videos.filter((v) => v.relationship === "official").length > 0 ? (
           <div style={{ display: "flex", gap: 0, border: `0.5px solid ${BORDER}`, borderRadius: 6, overflow: "hidden" }}>
             {(["tiktok", "instagram"] as const).map((p) => (
               <button
@@ -755,127 +1450,106 @@ function ClinicDetailPage() {
                 style={{
                   background: activeVideoTab === p ? ESPRESSO : "transparent",
                   color: activeVideoTab === p ? WARM_WHITE : MUTED,
-                  border: "none",
-                  fontSize: 10,
-                  fontWeight: 700,
-                  textTransform: "capitalize",
-                  padding: "5px 12px",
-                  cursor: "pointer",
+                  border: "none", fontSize: 10, fontWeight: 700, padding: "5px 12px", cursor: "pointer",
                 }}
               >
                 {p === "tiktok" ? "TikTok" : "Instagram"}
               </button>
             ))}
           </div>
-        </div>
-
-        {/* Grid */}
+        ) : undefined}>
         {(() => {
-          const filtered = videos.filter((v) => v.platform === activeVideoTab);
+          const official = videos.filter((v) => v.relationship === "official");
+          if (official.length === 0) {
+            return <EmptyState>Clips from this clinic's own TikTok and Instagram accounts. None recorded for this clinic yet.</EmptyState>;
+          }
+          const filtered = official.filter((v) => v.platform === activeVideoTab);
           if (filtered.length === 0) {
             return (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 0", gap: 8 }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 0", gap: 8 }}>
                 <Camera size={22} color={MUTED} />
-                <div style={{ fontSize: 12, color: MUTED }}>No videos yet</div>
+                <div style={{ fontSize: 12, color: MUTED }}>No {activeVideoTab === "tiktok" ? "TikTok" : "Instagram"} clips from the clinic's own account yet</div>
               </div>
             );
           }
           return (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {filtered.map((v) => (
-                <a
-                  key={v.id}
-                  href={v.source_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ textDecoration: "none", display: "block", borderRadius: 10, overflow: "hidden", background: ESPRESSO, position: "relative" }}
-                >
-                  {/* Thumbnail */}
-                  <div style={{ width: "100%", aspectRatio: "9/16", position: "relative", overflow: "hidden" }}>
-                    {v.thumbnail_url ? (
-                      <img src={v.thumbnail_url} alt={v.caption ?? ""} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                    ) : (
-                      <div style={{ width: "100%", height: "100%", background: "#2a1408", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <Camera size={20} color={MUTED} />
-                      </div>
-                    )}
-                    {/* Play button overlay */}
-                    <div style={{
-                      position: "absolute", inset: 0,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      background: "rgba(0,0,0,0.18)",
-                    }}>
-                      <div style={{
-                        width: 34, height: 34, borderRadius: 34,
-                        background: "rgba(255,255,255,0.88)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                      }}>
-                        <div style={{
-                          width: 0, height: 0,
-                          borderTop: "7px solid transparent",
-                          borderBottom: "7px solid transparent",
-                          borderLeft: `12px solid ${ESPRESSO}`,
-                          marginLeft: 3,
-                        }} />
-                      </div>
-                    </div>
-                    {/* Stats overlay top-right — each figure has its own chip, so a video with
-                        only likes shows likes instead of an empty box. Thousands are floored. */}
-                    {(v.views > 0 || v.likes > 0) && (
-                      <div style={{
-                        position: "absolute", top: 6, right: 6,
-                        display: "flex", gap: 4,
-                      }}>
-                        {v.views > 0 && (
-                          <span style={{ background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 5px", borderRadius: 4 }}>
-                            {compactCount(v.views)} views
-                          </span>
-                        )}
-                        {v.likes > 0 && (
-                          <span style={{ background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 5px", borderRadius: 4 }}>
-                            {compactCount(v.likes)} likes
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  {/* Caption bar */}
-                  <div style={{ padding: "7px 8px", background: ESPRESSO }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: WARM_WHITE, marginBottom: 2 }}>@{v.author_handle}</div>
-                    {v.caption && (
-                      <div style={{
-                        fontSize: 9, color: "#c0a89a",
-                        overflow: "hidden", display: "-webkit-box",
-                        WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-                      }}>{v.caption}</div>
-                    )}
-                  </div>
-                </a>
-              ))}
+              {filtered.slice(0, 6).map((v) => <VideoCard key={v.id} v={v} />)}
             </div>
           );
         })()}
-      </div>
-      )}
-
-      {/* 9. Who goes here (clinic_who_visited). The table's SELECT policy is "Users see only their own visits", so this
-           section can only ever show the signed-in visitor their own rows: an aggregate would need a policy change. */}
-      <Section title="Who goes here">
-        {visitors.length > 0 ? (
-          <div style={{ fontSize: 11, color: MUTED }}>
-            {`You logged ${visitors.length === 1 ? "a visit" : `${visitors.length} visits`} here — last on ${new Date(visitors[0].visited_at).toLocaleDateString()}. Only you can see this.`}
-          </div>
-        ) : (
-          <EmptyState cta={<ExperienceCta onClick={() => setShowReviewForm(true)} />}>
-            Who actually goes to this clinic, and what they went in for, from the people who tell us. Nobody has yet.
-            Your own visits stay private to you.
-          </EmptyState>
-        )}
       </Section>
 
-      {/* 10. Practitioners */}
-      {practitioners.length > 0 && (
+      {/* ===== BLOCK 4: PEOPLE AND SCORES ===== */}
+      <BlockLabel>People and scores</BlockLabel>
+
+      {/*
+        25. Who goes here (clinic_who_visited). A visit row is created by the clinic_reviews_mark_visit trigger when a review
+        is posted; is_public is true only when the author ticked "Show my name on this clinic's page." Named visitors come
+        from opted-in rows joined to profiles. Visitors who did not opt in are never named; they are counted through
+        clinic_visitor_profile, which returns a clinic only once it has 5 or more visitors.
+      */}
+      <Section title="Who goes here">
+        {publicVisitors.length === 0 && !visitorProfile ? (
+          <EmptyState cta={<ExperienceCta onClick={() => openExperience("who_goes_here")} />}>
+            The people who went and chose to show their name, and once 5 or more have been, the skin types of everyone who went.
+            Nobody has yet.
+          </EmptyState>
+        ) : (
+          <>
+            {publicVisitors.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                {publicVisitors.map((p) => {
+                  const label = p.name || (p.username ? `@${p.username}` : null);
+                  if (!label) return null;
+                  return (
+                    <div key={p.user_id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      {p.avatar_url ? (
+                        <img src={p.avatar_url} alt="" style={{ width: 26, height: 26, borderRadius: 26, objectFit: "cover" }} />
+                      ) : (
+                        <div style={{ width: 26, height: 26, borderRadius: 26, background: BORDER, color: ESPRESSO, fontSize: 10, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          {label.replace("@", "").slice(0, 1).toUpperCase()}
+                        </div>
+                      )}
+                      <span style={{ fontSize: 11.5, color: ESPRESSO, fontWeight: 600 }}>{label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {visitorProfile && typeof visitorProfile.visitors === "number" && (
+              <div style={{ marginTop: publicVisitors.length > 0 ? 12 : 0, fontSize: 11.5, color: ESPRESSO, lineHeight: 1.6 }}>
+                <div style={{ fontWeight: 700 }}>
+                  {visitorProfile.visitors} visitors{publicVisitors.length > 0 ? `, ${publicVisitors.length} shown by name` : ""}
+                </div>
+                <div style={{ color: MUTED }}>
+                  {["oily", "combination", "dry", "sensitive", "normal"]
+                    .filter((t) => (visitorProfile[t] ?? 0) > 0)
+                    .map((t) => `${SKIN_EMOJI[t]} ${t} ${visitorProfile[t]}`)
+                    .join(" · ")}
+                  {(visitorProfile.skin_type_unknown ?? 0) > 0 ? ` · skin type not given ${visitorProfile.skin_type_unknown}` : ""}
+                </div>
+              </div>
+            )}
+            {!visitorProfile && publicVisitors.length > 0 && (
+              <div style={{ marginTop: 8, fontSize: 10.5, color: MUTED }}>Visitors who did not choose to show their name are counted once 5 or more people have been.</div>
+            )}
+            <ExperienceCta onClick={() => openExperience("who_goes_here")} />
+          </>
+        )}
+        {visitors.length > 0 && (
+          <div style={{ marginTop: 10, fontSize: 11, color: MUTED }}>
+            {`You logged ${visitors.length === 1 ? "a visit" : `${visitors.length} visits`} here — last on ${new Date(visitors[0].visited_at).toLocaleDateString()}. ${visitors.some((v: any) => v.is_public) ? "Your name is shown above." : "Your name is not shown."}`}
+          </div>
+        )}
+        {formSection === "who_goes_here" && reviewFormBlock}
+      </Section>
+
+      {/* 26. Practitioners (clinic_practitioners) — only what the clinic publishes about its own staff. */}
       <Section title="Practitioners">
+        {practitioners.length === 0 ? (
+          <EmptyState>The doctors, nurses and aestheticians who treat patients here, as the clinic lists them. None recorded yet; a clinic can send its team through the link at the bottom of this page.</EmptyState>
+        ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {practitioners.map((p) => {
             const initials = p.name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
@@ -893,24 +1567,20 @@ function ClinicDetailPage() {
             );
           })}
         </div>
+        )}
       </Section>
-      )}
 
       {/*
-        11. Works for your skin? — only skin types that actually have a qualifying row render.
-        A type with no rows is simply absent; it never shows a dash and an empty bar, which
-        reads as a measured zero. Hidden entirely when no type qualifies (the state today).
+        27. Works for your skin? — only skin types that actually have a qualifying row render.
+        A type with no rows is simply absent; it never shows a dash and an empty bar, which reads as a measured zero.
       */}
-      {shownSkinScores.length === 0 && (
-        <Section title="Works for your skin?">
-          <EmptyState cta={<ExperienceCta onClick={() => setShowReviewForm(true)} />}>
+      <Section title="Works for your skin?">
+        {shownSkinScores.length === 0 ? (
+          <EmptyState cta={<ExperienceCta onClick={() => openExperience("works_for_your_skin")} />}>
             How people with each skin type rate this clinic, counted from signed-in reviews. A skin type needs at least
             {" "}{MIN_TAGGED} of its own reviews here before a figure is shown; no type qualifies yet.
           </EmptyState>
-        </Section>
-      )}
-      {shownSkinScores.length > 0 && (
-      <Section title="Works for your skin?">
+        ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {["oily", "combination", "dry", "sensitive", "normal"]
             .map((type) => ({ type, score: shownSkinScores.find((s) => s.skin_type === type) }))
@@ -937,104 +1607,22 @@ function ClinicDetailPage() {
             );
           })}
         </div>
-      </Section>
-      )}
-
-      {/* 12. What people say (clinic_reviews). The section always renders: with no rows it says so and offers the
-           visitor a way to add the first one. Every review is written by its signed-in author. */}
-      {reviews.length === 0 && (
-        <Section title="What people say">
-          <EmptyState cta={<ExperienceCta onClick={() => setShowReviewForm(true)} />}>
-            First-hand accounts from people who went: what they had done, how it went, and their skin type. No reviews
-            for this clinic yet.
-          </EmptyState>
-          {reviewFormBlock}
-        </Section>
-      )}
-      {reviews.length > 0 && (
-      <Section title="What people say" right={
-        <div style={{ display: "flex", gap: 10, fontSize: 11, fontWeight: 700 }}>
-          {userSkin && (
-            <button onClick={() => setReviewFilter(userSkin)} style={{
-              background: "none", border: "none", cursor: "pointer", padding: "2px 0",
-              color: reviewFilter === userSkin ? CRIMSON : MUTED,
-              borderBottom: reviewFilter === userSkin ? `2px solid ${CRIMSON}` : "2px solid transparent",
-              textTransform: "capitalize",
-            }}>{userSkin}</button>
-          )}
-          <button onClick={() => setReviewFilter("all")} style={{
-            background: "none", border: "none", cursor: "pointer", padding: "2px 0",
-            color: reviewFilter === "all" ? CRIMSON : MUTED,
-            borderBottom: reviewFilter === "all" ? `2px solid ${CRIMSON}` : "2px solid transparent",
-          }}>All</button>
-        </div>
-      }>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {(showAllReviews ? filteredReviews : filteredReviews.slice(0, 2)).map((r) => {
-            // Every review has a real, signed-in author (enforce_signed_in_author). This page
-            // does not join profiles, so it says so rather than calling the author "Anonymous";
-            // if a handle is ever joined in, it renders instead.
-            const handle = (r as any).profiles?.username ?? (r as any).author_username ?? null;
-            const agree = r.agree_count ?? 0;
-            return (
-            <div key={r.id} style={{ background: "#fff", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>
-                  {handle ? `@${handle}` : "Signed-in reviewer · name not shown"}
-                </div>
-                <div style={{ fontSize: 11, color: MUTED, display: "flex", alignItems: "center", gap: 4 }}>
-                  <span>{SKIN_EMOJI[r.skin_type] ?? ""}</span><span style={{ textTransform: "capitalize" }}>{r.skin_type}</span>
-                </div>
-              </div>
-              {r.treatments?.name && (
-                <span style={{ display: "inline-block", background: CRIMSON_TINT, color: CRIMSON, fontSize: 9, fontWeight: 800, padding: "3px 7px", borderRadius: 4, textTransform: "uppercase", marginBottom: 8 }}>{r.treatments.name}</span>
-              )}
-              <div style={{ fontSize: 12, color: ESPRESSO, lineHeight: 1.55 }}>{r.body}</div>
-              {/* The bare number said nothing; it now says what it counts, and stays off at zero. */}
-              {agree > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 8, fontSize: 11, color: MUTED }}>
-                  <Flame size={12} /> {agree} {agree === 1 ? "person agrees" : "people agree"}
-                </div>
-              )}
-            </div>
-            );
-          })}
-          {filteredReviews.length === 0 && (
-            <div style={{ fontSize: 11, color: MUTED, textAlign: "center", padding: 12 }}>No reviews for this filter yet.</div>
-          )}
-        </div>
-        {/*
-          The count is the Skintea reviews this page actually holds, not clinics.review_count
-          (Google's). There is no all-reviews route, so the button expands the list in place
-          instead of pointing nowhere, and is absent when there is nothing more to show.
-        */}
-        {filteredReviews.length > 2 && (
-          <div style={{ textAlign: "center", marginTop: 12 }}>
-            <button
-              onClick={() => setShowAllReviews((v) => !v)}
-              style={{ background: "none", border: "none", color: CRIMSON, fontSize: 11, fontWeight: 700, textTransform: "uppercase", cursor: "pointer" }}
-            >
-              {showAllReviews ? "Show fewer reviews" : `See all ${filteredReviews.length} reviews →`}
-            </button>
-          </div>
         )}
-        <ExperienceCta onClick={() => setShowReviewForm(true)} />
-        {reviewFormBlock}
+        {formSection === "works_for_your_skin" && reviewFormBlock}
       </Section>
-      )}
 
-      {/* 12b. Trust score and Skintea score. Both are Skintea's own measurements; neither is ever computed from Google
+      {/* 28. Trust score and Skintea score. Both are Skintea's own measurements; neither is ever computed from Google
            ratings or review counts, and neither is derived from the other. */}
       <Section title="Trust & Skintea score">
-        {clinic.trust_score != null || clinic.skintea_score != null ? (
+        {(clinic.trust_score != null && sourced(clinic, "trust_score")) || (clinic.skintea_score != null && sourced(clinic, "skintea_score")) ? (
           <div style={{ display: "flex", gap: 24 }}>
-            {clinic.trust_score != null && (
+            {clinic.trust_score != null && sourced(clinic, "trust_score") && (
               <div>
                 <div style={{ fontSize: 19, fontWeight: 800, color: ESPRESSO }}>{clinic.trust_score}</div>
                 <div style={{ fontSize: 9, textTransform: "uppercase", color: MUTED, letterSpacing: "0.08em", marginTop: 2 }}>Trust score</div>
               </div>
             )}
-            {clinic.skintea_score != null && (
+            {clinic.skintea_score != null && sourced(clinic, "skintea_score") && (
               <div>
                 <div style={{ fontSize: 19, fontWeight: 800, color: ESPRESSO }}>{clinic.skintea_score}%</div>
                 <div style={{ fontSize: 9, textTransform: "uppercase", color: MUTED, letterSpacing: "0.08em", marginTop: 2 }}>Skintea score</div>
@@ -1048,64 +1636,6 @@ function ClinicDetailPage() {
           </EmptyState>
         )}
       </Section>
-
-      {/* 13. Hours & Location — hours when recorded, address when recorded, hidden when neither */}
-      {(() => {
-        const hoursGroups = groupHours(clinic.hours);
-        const hasAddress = typeof clinic.address === "string" && clinic.address.trim() !== "";
-        const hasParking = !!clinic.parking_notes || clinic.parking_is_free != null;
-        if (hoursGroups.length === 0 && !hasAddress) return null;
-        const title = hoursGroups.length > 0 && hasAddress ? "Hours & Location" : hasAddress ? "Location" : "Hours";
-        return (
-      <Section title={title}>
-        {hoursGroups.length > 0 && (
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {hoursGroups.map((h, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0", borderBottom: `0.5px solid ${BORDER}`, fontSize: 12 }}>
-                <span style={{ color: MUTED }}>{h.label}</span>
-                <span style={{ color: ESPRESSO, fontWeight: 600, textAlign: "right" }}>{h.hours}</span>
-              </div>
-            ))}
-          </div>
-        )}
-        {hasAddress && (
-          <>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 6, marginTop: hoursGroups.length > 0 ? 12 : 0, fontSize: 12, color: ESPRESSO, lineHeight: 1.45 }}>
-              <MapPin size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-              <span>{clinic.address}</span>
-            </div>
-            <a
-              href={`https://maps.google.com/?q=${encodeURIComponent(clinic.address)}`}
-              target="_blank" rel="noreferrer"
-              onClick={() => logIntent("directions", "maps", "location_section")}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                background: CREAM_TINT, borderRadius: 10, height: 44,
-                marginTop: 10, color: ESPRESSO, fontSize: 11, fontWeight: 700, textDecoration: "none",
-              }}
-            >
-              <MapIcon size={14} /> Open in Maps
-            </a>
-          </>
-        )}
-        {hasParking && (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, borderTop: `0.5px solid ${BORDER}`, marginTop: 12, paddingTop: 12 }}>
-            <Car size={16} color={ESPRESSO} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>Parking</div>
-              {clinic.parking_notes && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{clinic.parking_notes}</div>}
-            </div>
-            {clinic.parking_is_free != null && <span style={{
-              background: clinic.parking_is_free ? "#E8F5E9" : CREAM_TINT,
-              color: clinic.parking_is_free ? "#2D7A3A" : MUTED,
-              fontSize: 10, fontWeight: 800, padding: "4px 8px", borderRadius: 4, textTransform: "uppercase",
-            }}>{clinic.parking_is_free ? "Free" : "Paid"}</span>}
-          </div>
-        )}
-      </Section>
-        );
-      })()}
-
 
       {/*
         14. Owner route — /for-clinics is the only way a clinic can supply its own photos,

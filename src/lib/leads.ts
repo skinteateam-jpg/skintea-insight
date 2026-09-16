@@ -28,7 +28,9 @@ export type LeadEventType =
   | "clinic_view"
   | "consultation_click"
   | "booking_link_click"
-  | "email_submitted";
+  | "email_submitted"
+  // "Been here?" on a clinic page. lead_event_add never promotes the stage for it (a past patient is not a lead).
+  | "experience_cta_click";
 
 type RpcError = { message: string; code?: string } | null;
 type HeldEvent = { type: LeadEventType; payload: Record<string, unknown> };

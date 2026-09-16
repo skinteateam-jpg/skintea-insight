@@ -1647,6 +1647,8 @@ export type Database = {
           is_active: boolean
           logo_url: string | null
           name: string
+          network: string | null
+          notes: string | null
           search_url_template: string | null
           slug: string
           sort_order: number
@@ -1660,6 +1662,8 @@ export type Database = {
           is_active?: boolean
           logo_url?: string | null
           name: string
+          network?: string | null
+          notes?: string | null
           search_url_template?: string | null
           slug: string
           sort_order?: number
@@ -1673,6 +1677,8 @@ export type Database = {
           is_active?: boolean
           logo_url?: string | null
           name?: string
+          network?: string | null
+          notes?: string | null
           search_url_template?: string | null
           slug?: string
           sort_order?: number

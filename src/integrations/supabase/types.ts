@@ -189,6 +189,60 @@ export type Database = {
           },
         ]
       }
+      clinic_intent_events: {
+        Row: {
+          action: string
+          channel: string | null
+          clinic_id: string
+          id: string
+          occurred_at: string
+          page: string
+          session_id: string | null
+          surface: string | null
+          treatment_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          channel?: string | null
+          clinic_id: string
+          id?: string
+          occurred_at?: string
+          page: string
+          session_id?: string | null
+          surface?: string | null
+          treatment_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          channel?: string | null
+          clinic_id?: string
+          id?: string
+          occurred_at?: string
+          page?: string
+          session_id?: string | null
+          surface?: string | null
+          treatment_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_intent_events_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_intent_events_treatment_id_fkey"
+            columns: ["treatment_id"]
+            isOneToOne: false
+            referencedRelation: "treatments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_practitioners: {
         Row: {
           clinic_id: string | null

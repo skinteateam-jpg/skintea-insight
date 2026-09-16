@@ -454,3 +454,28 @@ Nothing below was reconstructed from memory without a source.
     (not per unit, per area or per session) and states no Botox price at all: the unit-not-stated rule applies.
 - Why: a wrong price on a clinic page damages the relationship this layer exists to start.
 - Deleted session_ids: none. No rows deleted; two fields cleared on three rows.
+
+### 2026-09-16 06:45–07:30 UTC — person-named listings out of the public list, badge/score provenance guards, products.is_top_pick (pipeline session, clinic layer)
+- Who: skintea-pipeline session; statements in `sql/2026-09-16_fake_data_removal_querydb_log.sql`, name list in
+  `sql/2026-09-16_person_listings_out_of_passed.sql` (both in the pipeline repo).
+- What:
+  - `clinics.listing_filter`: 54 person-named listings moved `passed` → `dropped` (rows kept, `field_provenance.listing_filter`
+    = `{source: manual_web_check, recorded_at: 2026-09-16, detail: person-named listing…, previous: …}`). A named individual is
+    not a clinic. Business names built on a person's first name ("Skin by Carla", "Nancy's Skin Care", "Michael Kim
+    Dermatology") stay. Passed clinics 240 → 186.
+  - `clinics.listing_filter`: "Vermont Health Care" (7af8dced…) moved `passed` → `dropped` as a duplicate of "Vermont Med spa"
+    (same address, same website). Passed 186 → 185.
+  - `clinic_treatments`: 2 Hydrafacial mappings deleted (Dr. Hrak Jalian, Helen Fincher (MD)) — the evidence was a different
+    practice's website (rebeccafitzgeraldmd.com). 547 → 545.
+  - `clinics_enforce_provenance()`: tracked set extended with `is_verified`, `is_featured`, `badges`, `best_for`,
+    `distance_miles`, `travel_minutes`; null/false/empty-array/empty-string now count as "nothing shown" and need no source
+    (445 rows carry `badges = '{}'`, which would otherwise have blocked every update). Tested: `is_verified = true` and
+    `trust_score = 91` rejected without provenance; accepted with it; unrelated updates unaffected.
+  - `enforce_field_provenance()` (shared by treatments, clinic_treatments, products, …): same null/false/empty rule.
+  - `products.is_top_pick boolean NOT NULL DEFAULT false` added, and `products_enforce_provenance` now covers
+    `('skintea_score', 'is_top_pick')`. This is the column the "★ TOP PICK" row on /skin-profile reads; it was querying a
+    column that did not exist (HTTP 400) and falling back to the three highest-scoring products, badged as picks. A pick now
+    needs `field_provenance.is_top_pick = {source, recorded_at}`. Tested both ways.
+- Why: the audit found real people listed as bookable clinics, a duplicate listing, and badge/score columns that would start
+  rendering unsourced values the moment anything wrote to them. Rows and columns are kept so each feature returns with real data.
+- Deleted session_ids: none. Rows deleted: 2 `clinic_treatments` mappings (listed above). No other deletions.

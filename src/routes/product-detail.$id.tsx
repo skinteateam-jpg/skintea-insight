@@ -8,6 +8,8 @@ import { getFlags, isFungalAcneSafe, hasIngredientData, readSkinType } from "@/l
 import type { SkinType } from "@/lib/ingredientFlags";
 import { MIN_TAGGED, isOpinionRow, opinionShares, aggregate } from "@/lib/opinionAggregate";
 import { excerptStart, excerptTerms } from "@/lib/quoteExcerpt";
+import { buildShopButtons, fetchShopData, logOutboundClick } from "@/lib/retailerShop";
+import type { ShopButton } from "@/lib/retailerShop";
 
 const DISCLOSURE_LABELS: Record<string, string> = {
   ad: "#ad",
@@ -194,6 +196,7 @@ function ProductPage() {
   const [userAgeBracket, setUserAgeBracket] = useState<string | null>(null);
   const [productData, setProductData] = useState<any>(null);
   const [activeProduct, setActiveProduct] = useState<any>(null);
+  const [shopButtons, setShopButtons] = useState<ShopButton[]>([]);
   const [shadeOptions, setShadeOptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);

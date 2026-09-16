@@ -11,8 +11,8 @@ import { shownPrice } from "@/lib/clinicPrices";
 // The app-wide floor under any displayed percentage. It lives in exactly one place.
 import { MIN_TAGGED } from "@/lib/opinionAggregate";
 import {
-  ArrowLeft, Heart, Share2, MapPin, Sparkles, FileText, Lock,
-  Phone, Car, Map as MapIcon, Building2, Plus, Flame, Camera, ChevronLeft, ChevronRight,
+  ArrowLeft, Heart, Share2, MapPin, Sparkles, FileText,
+  Phone, Car, Map as MapIcon, ChevronLeft, ChevronRight,
 } from "lucide-react";
 
 export const Route = createFileRoute("/clinics/$id")({
@@ -65,9 +65,10 @@ const REVIEW_COLUMNS = "id, skin_type, body, surprised_by, wish_known, created_a
 
 // ---------- Clinic photos by section ----------
 // clinics.photos is an ordered array validated by clinic_photos_valid (url, source, and permission_granted_at for
-// clinic_supplied). Each entry names the section it belongs to with a `section` key: outside, interior, results, staff.
-// An entry without a section appears in no section. Google Places photos never render anywhere (removed for licensing).
-const PHOTO_SECTIONS =["outside", "interior", "results", "staff"] as const;
+// clinic_supplied). Each entry names the section it belongs to with a `section` key: outside, interior, results, staff,
+// or parking. Parking is valid here but renders only inside the Parking section, never in the top gallery. An entry without
+// a section appears in no section. Google Places photos never render anywhere (removed for licensing).
+const PHOTO_SECTIONS = ["outside", "interior", "results", "staff", "parking"] as const;
 type PhotoSection = (typeof PHOTO_SECTIONS)[number];
 type SectionPhoto = ClinicPhoto & { section?: string; published_by?: string };
 
@@ -385,69 +386,6 @@ function TeaCarousel({ reviews }: { reviews: Review[] }) {
   );
 }
 
-// ---------- One video card (clinic_videos) ----------
-// Every card says whose account posted it ('official' = the clinic's own account, 'creator' = someone else) and carries a
-// paid-partnership label wherever disclosed_paid is true. Thumbnails are platform CDN links that expire; a failed image
-// falls back to a plain frame.
-function VideoCard({ v }: { v: any }) {
-  const [thumbFailed, setThumbFailed] = useState(false);
-  const relationship =
-    v.relationship === "official" ? "Clinic's own account" : v.relationship === "creator" ? "Creator video" : "Account not identified";
-  return (
-    <a href={v.source_url} target="_blank" rel="noreferrer"
-      style={{ textDecoration: "none", display: "block", borderRadius: 10, overflow: "hidden", background: ESPRESSO, position: "relative" }}>
-      <div style={{ width: "100%", aspectRatio: "9/16", position: "relative", overflow: "hidden" }}>
-        {v.thumbnail_url && !thumbFailed ? (
-          <img src={v.thumbnail_url} alt={v.caption ?? ""} loading="lazy" referrerPolicy="no-referrer" onError={() => setThumbFailed(true)}
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-        ) : (
-          <div style={{ width: "100%", height: "100%", background: "#2a1408", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Camera size={20} color={MUTED} />
-          </div>
-        )}
-        <div style={{ position: "absolute", top: 6, left: 6, display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-start" }}>
-          <span style={{ background: "rgba(255,252,248,0.92)", color: ESPRESSO, fontSize: 8.5, fontWeight: 800, padding: "2px 5px", borderRadius: 4 }}>{relationship}</span>
-          {v.disclosed_paid === true && (
-            <span style={{ background: CRIMSON, color: "#fff", fontSize: 8.5, fontWeight: 800, padding: "2px 5px", borderRadius: 4 }}>Paid partnership</span>
-          )}
-          {/* The platform marks this post as an ad (the account paid to promote it). Not a partnership, still labelled. */}
-          {v.field_provenance?.disclosure?.platform_ad === true && (
-            <span style={{ background: ESPRESSO, color: "#fff", fontSize: 8.5, fontWeight: 800, padding: "2px 5px", borderRadius: 4 }}>Ad</span>
-          )}
-        </div>
-        {(v.views > 0 || v.likes > 0) && (
-          <div style={{ position: "absolute", bottom: 6, right: 6, display: "flex", gap: 4 }}>
-            {v.views > 0 && (
-              <span style={{ background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 5px", borderRadius: 4 }}>{compactCount(v.views)} views</span>
-            )}
-            {v.likes > 0 && (
-              <span style={{ background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 5px", borderRadius: 4 }}>{compactCount(v.likes)} likes</span>
-            )}
-          </div>
-        )}
-      </div>
-      <div style={{ padding: "7px 8px", background: ESPRESSO }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: WARM_WHITE, marginBottom: 2 }}>
-          {v.author_handle ? `@${v.author_handle}` : ""}
-          {v.posted_at ? <span style={{ fontWeight: 500, color: "#c0a89a" }}> · {new Date(v.posted_at).toLocaleDateString()}</span> : null}
-        </div>
-        {v.caption && (
-          <div style={{ fontSize: 9, color: "#c0a89a", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{v.caption}</div>
-        )}
-      </div>
-    </a>
-  );
-}
-
-// A block heading between the page's four blocks (info, the tea, what people say, people and scores).
-function BlockLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ padding: "18px 16px 6px", fontSize: 10, fontWeight: 800, letterSpacing: "0.16em", textTransform: "uppercase", color: MUTED, background: CREAM_TINT, borderBottom: `0.5px solid ${BORDER}` }}>
-      {children}
-    </div>
-  );
-}
-
 function ClinicDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
@@ -474,7 +412,9 @@ function ClinicDetailPage() {
   const [socials, setSocials] = useState<{ platform: string; url: string; handle: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [activeGallerySection, setActiveGallerySection] = useState<Exclude<PhotoSection, "parking">>("outside");
   const [activeThumbIndex, setActiveThumbIndex] = useState(0);
+  const [pageTab, setPageTab] = useState<"info" | "tea">("info");
   // Saved state comes from saved_clinics (RLS: a user reads and writes only their own rows). Signed out it is false.
   const [saved, setSaved] = useState(false);
   const [savePending, setSavePending] = useState(false);
@@ -482,10 +422,6 @@ function ClinicDetailPage() {
   const [inquireFor, setInquireFor] = useState<CTreatment | null>(null);
   const [userSkin, setUserSkin] = useState<string | null>(null);
   const [reviewFilter, setReviewFilter] = useState<string>("all");
-  const [showAllReviews, setShowAllReviews] = useState(false);
-  const [videos, setVideos] = useState<any[]>([]);
-  const [activeVideoTab, setActiveVideoTab] = useState<"tiktok" | "instagram">("tiktok");
-  const [sayTab, setSayTab] = useState<"skintea" | "tiktok" | "instagram">("skintea");
   // Who goes here: opted-in visits (RLS "Public sees opted-in visits": is_public), their profiles, the signed-in
   // visitor's own visits, and the aggregate view (clinic_visitor_profile returns a clinic only at 5+ visitors).
   const [publicVisitors, setPublicVisitors] = useState<{ user_id: string; visited_at: string; name: string | null; username: string | null; avatar_url: string | null }[]>([]);
@@ -500,7 +436,7 @@ function ClinicDetailPage() {
   // clinic_reviews_mark_visit trigger copies to clinic_who_visited.is_public. It never puts a name on a review.
   const [reviewShowName, setReviewShowName] = useState(false);
   // The form opens under the section whose "Been here?" link was tapped.
-  const [formSection, setFormSection] = useState<string>("what_people_say");
+  const [formSection, setFormSection] = useState<string>("the_tea");
   const [reviewBody, setReviewBody] = useState("");
   const [reviewSkin, setReviewSkin] = useState("");
   const [reviewTreatment, setReviewTreatment] = useState("");
@@ -579,7 +515,7 @@ function ClinicDetailPage() {
     let alive = true;
     (async () => {
       setLoading(true);
-      const [c, ss, ct, pr, pv, rv, v, sl, vp] = await Promise.all([
+      const [c, ss, ct, pr, pv, rv, sl, vp] = await Promise.all([
         // Only listings that passed the filter render; 'unsure' and 'dropped' read as not found.
         supabase.from("clinics").select("*").eq("id", id).eq("listing_filter", "passed").maybeSingle(),
         supabase.from("clinic_skin_scores").select("*").eq("clinic_id", id),
@@ -588,7 +524,6 @@ function ClinicDetailPage() {
         supabase.from("clinic_practitioners").select("*").eq("clinic_id", id),
         supabase.from("clinic_who_visited").select("user_id, visited_at").eq("clinic_id", id).eq("is_public", true).order("visited_at", { ascending: false }).limit(24),
         supabase.from("clinic_reviews").select(REVIEW_COLUMNS).eq("clinic_id", id).order("created_at", { ascending: false }),
-        supabase.from("clinic_videos").select("*").eq("clinic_id", id).eq("is_active", true).order("posted_at", { ascending: false, nullsFirst: false }),
         // Public social profiles: clinic_social_links is the one source of truth for handles (clinics.instagram_url and
         // clinics.tiktok_url were reconciled into it on 2026-09-16 and are not read anywhere in the app).
         (supabase as any).from("clinic_social_links").select("platform, url, handle").eq("clinic_id", id).in("platform", ["instagram", "tiktok"]).order("platform"),
@@ -601,7 +536,6 @@ function ClinicDetailPage() {
       setTreatments(ctData);
       setPractitioners((pr.data as any) || []);
       setReviews((rv.data as any) || []);
-      setVideos((v.data as any) || []);
       // Handles are unique per platform on the page: a clinic listing the same account twice shows it once.
       const seen = new Set<string>();
       setSocials((((sl.data as any) || []) as { platform: string; url: string; handle: string | null }[]).filter((s) => {
@@ -771,20 +705,16 @@ function ClinicDetailPage() {
   const categoryImages = useCategoryImages();
   const [failedPhotos, setFailedPhotos] = useState<Set<string>>(new Set());
   const markFailed = (url: string) => setFailedPhotos((prev) => (prev.has(url) ? prev : new Set(prev).add(url)));
-  // Failed photos are removed from the list itself, so the hero and the strip always show the same set.
-  // The hero shows the clinic's own outside and interior photos only (never results or staff, never a Google photo), then
-  // the marked category image. clinics.image_url renders first only with a recorded source (it held stock images before
-  // 2026-09-14 and holds nothing today).
-  const heroPhotos = clinic ? [...sectionPhotos(clinic.photos, "outside"), ...sectionPhotos(clinic.photos, "interior")] : [];
-  const heroImageUrl = clinic && typeof clinic.image_url === "string" && /^https:\/\//.test(clinic.image_url)
-    && ["clinic_supplied", "skintea_shot"].includes(clinic.field_provenance?.image_url?.source) ? clinic.image_url as string : null;
+  // Failed photos are removed from the active category list, so its hero and thumbnails always stay in step. Each
+  // category keeps sectionPhotos' source and permission rules. With no usable photos, displayImages supplies the marked
+  // category image; with no category image either, ClinicImage supplies its existing plain placeholder.
+  const activeSectionPhotos = clinic ? sectionPhotos(clinic.photos, activeGallerySection) : [];
   const galleryImages = clinic
-    ? [
-        ...(heroImageUrl && !failedPhotos.has(heroImageUrl) ? [{ url: heroImageUrl, kind: "clinic" as const, alt: clinic.name as string }] : []),
-        ...displayImages({ ...(clinic as any), photos: heroPhotos }, categoryImages, 800, failedPhotos),
-      ]
+    ? displayImages({ ...(clinic as any), photos: activeSectionPhotos }, categoryImages, 800, failedPhotos)
     : [];
+  const galleryClinicImages = galleryImages.filter((image) => image.kind === "clinic");
   const galleryIndex = Math.min(activeThumbIndex, Math.max(galleryImages.length - 1, 0));
+  const parkingPhotos = clinic ? sectionPhotos(clinic.photos, "parking") : [];
 
   // A skin score is displayable only with its own sample size, at or above the same floor as
   // every other percentage in the app (MIN_TAGGED). Rows without an n never render a figure.
@@ -881,23 +811,42 @@ function ClinicDetailPage() {
         </div>
       </div>
 
-      {/* 2. Photo hero: the clinic's own photos, else a marked category image, else a plain placeholder */}
+      {/* 2. Category photo gallery: sectionPhotos enforces every source rule; ClinicImage owns fallback rendering. */}
       <ClinicImage images={galleryImages} height={170} index={galleryIndex} showCount onFailed={markFailed} />
-
-      {/* 3. Photo strip (only when the clinic has more than one photo of its own) */}
-      {galleryImages.filter((g) => g.kind === "clinic").length > 1 && (
+      <div role="tablist" aria-label="Clinic photo categories" style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}` }}>
+        {(["outside", "interior", "results", "staff"] as const).map((category) => (
+          <button
+            key={category}
+            type="button"
+            role="tab"
+            aria-selected={activeGallerySection === category}
+            onClick={() => { setActiveGallerySection(category); setActiveThumbIndex(0); }}
+            style={{
+              flex: 1, background: "none", border: "none",
+              borderBottom: activeGallerySection === category ? `2px solid ${CRIMSON}` : "2px solid transparent",
+              color: activeGallerySection === category ? ESPRESSO : MUTED,
+              fontSize: 10.5, fontWeight: activeGallerySection === category ? 700 : 600,
+              padding: "9px 4px 7px", cursor: "pointer", textTransform: "capitalize",
+            }}
+          >
+            {category}
+          </button>
+        ))}
+      </div>
+      {galleryClinicImages.length > 1 && (
         <div style={{
           display: "flex", gap: 4, overflowX: "auto", padding: "6px 10px",
-          scrollbarWidth: "none", background: WARM_WHITE,
-          borderBottom: `0.5px solid ${BORDER}`,
+          scrollbarWidth: "none", background: WARM_WHITE, borderBottom: `0.5px solid ${BORDER}`,
         }}>
-          {galleryImages.filter((g) => g.kind === "clinic").slice(0, 8).map((p, i) => (
+          {galleryClinicImages.map((photo, index) => (
             <button
-              key={p.url}
-              onClick={() => setActiveThumbIndex(i)}
-              style={{ padding: 0, border: i === galleryIndex ? `1.5px solid ${CRIMSON}` : "1.5px solid transparent", borderRadius: 7, background: "none", cursor: "pointer", flexShrink: 0 }}
+              key={photo.url}
+              type="button"
+              onClick={() => setActiveThumbIndex(index)}
+              aria-label={`Show ${activeGallerySection} photo ${index + 1}`}
+              style={{ padding: 0, border: index === galleryIndex ? `1.5px solid ${CRIMSON}` : "1.5px solid transparent", borderRadius: 7, background: "none", cursor: "pointer", flexShrink: 0 }}
             >
-              <ClinicImage images={[p]} width={56} height={44} radius={6} compact onFailed={markFailed} />
+              <ClinicImage images={[photo]} width={56} height={44} radius={6} compact onFailed={markFailed} />
             </button>
           ))}
         </div>
@@ -983,9 +932,30 @@ function ClinicDetailPage() {
         );
       })()}
 
-      {/* ===== BLOCK 1: INFO ===== */}
-      <BlockLabel>About this clinic</BlockLabel>
+      {/* Shared page tabs; local state only. */}
+      <div role="tablist" aria-label="Clinic details" style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}` }}>
+        {(["info", "tea"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            role="tab"
+            aria-selected={pageTab === tab}
+            onClick={() => setPageTab(tab)}
+            style={{
+              flex: 1, background: "none", border: "none",
+              borderBottom: pageTab === tab ? `2px solid ${CRIMSON}` : "2px solid transparent",
+              color: pageTab === tab ? ESPRESSO : MUTED,
+              fontSize: 12, fontWeight: pageTab === tab ? 700 : 600, padding: "11px 4px 9px", cursor: "pointer",
+              textTransform: "capitalize",
+            }}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
 
+      {pageTab === "info" ? (
+        <>
       {/*
         7. Badges — clinics.badges, clinics.is_verified ("Verified"), clinics.is_featured ("Skintea Pick").
         Each is gated on a recorded decision, not on a bare boolean. Nothing writes these provenance keys today and there is
@@ -1042,17 +1012,6 @@ function ClinicDetailPage() {
         )}
       </Section>
 
-      {/* 9. Skin type it suits (clinics.tea_skin_type) */}
-      <Section title="Skin type it suits">
-        {typeof clinic.tea_skin_type === "string" && clinic.tea_skin_type.trim() !== "" && sourced(clinic, "tea_skin_type") ? (
-          <div style={{ fontSize: 12.5, color: ESPRESSO, textTransform: "capitalize" }}>
-            {SKIN_EMOJI[clinic.tea_skin_type.toLowerCase()] ?? ""} {clinic.tea_skin_type}
-          </div>
-        ) : (
-          <EmptyState>The skin type this clinic works best for, once enough signed-in visitors with that skin type have said so. Not measured yet.</EmptyState>
-        )}
-      </Section>
-
       {/* 10. What it's best for (clinics.best_for). Every chip is a phrase from the clinic's own website, with the page it
            came from in field_provenance.best_for (see CLAUDE.md "WHAT IT'S BEST FOR"). */}
       <Section title="What it's best for">
@@ -1078,31 +1037,6 @@ function ClinicDetailPage() {
           <EmptyState>What this clinic is known for in its own right — a signature treatment, a technique, a following. Nothing recorded yet.</EmptyState>
         )}
       </Section>
-
-      {/* 12. Price tier (clinics.price_tier, clinics.price_from). A tier or a "from" price renders only with its source;
-           the per-treatment prices, each dated and linked, are in Treatments below. */}
-      {(() => {
-        const pricedN = treatments.filter((t) => shownPrice(t.price_from, t.price_unit, t.field_provenance)).length;
-        const tier = clinic.price_tier != null && sourced(clinic, "price_tier") ? String(clinic.price_tier) : null;
-        const from = clinic.price_from != null && sourced(clinic, "price_from") ? Number(clinic.price_from) : null;
-        return (
-          <Section title="Price tier">
-            {tier || from != null ? (
-              <div style={{ fontSize: 12.5, color: ESPRESSO }}>
-                {tier && <span style={{ fontWeight: 800 }}>{tier}</span>}
-                {tier && from != null ? " · " : ""}
-                {from != null && <span>from ${from}</span>}
-              </div>
-            ) : (
-              <EmptyState>
-                How expensive this clinic is overall, from the prices it publishes. {pricedN > 0
-                  ? `${pricedN} treatment price${pricedN === 1 ? " is" : "s are"} listed below; that is not enough to place the clinic in a tier yet.`
-                  : "No tier recorded yet."}
-              </EmptyState>
-            )}
-          </Section>
-        );
-      })()}
 
       {/* 13. Treatments and prices (each mapping carries a recorded source; prices only where a source states one) */}
       <Section title="Treatments">
@@ -1165,6 +1099,31 @@ function ClinicDetailPage() {
         </div>
         )}
       </Section>
+
+      {/* 12. Price tier (clinics.price_tier, clinics.price_from). A tier or a "from" price renders only with its source;
+           the per-treatment prices, each dated and linked, are in Treatments below. */}
+      {(() => {
+        const pricedN = treatments.filter((t) => shownPrice(t.price_from, t.price_unit, t.field_provenance)).length;
+        const tier = clinic.price_tier != null && sourced(clinic, "price_tier") ? String(clinic.price_tier) : null;
+        const from = clinic.price_from != null && sourced(clinic, "price_from") ? Number(clinic.price_from) : null;
+        return (
+          <Section title="Price tier">
+            {tier || from != null ? (
+              <div style={{ fontSize: 12.5, color: ESPRESSO }}>
+                {tier && <span style={{ fontWeight: 800 }}>{tier}</span>}
+                {tier && from != null ? " · " : ""}
+                {from != null && <span>from ${from}</span>}
+              </div>
+            ) : (
+              <EmptyState>
+                How expensive this clinic is overall, from the prices it publishes. {pricedN > 0
+                  ? `${pricedN} treatment price${pricedN === 1 ? " is" : "s are"} listed below; that is not enough to place the clinic in a tier yet.`
+                  : "No tier recorded yet."}
+              </EmptyState>
+            )}
+          </Section>
+        );
+      })()}
 
       {/* 14. Hours and open now (clinics.hours). "Open now" is computed from the listed hours in Los Angeles time. */}
       {(() => {
@@ -1240,67 +1199,67 @@ function ClinicDetailPage() {
         );
       })()}
 
-      {/* 16. Parking (clinics.parking_available, parking_notes, parking_is_free) */}
+      {/* Parking text and section-tagged photos share the Outside/Interior source and permission rules. */}
       {(() => {
-        const hasParking = clinic.parking_available != null || !!clinic.parking_notes || clinic.parking_is_free != null;
+        const hasParkingText = clinic.parking_available != null || !!clinic.parking_notes || clinic.parking_is_free != null;
+        const hasParkingPhotos = parkingPhotos.length > 0;
         return (
           <Section title="Parking">
-            {hasParking ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <Car size={16} color={ESPRESSO} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>
-                    {clinic.parking_available === true ? "Parking available" : clinic.parking_available === false ? "No parking" : "Parking"}
+            {hasParkingText || hasParkingPhotos ? (
+              <>
+                {hasParkingText && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <Car size={16} color={ESPRESSO} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>
+                        {clinic.parking_available === true ? "Parking available" : clinic.parking_available === false ? "No parking" : "Parking"}
+                      </div>
+                      {clinic.parking_notes && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{clinic.parking_notes}</div>}
+                    </div>
+                    {clinic.parking_is_free != null && <span style={{
+                      background: clinic.parking_is_free ? "#E8F5E9" : CREAM_TINT,
+                      color: clinic.parking_is_free ? "#2D7A3A" : MUTED,
+                      fontSize: 10, fontWeight: 800, padding: "4px 8px", borderRadius: 4, textTransform: "uppercase",
+                    }}>{clinic.parking_is_free ? "Free" : "Paid"}</span>}
                   </div>
-                  {clinic.parking_notes && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{clinic.parking_notes}</div>}
-                </div>
-                {clinic.parking_is_free != null && <span style={{
-                  background: clinic.parking_is_free ? "#E8F5E9" : CREAM_TINT,
-                  color: clinic.parking_is_free ? "#2D7A3A" : MUTED,
-                  fontSize: 10, fontWeight: 800, padding: "4px 8px", borderRadius: 4, textTransform: "uppercase",
-                }}>{clinic.parking_is_free ? "Free" : "Paid"}</span>}
-              </div>
+                )}
+                {hasParkingPhotos ? (
+                  <div style={{ marginTop: hasParkingText ? 10 : 0 }}>
+                    <PhotoGrid photos={parkingPhotos} alt={`Parking at ${clinic.name}`} />
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 10.5, color: MUTED, marginTop: 8 }}>No parking photos yet.</div>
+                )}
+              </>
             ) : (
-              <EmptyState>Whether there is parking, and whether it is free. Not recorded for this clinic yet.</EmptyState>
+              <EmptyState>Whether there is parking, whether it is free, and photos of where to park and the entrance from the lot. Nothing recorded yet; photos come only from the clinic itself, with permission, or from Skintea.</EmptyState>
             )}
           </Section>
         );
       })()}
 
-      {/* 17–20. The four photo sections (clinics.photos entries by `section`). Only the clinic's own photos, supplied with
-           permission, or Skintea's own shots. Never stock, never Google Places. Results carries the hardest rule. */}
-      <Section title="Outside">
-        {sectionPhotos(clinic.photos, "outside").length > 0 ? (
-          <PhotoGrid photos={sectionPhotos(clinic.photos, "outside")} alt={`${clinic.name} from the street`} />
+      {/* 26. Practitioners (clinic_practitioners) — only what the clinic publishes about its own staff. */}
+      <Section title="Practitioners">
+        {practitioners.length === 0 ? (
+          <EmptyState>The doctors, nurses and aestheticians who treat patients here, as the clinic lists them. None recorded yet; a clinic can send its team through the link at the bottom of this page.</EmptyState>
         ) : (
-          <EmptyState>The clinic from the street, so you know it when you arrive. No photos yet; they come only from the clinic itself, with permission, or from Skintea.</EmptyState>
-        )}
-      </Section>
-      <Section title="Interior">
-        {sectionPhotos(clinic.photos, "interior").length > 0 ? (
-          <PhotoGrid photos={sectionPhotos(clinic.photos, "interior")} alt={`Inside ${clinic.name}`} />
-        ) : (
-          <EmptyState>Inside the clinic: reception and treatment rooms. No photos yet; they come only from the clinic itself, with permission, or from Skintea.</EmptyState>
-        )}
-      </Section>
-      <Section title="Results">
-        {sectionPhotos(clinic.photos, "results").length > 0 ? (
-          <>
-            <PhotoGrid photos={sectionPhotos(clinic.photos, "results")} alt={`Before and after at ${clinic.name}`} />
-            <div style={{ fontSize: 9.5, color: MUTED, marginTop: 6 }}>This clinic's own before and after photos, supplied with permission.</div>
-          </>
-        ) : (
-          <EmptyState>
-            Before and after photos of this clinic's own work, published by the clinic or by the patient they belong to. Never
-            stock images, never another clinic's results. None yet.
-          </EmptyState>
-        )}
-      </Section>
-      <Section title="Staff">
-        {sectionPhotos(clinic.photos, "staff").length > 0 ? (
-          <PhotoGrid photos={sectionPhotos(clinic.photos, "staff")} alt={`The team at ${clinic.name}`} />
-        ) : (
-          <EmptyState>The doctors and staff who treat you. No photos yet; they come only from the clinic itself, with permission.</EmptyState>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {practitioners.map((p) => {
+            const initials = p.name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
+            return (
+              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 42, background: BORDER, color: ESPRESSO, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{initials}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: ESPRESSO }}>{p.name}</div>
+                  <div style={{ fontSize: 11, color: MUTED }}>{p.role}</div>
+                </div>
+                {p.specialty && (
+                  <span style={{ background: CRIMSON_TINT, color: CRIMSON, fontSize: 9, fontWeight: 800, padding: "4px 8px", borderRadius: 4, textTransform: "uppercase" }}>{p.specialty}</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
         )}
       </Section>
 
@@ -1318,14 +1277,118 @@ function ClinicDetailPage() {
         )}
       </Section>
 
-      {/* ===== BLOCK 2: THE TEA ===== */}
-      <BlockLabel>The tea</BlockLabel>
+      {/* 28. Trust score and Skintea score. Both are Skintea's own measurements; neither is ever computed from Google
+           ratings or review counts, and neither is derived from the other. */}
+      <Section title="Trust & Skintea score">
+        {(clinic.trust_score != null && sourced(clinic, "trust_score")) || (clinic.skintea_score != null && sourced(clinic, "skintea_score")) ? (
+          <div style={{ display: "flex", gap: 24 }}>
+            {clinic.trust_score != null && sourced(clinic, "trust_score") && (
+              <div>
+                <div style={{ fontSize: 19, fontWeight: 800, color: ESPRESSO }}>{clinic.trust_score}</div>
+                <div style={{ fontSize: 9, textTransform: "uppercase", color: MUTED, letterSpacing: "0.08em", marginTop: 2 }}>Trust score</div>
+              </div>
+            )}
+            {clinic.skintea_score != null && sourced(clinic, "skintea_score") && (
+              <div>
+                <div style={{ fontSize: 19, fontWeight: 800, color: ESPRESSO }}>{clinic.skintea_score}%</div>
+                <div style={{ fontSize: 9, textTransform: "uppercase", color: MUTED, letterSpacing: "0.08em", marginTop: 2 }}>Skintea score</div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <EmptyState>
+            Skintea's own scores: how much of what this clinic publishes is verified, and how many signed-in visitors
+            recommend it. Neither is computed from Google's rating or review count. Not measured for this clinic yet.
+          </EmptyState>
+        )}
+      </Section>
 
-      {/* 22. The tea — one slide per review, three fields each (body, surprised_by, wish_known). Anonymous always.
-           Written only by signed-in visitors; a clinic can never author tea. */}
+      {/*
+        14. Owner route — /for-clinics is the only way a clinic can supply its own photos,
+        hours and details (with written permission). Nothing else on the site links to it.
+      */}
+      <div style={{ padding: "14px 16px", borderBottom: `0.5px solid ${BORDER}`, textAlign: "center" }}>
+        <Link to="/for-clinics" style={{ fontSize: 11, fontWeight: 700, color: MUTED, textDecoration: "none" }}>
+          Own this clinic? Send your photos and details →
+        </Link>
+      </div>
+
+        </>
+      ) : (
+        <>
+      {/*
+        27. Works for your skin? — only skin types that actually have a qualifying row render.
+        A type with no rows is simply absent; it never shows a dash and an empty bar, which reads as a measured zero.
+      */}
+      <Section title="Works for your skin?">
+        {shownSkinScores.length === 0 ? (
+          <EmptyState cta={<ExperienceCta onClick={() => openExperience("works_for_your_skin")} />}>
+            How people with each skin type rate this clinic, counted from signed-in reviews. A skin type needs at least
+            {" "}{MIN_TAGGED} of its own reviews here before a figure is shown; no type qualifies yet.
+          </EmptyState>
+        ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {["oily", "combination", "dry", "sensitive", "normal"]
+            .map((type) => ({ type, score: shownSkinScores.find((s) => s.skin_type === type) }))
+            .filter((r) => r.score != null)
+            .map(({ type, score }) => {
+            const isYou = userSkin === type;
+            return (
+              <div key={type} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 76, fontSize: 12, color: ESPRESSO, display: "flex", alignItems: "center", gap: 6 }}>
+                  <span>{SKIN_EMOJI[type]}</span>
+                  <span style={{ textTransform: "capitalize" }}>{type}</span>
+                </div>
+                <div style={{ flex: 1, height: 5, background: TRACK, borderRadius: 5, overflow: "hidden" }}>
+                  <div style={{ width: `${score!.pct}%`, height: "100%", background: CRIMSON }} />
+                </div>
+                {/* Every percentage renders with the number of reviews behind it. */}
+                <div style={{ fontSize: 11, fontWeight: 700, color: ESPRESSO, textAlign: "right", whiteSpace: "nowrap" }}>
+                  {score!.pct}% <span style={{ fontWeight: 600, color: MUTED }}>of {score!.n}</span>
+                </div>
+                {isYou && (
+                  <span style={{ background: CRIMSON_TINT, color: CRIMSON, fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 4, textTransform: "uppercase" }}>You</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        )}
+        {formSection === "works_for_your_skin" && reviewFormBlock}
+      </Section>
+
+      {/* 9. Skin type it suits (clinics.tea_skin_type) */}
+      <Section title="Skin type it suits">
+        {typeof clinic.tea_skin_type === "string" && clinic.tea_skin_type.trim() !== "" && sourced(clinic, "tea_skin_type") ? (
+          <div style={{ fontSize: 12.5, color: ESPRESSO, textTransform: "capitalize" }}>
+            {SKIN_EMOJI[clinic.tea_skin_type.toLowerCase()] ?? ""} {clinic.tea_skin_type}
+          </div>
+        ) : (
+          <EmptyState>The skin type this clinic works best for, once enough signed-in visitors with that skin type have said so. Not measured yet.</EmptyState>
+        )}
+      </Section>
+
+      {/* The tea: anonymous first-hand accounts, filtered by the visitor's skin type or shown all. */}
       <Section title="The tea">
-        {reviews.length > 0 ? (
-          <TeaCarousel reviews={reviews} />
+        <div style={{ display: "flex", gap: 10, fontSize: 11, fontWeight: 700, marginBottom: 10 }}>
+          {userSkin && (
+            <button type="button" onClick={() => setReviewFilter(userSkin)} style={{
+              background: "none", border: "none", cursor: "pointer", padding: "2px 0",
+              color: reviewFilter === userSkin ? CRIMSON : MUTED,
+              borderBottom: reviewFilter === userSkin ? `2px solid ${CRIMSON}` : "2px solid transparent",
+              textTransform: "capitalize",
+            }}>{userSkin}</button>
+          )}
+          <button type="button" onClick={() => setReviewFilter("all")} style={{
+            background: "none", border: "none", cursor: "pointer", padding: "2px 0",
+            color: reviewFilter === "all" ? CRIMSON : MUTED,
+            borderBottom: reviewFilter === "all" ? `2px solid ${CRIMSON}` : "2px solid transparent",
+          }}>All</button>
+        </div>
+        {filteredReviews.length > 0 ? (
+          <TeaCarousel reviews={filteredReviews} />
+        ) : reviews.length > 0 ? (
+          <div style={{ fontSize: 11, color: MUTED, textAlign: "center", padding: 12 }}>No tea for this skin type yet.</div>
         ) : (
           <EmptyState cta={<ExperienceCta onClick={() => openExperience("the_tea")} />}>
             What actually happened, what surprised people, and what they wish they had known before — from people who went,
@@ -1335,171 +1398,6 @@ function ClinicDetailPage() {
         {reviews.length > 0 && <ExperienceCta onClick={() => openExperience("the_tea")} />}
         {formSection === "the_tea" && reviewFormBlock}
       </Section>
-
-      {/* ===== BLOCK 3: WHAT PEOPLE SAY ===== */}
-      <BlockLabel>What people say</BlockLabel>
-
-      {/* 23. What people say — three tabs: Reviews on Skintea | TikTok | Instagram. Every tab keeps its own empty state;
-           no tab is hidden for being empty. */}
-      <Section title="What people say">
-        <div role="tablist" style={{ display: "flex", border: `0.5px solid ${BORDER}`, borderRadius: 8, overflow: "hidden", marginBottom: 12 }}>
-          {([
-            ["skintea", `Reviews on Skintea${reviews.length ? ` (${reviews.length})` : ""}`],
-            ["tiktok", `TikTok${videos.filter((v) => v.platform === "tiktok").length ? ` (${videos.filter((v) => v.platform === "tiktok").length})` : ""}`],
-            ["instagram", `Instagram${videos.filter((v) => v.platform === "instagram").length ? ` (${videos.filter((v) => v.platform === "instagram").length})` : ""}`],
-          ] as const).map(([key, label]) => (
-            <button
-              key={key}
-              role="tab"
-              aria-selected={sayTab === key}
-              type="button"
-              onClick={() => setSayTab(key)}
-              style={{
-                flex: 1, background: sayTab === key ? ESPRESSO : "transparent", color: sayTab === key ? WARM_WHITE : MUTED,
-                border: "none", fontSize: 10.5, fontWeight: 700, padding: "8px 4px", cursor: "pointer",
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {sayTab === "skintea" && (
-          reviews.length === 0 ? (
-            <EmptyState cta={<ExperienceCta onClick={() => openExperience("what_people_say")} />}>
-              First-hand reviews from signed-in visitors: what they had done, how it went, and their skin type. No reviews for
-              this clinic yet.
-            </EmptyState>
-          ) : (
-            <>
-              <div style={{ display: "flex", gap: 10, fontSize: 11, fontWeight: 700, marginBottom: 10 }}>
-                {userSkin && (
-                  <button onClick={() => setReviewFilter(userSkin)} style={{
-                    background: "none", border: "none", cursor: "pointer", padding: "2px 0",
-                    color: reviewFilter === userSkin ? CRIMSON : MUTED,
-                    borderBottom: reviewFilter === userSkin ? `2px solid ${CRIMSON}` : "2px solid transparent",
-                    textTransform: "capitalize",
-                  }}>{userSkin}</button>
-                )}
-                <button onClick={() => setReviewFilter("all")} style={{
-                  background: "none", border: "none", cursor: "pointer", padding: "2px 0",
-                  color: reviewFilter === "all" ? CRIMSON : MUTED,
-                  borderBottom: reviewFilter === "all" ? `2px solid ${CRIMSON}` : "2px solid transparent",
-                }}>All</button>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {(showAllReviews ? filteredReviews : filteredReviews.slice(0, 2)).map((r) => {
-                  // Every review has a real, signed-in author (enforce_signed_in_author). Reviews never show a name.
-                  const agree = r.agree_count ?? 0;
-                  return (
-                  <div key={r.id} style={{ background: "#fff", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: 12 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>Signed-in reviewer · name not shown</div>
-                      {r.skin_type && (
-                        <div style={{ fontSize: 11, color: MUTED, display: "flex", alignItems: "center", gap: 4 }}>
-                          <span>{SKIN_EMOJI[r.skin_type] ?? ""}</span><span style={{ textTransform: "capitalize" }}>{r.skin_type}</span>
-                        </div>
-                      )}
-                    </div>
-                    {r.treatments?.name && (
-                      <span style={{ display: "inline-block", background: CRIMSON_TINT, color: CRIMSON, fontSize: 9, fontWeight: 800, padding: "3px 7px", borderRadius: 4, textTransform: "uppercase", marginBottom: 8 }}>{r.treatments.name}</span>
-                    )}
-                    <div style={{ fontSize: 12, color: ESPRESSO, lineHeight: 1.55 }}>{r.body}</div>
-                    {/* The bare number said nothing; it now says what it counts, and stays off at zero. */}
-                    {agree > 0 && (
-                      <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 8, fontSize: 11, color: MUTED }}>
-                        <Flame size={12} /> {agree} {agree === 1 ? "person agrees" : "people agree"}
-                      </div>
-                    )}
-                  </div>
-                  );
-                })}
-                {filteredReviews.length === 0 && (
-                  <div style={{ fontSize: 11, color: MUTED, textAlign: "center", padding: 12 }}>No reviews for this filter yet.</div>
-                )}
-              </div>
-              {/*
-                The count is the Skintea reviews this page actually holds, not clinics.review_count
-                (Google's). There is no all-reviews route, so the button expands the list in place.
-              */}
-              {filteredReviews.length > 2 && (
-                <div style={{ textAlign: "center", marginTop: 12 }}>
-                  <button
-                    onClick={() => setShowAllReviews((v) => !v)}
-                    style={{ background: "none", border: "none", color: CRIMSON, fontSize: 11, fontWeight: 700, textTransform: "uppercase", cursor: "pointer" }}
-                  >
-                    {showAllReviews ? "Show fewer reviews" : `See all ${filteredReviews.length} reviews →`}
-                  </button>
-                </div>
-              )}
-              <ExperienceCta onClick={() => openExperience("what_people_say")} />
-            </>
-          )
-        )}
-
-        {(sayTab === "tiktok" || sayTab === "instagram") && (() => {
-          const list = videos.filter((v) => v.platform === sayTab);
-          const platformName = sayTab === "tiktok" ? "TikTok" : "Instagram";
-          if (list.length === 0) {
-            return (
-              <EmptyState>
-                {platformName} videos about this clinic. Each card says whether it was posted by the clinic's own account or by a
-                creator, and carries a paid-partnership label where one was disclosed. None recorded for this clinic yet.
-              </EmptyState>
-            );
-          }
-          return (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {list.map((v) => <VideoCard key={v.id} v={v} />)}
-            </div>
-          );
-        })()}
-        {formSection === "what_people_say" && reviewFormBlock}
-      </Section>
-
-      {/* 24. Video — the clinic's own clips, both platforms. Kept as its own section (a section is never removed without an
-           instruction naming it); the same rows also appear under the TikTok and Instagram tabs above. */}
-      <Section title="Video" right={videos.filter((v) => v.relationship === "official").length > 0 ? (
-          <div style={{ display: "flex", gap: 0, border: `0.5px solid ${BORDER}`, borderRadius: 6, overflow: "hidden" }}>
-            {(["tiktok", "instagram"] as const).map((p) => (
-              <button
-                key={p}
-                onClick={() => setActiveVideoTab(p)}
-                style={{
-                  background: activeVideoTab === p ? ESPRESSO : "transparent",
-                  color: activeVideoTab === p ? WARM_WHITE : MUTED,
-                  border: "none", fontSize: 10, fontWeight: 700, padding: "5px 12px", cursor: "pointer",
-                }}
-              >
-                {p === "tiktok" ? "TikTok" : "Instagram"}
-              </button>
-            ))}
-          </div>
-        ) : undefined}>
-        {(() => {
-          const official = videos.filter((v) => v.relationship === "official");
-          if (official.length === 0) {
-            return <EmptyState>Clips from this clinic's own TikTok and Instagram accounts. None recorded for this clinic yet.</EmptyState>;
-          }
-          const filtered = official.filter((v) => v.platform === activeVideoTab);
-          if (filtered.length === 0) {
-            return (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 0", gap: 8 }}>
-                <Camera size={22} color={MUTED} />
-                <div style={{ fontSize: 12, color: MUTED }}>No {activeVideoTab === "tiktok" ? "TikTok" : "Instagram"} clips from the clinic's own account yet</div>
-              </div>
-            );
-          }
-          return (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {filtered.slice(0, 6).map((v) => <VideoCard key={v.id} v={v} />)}
-            </div>
-          );
-        })()}
-      </Section>
-
-      {/* ===== BLOCK 4: PEOPLE AND SCORES ===== */}
-      <BlockLabel>People and scores</BlockLabel>
 
       {/*
         25. Who goes here (clinic_who_visited). A visit row is created by the clinic_reviews_mark_visit trigger when a review
@@ -1563,107 +1461,8 @@ function ClinicDetailPage() {
         {formSection === "who_goes_here" && reviewFormBlock}
       </Section>
 
-      {/* 26. Practitioners (clinic_practitioners) — only what the clinic publishes about its own staff. */}
-      <Section title="Practitioners">
-        {practitioners.length === 0 ? (
-          <EmptyState>The doctors, nurses and aestheticians who treat patients here, as the clinic lists them. None recorded yet; a clinic can send its team through the link at the bottom of this page.</EmptyState>
-        ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {practitioners.map((p) => {
-            const initials = p.name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase();
-            return (
-              <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{ width: 42, height: 42, borderRadius: 42, background: BORDER, color: ESPRESSO, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{initials}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: ESPRESSO }}>{p.name}</div>
-                  <div style={{ fontSize: 11, color: MUTED }}>{p.role}</div>
-                </div>
-                {p.specialty && (
-                  <span style={{ background: CRIMSON_TINT, color: CRIMSON, fontSize: 9, fontWeight: 800, padding: "4px 8px", borderRadius: 4, textTransform: "uppercase" }}>{p.specialty}</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        )}
-      </Section>
-
-      {/*
-        27. Works for your skin? — only skin types that actually have a qualifying row render.
-        A type with no rows is simply absent; it never shows a dash and an empty bar, which reads as a measured zero.
-      */}
-      <Section title="Works for your skin?">
-        {shownSkinScores.length === 0 ? (
-          <EmptyState cta={<ExperienceCta onClick={() => openExperience("works_for_your_skin")} />}>
-            How people with each skin type rate this clinic, counted from signed-in reviews. A skin type needs at least
-            {" "}{MIN_TAGGED} of its own reviews here before a figure is shown; no type qualifies yet.
-          </EmptyState>
-        ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {["oily", "combination", "dry", "sensitive", "normal"]
-            .map((type) => ({ type, score: shownSkinScores.find((s) => s.skin_type === type) }))
-            .filter((r) => r.score != null)
-            .map(({ type, score }) => {
-            const isYou = userSkin === type;
-            return (
-              <div key={type} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 76, fontSize: 12, color: ESPRESSO, display: "flex", alignItems: "center", gap: 6 }}>
-                  <span>{SKIN_EMOJI[type]}</span>
-                  <span style={{ textTransform: "capitalize" }}>{type}</span>
-                </div>
-                <div style={{ flex: 1, height: 5, background: TRACK, borderRadius: 5, overflow: "hidden" }}>
-                  <div style={{ width: `${score!.pct}%`, height: "100%", background: CRIMSON }} />
-                </div>
-                {/* Every percentage renders with the number of reviews behind it. */}
-                <div style={{ fontSize: 11, fontWeight: 700, color: ESPRESSO, textAlign: "right", whiteSpace: "nowrap" }}>
-                  {score!.pct}% <span style={{ fontWeight: 600, color: MUTED }}>of {score!.n}</span>
-                </div>
-                {isYou && (
-                  <span style={{ background: CRIMSON_TINT, color: CRIMSON, fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 4, textTransform: "uppercase" }}>You</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        )}
-        {formSection === "works_for_your_skin" && reviewFormBlock}
-      </Section>
-
-      {/* 28. Trust score and Skintea score. Both are Skintea's own measurements; neither is ever computed from Google
-           ratings or review counts, and neither is derived from the other. */}
-      <Section title="Trust & Skintea score">
-        {(clinic.trust_score != null && sourced(clinic, "trust_score")) || (clinic.skintea_score != null && sourced(clinic, "skintea_score")) ? (
-          <div style={{ display: "flex", gap: 24 }}>
-            {clinic.trust_score != null && sourced(clinic, "trust_score") && (
-              <div>
-                <div style={{ fontSize: 19, fontWeight: 800, color: ESPRESSO }}>{clinic.trust_score}</div>
-                <div style={{ fontSize: 9, textTransform: "uppercase", color: MUTED, letterSpacing: "0.08em", marginTop: 2 }}>Trust score</div>
-              </div>
-            )}
-            {clinic.skintea_score != null && sourced(clinic, "skintea_score") && (
-              <div>
-                <div style={{ fontSize: 19, fontWeight: 800, color: ESPRESSO }}>{clinic.skintea_score}%</div>
-                <div style={{ fontSize: 9, textTransform: "uppercase", color: MUTED, letterSpacing: "0.08em", marginTop: 2 }}>Skintea score</div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <EmptyState>
-            Skintea's own scores: how much of what this clinic publishes is verified, and how many signed-in visitors
-            recommend it. Neither is computed from Google's rating or review count. Not measured for this clinic yet.
-          </EmptyState>
-        )}
-      </Section>
-
-      {/*
-        14. Owner route — /for-clinics is the only way a clinic can supply its own photos,
-        hours and details (with written permission). Nothing else on the site links to it.
-      */}
-      <div style={{ padding: "14px 16px", borderBottom: `0.5px solid ${BORDER}`, textAlign: "center" }}>
-        <Link to="/for-clinics" style={{ fontSize: 11, fontWeight: 700, color: MUTED, textDecoration: "none" }}>
-          Own this clinic? Send your photos and details →
-        </Link>
-      </div>
+        </>
+      )}
 
       {/* 15. Spacer — only when the fixed bar below renders */}
       {(clinic.phone || (typeof clinic.address === "string" && clinic.address.trim() !== "") || bookMode) && <div style={{ height: 76 }} />}

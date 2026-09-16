@@ -50,6 +50,7 @@ function AdminDashboard() {
   const links = [
     { label: "Treatment Types", to: "/admin/treatments", enabled: true },
     { label: "Clinic intent", to: "/admin/clinic-intents", enabled: true },
+    { label: "Retailers & shop links", to: "/admin/retailers", enabled: true },
     { label: "Posts", to: "#", enabled: false },
     { label: "Users", to: "#", enabled: false },
     { label: "Members", to: "#", enabled: false },

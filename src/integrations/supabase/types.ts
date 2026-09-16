@@ -1550,6 +1550,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           email: string | null
+          field_provenance: Json
           id: string
           is_admin: boolean
           is_derm: boolean
@@ -1564,6 +1565,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email?: string | null
+          field_provenance?: Json
           id?: string
           is_admin?: boolean
           is_derm?: boolean
@@ -1578,6 +1580,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email?: string | null
+          field_provenance?: Json
           id?: string
           is_admin?: boolean
           is_derm?: boolean

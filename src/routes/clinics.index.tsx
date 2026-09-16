@@ -82,6 +82,8 @@ type Gap = { reads: string; fillsFrom: string; schema?: string };
 export const CLINICS_PAGE_GAPS: Record<string, Gap> = {
   // Sort
   "sort:trending": { reads: "a per-clinic measured trend", fillsFrom: "skintea_measured counts of Skintea views/saves/intent taps per clinic per month", schema: "no per-clinic trend column or view exists" },
+  "sort:rating": { reads: "a Skintea-measured rating", fillsFrom: "skintea_measured aggregate over signed-in clinic_reviews (clinics.avg_score with provenance)", schema: "Google rating is development-only and never orders a published list (2026-09-16)" },
+  "sort:reviews": { reads: "a Skintea review count", fillsFrom: "count of signed-in clinic_reviews per clinic", schema: "Google review count is development-only and never orders a published list (2026-09-16)" },
   "sort:verified": { reads: "clinics.is_verified + field_provenance.is_verified", fillsFrom: "a signed /for-clinics submission or a Skintea visit (recorded verification event)" },
   // Hours
   "hours:same_day": { reads: "a same-day booking policy per clinic", fillsFrom: "/for-clinics submission, or the clinic's booking platform availability", schema: "no column (e.g. clinics.same_day_booking)" },
@@ -514,6 +516,9 @@ function ClinicsPage() {
 
   const sortEnabled = (k: SortKey): boolean => {
     if (k === "trending") return false; // CLINICS_PAGE_GAPS["sort:trending"]
+    // Top Rated and Most Reviewed ordered by Google rating and review count, which are development-only (CLAUDE.md,
+    // 2026-09-14). Disabled until Skintea's own review data can order them (owner, 2026-09-16).
+    if (k === "rating" || k === "reviews") return false; // CLINICS_PAGE_GAPS["sort:rating"], ["sort:reviews"]
     if (k === "verified") return anyVerified; // switches on by itself when a recorded verification exists
     return true;
   };
@@ -603,8 +608,6 @@ function ClinicsPage() {
     if (geoState === "asking") return "Waiting for your location…";
     if (geoState === "denied") return "Location not shared, so Nearest can't order the list.";
     if (geoState === "unsupported") return "This browser can't share a location, so Nearest can't order the list.";
-    if (sortBy === "rating") return "Ordered by Google Maps rating (development data, not shown; replaced before launch).";
-    if (sortBy === "reviews") return "Ordered by Google Maps review count (development data, not shown; replaced before launch).";
     if (sortBy === "price_low" || sortBy === "price_high") return `Ordered by the lowest price a clinic lists on its own site, in any unit. ${pricedCount} of ${enriched.length} clinics list one; the rest come last.`;
     return null;
   })();
@@ -718,7 +721,7 @@ function ClinicsPage() {
           })}
         </div>
         <div style={{ fontSize: 10, color: MUTED, padding: "0 16px 8px", lineHeight: 1.4 }}>
-          {sortNote ? `${sortNote} ` : ""}Trending{anyVerified ? "" : " and Verified"}: {NOT_COLLECTED}.
+          {sortNote ? `${sortNote} ` : ""}Top Rated, Most Reviewed, Trending{anyVerified ? "" : " and Verified"}: {NOT_COLLECTED}.
         </div>
       </div>
 

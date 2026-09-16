@@ -34,7 +34,11 @@ export function ClinicImage({
   const [fit, setFit] = useState<Record<string, "cover" | "contain">>({});
   useEffect(() => { setFailed(new Set()); }, [images.map((i) => i.url).join("|")]);
 
-  const usable = images.filter((i) => !failed.has(i.url));
+  // A clinic's photo slot shows only that clinic's own photos. A category stock image is never shown here, not even
+  // labelled as illustrative (owner, 2026-09-16): with no own photo the box is the neutral "Photo coming soon" tile.
+  // Category images stay available to other components.
+  const own = images.filter((i) => i.kind !== "category");
+  const usable = own.filter((i) => !failed.has(i.url));
   const current = usable.length > 0 ? usable[Math.min(index, usable.length - 1)] : null;
   const isCategory = current?.kind === "category";
   const frame: CSSProperties = {
@@ -43,10 +47,10 @@ export function ClinicImage({
 
   if (!current) {
     return (
-      <div style={frame} data-clinic-image={images.length > 0 ? "failed" : "empty"}>
+      <div style={frame} data-clinic-image={own.length > 0 ? "failed" : "empty"}>
         <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 6, textAlign: "center" }}>
           <span style={{ fontSize: compact ? 9 : 11, fontWeight: 700, color: MUTED, letterSpacing: "0.04em", textTransform: "uppercase" }}>
-            {images.length > 0 ? "Photo unavailable" : "Photo coming soon"}
+            {own.length > 0 ? "Photo unavailable" : "Photo coming soon"}
           </span>
         </div>
         {children}

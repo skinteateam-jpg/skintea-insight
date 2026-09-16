@@ -515,6 +515,10 @@ function ClinicDetailPage() {
     let alive = true;
     (async () => {
       setLoading(true);
+      // Anonymous visitors cannot read clinic_who_visited (no grant; the request returned 401), so the public-visitor
+      // query is sent only with a session (2026-09-16).
+      const { data: sessionData } = await supabase.auth.getSession();
+      const signedIn = !!sessionData.session;
       const [c, ss, ct, pr, pv, rv, sl, vp] = await Promise.all([
         // Only listings that passed the filter render; 'unsure' and 'dropped' read as not found.
         supabase.from("clinics").select("*").eq("id", id).eq("listing_filter", "passed").maybeSingle(),
@@ -522,7 +526,9 @@ function ClinicDetailPage() {
         // Inactive treatments (e.g. "Laser", a category) are not listed at all.
         supabase.from("clinic_treatments").select("*, treatments!inner(id, name, slug, active)").eq("clinic_id", id).eq("treatments.active", true),
         supabase.from("clinic_practitioners").select("*").eq("clinic_id", id),
-        supabase.from("clinic_who_visited").select("user_id, visited_at").eq("clinic_id", id).eq("is_public", true).order("visited_at", { ascending: false }).limit(24),
+        signedIn
+          ? supabase.from("clinic_who_visited").select("user_id, visited_at").eq("clinic_id", id).eq("is_public", true).order("visited_at", { ascending: false }).limit(24)
+          : Promise.resolve({ data: [] as { user_id: string; visited_at: string }[] }),
         supabase.from("clinic_reviews").select(REVIEW_COLUMNS).eq("clinic_id", id).order("created_at", { ascending: false }),
         // Public social profiles: clinic_social_links is the one source of truth for handles (clinics.instagram_url and
         // clinics.tiktok_url were reconciled into it on 2026-09-16 and are not read anywhere in the app).

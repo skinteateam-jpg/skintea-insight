@@ -4,9 +4,8 @@ import { Bookmark, Send } from "lucide-react";
 import {
   usePostsStore,
   setPostsStore,
-  CHARACTERS,
-  SKIN_BG,
-  formatAgo,
+  skinBg,
+  postAgeLabel,
 } from "./tea-products";
 import type { Post } from "./tea-products";
 
@@ -27,26 +26,18 @@ function PostDetailPage() {
   const post: Post | undefined = posts.find((p) => p.id === postId);
   const [activeImg, setActiveImg] = React.useState(0);
   const [comment, setComment] = React.useState("");
-  
-  const [comments, setComments] = React.useState<
-    { id: string; initials: string; bg: string; color: string; name: string; text: string; agrees: number }[]
-  >([]);
+  const [shareNote, setShareNote] = React.useState<string | null>(null);
 
-  const submitComment = () => {
-    if (!comment.trim()) return;
-    setComments((prev) => [
-      {
-        id: Math.random().toString(36).slice(2),
-        initials: "ME",
-        bg: "#FFF0F0",
-        color: "#A8001C",
-        name: "you",
-        text: comment.trim(),
-        agrees: 0,
-      },
-      ...prev,
-    ]);
-    setComment("");
+  /* Comments are not wired to the database. They used to live in component
+     state, attributed to "ME" / "you", and vanished on reload — a comment that
+     nobody can read is not a comment, and the attribution was invented. The
+     composer stays visible but disabled until there is a table behind it. */
+  const COMMENTS_ENABLED: boolean = false;
+
+  // Non-blocking share feedback; the app mounts no toaster, so it renders inline.
+  const showShareNote = (message: string) => {
+    setShareNote(message);
+    window.setTimeout(() => setShareNote(null), 4000);
   };
 
   if (!post) {
@@ -58,9 +49,10 @@ function PostDetailPage() {
     );
   }
 
-  const char = CHARACTERS[post.skinType];
   const badge = POST_TYPE_BADGE[post.postType];
   const isSpill = post.postType === "spill";
+  const ageLabel = postAgeLabel(post.createdAt);
+  const stepCount = post.steps?.length ?? 0;
 
   return (
     <div
@@ -104,10 +96,8 @@ function PostDetailPage() {
               Tea
             </span>
           </button>
-          <div style={{ display: "flex", gap: 12, color: "#1C0A00" }}>
-            <Bookmark className="h-5 w-5" />
-            <Send className="h-5 w-5" />
-          </div>
+          {/* Save and share live in the bottom bar, where they work. The
+              duplicate handler-less icons that used to sit here are gone. */}
         </div>
 
         {/* Hero */}
@@ -186,38 +176,49 @@ function PostDetailPage() {
               width: 40,
               height: 40,
               borderRadius: "50%",
-              background: SKIN_BG[post.skinType],
+              background: skinBg(post.skinType),
               color: "#1C0A00",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 18,
+              fontSize: 16,
               fontWeight: 600,
               flexShrink: 0,
             }}
           >
-            {char.emoji}
+            {post.authorUsername ? post.authorUsername.slice(0, 1).toUpperCase() : ""}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "#1C0A00" }}>{char.name}</p>
-            </div>
-            <p style={{ fontSize: 11, color: "#999999" }}>{formatAgo(post.createdAt)} ago</p>
+            {/* The author is the profile username, or nobody. No persona name. */}
+            {post.authorUsername && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#1C0A00" }}>{post.authorUsername}</p>
+              </div>
+            )}
+            {ageLabel && <p style={{ fontSize: 11, color: "#999999" }}>{ageLabel}</p>}
           </div>
-          <button
-            style={{
-              background: "#1C0A00",
-              color: "#FFFCF8",
-              border: "none",
-              borderRadius: 20,
-              padding: "6px 16px",
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            Follow
-          </button>
+          {/* There is no following graph yet, so the control says so instead of
+              pretending to work. */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, flexShrink: 0 }}>
+            <button
+              type="button"
+              disabled
+              title="Following isn't available yet"
+              style={{
+                background: "#f0ebe3",
+                color: "#bbb",
+                border: "none",
+                borderRadius: 20,
+                padding: "6px 16px",
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: "not-allowed",
+              }}
+            >
+              Follow
+            </button>
+            <span style={{ fontSize: 9, color: "#bbb" }}>not yet</span>
+          </div>
         </div>
 
         {/* Text + hashtags */}
@@ -324,7 +325,7 @@ function PostDetailPage() {
                 marginBottom: 12,
               }}
             >
-              Full Breakdown — {post.totalSteps} steps
+              Full Breakdown — {stepCount} {stepCount === 1 ? "step" : "steps"}
             </p>
             <div>
               {post.steps.map((step, i) => {
@@ -375,59 +376,11 @@ function PostDetailPage() {
                       <p style={{ fontSize: 13, fontWeight: 500, color, marginTop: 2 }}>
                         {step.product}
                       </p>
-                      <div style={{ marginTop: 8 }}>
-                        {post.products[i] ? (
-                          <div
-                          onClick={(e) => { e.stopPropagation(); navigate({ to: "/product-detail/$id", params: { id: post.products[i].id }, search: { from: "post", postId: post.id } }); }}
-                            style={{
-                              background: "#FFFCF8",
-                              border: "0.5px solid #E8DDD4",
-                              borderRadius: 10,
-                              padding: 8,
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 8,
-                              cursor: "pointer",
-                            }}
-                          >
-                            {post.products[i].image && (
-                              <img
-                                src={post.products[i].image}
-                                alt=""
-                                style={{ width: 36, height: 36, borderRadius: 8, objectFit: "cover", flexShrink: 0 }}
-                              />
-                            )}
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <p style={{ fontSize: 12, color: "#1C0A00", fontWeight: 500 }}>
-                                {post.products[i].name}
-                              </p>
-                              <p style={{ fontSize: 10, color: "#888" }}>
-                                {post.products[i].brand}
-                              </p>
-                            </div>
-                            <span style={{ marginLeft: "auto", fontSize: 11, color, flexShrink: 0 }}>View →</span>
-                          </div>
-                        ) : (
-                          <div
-                            onClick={(e) => { e.stopPropagation(); navigate({ to: "/products" }); }}
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 6,
-                              background: "#f5f0ea",
-                              border: "0.5px solid #e0d8d0",
-                              borderRadius: 8,
-                              padding: "5px 10px",
-                              cursor: "pointer",
-                              fontSize: 11,
-                              color: "#888",
-                            }}
-                          >
-                            {step.product}
-                            <span style={{ color, fontSize: 11 }}>View →</span>
-                          </div>
-                        )}
-                      </div>
+                      {/* A step carries the product the poster typed into it and
+                          nothing else. `post.products` is the Hot Pick, not a
+                          per-step list, so pairing products[i] with steps[i] put
+                          a serum card under "Cleanse". No catalog product is
+                          attached to a step until a post actually links one. */}
                     </div>
                   </div>
                 );
@@ -437,7 +390,10 @@ function PostDetailPage() {
         )}
 
 
-        {/* Product mentioned (spill only, when products exist) */}
+        {/* Product mentioned (spill only, when products exist).
+            Populated by the Spill composer's optional "Product mentioned" picker
+            in tea-products.tsx — it used to be unreachable because that submit
+            path always sent an empty products array. */}
         {post.postType === "spill" && post.products.length > 0 && (
           <>
             <div style={{ height: "0.5px", background: "#E8DDD4", margin: "0 16px 16px" }} />
@@ -478,52 +434,28 @@ function PostDetailPage() {
 
 
 
-        {/* Comments */}
+        {/* Comments — the heading only appears once there is a real count to
+            show; a hard 0 next to an empty list said nothing true. */}
         <div style={{ padding: "0 16px 16px" }}>
-          <p
-            style={{
-              fontSize: 11,
-              fontWeight: 500,
-              color: "#aaa",
-              textTransform: "uppercase",
-              letterSpacing: 0.8,
-              marginBottom: 12,
-            }}
-          >
-            {post.comments} comments
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {comments.map((c) => (
-              <div key={c.id} style={{ display: "flex", gap: 10 }}>
-                <div
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: "50%",
-                    background: c.bg,
-                    color: c.color,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  {c.initials}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, padding: 10 }}>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: "#1C0A00" }}>{c.name}</p>
-                    <p style={{ fontSize: 12, color: "#1C0A00", marginTop: 3, lineHeight: 1.4 }}>{c.text}</p>
-                  </div>
-                  <p style={{ fontSize: 10, color: "#888", marginTop: 4, marginLeft: 4 }}>
-                    🔥 {c.agrees} · agree
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+          {post.comments > 0 && (
+            <p
+              style={{
+                fontSize: 11,
+                fontWeight: 500,
+                color: "#aaa",
+                textTransform: "uppercase",
+                letterSpacing: 0.8,
+                marginBottom: 12,
+              }}
+            >
+              {post.comments} {post.comments === 1 ? "comment" : "comments"}
+            </p>
+          )}
+          {!COMMENTS_ENABLED && (
+            <p style={{ fontSize: 11, color: "#aaa" }}>
+              Comments open when posting does.
+            </p>
+          )}
         </div>
       </div>
 
@@ -573,14 +505,14 @@ function PostDetailPage() {
                   await navigator.share(shareData)
                 } else {
                   await navigator.clipboard.writeText(shareUrl)
-                  alert("Link copied to clipboard!")
+                  showShareNote("Link copied to clipboard")
                 }
-              } catch (err) {
+              } catch {
                 try {
                   await navigator.clipboard.writeText(shareUrl)
-                  alert("Link copied to clipboard!")
+                  showShareNote("Link copied to clipboard")
                 } catch {
-                  alert("Copy this link: " + shareUrl)
+                  showShareNote("Couldn't copy the link — copy it from the address bar")
                 }
               }
             }}
@@ -590,30 +522,39 @@ function PostDetailPage() {
             <span style={{ fontSize: 9, color: "#bbb" }}>share</span>
           </div>
         </div>
+        {/* Inline share feedback — no blocking alert() */}
+        {shareNote && (
+          <div style={{ fontSize: 11, color: "#1C0A00", background: "#f5f0ea", borderRadius: 10, padding: "6px 10px", marginBottom: 8 }}>
+            {shareNote}
+          </div>
+        )}
         {/* Divider */}
         <div style={{ height: "0.5px", background: "#E8DDD4", margin: "0 -16px 10px" }} />
-        {/* Row 2: comment input */}
+        {/* Row 2: comment input — visibly disabled until comments have a table */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <input
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") submitComment(); }}
-            placeholder="add your take..."
+            disabled={!COMMENTS_ENABLED}
+            placeholder={COMMENTS_ENABLED ? "add your take..." : "comments open soon"}
             style={{
               flex: 1, background: "#f5f0ea", border: "none", borderRadius: 20,
-              padding: "9px 14px", fontSize: 12, color: "#333",
+              padding: "9px 14px", fontSize: 12,
+              color: COMMENTS_ENABLED ? "#333" : "#bbb",
+              cursor: COMMENTS_ENABLED ? "text" : "not-allowed",
               fontFamily: "'DM Sans', sans-serif", outline: "none",
             }}
           />
           <button
-            onClick={submitComment}
-            disabled={!comment.trim()}
+            type="button"
+            disabled
+            title="Comments open when posting does"
             style={{
-              background: comment.trim() ? "#A8001C" : "#f0ebe3",
-              color: comment.trim() ? "#fff" : "#bbb",
+              background: "#f0ebe3",
+              color: "#bbb",
               border: "none", borderRadius: 20,
               padding: "8px 16px", fontSize: 12, fontWeight: 500,
-              cursor: comment.trim() ? "pointer" : "default",
+              cursor: "not-allowed",
               flexShrink: 0, fontFamily: "'DM Sans', sans-serif",
             }}
           >

@@ -13,7 +13,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 
-export const Route = createFileRoute("/treatment-talk2")({
+export const Route = createFileRoute("/treatment-talk")({
   head: () => ({
     meta: [
       { title: "Treatment Talk — Skintea" },
@@ -461,6 +461,11 @@ function PostCard({ post, locked }: { post: Post; locked?: boolean }) {
 }
 
 
+// Posting is not wired: none of the fields below is sent anywhere. The form is kept as a feature and shown
+// read-only behind an honest notice; flip POSTING_ENABLED once treatment_logs writes are in place, and the
+// fields, the submit button and the FAB come back with it.
+const POSTING_ENABLED: boolean = false;
+
 function Composer({ onClose, treatments }: { onClose: () => void; treatments: string[] }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center md:items-center" style={{ background: "rgba(28,10,0,0.5)" }}>
@@ -473,6 +478,11 @@ function Composer({ onClose, treatments }: { onClose: () => void; treatments: st
             Spill the needle
           </h2>
           <button onClick={onClose} aria-label="Close"><X size={20} color={ESPRESSO} /></button>
+        </div>
+        <div className="px-5 pt-4">
+          <div className="rounded-xl px-3 py-2.5 text-[12px] font-semibold" style={{ background: "#F5EFE9", color: ESPRESSO, border: `1px solid ${BORDER}` }}>
+            Posting isn't open yet. You can look through the form, but nothing here is saved or posted.
+          </div>
         </div>
         <div className="space-y-4 px-5 py-4">
           <div>
@@ -528,8 +538,13 @@ function Composer({ onClose, treatments }: { onClose: () => void; treatments: st
             <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Tags</label>
             <input className="w-full rounded-lg px-3 py-2.5 text-[13px]" style={{ border: `1px solid ${BORDER}`, background: "#fff" }} placeholder="#firsttimer #forehead" />
           </div>
-          <button className="w-full rounded-full py-3 text-[14px] font-bold" style={{ background: CRIMSON, color: "#fff", fontFamily: "'DM Sans', sans-serif" }}>
-            Spill the needle ✦
+          <button
+            disabled={!POSTING_ENABLED}
+            title={POSTING_ENABLED ? undefined : "Posting isn't open yet"}
+            className="w-full rounded-full py-3 text-[14px] font-bold"
+            style={{ background: CRIMSON, color: "#fff", fontFamily: "'DM Sans', sans-serif", opacity: POSTING_ENABLED ? 1 : 0.4, cursor: POSTING_ENABLED ? "pointer" : "not-allowed" }}
+          >
+            {POSTING_ENABLED ? "Spill the needle ✦" : "Posting opens soon"}
           </button>
         </div>
       </div>
@@ -761,6 +776,7 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
 
         <button
           onClick={() => setComposerOpen(true)}
+          title={POSTING_ENABLED ? undefined : "Posting isn't open yet — the form is read-only"}
           style={{
             position: "fixed",
             bottom: 72,
@@ -778,7 +794,7 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
             fontFamily: "'DM Sans', sans-serif",
           }}
         >
-          Spill the tea ☕
+          {POSTING_ENABLED ? "Spill the tea ☕" : "Posting opens soon"}
         </button>
       </div>
     </>

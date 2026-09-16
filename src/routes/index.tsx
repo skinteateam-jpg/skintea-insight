@@ -7,6 +7,7 @@ import AppFrame from "@/components/AppFrame";
 import { supabase } from "@/integrations/supabase/client";
 import { ClinicImage } from "@/components/ClinicImage";
 import { displayImages, useCategoryImages, type DisplayImage } from "@/lib/clinicPhotos";
+import { CATEGORY_LABEL_TO_SLUG } from "@/lib/categorySlugs";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -27,9 +28,22 @@ const C = {
   muted: "#999999",
 };
 
-const CATEGORIES = ["All", "Products", "Treatments", "Surgery", "Clinics", "Ranking"];
+// Every pill is a real destination. "Ranking" was dropped: no ranking page exists, and pointing it
+// at /products would have been a second, differently-labelled Products pill.
+const CATEGORY_LINKS = [
+  { label: "All", to: "/" },
+  { label: "Products", to: "/products" },
+  { label: "Treatments", to: "/treatments" },
+  { label: "Surgery", to: "/surgery-talk" },
+  { label: "Clinics", to: "/clinics" },
+] as const;
 
-const SUBCATEGORIES = ["Cleanser", "Serum", "Moisturizer", "Sunscreen", "Toner", "Treatment"];
+// Category chips link to /category/<slug>, so only labels that resolve to a real
+// product_categories slug through CATEGORY_LABEL_TO_SLUG may appear. Anything else is dropped
+// rather than pointed at a page it does not name.
+const CATEGORY_CHIPS = ["Skincare", "Suncare", "Base Makeup", "Eye Makeup", "Lip", "Cheek & Contour", "Body", "Device", "Fragrance", "Goods"]
+  .map((label) => ({ label, slug: CATEGORY_LABEL_TO_SLUG[label.toLowerCase()] as string | undefined }))
+  .filter((chip): chip is { label: string; slug: string } => Boolean(chip.slug));
 
 type DbProduct = {
   id: string;
@@ -72,6 +86,9 @@ function HomePage() {
           .from("clinics")
           .select("id,name,neighborhood,image_url,best_for,photos,category")
           .eq("listing_filter", "passed")
+          // Deterministic order. There is no location filter here, so the rail is "clinics we
+          // list", alphabetically — never a proximity claim.
+          .order("name", { ascending: true })
           .limit(4),
       ]);
       if (cancelled) return;
@@ -120,11 +137,12 @@ function HomePage() {
       {/* CATEGORY PILLS */}
       <div className="no-scrollbar" style={{ overflowX: "auto", padding: "12px 16px" }}>
         <div style={{ display: "flex", gap: 8, width: "max-content" }}>
-          {CATEGORIES.map((c, i) => {
+          {CATEGORY_LINKS.map((c, i) => {
             const active = i === 0;
             return (
-              <button
-                key={c}
+              <Link
+                key={c.label}
+                to={c.to}
                 style={{
                   background: active ? C.espresso : "#fff",
                   color: active ? "#fff" : C.espresso,
@@ -134,16 +152,20 @@ function HomePage() {
                   fontSize: 12,
                   fontWeight: 600,
                   whiteSpace: "nowrap",
+                  textDecoration: "none",
+                  display: "inline-block",
                 }}
               >
-                {c}
-              </button>
+                {c.label}
+              </Link>
             );
           })}
         </div>
       </div>
 
-      {/* NEW ON SKINTEA */}
+      {/* NEW ON SKINTEA — the whole rail is hidden while it has nothing real to show. */}
+      {(productsLoading || products.length > 0) && (
+      <>
       <SectionHeader title="✨ New on Skintea" linkTo="/products" />
       <div className="no-scrollbar" style={{ overflowX: "auto", padding: "0 16px" }}>
         <div style={{ display: "flex", gap: 10, width: "max-content" }}>
@@ -164,8 +186,6 @@ function HomePage() {
                 <div style={{ height: 12, width: "90%", background: C.warm, borderRadius: 4, marginTop: 6 }} />
               </div>
             ))
-          ) : products.length === 0 ? (
-            <EmptyCard />
           ) : (
             products.map((p) => (
               <Link
@@ -218,15 +238,20 @@ function HomePage() {
           )}
         </div>
       </div>
+      </>
+      )}
 
       {/* BROWSE BY CATEGORY */}
+      {CATEGORY_CHIPS.length > 0 && (
+      <>
       <SectionHeader title="Browse by category" linkTo="/products" />
       <div className="no-scrollbar" style={{ overflowX: "auto", padding: "0 16px" }}>
         <div style={{ display: "flex", gap: 8, width: "max-content" }}>
-          {SUBCATEGORIES.map((sc) => (
+          {CATEGORY_CHIPS.map((chip) => (
             <Link
-              key={sc}
-              to="/products"
+              key={chip.slug}
+              to="/category/$slug"
+              params={{ slug: chip.slug }}
               style={{
                 background: "#fff",
                 color: C.espresso,
@@ -239,22 +264,29 @@ function HomePage() {
                 textDecoration: "none",
               }}
             >
-              {sc}
+              {chip.label}
             </Link>
           ))}
         </div>
       </div>
+      </>
+      )}
 
-      {/* TREATMENT SPOTLIGHT */}
+      {/* TREATMENT SPOTLIGHT — links into the treatments the site actually has. No per-treatment
+          stat is claimed here; the numbers that exist live on the treatment pages themselves. */}
       <SectionHeader title="💉 Treatment Spotlight" />
-      <div style={{ margin: "0 16px", background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 16, padding: 18 }}>
-        <div style={{ fontSize: 13, color: "#999", lineHeight: 1.6 }}>
-          Real treatment data rolls out here as reviews come in. No fabricated numbers.
+      <Link to="/treatments" style={{ textDecoration: "none", display: "block" }}>
+        <div style={{ margin: "0 16px", background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 16, padding: 18 }}>
+          <div style={{ fontSize: 13, color: C.crimson, fontWeight: 700 }}>
+            See all treatments →
+          </div>
         </div>
-      </div>
+      </Link>
 
-      {/* CLINICS */}
-      <SectionHeader title="🏥 Clinics near LA" linkTo="/clinics" />
+      {/* CLINICS — hidden entirely while there is nothing to list. */}
+      {(clinicsLoading || clinics.length > 0) && (
+      <>
+      <SectionHeader title="🏥 Clinics on Skintea" linkTo="/clinics" />
       <div className="no-scrollbar" style={{ overflowX: "auto", padding: "0 16px" }}>
         <div style={{ display: "flex", gap: 10, width: "max-content" }}>
           {clinicsLoading ? (
@@ -274,8 +306,6 @@ function HomePage() {
                 <div style={{ height: 10, width: "50%", background: C.warm, borderRadius: 4, marginTop: 6 }} />
               </div>
             ))
-          ) : clinics.length === 0 ? (
-            <EmptyCard />
           ) : (
             clinics.map((c) => (
               <Link
@@ -295,23 +325,8 @@ function HomePage() {
           )}
         </div>
       </div>
-
-      {/* HONEST DATA NOTE */}
-      <div style={{ padding: "12px 16px 0" }}>
-        <div
-          style={{
-            background: "#fff",
-            border: `0.5px solid ${C.border}`,
-            borderRadius: 12,
-            padding: 12,
-            fontSize: 11,
-            color: "#999",
-            lineHeight: 1.5,
-          }}
-        >
-          Product ratings and majority/minority breakdowns roll out here as real reviews come in from TikTok, Reddit, and community spills.
-        </div>
-      </div>
+      </>
+      )}
 
       {/* SAMPLE KIT (locked) */}
       <SectionHeader title="🧴 Sample Kit" />
@@ -361,7 +376,7 @@ function HomePage() {
               fontSize: 13,
             }}
           >
-            Get your kit — $50
+            Get your kit
           </div>
         </div>
         <div
@@ -397,25 +412,6 @@ function HomePage() {
       <BottomNav />
     </div>
   </AppFrame>
-  );
-}
-
-function EmptyCard() {
-  return (
-    <div
-      style={{
-        minWidth: 200,
-        background: "#fff",
-        border: `0.5px solid ${C.border}`,
-        borderRadius: 12,
-        padding: 20,
-        color: C.muted,
-        fontSize: 12,
-        textAlign: "center",
-      }}
-    >
-      More coming soon
-    </div>
   );
 }
 

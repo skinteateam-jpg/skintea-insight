@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode, type CSSProperties, type MouseEvent as ReactMouseEvent } from "react";
-import { Pencil, Plus, Lock, Star, X, Bookmark, Link2, Download, Heart, ArrowRight } from "lucide-react";
+import { Pencil, Plus, Lock, Star, X, Bookmark, Link2, Download, Heart, ArrowRight, User } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import AppFrame from "@/components/AppFrame";
+import { ClinicImage } from "@/components/ClinicImage";
+import { displayImages, useCategoryImages } from "@/lib/clinicPhotos";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "@tanstack/react-router";
 
@@ -36,8 +38,13 @@ const C = {
   gold: "#C9A227",
 };
 
+// ---------- Skin-type personas ----------
+// These are the site's real skin-type labels (the same ones the quiz and the product pages use), not sample data.
+// A persona is only ever shown for a skin type the user actually has on record: see `resolvePersona` below, which
+// returns null when the skin type is unknown. Never default to a persona.
 type SkinType = "Oily" | "Dry" | "Combination" | "Sensitive" | "Normal";
-const PERSONAS: Record<SkinType, { name: string; emoji: string; color: string; bg: string }> = {
+type Persona = { name: string; emoji: string; color: string; bg: string };
+const PERSONAS: Record<SkinType, Persona> = {
   Oily:        { name: "The Butter Girl",        emoji: "🧈", color: "#A8001C", bg: "#FFF5F5" },
   Dry:         { name: "The Cracker",            emoji: "🫙", color: "#B5651D", bg: "#FBEDDC" },
   Combination: { name: "The Everything Bagel",   emoji: "🥯", color: "#6B3FA0", bg: "#EFE5F7" },
@@ -45,9 +52,21 @@ const PERSONAS: Record<SkinType, { name: string; emoji: string; color: string; b
   Normal:      { name: "The Glass of Milk",      emoji: "🥛", color: "#2E7D32", bg: "#E6F4EA" },
 };
 
+// The only way a persona is chosen. Unknown / unrecognised skin type → null → no persona renders.
+function resolvePersona(skinTypeLabel: unknown): Persona | null {
+  if (typeof skinTypeLabel !== "string") return null;
+  const key = (skinTypeLabel.charAt(0).toUpperCase() + skinTypeLabel.slice(1).toLowerCase()) as SkinType;
+  return Object.prototype.hasOwnProperty.call(PERSONAS, key) ? PERSONAS[key] : null;
+}
+
 export type UserProfile = { name: string | null; username: string | null; avatar_url: string | null };
 
 type Match = "good" | "warn" | "bad";
+// A match verdict is the user's own judgement of a product. It is only ever shown when they recorded one —
+// there is no default verdict, so an untouched item carries none.
+function isMatch(v: unknown): v is Match {
+  return v === "good" || v === "warn" || v === "bad";
+}
 const matchStyle = (m: Match) =>
   m === "good"
     ? { bg: C.goodBg, color: C.good, label: "✓ Fits you" }
@@ -55,9 +74,8 @@ const matchStyle = (m: Match) =>
     ? { bg: C.warnBg, color: C.warn, label: "△ Check" }
     : { bg: C.badBg, color: C.bad, label: "✕ Avoid" };
 
-// ---------- Mock data ----------
 // ---------- Live data types ----------
-export type TopPick = { id: string; name: string; brand: string | null; image_url: string | null; emoji: string | null };
+export type TopPick = { id: string; name: string; brand: string | null; image_url: string | null; is_top_pick: boolean };
 export type Post = {
   id: string;
   emoji: string | null;
@@ -140,8 +158,12 @@ function SkinProfilePage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [shelfItems, setShelfItems] = useState<ShelfItem[]>([]);
   const [loadingTopPicks, setLoadingTopPicks] = useState(true);
+  const [topPicksError, setTopPicksError] = useState(false);
   const [loadingPosts, setLoadingPosts] = useState(true);
+  // "missing" = the tea_posts table does not exist yet (the Tea post feature is not built), "error" = a real failure.
+  const [postsError, setPostsError] = useState<false | "missing" | "error">(false);
   const [loadingShelf, setLoadingShelf] = useState(true);
+  const [shelfError, setShelfError] = useState(false);
 
   useEffect(() => {
     try {
@@ -165,22 +187,17 @@ function SkinProfilePage() {
     let alive = true;
     (async () => {
       try {
-        let { data, error } = await supabase
+        // Only genuinely flagged products. There is no fallback: if this query fails the section shows an error,
+        // it never substitutes other products (they would be badged "TOP PICK" without being one).
+        const { data, error } = await supabase
           .from("products" as any)
-          .select("id,name,brand,image_url,emoji")
+          .select("id,name,brand,image_url,is_top_pick")
           .eq("is_top_pick", true)
           .limit(3);
-        if (error) {
-          const fb = await supabase
-            .from("products" as any)
-            .select("id,name,brand,image_url,emoji")
-            .order("skintea_score", { ascending: false })
-            .limit(3);
-          data = fb.data;
-        }
-        if (alive) setTopPicks(((data as any[]) ?? []) as TopPick[]);
+        if (error) throw error;
+        if (alive) { setTopPicks(((data as any[]) ?? []) as TopPick[]); setTopPicksError(false); }
       } catch {
-        if (alive) setTopPicks([]);
+        if (alive) { setTopPicks([]); setTopPicksError(true); }
       } finally {
         if (alive) setLoadingTopPicks(false);
       }
@@ -201,32 +218,37 @@ function SkinProfilePage() {
         const { data } = await supabase
           .from("profiles" as any)
           .select("name,username,avatar_url")
-          .eq("id", userId)
+          // profiles is keyed by user_id (profiles.id is its own primary key and never equals the auth uid)
+          .eq("user_id", userId)
           .maybeSingle();
         if (alive) setProfile(((data as any) ?? null) as UserProfile | null);
       } catch { if (alive) setProfile(null); }
     })();
     (async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("tea_posts" as any)
           .select("id,emoji,bg_color,caption,created_at,likes_count,comments_count")
           .eq("user_id", userId)
           .order("created_at", { ascending: false })
           .limit(18);
-        if (alive) setPosts(((data as any[]) ?? []) as Post[]);
-      } catch { if (alive) setPosts([]); }
+        if (error) throw error;
+        if (alive) { setPosts(((data as any[]) ?? []) as Post[]); setPostsError(false); }
+      } catch (e: any) {
+        if (alive) { setPosts([]); setPostsError(/does not exist|42P01|schema cache/i.test(String(e?.message ?? e)) ? "missing" : "error"); }
+      }
       finally { if (alive) setLoadingPosts(false); }
     })();
     (async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("shelf_items" as any)
           .select("id,product_id,category,product_name,brand,emoji,match,is_top_pick,image_url")
           .eq("user_id", userId)
           .order("created_at", { ascending: false });
-        if (alive) setShelfItems(((data as any[]) ?? []) as ShelfItem[]);
-      } catch { if (alive) setShelfItems([]); }
+        if (error) throw error;
+        if (alive) { setShelfItems(((data as any[]) ?? []) as ShelfItem[]); setShelfError(false); }
+      } catch { if (alive) { setShelfItems([]); setShelfError(true); } }
       finally { if (alive) setLoadingShelf(false); }
     })();
     return () => { alive = false; };
@@ -286,8 +308,8 @@ function SkinProfilePage() {
   const openAddLog = () => setEditLog("new");
   const openChartTab = () => setTab("chart");
 
-  const activeSkinType = (quizResult?.skinTypeLabel as SkinType) || "Normal";
-  const persona = PERSONAS[activeSkinType] || PERSONAS["Normal"];
+  // No persona unless the user's skin type is actually on record (the quiz writes it). Unknown → null.
+  const persona = resolvePersona(quizResult?.skinTypeLabel);
 
   return (
     <AppFrame>
@@ -302,13 +324,16 @@ function SkinProfilePage() {
         onTogglePublic={togglePublic}
         onAddLog={openAddLog}
       />
+      {/* Signed out: only the sign-in prompt in the header renders. Every private section below belongs to an account. */}
+      {userId && (
       <main style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px 80px" }}>
-        {tab === "tea" && <TeaTab posts={posts} topPicks={topPicks} loadingPosts={loadingPosts} loadingTopPicks={loadingTopPicks} />}
-        {tab === "shelf" && <ShelfTab shelfItems={shelfItems} setShelfItems={setShelfItems} topPicks={topPicks} loadingShelf={loadingShelf} loadingTopPicks={loadingTopPicks} userId={userId} onShelfAdded={(it) => setShelfItems(prev => [it, ...prev])} />}
+        {tab === "tea" && <TeaTab posts={posts} topPicks={topPicks} loadingPosts={loadingPosts} loadingTopPicks={loadingTopPicks} topPicksError={topPicksError} postsError={postsError} />}
+        {tab === "shelf" && <ShelfTab shelfItems={shelfItems} setShelfItems={setShelfItems} loadingShelf={loadingShelf} shelfError={shelfError} userId={userId} onShelfAdded={(it) => setShelfItems(prev => [it, ...prev])} />}
         {tab === "gift" && <GiftMeTab quizResult={quizResult} userId={userId} />}
         {tab === "saved" && <SavedTab userId={userId} />}
-        {tab === "chart" && <ChartTab persona={persona} logs={logs} onAdd={openAddLog} onEdit={(l) => setEditLog(l)} />}
+        {tab === "chart" && <ChartTab logs={logs} onAdd={openAddLog} onEdit={(l) => setEditLog(l)} />}
       </main>
+      )}
       {editLog && (
         userId ? (
           <TreatmentLogSheet
@@ -321,7 +346,7 @@ function SkinProfilePage() {
           <Sheet onClose={() => setEditLog(null)}>
             <div style={{ fontSize: 16, fontWeight: 800, color: "#1C0A00", marginBottom: 8 }}>Sign in to log a treatment</div>
             <div style={{ fontSize: 13, color: "#5C4033", lineHeight: 1.5 }}>You need an account to track treatments privately.</div>
-            <a href="/login" style={{ display: "block", marginTop: 16, textAlign: "center", background: "#A8001C", color: "#FFFCF8", borderRadius: 8, padding: 13, fontSize: 14, fontWeight: 800, textDecoration: "none" }}>Sign in</a>
+            <Link to="/login" style={{ display: "block", marginTop: 16, textAlign: "center", background: "#A8001C", color: "#FFFCF8", borderRadius: 8, padding: 13, fontSize: 14, fontWeight: 800, textDecoration: "none" }}>Sign in</Link>
           </Sheet>
         )
       )}
@@ -333,7 +358,7 @@ function SkinProfilePage() {
 
 // ---------- Header ----------
 function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog, userId, profile }: {
-  persona: typeof PERSONAS[SkinType];
+  persona: Persona | null;
   tab: Tab;
   setTab: (t: Tab) => void;
   logs: TLog[];
@@ -351,21 +376,23 @@ function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog, userId, 
   ];
   return (
     <header style={{ position: "sticky", top: 0, zIndex: 30, background: C.surface, borderBottom: `1px solid ${C.border}` }}>
-      <div style={{ maxWidth: 960, margin: "0 auto", padding: "16px 16px 0" }}>
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: userId ? "16px 16px 0" : "16px 16px 16px" }}>
         {!userId ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
             <div>
               <div style={{ fontWeight: 700, fontSize: 15 }}>Sign in to see your skin profile</div>
               <div style={{ fontSize: 12, color: C.textLight, marginTop: 2 }}>Your shelf, saved products and treatment log stay private to you.</div>
             </div>
-            <a href="/login" style={{ background: C.ink, color: "#fff", borderRadius: 8, padding: "9px 16px", fontSize: 12, fontWeight: 700, textDecoration: "none", flexShrink: 0 }}>Sign in</a>
+            <Link to="/login" style={{ background: C.ink, color: "#fff", borderRadius: 8, padding: "9px 16px", fontSize: 12, fontWeight: 700, textDecoration: "none", flexShrink: 0 }}>Sign in</Link>
           </div>
         ) : (
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 64, height: 64, borderRadius: "50%", background: persona.bg, display: "grid", placeItems: "center", fontSize: 30, flexShrink: 0, overflow: "hidden" }}>
+            <div style={{ width: 64, height: 64, borderRadius: "50%", background: persona ? persona.bg : "#F2EEE9", display: "grid", placeItems: "center", fontSize: 30, flexShrink: 0, overflow: "hidden" }}>
               {profile?.avatar_url
                 ? <img src={profile.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : persona.emoji}
+                : persona
+                  ? persona.emoji
+                  : <User size={26} color={C.textLight} aria-hidden />}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -374,20 +401,31 @@ function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog, userId, 
                     {profile?.username ? `@${profile.username}` : profile?.name}
                   </span>
                 )}
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 999, background: persona.bg, color: persona.color, fontWeight: 700, fontSize: 12 }}>
-                  <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700 }}>{persona.name}</span> {persona.emoji}
-                </span>
+                {persona ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 999, background: persona.bg, color: persona.color, fontWeight: 700, fontSize: 12 }}>
+                    <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700 }}>{persona.name}</span> {persona.emoji}
+                  </span>
+                ) : (
+                  <Link to="/quiz" style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 10px", borderRadius: 999, background: C.surface, border: `1px solid ${C.borderStrong}`, color: C.textMid, fontWeight: 700, fontSize: 12, textDecoration: "none" }}>
+                    Take the skin quiz to get your skin type
+                  </Link>
+                )}
               </div>
             </div>
-            <button style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, background: C.ink, color: "#fff", fontSize: 12, fontWeight: 600, border: "none", cursor: "pointer", flexShrink: 0 }}>
-              <Pencil size={12} /> Edit
+            <button
+              type="button"
+              disabled
+              title="Editing your profile isn't available yet"
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, background: C.surface, color: C.textLight, fontSize: 12, fontWeight: 600, border: `1px solid ${C.border}`, cursor: "not-allowed", flexShrink: 0 }}>
+              <Pencil size={12} /> Edit · not yet
             </button>
           </div>
         )}
 
-        {/* WHAT I'VE DONE strip */}
-        <WhatIveDoneStrip logs={logs} onTogglePublic={onTogglePublic} onAdd={onAddLog} />
+        {/* WHAT I'VE DONE strip — an account's own treatment log, so it only renders when signed in. */}
+        {userId && <WhatIveDoneStrip logs={logs} onTogglePublic={onTogglePublic} onAdd={onAddLog} />}
 
+        {userId && (
         <div style={{ overflowX: "auto", scrollbarWidth: "none", margin: "16px -16px 0", padding: "0 16px" }}>
           <div style={{ display: "flex", width: "max-content" }}>
             {tabs.map(t => {
@@ -399,12 +437,13 @@ function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog, userId, 
                     color: active ? "#1C0A00" : "#999", whiteSpace: "nowrap", textAlign: "center" }}>
                   <div style={{ fontSize: 16, lineHeight: 1, marginBottom: 2 }}>{t.icon}</div>
                   <div style={{ fontSize: 10, marginTop: 2, fontWeight: active ? 700 : 500 }}>{t.label}</div>
-                  {t.private && <div style={{ fontSize: 7, marginTop: 1, color: "#bbb", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>PRIVATE</div>}
+                  {t.private && <div style={{ fontSize: 10, marginTop: 1, color: "#999", fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase" }}>PRIVATE</div>}
                 </button>
               );
             })}
           </div>
         </div>
+        )}
       </div>
     </header>
   );
@@ -450,37 +489,39 @@ function FilterRow({ items, active, onChange }: { items: string[]; active: strin
   );
 }
 
-function GroupedFilterRow({ groups, active, onChange, includeAll = true }: {
+// `disabled` renders the chips visibly inert (they are kept, not removed) for the wishlists, where no filter is wired up.
+function GroupedFilterRow({ groups, active, onChange, includeAll = true, disabled = false }: {
   groups: Array<{ label: string; items: string[] }>;
   active: string;
   onChange: (s: string) => void;
   includeAll?: boolean;
+  disabled?: boolean;
 }) {
+  const chip = (on: boolean): CSSProperties => ({
+    flexShrink: 0, borderRadius: 999, fontWeight: 600, whiteSpace: "nowrap",
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.55 : 1,
+    border: `1px solid ${on && !disabled ? C.ink : C.border}`,
+    background: on && !disabled ? C.ink : C.surface,
+    color: on && !disabled ? "#fff" : C.textMid,
+  });
   return (
     <div style={{ display: "flex", gap: 8, overflowX: "auto", alignItems: "center", margin: "0 -16px", padding: "0 16px 4px" }}>
-      {includeAll && (() => {
-        const on = active === "All";
-        return (
-          <button onClick={() => onChange("All")}
-            style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: "pointer",
-              border: `1px solid ${on ? C.ink : C.border}`, background: on ? C.ink : C.surface, color: on ? "#fff" : C.textMid }}>
-            All
-          </button>
-        );
-      })()}
+      {includeAll && (
+        <button type="button" disabled={disabled} onClick={() => onChange("All")}
+          style={{ ...chip(active === "All"), padding: "7px 14px", fontSize: 12 }}>
+          All
+        </button>
+      )}
       {groups.map((g, gi) => (
         <div key={gi} style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
-          <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "#999", padding: "0 4px 0 6px", borderLeft: `1px solid ${C.border}` }}>{g.label}</span>
-          {g.items.map(i => {
-            const on = i === active;
-            return (
-              <button key={i} onClick={() => onChange(i)}
-                style={{ flexShrink: 0, padding: "7px 12px", borderRadius: 999, fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
-                  border: `1px solid ${on ? C.ink : C.border}`, background: on ? C.ink : C.surface, color: on ? "#fff" : C.textMid }}>
-                {i}
-              </button>
-            );
-          })}
+          <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "#999", padding: "0 4px 0 6px", borderLeft: `1px solid ${C.border}` }}>{g.label}</span>
+          {g.items.map(i => (
+            <button key={i} type="button" disabled={disabled} onClick={() => onChange(i)}
+              style={{ ...chip(i === active), padding: "7px 12px", fontSize: 11 }}>
+              {i}
+            </button>
+          ))}
         </div>
       ))}
     </div>
@@ -493,27 +534,38 @@ function Skel({ h = 14, w = "100%", r = 6, style }: { h?: number; w?: number | s
 }
 
 // ---------- Tab 1: The Tea ----------
-function TopPicksRow({ picks, loading }: { picks: Array<{ id?: string; name: string; brand: string | null; image_url?: string | null; emoji: string | null }>; loading?: boolean }) {
+type PickCard = { id?: string; name: string; brand: string | null; image_url?: string | null; is_top_pick: boolean };
+
+// The gold badge is printed from each row's own is_top_pick, never from being in this list.
+// `emptyHint` is the honest empty state; with no hint the whole section hides while it is empty, so the heading
+// never sits over nothing. An error never falls back to other products — it says the picks could not be loaded.
+function TopPicksRow({ picks, loading, error, emptyHint }: { picks: PickCard[]; loading?: boolean; error?: boolean; emptyHint?: string }) {
+  if (!loading && !error && picks.length === 0 && !emptyHint) return null;
   return (
     <>
       <SectionTitle>★ Top 3 Picks</SectionTitle>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-        {loading && picks.length === 0 && [0, 1, 2].map(i => (
+        {loading && picks.length === 0 && !error && [0, 1, 2].map(i => (
           <div key={i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden" }}>
             <Skel h={110} r={0} />
             <div style={{ padding: 10 }}><Skel h={10} w="80%" /><div style={{ height: 6 }} /><Skel h={9} w="60%" /></div>
           </div>
         ))}
-        {!loading && picks.length === 0 && (
-          <div style={{ gridColumn: "1 / -1", fontSize: 12, color: C.textLight, padding: "12px 0" }}>No top picks yet.</div>
+        {error && (
+          <div style={{ gridColumn: "1 / -1", fontSize: 12, color: C.bad, background: C.badBg, borderRadius: 10, padding: "12px 14px", fontWeight: 600 }}>
+            Couldn't load top picks. Reload the page to try again.
+          </div>
         )}
-        {picks.map((p, i) => (
+        {!loading && !error && picks.length === 0 && emptyHint && (
+          <div style={{ gridColumn: "1 / -1", fontSize: 12, color: C.textLight, padding: "12px 0" }}>{emptyHint}</div>
+        )}
+        {!error && picks.map((p, i) => (
           <div key={p.id ?? i} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, overflow: "hidden", position: "relative" }}>
-            <div style={{ position: "absolute", top: 8, left: 8, background: C.gold, color: "#fff", fontSize: 9, fontWeight: 800, padding: "3px 6px", borderRadius: 4, letterSpacing: 0.5, zIndex: 1 }}>★ TOP PICK</div>
+            {p.is_top_pick && <div style={{ position: "absolute", top: 8, left: 8, background: C.gold, color: "#fff", fontSize: 10, fontWeight: 800, padding: "3px 6px", borderRadius: 4, letterSpacing: 0.5, zIndex: 1 }}>★ TOP PICK</div>}
             {p.image_url ? (
               <div style={{ aspectRatio: "1", background: `#F5F0EB url(${p.image_url}) center/cover no-repeat` }} />
             ) : (
-              <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 40 }}>{p.emoji ?? "🧴"}</div>
+              <div style={{ aspectRatio: "1", background: "#F5F0EB" }} />
             )}
             <div style={{ padding: 10 }}>
               <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{p.name}</div>
@@ -526,16 +578,24 @@ function TopPicksRow({ picks, loading }: { picks: Array<{ id?: string; name: str
   );
 }
 
-function TeaTab({ posts, topPicks, loadingPosts, loadingTopPicks }: { posts: Post[]; topPicks: TopPick[]; loadingPosts: boolean; loadingTopPicks: boolean }) {
+function TeaTab({ posts, topPicks, loadingPosts, loadingTopPicks, topPicksError, postsError }: { posts: Post[]; topPicks: TopPick[]; loadingPosts: boolean; loadingTopPicks: boolean; topPicksError: boolean; postsError: false | "missing" | "error" }) {
   const [openPost, setOpenPost] = useState<Post | null>(null);
   return (
     <>
-      <TopPicksRow picks={topPicks} loading={loadingTopPicks} />
+      <TopPicksRow picks={topPicks} loading={loadingTopPicks} error={topPicksError} />
 
       <SectionTitle>Posts {posts.length > 0 && <span style={{ fontWeight: 500, color: C.textLight, textTransform: "none", letterSpacing: 0 }}>({posts.length})</span>}</SectionTitle>
       {loadingPosts ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
           {[0,1,2,3,4,5].map(i => <Skel key={i} h={120} r={0} />)}
+        </div>
+      ) : postsError === "missing" ? (
+        <div style={{ fontSize: 12, color: C.textLight, textAlign: "center", padding: "20px 10px", border: `0.5px dashed ${C.border}`, borderRadius: 10 }}>
+          Posting isn't open yet. Your posts will appear here.
+        </div>
+      ) : postsError ? (
+        <div style={{ fontSize: 12, color: C.bad, background: C.badBg, borderRadius: 10, padding: "12px 14px", fontWeight: 600 }}>
+          Couldn't load your posts. Reload the page to try again.
         </div>
       ) : posts.length === 0 ? (
         <div style={{ fontSize: 12, color: C.textLight, textAlign: "center", padding: "20px 10px", border: `0.5px dashed ${C.border}`, borderRadius: 10 }}>
@@ -572,7 +632,7 @@ function PostSheet({ post, onClose }: { post: Post; onClose: () => void }) {
 }
 
 // ---------- Tab 2: My Shelf ----------
-function ShelfTab({ shelfItems, setShelfItems, topPicks, loadingShelf, loadingTopPicks, userId, onShelfAdded }: { shelfItems: ShelfItem[]; setShelfItems: React.Dispatch<React.SetStateAction<ShelfItem[]>>; topPicks: TopPick[]; loadingShelf: boolean; loadingTopPicks: boolean; userId: string | null; onShelfAdded: (it: ShelfItem) => void }) {
+function ShelfTab({ shelfItems, setShelfItems, loadingShelf, shelfError, userId, onShelfAdded }: { shelfItems: ShelfItem[]; setShelfItems: React.Dispatch<React.SetStateAction<ShelfItem[]>>; loadingShelf: boolean; shelfError: boolean; userId: string | null; onShelfAdded: (it: ShelfItem) => void }) {
   const navigate = useNavigate();
   const grouped = useMemo(() => {
     const map = new Map<string, ShelfItem[]>();
@@ -584,12 +644,12 @@ function ShelfTab({ shelfItems, setShelfItems, topPicks, loadingShelf, loadingTo
     return Array.from(map.entries());
   }, [shelfItems]);
 
-  const shelfTopPicks = useMemo(() => {
-    const fromShelf = shelfItems.filter(i => i.is_top_pick).slice(0, 3).map(i => ({
-      id: i.id, name: i.product_name, brand: i.brand, emoji: i.emoji, image_url: i.image_url,
-    }));
-    return fromShelf.length > 0 ? fromShelf : topPicks;
-  }, [shelfItems, topPicks]);
+  // The user's own starred shelf items only. Global picks are not the user's shelf, so they are never substituted here.
+  const shelfTopPicks: PickCard[] = useMemo(() => (
+    shelfItems.filter(i => i.is_top_pick).slice(0, 3).map(i => ({
+      id: i.id, name: i.product_name, brand: i.brand, image_url: i.image_url, is_top_pick: true,
+    }))
+  ), [shelfItems]);
 
   const [active, setActive] = useState("All");
   const shelfFilterGroups = [
@@ -607,7 +667,11 @@ function ShelfTab({ shelfItems, setShelfItems, topPicks, loadingShelf, loadingTo
 
   return (
     <>
-      <TopPicksRow picks={shelfTopPicks} loading={loadingTopPicks && shelfItems.length === 0} />
+      <TopPicksRow
+        picks={shelfTopPicks}
+        loading={loadingShelf && shelfItems.length === 0}
+        emptyHint={shelfItems.length > 0 ? "No top picks yet. Tap ★ on a shelf product to feature it here." : undefined}
+      />
       <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
         <button onClick={() => setAddOpen({})}
           style={{ padding: "7px 12px", borderRadius: 999, border: `1px solid ${C.ink}`, background: C.ink, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
@@ -622,7 +686,12 @@ function ShelfTab({ shelfItems, setShelfItems, topPicks, loadingShelf, loadingTo
           {[0,1,2].map(i => <Skel key={i} h={170} w={120} r={10} />)}
         </div>
       )}
-      {!loadingShelf && shelfItems.length === 0 && (
+      {!loadingShelf && shelfError && (
+        <div style={{ marginTop: 24, fontSize: 12, color: C.bad, background: C.badBg, borderRadius: 10, padding: "12px 14px", fontWeight: 600 }}>
+          Couldn't load your shelf. Reload the page to try again.
+        </div>
+      )}
+      {!loadingShelf && !shelfError && shelfItems.length === 0 && (
         <div style={{ marginTop: 24, fontSize: 12, color: C.textLight, textAlign: "center", padding: "20px 10px", border: `0.5px dashed ${C.border}`, borderRadius: 10 }}>
           Your shelf is empty. Save products to start.
         </div>
@@ -648,7 +717,7 @@ function ShelfTab({ shelfItems, setShelfItems, topPicks, loadingShelf, loadingTo
                   params={{ id: p.product_id }}
                   style={{ ...cardStyle, textDecoration: "none", color: "inherit" }}
                 >
-                  {p.is_top_pick && <div style={{ position: "absolute", top: 6, left: 6, background: C.gold, color: "#fff", fontSize: 8, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
+                  {p.is_top_pick && <div style={{ position: "absolute", top: 6, left: 6, background: C.gold, color: "#fff", fontSize: 10, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
                   {starBtn}
                   {p.image_url ? (
                     <div style={{ aspectRatio: "1", background: `#F5F0EB url(${p.image_url}) center/cover no-repeat` }} />
@@ -658,12 +727,12 @@ function ShelfTab({ shelfItems, setShelfItems, topPicks, loadingShelf, loadingTo
                   <div style={{ padding: 8 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, minHeight: 26 }}>{p.product_name}</div>
                     {p.brand && <div style={{ fontSize: 10, color: C.textLight, margin: "2px 0 6px" }}>{p.brand}</div>}
-                    <MatchPill match={(p.match ?? "good") as Match} />
+                    {isMatch(p.match) && <MatchPill match={p.match} />}
                   </div>
                 </Link>
               ) : (
                 <div key={p.id} style={{ ...cardStyle, cursor: "default", textDecoration: "none", color: "inherit" }}>
-                  {p.is_top_pick && <div style={{ position: "absolute", top: 6, left: 6, background: C.gold, color: "#fff", fontSize: 8, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
+                  {p.is_top_pick && <div style={{ position: "absolute", top: 6, left: 6, background: C.gold, color: "#fff", fontSize: 10, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
                   {starBtn}
                   {p.image_url ? (
                     <div style={{ aspectRatio: "1", background: `#F5F0EB url(${p.image_url}) center/cover no-repeat` }} />
@@ -673,7 +742,7 @@ function ShelfTab({ shelfItems, setShelfItems, topPicks, loadingShelf, loadingTo
                   <div style={{ padding: 8 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, minHeight: 26 }}>{p.product_name}</div>
                     {p.brand && <div style={{ fontSize: 10, color: C.textLight, margin: "2px 0 6px" }}>{p.brand}</div>}
-                    <MatchPill match={(p.match ?? "good") as Match} />
+                    {isMatch(p.match) && <MatchPill match={p.match} />}
                   </div>
                 </div>
               );
@@ -807,7 +876,8 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
   const [topLevel, setTopLevel] = useState<string>(initialTop);
   const [category, setCategory] = useState<string>(initialCategory);
   const [emoji, setEmoji] = useState("🧴");
-  const [match, setMatch] = useState<Match>("good");
+  // No verdict is preselected: "Fits you" is the user's call, not ours.
+  const [match, setMatch] = useState<Match | null>(null);
   const [isTopPick, setIsTopPick] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -866,7 +936,13 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
       };
       const { data, error } = await supabase.from("shelf_items" as any).insert(payload).select().single();
       if (error) throw error;
-      const row = (data as any) ?? { id: crypto.randomUUID(), ...payload };
+      const row = data as any;
+      // No row came back, so there is nothing to show. Never invent a card with a client-side id.
+      if (!row?.id) {
+        setErr("Saved, but the item couldn't be loaded back. Reload the page to see your shelf.");
+        setSaving(false);
+        return;
+      }
       onSaved({
         id: row.id,
         product_id: row.product_id ?? null,
@@ -969,12 +1045,13 @@ function AddShelfSheet({ userId, defaultCategory, onClose, onSaved }: { userId: 
           </div>
         )}
         <div>
-          <label style={labelStyle}>Match</label>
+          <label style={labelStyle}>Match — optional, your call</label>
           <div style={{ display: "flex", gap: 8 }}>
-            <button type="button" onClick={() => setMatch("good")} style={pillStyle("good")}>✓ Fits you</button>
-            <button type="button" onClick={() => setMatch("warn")} style={pillStyle("warn")}>△ Check</button>
-            <button type="button" onClick={() => setMatch("bad")} style={pillStyle("bad")}>✕ Avoid</button>
+            <button type="button" onClick={() => setMatch(m => m === "good" ? null : "good")} style={pillStyle("good")}>✓ Fits you</button>
+            <button type="button" onClick={() => setMatch(m => m === "warn" ? null : "warn")} style={pillStyle("warn")}>△ Check</button>
+            <button type="button" onClick={() => setMatch(m => m === "bad" ? null : "bad")} style={pillStyle("bad")}>✕ Avoid</button>
           </div>
+          {match === null && <div style={{ fontSize: 11, color: C.textLight, marginTop: 6 }}>Leave this unset if you haven't decided — no verdict shows on the card.</div>}
         </div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0" }}>
           <span style={{ fontSize: 14, fontWeight: 600, color: C.ink }}>Mark as Top Pick ★</span>
@@ -1003,7 +1080,8 @@ function SavedTab({ userId }: { userId: string | null }) {
   const navigate = useNavigate();
   const [savedProducts, setSavedProducts] = useState<SavedProductRow[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
-  const [savedClinics, setSavedClinics] = useState<Array<{ id: string; name: string; neighborhood: string | null; image_url: string | null; best_for: string[] | null; trust_score: number | null; skintea_score: number | null; }>>([]);
+  const categoryImages = useCategoryImages();
+  const [savedClinics, setSavedClinics] = useState<Array<{ id: string; name: string; neighborhood: string | null; best_for: string[] | null; photos: unknown; category: string | null; }>>([]);
   const [savedPosts, setSavedPosts] = useState<Array<{ id: string; post_id: string; post_type: string }>>([]);
 
   useEffect(() => {
@@ -1023,7 +1101,7 @@ function SavedTab({ userId }: { userId: string | null }) {
     (async () => {
       const { data: scs } = await supabase
         .from("saved_clinics")
-        .select("clinic_id, clinics!inner(id,name,neighborhood,image_url,best_for,trust_score,skintea_score,listing_filter)")
+        .select("clinic_id, clinics!inner(id,name,neighborhood,best_for,photos,category,listing_filter)")
         .eq("user_id", userId)
         .eq("clinics.listing_filter", "passed");
       if (alive) setSavedClinics(((scs as any[]) ?? []).map(r => r.clinics).filter(Boolean));
@@ -1040,7 +1118,11 @@ function SavedTab({ userId }: { userId: string | null }) {
   const flatSaved = savedProducts
     .map(r => r.products ? { rowId: r.id, ...r.products } : null)
     .filter(Boolean) as Array<{ rowId: string; id: string; name: string; brand: string | null; category: string | null; subcategory: string | null; image_url: string | null }>;
-  const items = active === "Recently Saved" ? flatSaved : flatSaved.filter(s => s.category === active);
+  // Products carry the chip value in `subcategory` ("Cleanser", "Serum"…); `category` is the top level, so filtering
+  // on it matched nothing and every chip read "No saved products yet."
+  const items = active === "Recently Saved"
+    ? flatSaved
+    : flatSaved.filter(s => (s.subcategory ?? s.category) === active);
 
   const removeSaved = async (rowId: string) => {
     setSavedProducts(rows => rows.filter(r => r.id !== rowId));
@@ -1064,7 +1146,7 @@ function SavedTab({ userId }: { userId: string | null }) {
         product_name: p.name,
         brand: p.brand,
         emoji: null,
-        match: "good",
+        match: null,
         image_url: p.image_url ?? null,
         is_top_pick: false,
         is_public: true,
@@ -1117,9 +1199,9 @@ function SavedTab({ userId }: { userId: string | null }) {
                 </div>
               </Link>
               <div style={{ padding: "0 10px 10px", display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
-                <button onClick={() => addToShelf(p)} style={{ width: "100%", background: "#1C0A00", color: "#FFFCF8", border: "none", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, cursor: "pointer" }}>Add to My Shelf</button>
-                <button style={{ width: "100%", background: "#FFF5F5", color: "#A8001C", border: "0.5px solid #A8001C", borderRadius: 6, padding: 6, fontSize: 8, fontWeight: 700, cursor: "pointer" }}>🎁 Add to Gift Me</button>
-                <button onClick={() => removeSaved(p.rowId)} style={{ width: "100%", background: "transparent", color: "#bbb", border: "0.5px solid #E8DDD4", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 600, cursor: "pointer" }}>Remove</button>
+                <button onClick={() => addToShelf(p)} style={{ width: "100%", background: "#1C0A00", color: "#FFFCF8", border: "none", borderRadius: 6, padding: 7, fontSize: 10, fontWeight: 700, cursor: "pointer" }}>Add to My Shelf</button>
+                <button disabled title="Adding to your Gift Me list from here isn't available yet" style={{ width: "100%", background: "#FFFCF8", color: "#999", border: "0.5px solid #E8DDD4", borderRadius: 6, padding: 7, fontSize: 10, fontWeight: 700, cursor: "not-allowed" }}>🎁 Add to Gift Me · not yet</button>
+                <button onClick={() => removeSaved(p.rowId)} style={{ width: "100%", background: "transparent", color: "#777", border: "0.5px solid #E8DDD4", borderRadius: 6, padding: 6, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Remove</button>
               </div>
             </div>
           ))}
@@ -1136,16 +1218,13 @@ function SavedTab({ userId }: { userId: string | null }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {savedClinics.map(cl => {
             const tags = (cl.best_for ?? []).slice(0, 3);
-            const photoBgs = ["#C9A98A", "#E8DDD4", "#F5EFEC"];
             return (
               <div key={cl.id}
                 onClick={() => navigate({ to: "/clinics/$id", params: { id: cl.id } })}
                 style={{ background: "#FFFFFF", border: `0.5px solid #E8DDD4`, borderRadius: 12, overflow: "hidden", cursor: "pointer" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1 }}>
-                  {photoBgs.map((bg, i) => (
-                    <div key={i} style={{ height: 48, background: i === 0 && cl.image_url ? `url(${cl.image_url}) center/cover no-repeat` : bg }} />
-                  ))}
-                </div>
+                {/* One image path for every clinic surface. No clinic has photos, so this is the category image
+                    marked "Photo coming soon" — never tan tiles posing as extra photos. */}
+                <ClinicImage images={displayImages(cl, categoryImages)} height={96} />
                 <div style={{ padding: 10, position: "relative" }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#1C0A00" }}>{cl.name}</div>
                   {cl.neighborhood && <div style={{ fontSize: 10, color: "#999", marginTop: 2 }}>{cl.neighborhood}</div>}
@@ -1155,9 +1234,6 @@ function SavedTab({ userId }: { userId: string | null }) {
                         <span key={i} style={{ background: "#F0E8E0", color: "#1C0A00", fontSize: 9, fontWeight: 600, padding: "2px 6px", borderRadius: 3 }}>{t}</span>
                       ))}
                     </div>
-                  )}
-                  {cl.skintea_score != null && (
-                    <div style={{ position: "absolute", top: 10, right: 10, fontSize: 14, fontWeight: 800, color: "#A8001C" }}>{cl.skintea_score}</div>
                   )}
                   <button
                     onClick={(e) => { e.stopPropagation(); unsaveClinic(cl.id); }}
@@ -1171,23 +1247,24 @@ function SavedTab({ userId }: { userId: string | null }) {
         </div>
       )}
 
-      {/* Section 3 — Saved Posts */}
-      <CrimsonLabel>Saved Posts</CrimsonLabel>
-      {savedPosts.length === 0 ? (
-        <div style={{ fontSize: 12, color: C.textLight, textAlign: "center", padding: "16px 8px", border: `0.5px solid #E8DDD4`, borderRadius: 10, background: "#FFFFFF" }}>
-          No saved posts yet.
-        </div>
-      ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
-          {savedPosts.map(sp => {
-            const s = postTypeStyle(sp.post_type);
-            return (
-              <div key={sp.id} style={{ position: "relative", aspectRatio: "1", background: "#F5F0EB" }}>
-                <span style={{ position: "absolute", top: 6, left: 6, background: s.bg, color: "#FFFCF8", fontSize: 8, fontWeight: 800, padding: "3px 6px", borderRadius: 3, letterSpacing: "0.08em" }}>{s.label}</span>
-              </div>
-            );
-          })}
-        </div>
+      {/* Section 3 — Saved Posts. The query returns only the saved row (post id + type), never the post's content,
+          so nothing can be drawn for it. It renders the real type it has and says the preview is missing, instead of
+          a blank grey square standing in for a post image. The heading is hidden while there is nothing saved. */}
+      {savedPosts.length > 0 && (
+        <>
+          <CrimsonLabel>Saved Posts</CrimsonLabel>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {savedPosts.map(sp => {
+              const s = postTypeStyle(sp.post_type);
+              return (
+                <div key={sp.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", border: `0.5px solid #E8DDD4`, borderRadius: 10, background: "#FFFFFF" }}>
+                  <span style={{ background: s.bg, color: "#FFFCF8", fontSize: 10, fontWeight: 800, padding: "3px 6px", borderRadius: 3, letterSpacing: "0.08em", flexShrink: 0 }}>{s.label}</span>
+                  <span style={{ fontSize: 11, color: C.textLight }}>Preview not available yet</span>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </>
   );
@@ -1237,7 +1314,8 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
     { num: 6, key: "mask", label: "Mask" },
   ];
 
-  const characterName = quizResult?.persona?.name || "The Butter Girl";
+  // Only the name the user's own quiz produced. No quiz, no attribution — the banner does not render at all.
+  const characterName: string | null = typeof quizResult?.persona?.name === "string" ? quizResult.persona.name : null;
 
   const subTabs: Array<{ id: "needs" | "skincare" | "makeup"; label: string }> = [
     { id: "needs", label: "My Needs" },
@@ -1267,9 +1345,11 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
     const activeFilter = "All";
     return (
       <>
-        <div style={{ marginBottom: 12 }}>
-          <GroupedFilterRow groups={filterGroups} active={activeFilter} onChange={() => {}} />
+        {/* Wishlist filtering isn't wired up, so the chips are shown disabled rather than silently doing nothing. */}
+        <div style={{ marginBottom: 4 }}>
+          <GroupedFilterRow groups={filterGroups} active={activeFilter} onChange={() => {}} disabled />
         </div>
+        <div style={{ fontSize: 10, color: "#999", marginBottom: 12 }}>Filtering isn't available yet.</div>
         {list.length === 0 ? (
           <div style={{ fontSize: 12, color: "#999", textAlign: "center", padding: "20px 10px", border: "0.5px dashed #E8DDD4", borderRadius: 10 }}>
             Nothing on your wishlist yet.
@@ -1282,26 +1362,26 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
                 <Link to="/product-detail/$id" params={{ id: item.product_id }} style={{ display: "block", textDecoration: "none" }}>
                   <div style={{ height: 75, background: item.image_url ? `#FFFCF8 url(${item.image_url}) center/cover no-repeat` : "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
                     {!item.image_url && (item.emoji ?? "🎁")}
-                    <span style={{ position: "absolute", top: 5, right: 5, fontSize: 7, fontWeight: 800, padding: "2px 5px", borderRadius: 99, background: badge.bg, color: badge.color, border: `0.5px solid ${badge.border}` }}>{badge.text}</span>
+                    <span style={{ position: "absolute", top: 5, right: 5, fontSize: 10, fontWeight: 800, padding: "2px 6px", borderRadius: 99, background: badge.bg, color: badge.color, border: `0.5px solid ${badge.border}` }}>{badge.text}</span>
                   </div>
                 </Link>
               ) : (
                 <div style={{ height: 75, background: item.image_url ? `#FFFCF8 url(${item.image_url}) center/cover no-repeat` : "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, borderBottom: "0.5px solid #E8DDD4", position: "relative" }}>
                   {!item.image_url && (item.emoji ?? "🎁")}
-                  <span style={{ position: "absolute", top: 5, right: 5, fontSize: 7, fontWeight: 800, padding: "2px 5px", borderRadius: 99, background: badge.bg, color: badge.color, border: `0.5px solid ${badge.border}` }}>{badge.text}</span>
+                  <span style={{ position: "absolute", top: 5, right: 5, fontSize: 10, fontWeight: 800, padding: "2px 6px", borderRadius: 99, background: badge.bg, color: badge.color, border: `0.5px solid ${badge.border}` }}>{badge.text}</span>
                 </div>
               )}
               <div style={{ padding: "7px 8px 8px" }}>
-                {item.category && <div style={{ fontSize: 7, color: "#A8001C", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{item.category}</div>}
-                {item.brand && <div style={{ fontSize: 8, color: "#999" }}>{item.brand}</div>}
-                <div style={{ fontSize: 10, fontWeight: 700, color: "#1C0A00", marginBottom: 5 }}>{item.product_name}</div>
+                {item.category && <div style={{ fontSize: 10, color: "#A8001C", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{item.category}</div>}
+                {item.brand && <div style={{ fontSize: 10, color: "#999" }}>{item.brand}</div>}
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#1C0A00", marginBottom: 5 }}>{item.product_name}</div>
                 <div style={{ display: "flex", gap: 4 }}>
-                  {item.affiliate_url ? (
-                    <a href={item.affiliate_url} target="_blank" rel="noreferrer" style={{ flex: 1, background: "#1C0A00", color: "#FFFCF8", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 700, textAlign: "center", textDecoration: "none" }}>Buy{item.affiliate_store ? ` → ${item.affiliate_store}` : ""}</a>
-                  ) : (
-                    <div style={{ flex: 1, background: "#1C0A00", color: "#FFFCF8", borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 700, textAlign: "center" }}>Buy{item.affiliate_store ? ` → ${item.affiliate_store}` : ""}</div>
+                  {/* With no affiliate_url there is nothing to link to, so no button renders — a styled box that
+                      looks like a link but cannot be clicked is worse than nothing. */}
+                  {item.affiliate_url && (
+                    <a href={item.affiliate_url} target="_blank" rel="noopener noreferrer" style={{ flex: 1, background: "#1C0A00", color: "#FFFCF8", borderRadius: 6, padding: 6, fontSize: 10, fontWeight: 700, textAlign: "center", textDecoration: "none" }}>Buy{item.affiliate_store ? ` → ${item.affiliate_store}` : ""}</a>
                   )}
-                  <div onClick={() => removeItem(item)} style={{ width: 22, background: "#FFFCF8", border: "0.5px solid #E8DDD4", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, color: "#bbb", cursor: "pointer" }}>×</div>
+                  <button type="button" onClick={() => removeItem(item)} aria-label={`Remove ${item.product_name} from wishlist`} style={{ marginLeft: "auto", width: 26, height: 26, background: "#FFFCF8", border: "0.5px solid #E8DDD4", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#777", cursor: "pointer", flexShrink: 0 }}>×</button>
                 </div>
               </div>
             </div>
@@ -1320,7 +1400,8 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
           <div style={{ fontSize: 13, fontWeight: 800, color: "#FFFCF8", marginBottom: 3 }}>🎁 Share your list</div>
           <div style={{ fontSize: 10, color: "rgba(255,252,248,0.55)", lineHeight: 1.4 }}>Friends and family can see your needs and buy the perfect gift.</div>
         </div>
-        <button style={{ background: "#A8001C", color: "#FFFCF8", border: "none", borderRadius: 99, padding: "8px 14px", fontSize: 10, fontWeight: 800, whiteSpace: "nowrap", cursor: "pointer" }}>Share link</button>
+        {/* Kept, disabled: there is no share link to hand out yet. */}
+        <button type="button" disabled title="Sharing your list isn't available yet" style={{ background: "transparent", color: "rgba(255,252,248,0.5)", border: "1px solid rgba(255,252,248,0.3)", borderRadius: 99, padding: "8px 14px", fontSize: 10, fontWeight: 800, whiteSpace: "nowrap", cursor: "not-allowed" }}>Share link · not yet</button>
       </div>
 
       <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 14, paddingBottom: 2 }}>
@@ -1338,23 +1419,28 @@ function GiftMeTab({ quizResult, userId }: { quizResult: any; userId: string | n
 
       {giftSubTab === "needs" && (
         <>
-          <div style={{ background: "#F0FAF1", border: "0.5px solid #2D7A3A", borderRadius: 8, padding: "8px 12px", display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
-            <div style={{ width: 7, height: 7, background: "#2D7A3A", borderRadius: "50%", flexShrink: 0 }} />
-            <div style={{ fontSize: 10, color: "#2D7A3A", fontWeight: 600, lineHeight: 1.35 }}>
-              Routine built for <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700 }}>{characterName}</span> skin — from your quiz.
+          {characterName && (
+            <div style={{ background: "#F0FAF1", border: "0.5px solid #2D7A3A", borderRadius: 8, padding: "8px 12px", display: "flex", alignItems: "center", gap: 7, marginBottom: 12 }}>
+              <div style={{ width: 7, height: 7, background: "#2D7A3A", borderRadius: "50%", flexShrink: 0 }} />
+              <div style={{ fontSize: 10, color: "#2D7A3A", fontWeight: 600, lineHeight: 1.35 }}>
+                Routine built for <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700 }}>{characterName}</span> skin — from your quiz.
+              </div>
             </div>
-          </div>
+          )}
 
-          <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 12 }}>
+          {/* Routine steps: the chips select a step but no step content is built yet, so they are visibly disabled
+              rather than looking interactive and doing nothing. */}
+          <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 4 }}>
             {ROUTINE_TABS.map(t => {
               const on = activeRoutineTab === t.key;
               return (
-                <button key={t.key} onClick={() => setActiveRoutineTab(t.key)} style={{ background: on ? "#1C0A00" : "#fff", color: on ? "#FFFCF8" : "#999", borderRadius: 99, border: on ? "none" : "0.5px solid #E8DDD4", padding: "6px 12px", fontSize: 10, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap", cursor: "pointer" }}>
-                  <span style={{ fontSize: 8, fontWeight: 800 }}>{t.num}</span> {t.label}
+                <button key={t.key} type="button" disabled title="Routine steps aren't available yet" style={{ background: "#fff", color: "#999", borderRadius: 99, border: "0.5px solid #E8DDD4", padding: "6px 12px", fontSize: 10, fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4, whiteSpace: "nowrap", cursor: "not-allowed", opacity: on ? 1 : 0.6 }}>
+                  <span style={{ fontSize: 10, fontWeight: 800 }}>{t.num}</span> {t.label}
                 </button>
               );
             })}
           </div>
+          <div style={{ fontSize: 10, color: "#999", marginBottom: 12 }}>Routine steps aren't available yet.</div>
 
           <div style={{ marginTop: 24, marginBottom: 10, fontSize: 11, fontWeight: 800, color: "#1C0A00", textTransform: "uppercase", letterSpacing: "0.06em" }}>Skincare Wishlist</div>
           {renderWishlist(
@@ -1476,7 +1562,13 @@ function AddWishlistSheet({ userId, type, onClose, onSaved }: { userId: string; 
       };
       const { data, error } = await supabase.from("gift_wishlist" as any).insert(payload).select().single();
       if (error) throw error;
-      const row = (data as any) ?? { id: crypto.randomUUID(), ...payload };
+      const row = data as any;
+      // Same rule as the shelf sheet: no row back, no card. Never mint a client-side id for a row we did not read.
+      if (!row?.id) {
+        setErr("Saved, but the item couldn't be loaded back. Reload the page to see your wishlist.");
+        setSaving(false);
+        return;
+      }
       onSaved({
         id: row.id,
         product_id: row.product_id ?? null,
@@ -1553,7 +1645,7 @@ function AddWishlistSheet({ userId, type, onClose, onSaved }: { userId: string; 
   );
 }
 
-function ChartTab({ persona, logs, onAdd, onEdit }: { persona: typeof PERSONAS[SkinType]; logs: TLog[]; onAdd: () => void; onEdit: (l: TLog) => void }) {
+function ChartTab({ logs, onAdd, onEdit }: { logs: TLog[]; onAdd: () => void; onEdit: (l: TLog) => void }) {
   const navigate = useNavigate();
   const [treatFilter, setTreatFilter] = useState("All");
   const treats = treatFilter === "All" ? logs : logs.filter(t => (t.category ?? "") === treatFilter);
@@ -1562,9 +1654,8 @@ function ChartTab({ persona, logs, onAdd, onEdit }: { persona: typeof PERSONAS[S
     <>
       <PrivateLabel />
 
-      <div style={{ fontSize: 12, color: C.textLight, textAlign: "center", padding: "20px 10px", border: `0.5px dashed ${C.border}`, borderRadius: 10 }}>
-        No skin tracking data yet.
-      </div>
+      {/* Skin Chart: nothing records a skin measurement yet — no table, no query, so there is nothing to chart and
+          no heading is shown. Re-add the section here (heading + chart) with the query the moment measurements exist. */}
 
       {/* Treatment log */}
       <SectionTitle action={
@@ -1572,7 +1663,8 @@ function ChartTab({ persona, logs, onAdd, onEdit }: { persona: typeof PERSONAS[S
           <Plus size={12} /> Add
         </button>
       }>Treatment Log</SectionTitle>
-      <FilterRow items={TREAT_FILTERS} active={treatFilter} onChange={setTreatFilter} />
+      {/* Nothing to filter until there is at least one log. */}
+      {logs.length > 0 && <FilterRow items={TREAT_FILTERS} active={treatFilter} onChange={setTreatFilter} />}
       <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
         {treats.length === 0 && (
           <div style={{ fontSize: 12, color: C.textLight, textAlign: "center", padding: "20px 10px", border: `0.5px dashed ${C.border}`, borderRadius: 10 }}>
@@ -1595,11 +1687,14 @@ function ChartTab({ persona, logs, onAdd, onEdit }: { persona: typeof PERSONAS[S
                   </div>
                 )}
               </div>
-              <div style={{ display: "flex", gap: 1 }}>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} size={12} fill={i < (t.rating ?? 0) ? C.gold : "transparent"} color={i < (t.rating ?? 0) ? C.gold : C.borderStrong} />
-                ))}
-              </div>
+              {/* An unrated log shows no stars at all — five empty stars would read as a rating of zero. */}
+              {t.rating != null && (
+                <div style={{ display: "flex", gap: 1 }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Star key={i} size={12} fill={i < t.rating! ? C.gold : "transparent"} color={i < t.rating! ? C.gold : C.borderStrong} />
+                  ))}
+                </div>
+              )}
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
               {(t.fixed ?? []).map(f => <span key={f} style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: C.goodBg, color: C.good }}>✓ Fixed {f}</span>)}
@@ -1615,14 +1710,16 @@ function ChartTab({ persona, logs, onAdd, onEdit }: { persona: typeof PERSONAS[S
       <div style={{ background: C.ink, color: "#fff", borderRadius: 14, padding: 20, marginTop: 28 }}>
         <div style={{ fontSize: 16, fontWeight: 700 }}>📋 Share with your Dermatologist</div>
         <div style={{ fontSize: 13, opacity: 0.75, marginTop: 6, lineHeight: 1.5 }}>No more explaining from scratch. Send this before your appointment.</div>
+        {/* Both controls are kept and shown disabled: neither the link nor the PDF export is built yet. */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 14 }}>
-          <button style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 0", borderRadius: 8, background: "#fff", color: C.ink, border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+          <button type="button" disabled title="Sharing this chart isn't available yet" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 0", borderRadius: 8, background: "transparent", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.3)", fontSize: 12, fontWeight: 700, cursor: "not-allowed" }}>
             <Link2 size={14} /> Get Link
           </button>
-          <button style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 0", borderRadius: 8, background: "#3A2418", color: "#fff", border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+          <button type="button" disabled title="PDF export isn't available yet" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 0", borderRadius: 8, background: "transparent", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.3)", fontSize: 12, fontWeight: 700, cursor: "not-allowed" }}>
             <Download size={14} /> PDF
           </button>
         </div>
+        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", marginTop: 8 }}>Not available yet — neither the link nor the PDF is built.</div>
       </div>
 
     </>
@@ -1680,36 +1777,23 @@ function WhatIveDoneStrip({ logs, onTogglePublic, onAdd }: { logs: TLog[]; onTog
           <span style={{ fontSize: 10 }}>log treatment</span>
         </button>
       </div>
-      <div style={{ fontSize: 10, color: "#ccc", marginTop: 6 }}>Toggle on = visible to subscribers · off = private</div>
+      {/* Describes exactly what the toggle writes (treatment_logs.is_public). There is no subscriber audience. */}
+      <div style={{ fontSize: 10, color: "#999", marginTop: 6 }}>Toggle on = shown on your public profile · off = private to you</div>
     </div>
   );
 }
 
 // ---------- Treatment Log add/edit sheet ----------
+// Links only to a slug that came from the treatments table (the page backfills `treatment_slug` from the active
+// treatments list when it loads the logs). A log whose treatment has no active slug renders as plain text: slugifying
+// the typed name client-side produced URLs like /treatments/my-botox-thing that do not exist.
 function TreatmentNameLink({ name, slug, style }: { name: string; slug: string | null; style?: CSSProperties }) {
   const navigate = useNavigate();
-  const [resolvedSlug, setResolvedSlug] = useState<string | null>(slug);
-  useEffect(() => { setResolvedSlug(slug); }, [slug]);
 
-  const handleClick = async (e: ReactMouseEvent) => {
+  const handleClick = (e: ReactMouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    let s = resolvedSlug;
-    if (!s && name) {
-      const { data } = await supabase
-        .from("treatments")
-        .select("slug")
-        .ilike("name", name)
-        .eq("active", true)
-        .maybeSingle();
-      s = (data as any)?.slug ?? null;
-      if (s) setResolvedSlug(s);
-    }
-    if (!s && name) {
-      // Last-resort: slugify the name and let /treatments/$slug handle not-found gracefully
-      s = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    }
-    if (s) navigate({ to: "/treatments/$slug", params: { slug: s } });
+    if (slug) navigate({ to: "/treatments/$slug", params: { slug } });
   };
 
   const baseStyle: CSSProperties = {
@@ -1721,7 +1805,7 @@ function TreatmentNameLink({ name, slug, style }: { name: string; slug: string |
     overflow: "hidden",
     textOverflow: "ellipsis",
     textDecoration: "none",
-    cursor: "pointer",
+    cursor: slug ? "pointer" : "default",
     background: "none",
     border: "none",
     padding: 0,
@@ -1732,6 +1816,7 @@ function TreatmentNameLink({ name, slug, style }: { name: string; slug: string |
     ...style,
   };
 
+  if (!slug) return <div style={baseStyle}>{name}</div>;
   return (
     <button type="button" style={baseStyle} onClick={handleClick}>{name}</button>
   );
@@ -1753,7 +1838,8 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
   const [cost, setCost] = useState(initial?.cost ?? "");
   const initialMonth = initial?.date ? String(initial.date).slice(0, 7) : "";
   const [month, setMonth] = useState(initialMonth);
-  const [rating, setRating] = useState(initial?.rating ?? 5);
+  // No default rating: an untouched form must not publish a 5-star verdict the user never gave.
+  const [rating, setRating] = useState<number | null>(initial?.rating ?? null);
   const [fixedText, setFixedText] = useState((initial?.fixed ?? []).join(", "));
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [emoji, setEmoji] = useState(initial?.emoji ?? "💉");
@@ -1793,6 +1879,7 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
 
   const save = async () => {
     if (!treatmentName.trim()) return;
+    if (rating == null) { setErrorMsg("Choose a rating before saving."); return; }
     setSaving(true);
     setErrorMsg(null);
     let finalId = treatmentId;
@@ -1925,14 +2012,15 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
           </div>
         </div>
         <div>
-          <label style={label}>Rating</label>
+          <label style={label}>Rating — required</label>
           <div style={{ display: "flex", gap: 4 }}>
             {[1,2,3,4,5].map(n => (
-              <button key={n} type="button" onClick={() => setRating(n)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 2 }}>
-                <Star size={20} fill={n <= rating ? C.gold : "transparent"} color={n <= rating ? C.gold : C.borderStrong} />
+              <button key={n} type="button" aria-label={`${n} star${n === 1 ? "" : "s"}`} onClick={() => setRating(n)} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 2 }}>
+                <Star size={20} fill={rating != null && n <= rating ? C.gold : "transparent"} color={rating != null && n <= rating ? C.gold : C.borderStrong} />
               </button>
             ))}
           </div>
+          {rating == null && <div style={{ fontSize: 11, color: "#999", marginTop: 4 }}>Pick a rating to save this log.</div>}
         </div>
         <div>
           <label style={label}>What it fixed</label>
@@ -1949,8 +2037,8 @@ function TreatmentLogSheet({ userId, initial, onClose, onSaved }: {
       )}
 
       <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
-        <button onClick={save} disabled={saving || !treatmentName.trim()}
-          style={{ flex: 1, background: "#A8001C", color: "#FFFCF8", border: "none", borderRadius: 8, padding: 13, fontSize: 14, fontWeight: 800, cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
+        <button onClick={save} disabled={saving || !treatmentName.trim() || rating == null}
+          style={{ flex: 1, background: "#A8001C", color: "#FFFCF8", border: "none", borderRadius: 8, padding: 13, fontSize: 14, fontWeight: 800, cursor: (saving || rating == null) ? "not-allowed" : "pointer", opacity: (saving || !treatmentName.trim() || rating == null) ? 0.6 : 1, fontFamily: "inherit" }}>
           {saving ? "Saving…" : (initial ? "Save changes" : "Log treatment")}
         </button>
         {initial && (

@@ -32,6 +32,9 @@ export default function Footer() {
           <Link to="/privacy" style={{ color: ESPRESSO, textDecoration: "none" }}>
             Privacy
           </Link>
+          <Link to="/for-clinics" style={{ color: ESPRESSO, textDecoration: "none" }}>
+            For clinics
+          </Link>
         </div>
 
         <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.6 }}>

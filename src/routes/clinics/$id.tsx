@@ -6,12 +6,22 @@ import { leadEvent, recordConsultationClick } from "@/lib/leads";
 import { ClinicImage } from "@/components/ClinicImage";
 import { displayImages, useCategoryImages } from "@/lib/clinicPhotos";
 import { shownPrice } from "@/lib/clinicPrices";
+// The app-wide floor under any displayed percentage. It lives in exactly one place.
+import { MIN_TAGGED } from "@/lib/opinionAggregate";
 import {
   ArrowLeft, Heart, Share2, MapPin, Sparkles, FileText, Lock,
   Phone, Car, Map as MapIcon, Building2, Plus, Flame, Camera,
 } from "lucide-react";
 
 export const Route = createFileRoute("/clinics/$id")({
+  // The clinic's own name replaces this as soon as the row loads (see the document.title
+  // effect below); the route params only carry the id, so the static head is the fallback.
+  head: () => ({
+    meta: [
+      { title: "Clinic — Skintea" },
+      { name: "description", content: "LA skin clinics, med spas, laser clinics and dermatologists. No sponsored placements." },
+    ],
+  }),
   component: ClinicDetailPage,
 });
 
@@ -29,7 +39,7 @@ const SKIN_EMOJI: Record<string, string> = {
 };
 
 type Clinic = any;
-type SkinScore = { skin_type: string; recommend_pct: number };
+type SkinScore = { skin_type: string; recommend_pct: number | null; field_provenance?: any };
 type CTreatment = {
   id: string;
   price_from: number | null;
@@ -103,6 +113,20 @@ function formatDayGroup(days: string[]): string {
 }
 
 
+// A skin score carries its sample size in field_provenance (enforce_skin_score_measured:
+// source = skintea_measured, n >= 10). No n, no percentage — the figure never renders bare.
+function skinScoreN(s: SkinScore | undefined | null): number | null {
+  const fp = s?.field_provenance;
+  const raw = fp?.recommend_pct?.n ?? fp?.n ?? null;
+  return typeof raw === "number" && Number.isFinite(raw) ? raw : null;
+}
+
+// Thousands are floored to one decimal: 1,500 reads "1.5k", never "2k".
+function compactCount(n: number): string {
+  if (n < 1000) return `${n}`;
+  return `${Math.floor(n / 100) / 10}k`;
+}
+
 const SECTION_LABEL: React.CSSProperties = {
   fontSize: 9, fontWeight: 800, letterSpacing: "0.14em",
   textTransform: "uppercase", color: CRIMSON,
@@ -133,12 +157,12 @@ function ClinicDetailPage() {
   const [socials, setSocials] = useState<{ platform: string; url: string; handle: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [activePhotoTab, setActivePhotoTab] = useState<"interior" | "results" | "staff" | "outside">("interior");
   const [activeThumbIndex, setActiveThumbIndex] = useState(0);
   const [saved, setSaved] = useState(false);
   const [inquireFor, setInquireFor] = useState<CTreatment | null>(null);
   const [userSkin, setUserSkin] = useState<string | null>(null);
   const [reviewFilter, setReviewFilter] = useState<string>("all");
+  const [showAllReviews, setShowAllReviews] = useState(false);
   const [videos, setVideos] = useState<any[]>([]);
   const [activeVideoTab, setActiveVideoTab] = useState<"tiktok" | "instagram">("tiktok");
 
@@ -196,6 +220,13 @@ function ClinicDetailPage() {
     void leadEvent("clinic_view", { clinic_id: id });
   }, [clinic, id]);
 
+  // Title the tab with the clinic once the row is loaded. The route's static head covers the
+  // load and the not-found case; params only carry the id, so the name can only come from here.
+  useEffect(() => {
+    if (typeof document === "undefined" || !clinic?.name) return;
+    document.title = `${clinic.name} — Skintea`;
+  }, [clinic?.name]);
+
   const categoryImages = useCategoryImages();
   const [failedPhotos, setFailedPhotos] = useState<Set<string>>(new Set());
   const markFailed = (url: string) => setFailedPhotos((prev) => (prev.has(url) ? prev : new Set(prev).add(url)));
@@ -203,10 +234,28 @@ function ClinicDetailPage() {
   const galleryImages = clinic ? displayImages(clinic as any, categoryImages, 800, failedPhotos) : [];
   const galleryIndex = Math.min(activeThumbIndex, Math.max(galleryImages.length - 1, 0));
 
-  const userSkinScore = useMemo(
-    () => userSkin ? skinScores.find((s) => s.skin_type === userSkin)?.recommend_pct : null,
-    [userSkin, skinScores]
+  // A skin score is displayable only with its own sample size, at or above the same floor as
+  // every other percentage in the app (MIN_TAGGED). Rows without an n never render a figure.
+  const shownSkinScores = useMemo(
+    () =>
+      skinScores
+        .map((s) => ({ skin_type: s.skin_type, pct: s.recommend_pct, n: skinScoreN(s) }))
+        .filter((s): s is { skin_type: string; pct: number; n: number } =>
+          s.pct != null && s.n != null && s.n >= MIN_TAGGED
+        ),
+    [skinScores]
   );
+
+  const userSkinScore = useMemo(
+    () => (userSkin ? shownSkinScores.find((s) => s.skin_type === userSkin) ?? null : null),
+    [userSkin, shownSkinScores]
+  );
+
+  // Distance and travel time need a point to measure from. Skintea never asks for the
+  // browser's location and stores no home address, so there is no origin and neither figure
+  // can render. Switch this on only when a real origin exists — a location the user granted,
+  // or an address they typed — and compute from that, never from a stored column.
+  const userOrigin: { lat: number; lng: number } | null = null;
 
   const filteredReviews = useMemo(() => {
     if (reviewFilter === "all") return reviews;
@@ -281,7 +330,8 @@ function ClinicDetailPage() {
         <div style={{ fontSize: 20, fontWeight: 800, color: ESPRESSO, marginBottom: 6 }}>{clinic.name}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: MUTED, marginBottom: 10 }}>
           <MapPin size={12} />
-          <span>{clinic.neighborhood ?? ""}{clinic.distance_miles != null ? ` · ${clinic.distance_miles} mi` : ""}</span>
+          {/* Distance needs an origin; there is none, so it stays off (see userOrigin). */}
+          <span>{clinic.neighborhood ?? ""}{userOrigin && clinic.distance_miles != null ? ` · ${clinic.distance_miles} mi` : ""}</span>
         </div>
         {socials.length > 0 && (
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
@@ -295,38 +345,67 @@ function ClinicDetailPage() {
             ))}
           </div>
         )}
+        {/*
+          Badges are gated on a recorded decision, not on a bare boolean. Both conditions are
+          unreachable today because nothing writes these provenance keys:
+          - Verified switches on when clinics.field_provenance.is_verified records who verified
+            this listing and when — a signed /for-clinics submission from the clinic, or a
+            Skintea visit. Never a Google listing, never an unsourced flag.
+          - Featured switches on when clinics.field_provenance.is_featured records the editor
+            and the date of the editorial decision. It is never a paid placement.
+        */}
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {clinic.is_verified && (
+          {clinic.is_verified === true
+            && clinic.field_provenance?.is_verified?.source != null
+            && clinic.field_provenance?.is_verified?.recorded_at != null && (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: CRIMSON_TINT, color: CRIMSON, fontSize: 10, fontWeight: 700, padding: "4px 8px", borderRadius: 20 }}>
               <span style={{ width: 5, height: 5, borderRadius: 5, background: CRIMSON }} /> Verified
             </span>
           )}
-          {clinic.is_featured && (
+          {clinic.is_featured === true
+            && clinic.field_provenance?.is_featured?.source != null
+            && clinic.field_provenance?.is_featured?.recorded_at != null && (
             <span style={{ background: ESPRESSO, color: WARM_WHITE, fontSize: 10, fontWeight: 700, padding: "4px 8px", borderRadius: 20 }}>
               Featured
             </span>
           )}
         </div>
-        {userSkin && userSkinScore != null && (
+        {/* The figure always carries its sample size and states no verdict of its own. */}
+        {userSkin && userSkinScore && (
           <div style={{
             marginTop: 12, background: CRIMSON_TINT, borderRadius: 10,
             padding: "10px 12px", display: "flex", alignItems: "center", gap: 8,
             fontSize: 11, color: ESPRESSO, fontWeight: 600,
           }}>
             <Sparkles size={14} color={CRIMSON} />
-            <span>Strong match for {userSkin} skin — {userSkinScore}% of {userSkin} users recommend</span>
+            <span>{userSkinScore.pct}% of {userSkinScore.n} reviewers with {userSkin} skin recommend this clinic</span>
           </div>
         )}
       </div>
 
-      {/* 6. Stats row — only recorded values; hidden entirely when none are recorded */}
+      {/*
+        6. Stats row — a tile renders only when its value exists AND its basis can be stated
+        beside it. Hidden entirely when no tile qualifies.
+        - Reviews is Skintea's own count (the clinic_reviews rows fetched above), never
+          clinics.review_count / google_review_count, which count someone else's reviews.
+        - A percentage or an average needs a sample size and the same floor as the rest of the
+          app (MIN_TAGGED, @/lib/opinionAggregate); the sample is Skintea's review count.
+        - Price tier renders only with the number of prices it rests on — prices read from the
+          clinic's own site, each dated and linked in the Treatments section.
+      */}
       {(() => {
+        const reviewN = reviews.length;
+        const pricedN = treatments.filter((t) => shownPrice(t.price_from, t.price_unit, t.field_provenance)).length;
+        const enoughReviews = reviewN >= MIN_TAGGED;
         const stats = [
-          clinic.skintea_score != null ? { v: `${clinic.skintea_score}%`, l: "Recommend" } : null,
-          clinic.review_count != null ? { v: `${clinic.review_count}`, l: "Reviews" } : null,
-          clinic.avg_score != null ? { v: `${clinic.avg_score}`, l: "Score" } : null,
-          clinic.price_tier != null ? { v: `${clinic.price_tier}`, l: "Price" } : null,
-        ].filter(Boolean) as { v: string; l: string }[];
+          clinic.skintea_score != null && enoughReviews
+            ? { v: `${clinic.skintea_score}%`, l: "Recommend", sub: `of ${reviewN} reviews` } : null,
+          reviewN > 0 ? { v: `${reviewN}`, l: "Reviews", sub: "on Skintea" } : null,
+          clinic.avg_score != null && enoughReviews
+            ? { v: `${clinic.avg_score}`, l: "Score", sub: `from ${reviewN} reviews` } : null,
+          clinic.price_tier != null && pricedN > 0
+            ? { v: `${clinic.price_tier}`, l: "Price", sub: `${pricedN} listed price${pricedN === 1 ? "" : "s"}` } : null,
+        ].filter(Boolean) as { v: string; l: string; sub: string }[];
         if (stats.length === 0) return null;
         return (
       <div style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}` }}>
@@ -337,6 +416,7 @@ function ClinicDetailPage() {
           }}>
             <div style={{ fontSize: 19, fontWeight: 800, color: ESPRESSO }}>{s.v}</div>
             <div style={{ fontSize: 9, textTransform: "uppercase", color: MUTED, letterSpacing: "0.08em", marginTop: 2 }}>{s.l}</div>
+            <div style={{ fontSize: 9, color: MUTED, marginTop: 2 }}>{s.sub}</div>
           </div>
         ))}
       </div>
@@ -481,15 +561,21 @@ function ClinicDetailPage() {
                         }} />
                       </div>
                     </div>
-                    {/* Stats overlay top-right */}
+                    {/* Stats overlay top-right — each figure has its own chip, so a video with
+                        only likes shows likes instead of an empty box. Thousands are floored. */}
                     {(v.views > 0 || v.likes > 0) && (
                       <div style={{
                         position: "absolute", top: 6, right: 6,
-                        display: "flex", gap: 6,
+                        display: "flex", gap: 4,
                       }}>
                         {v.views > 0 && (
                           <span style={{ background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 5px", borderRadius: 4 }}>
-                            {v.views >= 1000 ? `${(v.views / 1000).toFixed(0)}k` : v.views}
+                            {compactCount(v.views)} views
+                          </span>
+                        )}
+                        {v.likes > 0 && (
+                          <span style={{ background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 9, fontWeight: 700, padding: "2px 5px", borderRadius: 4 }}>
+                            {compactCount(v.likes)} likes
                           </span>
                         )}
                       </div>
@@ -546,13 +632,18 @@ function ClinicDetailPage() {
       </Section>
       )}
 
-      {/* 11. Works for your skin? — hidden until clinic_skin_scores holds sourced rows for this clinic */}
-      {skinScores.length > 0 && (
+      {/*
+        11. Works for your skin? — only skin types that actually have a qualifying row render.
+        A type with no rows is simply absent; it never shows a dash and an empty bar, which
+        reads as a measured zero. Hidden entirely when no type qualifies (the state today).
+      */}
+      {shownSkinScores.length > 0 && (
       <Section title="Works for your skin?">
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {["oily", "combination", "dry", "sensitive", "normal"].map((type) => {
-            const score = skinScores.find((s) => s.skin_type === type);
-            const pct = score?.recommend_pct ?? null;
+          {["oily", "combination", "dry", "sensitive", "normal"]
+            .map((type) => ({ type, score: shownSkinScores.find((s) => s.skin_type === type) }))
+            .filter((r) => r.score != null)
+            .map(({ type, score }) => {
             const isYou = userSkin === type;
             return (
               <div key={type} style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -561,9 +652,12 @@ function ClinicDetailPage() {
                   <span style={{ textTransform: "capitalize" }}>{type}</span>
                 </div>
                 <div style={{ flex: 1, height: 5, background: TRACK, borderRadius: 5, overflow: "hidden" }}>
-                  <div style={{ width: `${pct ?? 0}%`, height: "100%", background: CRIMSON }} />
+                  <div style={{ width: `${score!.pct}%`, height: "100%", background: CRIMSON }} />
                 </div>
-                <div style={{ width: 32, fontSize: 11, fontWeight: 700, color: ESPRESSO, textAlign: "right" }}>{pct != null ? `${pct}%` : "—"}</div>
+                {/* Every percentage renders with the number of reviews behind it. */}
+                <div style={{ fontSize: 11, fontWeight: 700, color: ESPRESSO, textAlign: "right", whiteSpace: "nowrap" }}>
+                  {score!.pct}% <span style={{ fontWeight: 600, color: MUTED }}>of {score!.n}</span>
+                </div>
                 {isYou && (
                   <span style={{ background: CRIMSON_TINT, color: CRIMSON, fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 4, textTransform: "uppercase" }}>You</span>
                 )}
@@ -594,10 +688,18 @@ function ClinicDetailPage() {
         </div>
       }>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {filteredReviews.slice(0, 2).map((r) => (
+          {(showAllReviews ? filteredReviews : filteredReviews.slice(0, 2)).map((r) => {
+            // Every review has a real, signed-in author (enforce_signed_in_author). This page
+            // does not join profiles, so it says so rather than calling the author "Anonymous";
+            // if a handle is ever joined in, it renders instead.
+            const handle = (r as any).profiles?.username ?? (r as any).author_username ?? null;
+            const agree = r.agree_count ?? 0;
+            return (
             <div key={r.id} style={{ background: "#fff", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>Anonymous</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>
+                  {handle ? `@${handle}` : "Signed-in reviewer · name not shown"}
+                </div>
                 <div style={{ fontSize: 11, color: MUTED, display: "flex", alignItems: "center", gap: 4 }}>
                   <span>{SKIN_EMOJI[r.skin_type] ?? ""}</span><span style={{ textTransform: "capitalize" }}>{r.skin_type}</span>
                 </div>
@@ -606,20 +708,34 @@ function ClinicDetailPage() {
                 <span style={{ display: "inline-block", background: CRIMSON_TINT, color: CRIMSON, fontSize: 9, fontWeight: 800, padding: "3px 7px", borderRadius: 4, textTransform: "uppercase", marginBottom: 8 }}>{r.treatments.name}</span>
               )}
               <div style={{ fontSize: 12, color: ESPRESSO, lineHeight: 1.55 }}>{r.body}</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 8, fontSize: 11, color: MUTED }}>
-                <Flame size={12} /> {r.agree_count}
-              </div>
+              {/* The bare number said nothing; it now says what it counts, and stays off at zero. */}
+              {agree > 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 8, fontSize: 11, color: MUTED }}>
+                  <Flame size={12} /> {agree} {agree === 1 ? "person agrees" : "people agree"}
+                </div>
+              )}
             </div>
-          ))}
+            );
+          })}
           {filteredReviews.length === 0 && (
             <div style={{ fontSize: 11, color: MUTED, textAlign: "center", padding: 12 }}>No reviews for this filter yet.</div>
           )}
         </div>
-        <div style={{ textAlign: "center", marginTop: 12 }}>
-          <button style={{ background: "none", border: "none", color: CRIMSON, fontSize: 11, fontWeight: 700, textTransform: "uppercase", cursor: "pointer" }}>
-            See all {clinic.review_count} reviews →
-          </button>
-        </div>
+        {/*
+          The count is the Skintea reviews this page actually holds, not clinics.review_count
+          (Google's). There is no all-reviews route, so the button expands the list in place
+          instead of pointing nowhere, and is absent when there is nothing more to show.
+        */}
+        {filteredReviews.length > 2 && (
+          <div style={{ textAlign: "center", marginTop: 12 }}>
+            <button
+              onClick={() => setShowAllReviews((v) => !v)}
+              style={{ background: "none", border: "none", color: CRIMSON, fontSize: 11, fontWeight: 700, textTransform: "uppercase", cursor: "pointer" }}
+            >
+              {showAllReviews ? "Show fewer reviews" : `See all ${filteredReviews.length} reviews →`}
+            </button>
+          </div>
+        )}
       </Section>
       )}
 
@@ -680,15 +796,30 @@ function ClinicDetailPage() {
       })()}
 
 
-      {/* 14. Spacer */}
+      {/*
+        14. Owner route — /for-clinics is the only way a clinic can supply its own photos,
+        hours and details (with written permission). Nothing else on the site links to it.
+      */}
+      <div style={{ padding: "14px 16px", borderBottom: `0.5px solid ${BORDER}`, textAlign: "center" }}>
+        <Link to="/for-clinics" style={{ fontSize: 11, fontWeight: 700, color: MUTED, textDecoration: "none" }}>
+          Own this clinic? Send your photos and details →
+        </Link>
+      </div>
+
+      {/* 15. Spacer */}
       <div style={{ height: 76 }} />
 
-      {/* 15. Fixed bottom bar */}
+      {/*
+        16. Fixed bottom bar — Call renders only with a phone number and Directions only with
+        an address, so neither can open tel:null or an empty Maps search. Flex gaps only appear
+        between buttons that render, so the bar stays right with three, two or one.
+      */}
       <div style={{
         position: "fixed", bottom: 0, left: 0, right: 0,
         background: WARM_WHITE, borderTop: `0.5px solid ${BORDER}`,
         padding: "12px 16px 20px", display: "flex", gap: 6, zIndex: 20,
       }}>
+        {clinic.phone && (
         <a href={`tel:${clinic.phone}`} style={{
           flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
           background: "#fff", border: `0.5px solid ${BORDER}`, borderRadius: 10,
@@ -697,8 +828,10 @@ function ClinicDetailPage() {
           <Phone size={16} color={ESPRESSO} />
           <span style={{ fontSize: 8, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.08em" }}>Call</span>
         </a>
+        )}
+        {typeof clinic.address === "string" && clinic.address.trim() !== "" && (
         <a
-          href={`https://maps.google.com/dir/?destination=${encodeURIComponent(clinic.address ?? "")}`}
+          href={`https://maps.google.com/dir/?destination=${encodeURIComponent(clinic.address)}`}
           target="_blank" rel="noreferrer"
           style={{
             flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
@@ -707,8 +840,10 @@ function ClinicDetailPage() {
           }}
         >
           <MapPin size={16} color={ESPRESSO} />
-          <span style={{ fontSize: 8, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.08em" }}>{clinic.travel_minutes != null ? `${clinic.travel_minutes} min away` : "Directions"}</span>
+          {/* Travel time needs an origin; there is none, so the label stays "Directions". */}
+          <span style={{ fontSize: 8, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.08em" }}>{userOrigin && clinic.travel_minutes != null ? `${clinic.travel_minutes} min away` : "Directions"}</span>
         </a>
+        )}
         <button onClick={handleBook} style={{
           flex: 2, background: CRIMSON, color: WARM_WHITE, border: "none",
           borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: "pointer",
@@ -728,6 +863,9 @@ function ClinicDetailPage() {
             <div style={{ width: 36, height: 4, borderRadius: 4, background: BORDER, margin: "0 auto 16px" }} />
             <div style={{ ...SECTION_LABEL, marginBottom: 8 }}>Inquire about {inquireFor.treatments?.name}</div>
             <div style={{ fontSize: 13, color: ESPRESSO, fontWeight: 700, marginBottom: 14 }}>{clinic.name}</div>
+            {/* Each row needs its own recorded value; 61 listed clinics have no website and
+                many have no phone, and a link to nothing is worse than no link. */}
+            {clinic.phone && (
             <a href={`tel:${clinic.phone}`} style={{
               display: "flex", alignItems: "center", gap: 8, padding: "12px 0",
               borderTop: `0.5px solid ${BORDER}`, color: ESPRESSO,
@@ -735,6 +873,8 @@ function ClinicDetailPage() {
             }}>
               <Phone size={14} /> {clinic.phone}
             </a>
+            )}
+            {clinic.website_url && (
             <a href={clinic.website_url} target="_blank" rel="noreferrer" onClick={() => { void leadEvent("booking_link_click", { clinic_id: id, link: "website_url" }); }} style={{
               display: "flex", alignItems: "center", gap: 8, padding: "12px 0",
               borderTop: `0.5px solid ${BORDER}`, color: CRIMSON,
@@ -742,6 +882,15 @@ function ClinicDetailPage() {
             }}>
               Visit website →
             </a>
+            )}
+            {!clinic.phone && !clinic.website_url && (
+              <div style={{
+                padding: "12px 0", borderTop: `0.5px solid ${BORDER}`,
+                color: MUTED, fontSize: 12,
+              }}>
+                We have no contact details for this clinic yet.
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -7,6 +7,7 @@ import { Search, SlidersHorizontal, Map, Bell, MapPin, Sparkles, X } from "lucid
 import { IconBookmark } from "@tabler/icons-react";
 import { ClinicImage } from "@/components/ClinicImage";
 import { displayImages, useCategoryImages } from "@/lib/clinicPhotos";
+import { MIN_TAGGED } from "@/lib/opinionAggregate";
 
 export const Route = createFileRoute("/clinics/")({
   head: () => ({
@@ -93,13 +94,67 @@ const noScrollbar: React.CSSProperties = {
   msOverflowStyle: "none",
 };
 
-const SORT_TABS: { key: string; label: string }[] = [
-  { key: "nearest", label: "Nearest" },
-  { key: "rating", label: "Top Rated" },
-  { key: "reviews", label: "Most Reviewed" },
-  { key: "price", label: "Price: Low" },
-  { key: "verified", label: "Verified" },
+// A sort tab is enabled only when the column it orders by carries data today.
+// "Nearest" was renamed "A–Z": no distance is known because no location is ever collected from
+// the user. Top Rated / Most Reviewed / Price: Low / Verified order by skintea_score,
+// trust_score, yelp_review_count, price_from and is_verified, which are empty on every listed
+// clinic, so they render as disabled controls. Flip `enabled` once the column is filled from a
+// recorded source. Google's rating and review count are NOT a substitute — they must never be
+// displayed or sorted on.
+const SORT_TABS: { key: string; label: string; enabled: boolean }[] = [
+  { key: "name", label: "A–Z", enabled: true },
+  { key: "rating", label: "Top Rated", enabled: false },
+  { key: "reviews", label: "Most Reviewed", enabled: false },
+  { key: "price", label: "Price: Low", enabled: false },
+  { key: "verified", label: "Verified", enabled: false },
 ];
+
+const DEFAULT_SORT = "name";
+
+const SORT_DISABLED_HINT = "Top Rated, Most Reviewed, Price and Verified need clinic-submitted data — not collected yet.";
+
+// Comparators are kept for every tab so a sort works the moment its column is populated and its
+// `enabled` flag flips; only an enabled tab's comparator is ever applied.
+const SORT_COMPARATORS: Record<string, (a: Clinic, b: Clinic) => number> = {
+  name: (a, b) => a.name.localeCompare(b.name),
+  rating: (a, b) => (b.skintea_score ?? b.trust_score ?? 0) - (a.skintea_score ?? a.trust_score ?? 0),
+  reviews: (a, b) => (b.yelp_review_count ?? 0) - (a.yelp_review_count ?? 0),
+  price: (a, b) => (a.price_from ?? 9999) - (b.price_from ?? 9999),
+  verified: (a, b) => (b.is_verified ? 1 : 0) - (a.is_verified ? 1 : 0),
+};
+
+// Which drawer filter groups actually narrow the list today. A group is `true` only when every
+// chip in it filters on a populated column; anything else renders disabled and can never enter
+// the applied-filter chip row.
+//  - area:      clinics.neighborhood is populated on most listed clinics → works.
+//  - hours:     is_open_now / same_day_ok / walk_in_ok are null on every row (and the
+//               "null = unknown → keep" rule returns the whole list); Open Weekends and
+//               Open Late have no filter logic at all.
+//  - keywords:  keywordsFilter was never read by `filtered` — it filtered nothing, ever.
+//  - price:     clinics.price_from is null on every row.
+//  - prefs:     parking_available / women_only_staff / has_private_room / first_time_discount
+//               are null on every row; the rest of the chips have no logic.
+//  - facility:  has_makeup_room / has_kids_space / has_drink_service / korean_aesthetics are
+//               null on every row; the rest of the chips have no logic.
+//  - treatment: these chips read clinics.best_for, which is null on every row, so every chip
+//               returns zero clinics. Real mappings live in clinic_treatments, which this list
+//               query does not join.
+const FILTERS_ENABLED: Record<"area" | "hours" | "keywords" | "price" | "prefs" | "facility" | "treatment", boolean> = {
+  area: true,
+  hours: false,
+  keywords: false,
+  price: false,
+  prefs: false,
+  facility: false,
+  treatment: false,
+};
+
+const HOURS_DISABLED_HINT = "Opening hours and walk-in policy aren't collected yet — these can't filter anything.";
+const KEYWORDS_DISABLED_HINT = "No clinic is tagged with these keywords yet.";
+const PRICE_DISABLED_HINT = "No listed clinic has a recorded starting price yet.";
+const PREFS_DISABLED_HINT = "Amenities aren't collected yet — these can't filter anything.";
+const FACILITY_DISABLED_HINT = "Facility details aren't collected yet — these can't filter anything.";
+const TREATMENT_DISABLED_HINT = "Treatment filtering isn't wired to this list yet.";
 
 const AREA_OPTIONS = ["West Hollywood", "Beverly Hills", "Koreatown", "Silver Lake", "Santa Monica", "Downtown LA", "Culver City", "Studio City"];
 const HOURS_OPTIONS = ["Open Now", "Open Weekends", "Open Late (after 8pm)", "Same-day OK", "Walk-in Friendly"];
@@ -110,12 +165,73 @@ const FACILITY_OPTIONS = ["Makeup Room", "Changing Room", "Drink Service", "Kids
 const TREATMENT_CATEGORIES: { title: string; items: string[] }[] = [
   { title: "Facial & Skin", items: ["Pore Care", "Glass Skin", "Lifting", "Brightening", "Hydrafacial", "Chemical Peel", "Herb Peeling", "Aqua Peel", "Deep Cleansing"] },
   { title: "Injectables & Medical", items: ["Botox", "Filler", "PRF", "PRP", "Potenza", "Indiba", "Skinbooster"] },
-  { title: "Laser & Energy", items: ["Laser", "IPL", "LED Therapy", "Microneedling", "RF Therapy", "HIFU"] },
+  // "Laser" removed: the owner deactivated it as a treatment ("a category, not a treatment").
+  { title: "Laser & Energy", items: ["IPL", "LED Therapy", "Microneedling", "RF Therapy", "HIFU"] },
   { title: "Face Surgery & Contouring", items: ["Chin Line", "Jaw Slimming", "Nose", "Eyes", "Face Lifting Surgery", "Thread Lift"] },
   { title: "Body", items: ["Body Contouring", "Slimming", "Waist", "Bust", "Back", "Hip Lift"] },
   { title: "Hair Removal", items: ["Underarm", "Arms", "Legs", "Full Body", "VIO", "Face"] },
 ];
 
+/* ---------------------------------------------------------------------------
+   CARD DISPLAY RULES
+   Every badge and stat below is kept as a feature. What changed is the rule that
+   lets it render, so none of them can state something the data does not support.
+   --------------------------------------------------------------------------- */
+
+// A recommend percentage is a measured aggregate, so it renders only next to the sample size it
+// was computed from, and only at or above the app-wide floor of MIN_TAGGED (10) — the same floor
+// opinionAggregate.ts applies to product opinion rows.
+// clinics.skintea_score / trust_score are NOT a valid source: they carry no sample size, so a
+// figure taken from them could never be shown with one. The figure has to come from a measured
+// aggregate (clinic_skin_scores, source = skintea_measured, n >= 10), which this list query does
+// not fetch — so this returns null for every row today and the badge stays unreachable.
+// To switch it on: join the measured aggregate into the list query and return { pct, n } here.
+type RecommendStat = { pct: number; n: number };
+
+function recommendFor(_clinic: Clinic, measured?: RecommendStat | null): RecommendStat | null {
+  // Nothing is passed today: the measured aggregate is not joined into this list query.
+  if (!measured) return null;
+  return measured.n >= MIN_TAGGED ? measured : null;
+}
+
+// "Verified" means a recorded verification event, never a score. clinics.is_verified is a bare
+// boolean with no provenance behind it, so it is not sufficient on its own.
+// To switch it on: require a provenance-bearing verification field
+// (e.g. field_provenance.is_verified = {source: 'clinic_submission' | 'skintea_verified',
+// recorded_at}) and return true when that record exists.
+const HAS_VERIFICATION_PROVENANCE: boolean = false;
+
+function isVerified(clinic: Clinic): boolean {
+  return HAS_VERIFICATION_PROVENANCE && clinic.is_verified === true;
+}
+
+// "Skintea Pick" is an editorial decision, never a numeric threshold. It used to be awarded by
+// skintea_score >= 90 || is_featured, which made a score into an award.
+// To switch it on: record the decision (who picked it, when, why) on the clinic row and return
+// true from that recorded field.
+const HAS_EDITORIAL_PICK_RECORD: boolean = false;
+
+function isEditorialPick(clinic: Clinic): boolean {
+  return HAS_EDITORIAL_PICK_RECORD && clinic.is_featured === true;
+}
+
+// Distance needs an origin point. No location is ever collected from the user and none is
+// derived, so clinics.distance_miles cannot be displayed.
+// To switch it on: obtain an origin (explicit user consent) and compute against the Census
+// coordinates already stored on the clinic.
+const HAS_DISTANCE_ORIGIN: boolean = false;
+
+function distanceSuffix(clinic: Clinic): string {
+  return HAS_DISTANCE_ORIGIN && clinic.distance_miles != null ? ` · ${clinic.distance_miles} mi` : "";
+}
+
+// A review count renders only with its source named. yelp_review_count is Yelp's, so it is
+// labelled as Yelp's. Google-derived ratings and review counts (clinics.google_rating,
+// clinics.google_review_count) are deliberately absent from the Clinic type and must never be
+// rendered anywhere on this page.
+function reviewCountLabel(clinic: Clinic): string | null {
+  return clinic.yelp_review_count != null ? `${clinic.yelp_review_count} reviews on Yelp` : null;
+}
 
 function ClinicsPage() {
   const navigate = useNavigate();
@@ -125,11 +241,13 @@ function ClinicsPage() {
   const [skinType, setSkinType] = useState("");
   const [searchQ, setSearchQ] = useState("");
   const [locationQ, setLocationQ] = useState("");
-  const [sortBy, setSortBy] = useState("nearest");
+  const [sortBy, setSortBy] = useState(DEFAULT_SORT);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTreatment, setActiveTreatment] = useState<string | null>(null);
   const [trending, setTrending] = useState<TrendingTreatment[]>([]);
-  const [trendingMonth, setTrendingMonth] = useState("This Month");
+  // The month label comes from the trending rows themselves; there is no default string, so the
+  // strip cannot claim a month it did not read from data.
+  const [trendingMonth, setTrendingMonth] = useState("");
 
   const [areaFilter, setAreaFilter] = useState<string[]>([]);
   const [hoursFilter, setHoursFilter] = useState<string[]>([]);
@@ -165,7 +283,7 @@ function ClinicsPage() {
       if (!alive) return;
       if (data && data.length > 0) {
         setTrending(data as TrendingTreatment[]);
-        setTrendingMonth((data[0] as TrendingTreatment).month);
+        setTrendingMonth((data[0] as TrendingTreatment).month ?? "");
       }
     })();
     return () => { alive = false; };
@@ -193,14 +311,17 @@ function ClinicsPage() {
     });
   };
 
+  // Only a filter that actually narrows the list may show as an applied chip. Each group is
+  // gated on the same flag that enables its chips in the drawer, so a disabled group can never
+  // put a chip here — including if someone re-enables one without wiring the filter.
   const allActiveFilters: string[] = [
-    ...areaFilter,
-    ...hoursFilter,
-    ...keywordsFilter,
-    ...prefFilter,
-    ...facilityFilter,
-    ...treatmentFilter,
-    ...(priceMax < 1000 ? [`Under $${priceMax}`] : []),
+    ...(FILTERS_ENABLED.area ? areaFilter : []),
+    ...(FILTERS_ENABLED.hours ? hoursFilter : []),
+    ...(FILTERS_ENABLED.keywords ? keywordsFilter : []),
+    ...(FILTERS_ENABLED.prefs ? prefFilter : []),
+    ...(FILTERS_ENABLED.facility ? facilityFilter : []),
+    ...(FILTERS_ENABLED.treatment ? treatmentFilter : []),
+    ...(FILTERS_ENABLED.price && priceMax < 1000 ? [`Under $${priceMax}`] : []),
   ];
 
   const filtered = useMemo(() => {
@@ -222,6 +343,8 @@ function ClinicsPage() {
         (c.address ?? "").toLowerCase().includes(q)
       );
     }
+    // Unreachable today: the trending strip renders nothing while no trending row is active.
+    // If rows are activated, note this matches on clinics.best_for, which is unpopulated.
     if (activeTreatment) {
       const chip = trending.find(c => c.label === activeTreatment);
       if (chip) {
@@ -231,30 +354,46 @@ function ClinicsPage() {
         }));
       }
     }
-    if (areaFilter.length) out = out.filter(c => areaFilter.some(a => (c.neighborhood ?? "").toLowerCase().includes(a.toLowerCase())));
-    // null = unknown → keep; only exclude on explicit false
-    if (hoursFilter.includes("Open Now")) out = out.filter(c => c.is_open_now !== false);
-    if (hoursFilter.includes("Same-day OK")) out = out.filter(c => c.same_day_ok !== false);
-    if (hoursFilter.includes("Walk-in Friendly")) out = out.filter(c => c.walk_in_ok !== false);
-    if (treatmentFilter.length) out = out.filter(c => treatmentFilter.some(t => (c.best_for ?? []).some(b => b.toLowerCase().includes(t.toLowerCase()))));
-    if (prefFilter.includes("Free Parking")) out = out.filter(c => c.parking_available !== false);
-    if (prefFilter.includes("Women-Only Staff")) out = out.filter(c => c.women_only_staff !== false);
-    if (prefFilter.includes("Private Room")) out = out.filter(c => c.has_private_room !== false);
-    if (prefFilter.includes("First-Time Discount")) out = out.filter(c => c.first_time_discount !== false);
-    if (facilityFilter.includes("Makeup Room")) out = out.filter(c => c.has_makeup_room !== false);
-    if (facilityFilter.includes("Kids Space")) out = out.filter(c => c.has_kids_space !== false);
-    if (facilityFilter.includes("Drink Service")) out = out.filter(c => c.has_drink_service !== false);
-    if (facilityFilter.includes("Korean Aesthetics")) out = out.filter(c => c.korean_aesthetics !== false);
-    if (priceMax < 1000) out = out.filter(c => (c.price_from ?? 9999) <= priceMax);
-    if (sortBy === "rating") out = [...out].sort((a, b) => (b.skintea_score ?? b.trust_score ?? 0) - (a.skintea_score ?? a.trust_score ?? 0));
-    if (sortBy === "reviews") out = [...out].sort((a, b) => (b.yelp_review_count ?? 0) - (a.yelp_review_count ?? 0));
-    if (sortBy === "price") out = [...out].sort((a, b) => (a.price_from ?? 9999) - (b.price_from ?? 9999));
-    if (sortBy === "verified") out = [...out].sort((a, b) => (b.is_verified ? 1 : 0) - (a.is_verified ? 1 : 0));
+    // AREA is the one drawer group that filters for real: neighborhood is populated.
+    if (FILTERS_ENABLED.area && areaFilter.length) {
+      out = out.filter(c => areaFilter.some(a => (c.neighborhood ?? "").toLowerCase().includes(a.toLowerCase())));
+    }
+    // Every group below is gated off (see FILTERS_ENABLED). The predicates are kept so each one
+    // works the moment its column is populated and its flag flips. Note the hours / prefs /
+    // facility predicates use "null = unknown → keep", which on today's all-null columns returns
+    // the entire list — which is exactly why the chips are disabled rather than left clickable.
+    if (FILTERS_ENABLED.hours) {
+      if (hoursFilter.includes("Open Now")) out = out.filter(c => c.is_open_now !== false);
+      if (hoursFilter.includes("Same-day OK")) out = out.filter(c => c.same_day_ok !== false);
+      if (hoursFilter.includes("Walk-in Friendly")) out = out.filter(c => c.walk_in_ok !== false);
+    }
+    if (FILTERS_ENABLED.treatment && treatmentFilter.length) {
+      out = out.filter(c => treatmentFilter.some(t => (c.best_for ?? []).some(b => b.toLowerCase().includes(t.toLowerCase()))));
+    }
+    if (FILTERS_ENABLED.prefs) {
+      if (prefFilter.includes("Free Parking")) out = out.filter(c => c.parking_available !== false);
+      if (prefFilter.includes("Women-Only Staff")) out = out.filter(c => c.women_only_staff !== false);
+      if (prefFilter.includes("Private Room")) out = out.filter(c => c.has_private_room !== false);
+      if (prefFilter.includes("First-Time Discount")) out = out.filter(c => c.first_time_discount !== false);
+    }
+    if (FILTERS_ENABLED.facility) {
+      if (facilityFilter.includes("Makeup Room")) out = out.filter(c => c.has_makeup_room !== false);
+      if (facilityFilter.includes("Kids Space")) out = out.filter(c => c.has_kids_space !== false);
+      if (facilityFilter.includes("Drink Service")) out = out.filter(c => c.has_drink_service !== false);
+      if (facilityFilter.includes("Korean Aesthetics")) out = out.filter(c => c.korean_aesthetics !== false);
+    }
+    if (FILTERS_ENABLED.price && priceMax < 1000) out = out.filter(c => (c.price_from ?? 9999) <= priceMax);
+    // Only an enabled tab's comparator is applied; anything else falls back to the A–Z default.
+    const activeTab = SORT_TABS.find(t => t.key === sortBy && t.enabled);
+    const cmp = (activeTab ? SORT_COMPARATORS[activeTab.key] : undefined) ?? SORT_COMPARATORS[DEFAULT_SORT];
+    out = [...out].sort(cmp);
     return out;
-  }, [clinics, searchQ, locationQ, activeTreatment, areaFilter, hoursFilter, treatmentFilter, prefFilter, facilityFilter, priceMax, sortBy]);
+  }, [clinics, searchQ, locationQ, activeTreatment, trending, areaFilter, hoursFilter, treatmentFilter, prefFilter, facilityFilter, priceMax, sortBy]);
 
+  // "Skintea Pick" is an editorial decision, not a score threshold — see isEditorialPick.
+  // No clinic qualifies until that decision is recorded, so no hero card renders today.
   const heroPickIds = useMemo(() => {
-    return new Set(filtered.filter(c => (c.skintea_score ?? 0) >= 90 || c.is_featured === true).map(c => c.id));
+    return new Set(filtered.filter(isEditorialPick).map(c => c.id));
   }, [filtered]);
 
   const removeFilter = (val: string) => {
@@ -270,9 +409,12 @@ function ClinicsPage() {
   const clearAll = () => {
     setAreaFilter([]); setHoursFilter([]); setKeywordsFilter([]);
     setPrefFilter([]); setFacilityFilter([]); setTreatmentFilter([]);
-    setPriceMax(1000); setSortBy("nearest");
+    setPriceMax(1000); setSortBy(DEFAULT_SORT);
   };
 
+  // Kept, but not wired to the button: saving wrote skintea.savedFilters and nothing ever read it
+  // back, so "Saved!" promised something that never happened. To switch the control on, restore
+  // this write AND re-apply the stored object in the mount effect that already reads the key.
   const saveFilters = () => {
     localStorage.setItem("skintea.savedFilters", JSON.stringify({
       areaFilter, hoursFilter, keywordsFilter, priceMax, prefFilter, facilityFilter, treatmentFilter, sortBy
@@ -280,6 +422,8 @@ function ClinicsPage() {
     setSavedConfirm(true);
     setTimeout(() => setSavedConfirm(false), 2000);
   };
+  const SAVE_FILTERS_ENABLED: boolean = false;
+  void saveFilters; void savedConfirm;
 
   const skinTypeDisplay = skinType ? skinType.charAt(0).toUpperCase() + skinType.slice(1) : "";
 
@@ -297,9 +441,29 @@ function ClinicsPage() {
           </div>
           <div style={{ ...SECTION_LABEL, color: MUTED, marginTop: 3 }}>Got Skintea? Spill it.</div>
         </div>
+        {/* Map view and alerts are kept as controls but have no handler behind them, so they
+            render disabled rather than looking tappable and doing nothing. */}
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <Map size={20} color={ESPRESSO} />
-          <Bell size={20} color={ESPRESSO} />
+          <button
+            type="button"
+            disabled
+            aria-disabled="true"
+            aria-label="Map view — not available yet"
+            title="Map view isn't available yet"
+            style={{ background: "transparent", border: "none", padding: 0, cursor: "default", opacity: 0.35, display: "inline-flex" }}
+          >
+            <Map size={20} color={ESPRESSO} />
+          </button>
+          <button
+            type="button"
+            disabled
+            aria-disabled="true"
+            aria-label="Alerts — not available yet"
+            title="Alerts aren't available yet"
+            style={{ background: "transparent", border: "none", padding: 0, cursor: "default", opacity: 0.35, display: "inline-flex" }}
+          >
+            <Bell size={20} color={ESPRESSO} />
+          </button>
         </div>
       </header>
 
@@ -356,11 +520,14 @@ function ClinicsPage() {
         )}
       </div>
 
-      {/* 3b. Trending This Month */}
+      {/* 3b. Trending This Month — the whole section (heading and month label included) renders
+           only when trending_treatments has active rows. With none, it renders nothing at all
+           rather than an empty strip under a "Trending" heading. */}
+      {trending.length > 0 && (
       <div style={{ borderBottom: `0.5px solid ${BORDER}`, padding: "10px 16px 12px", background: WARM_WHITE }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-          <div style={{ ...SECTION_LABEL }}>🔥 Trending This Month</div>
-          <div style={{ fontSize: 9, color: MUTED, fontWeight: 600 }}>{trendingMonth}</div>
+          <div style={{ ...SECTION_LABEL }}>🔥 Trending</div>
+          {trendingMonth && <div style={{ fontSize: 9, color: MUTED, fontWeight: 600 }}>{trendingMonth}</div>}
         </div>
         <div className="no-scrollbar" style={{ display: "flex", gap: 8, overflowX: "auto", ...noScrollbar }}>
           {trending.map((c) => {
@@ -395,6 +562,7 @@ function ClinicsPage() {
           })}
         </div>
       </div>
+      )}
 
       {/* 4. Active filter chips */}
       {allActiveFilters.length > 0 && (
@@ -411,28 +579,41 @@ function ClinicsPage() {
         </div>
       )}
 
-      {/* 5. Sort tab bar */}
-      <div className="no-scrollbar" style={{ display: "flex", overflowX: "auto", borderBottom: `0.5px solid ${BORDER}`, background: WARM_WHITE, ...noScrollbar }}>
-        {SORT_TABS.map((t) => {
-          const active = sortBy === t.key;
-          return (
-            <button
-              key={t.key}
-              onClick={() => setSortBy(t.key)}
-              style={{ flexShrink: 0, padding: "10px 14px", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap", background: "transparent", border: "none", color: active ? ESPRESSO : MUTED, borderBottom: active ? `2px solid ${CRIMSON}` : "2px solid transparent", cursor: "pointer", fontFamily: "inherit" }}
-            >
-              {t.label}
-            </button>
-          );
-        })}
+      {/* 5. Sort tab bar — all five tabs kept; the ones with no data behind them are disabled. */}
+      <div style={{ borderBottom: `0.5px solid ${BORDER}`, background: WARM_WHITE }}>
+        <div className="no-scrollbar" style={{ display: "flex", overflowX: "auto", ...noScrollbar }}>
+          {SORT_TABS.map((t) => {
+            const active = sortBy === t.key && t.enabled;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                disabled={!t.enabled}
+                aria-disabled={!t.enabled}
+                onClick={t.enabled ? () => setSortBy(t.key) : undefined}
+                style={{ flexShrink: 0, padding: "10px 14px", fontSize: 11, fontWeight: 700, whiteSpace: "nowrap", background: "transparent", border: "none", color: active ? ESPRESSO : MUTED, opacity: t.enabled ? 1 : 0.4, borderBottom: active ? `2px solid ${CRIMSON}` : "2px solid transparent", cursor: t.enabled ? "pointer" : "default", fontFamily: "inherit" }}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+        {SORT_TABS.some(t => !t.enabled) && (
+          <div style={{ fontSize: 10, color: MUTED, padding: "0 16px 8px", lineHeight: 1.4 }}>{SORT_DISABLED_HINT}</div>
+        )}
       </div>
 
-      {/* 6. Results bar */}
+      {/* 6. Results bar — a plain count, never "near you": no location is collected from the
+           user, and the right-hand label is the dataset's scope, not the reader's position. */}
       <div style={{ padding: "10px 16px 0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={SECTION_LABEL}>
-          {filtered.length} {activeTreatment ? `clinics for ${activeTreatment}` : "Clinics Near You"}
+          {loading
+            ? "Loading clinics…"
+            : activeTreatment
+              ? `${filtered.length} ${filtered.length === 1 ? "clinic" : "clinics"} for ${activeTreatment}`
+              : `${filtered.length} ${filtered.length === 1 ? "clinic" : "clinics"}`}
         </div>
-        <div style={{ fontSize: 10, color: MUTED }}>{locationQ.trim() || "Los Angeles"}</div>
+        <div style={{ fontSize: 10, color: MUTED }}>{locationQ.trim() || "Los Angeles area listings"}</div>
       </div>
 
       {/* 7. Cards */}
@@ -497,40 +678,41 @@ function ClinicsPage() {
               </div>
             )}
 
-            <DrawerSection title="Sort By">
+            <DrawerSection title="Sort By" hint={SORT_TABS.some(t => !t.enabled) ? SORT_DISABLED_HINT : undefined}>
               <PillWrap>
                 {SORT_TABS.map((t) => (
-                  <Pill key={t.key} label={t.label} active={sortBy === t.key} onClick={() => setSortBy(t.key)} />
+                  <Pill key={t.key} label={t.label} active={sortBy === t.key && t.enabled} disabled={!t.enabled} onClick={() => setSortBy(t.key)} />
                 ))}
               </PillWrap>
             </DrawerSection>
 
+            {/* Area is the one group that filters for real — neighborhood is populated. */}
             <DrawerSection title="Area">
               <PillWrap>
                 {AREA_OPTIONS.map(o => (
-                  <Pill key={o} label={o} active={areaFilter.includes(o)} onClick={() => toggle(setAreaFilter, areaFilter, o)} />
+                  <Pill key={o} label={o} active={areaFilter.includes(o)} disabled={!FILTERS_ENABLED.area} onClick={() => toggle(setAreaFilter, areaFilter, o)} />
                 ))}
               </PillWrap>
             </DrawerSection>
 
-            <DrawerSection title="Date & Hours">
+            <DrawerSection title="Date & Hours" hint={FILTERS_ENABLED.hours ? undefined : HOURS_DISABLED_HINT}>
               <PillWrap>
                 {HOURS_OPTIONS.map(o => (
-                  <Pill key={o} label={o} active={hoursFilter.includes(o)} onClick={() => toggle(setHoursFilter, hoursFilter, o)} />
+                  <Pill key={o} label={o} active={hoursFilter.includes(o)} disabled={!FILTERS_ENABLED.hours} onClick={() => toggle(setHoursFilter, hoursFilter, o)} />
                 ))}
               </PillWrap>
             </DrawerSection>
 
-            <DrawerSection title="Trending Keywords">
+            <DrawerSection title="Trending Keywords" hint={FILTERS_ENABLED.keywords ? undefined : KEYWORDS_DISABLED_HINT}>
               <PillWrap>
                 {KEYWORD_OPTIONS.map(o => (
-                  <Pill key={o} label={o} active={keywordsFilter.includes(o)} onClick={() => toggle(setKeywordsFilter, keywordsFilter, o)} />
+                  <Pill key={o} label={o} active={keywordsFilter.includes(o)} disabled={!FILTERS_ENABLED.keywords} onClick={() => toggle(setKeywordsFilter, keywordsFilter, o)} />
                 ))}
               </PillWrap>
             </DrawerSection>
 
-            <DrawerSection title="Price Range">
-              <div style={{ fontSize: 13, color: ESPRESSO, fontWeight: 700, marginBottom: 8 }}>
+            <DrawerSection title="Price Range" hint={FILTERS_ENABLED.price ? undefined : PRICE_DISABLED_HINT}>
+              <div style={{ fontSize: 13, color: FILTERS_ENABLED.price ? ESPRESSO : MUTED, fontWeight: 700, marginBottom: 8, opacity: FILTERS_ENABLED.price ? 1 : 0.6 }}>
                 $0 – ${priceMax === 1000 ? "1000+" : priceMax}
               </div>
               <input
@@ -539,32 +721,39 @@ function ClinicsPage() {
                 max={1000}
                 step={50}
                 value={priceMax}
+                disabled={!FILTERS_ENABLED.price}
+                aria-disabled={!FILTERS_ENABLED.price}
                 onChange={(e) => setPriceMax(Number(e.target.value))}
-                style={{ width: "100%", accentColor: CRIMSON }}
+                style={{ width: "100%", accentColor: CRIMSON, opacity: FILTERS_ENABLED.price ? 1 : 0.4, cursor: FILTERS_ENABLED.price ? "pointer" : "default" }}
               />
             </DrawerSection>
 
-            <DrawerSection title="Skintea Preferences">
+            <DrawerSection title="Skintea Preferences" hint={FILTERS_ENABLED.prefs ? undefined : PREFS_DISABLED_HINT}>
               <PillWrap>
                 {PREF_OPTIONS.map(o => (
-                  <Pill key={o} label={o} active={prefFilter.includes(o)} onClick={() => toggle(setPrefFilter, prefFilter, o)} />
+                  <Pill key={o} label={o} active={prefFilter.includes(o)} disabled={!FILTERS_ENABLED.prefs} onClick={() => toggle(setPrefFilter, prefFilter, o)} />
                 ))}
               </PillWrap>
             </DrawerSection>
 
-            <DrawerSection title="Facilities & Service">
+            <DrawerSection title="Facilities & Service" hint={FILTERS_ENABLED.facility ? undefined : FACILITY_DISABLED_HINT}>
               <PillWrap>
                 {FACILITY_OPTIONS.map(o => (
-                  <Pill key={o} label={o} active={facilityFilter.includes(o)} onClick={() => toggle(setFacilityFilter, facilityFilter, o)} />
+                  <Pill key={o} label={o} active={facilityFilter.includes(o)} disabled={!FILTERS_ENABLED.facility} onClick={() => toggle(setFacilityFilter, facilityFilter, o)} />
                 ))}
               </PillWrap>
             </DrawerSection>
 
             {TREATMENT_CATEGORIES.map((cat, idx) => (
-              <DrawerSection key={cat.title} title={cat.title} last={idx === TREATMENT_CATEGORIES.length - 1}>
+              <DrawerSection
+                key={cat.title}
+                title={cat.title}
+                hint={FILTERS_ENABLED.treatment ? undefined : (idx === 0 ? TREATMENT_DISABLED_HINT : undefined)}
+                last={idx === TREATMENT_CATEGORIES.length - 1}
+              >
                 <PillWrap>
                   {cat.items.map(o => (
-                    <Pill key={o} label={o} active={treatmentFilter.includes(o)} onClick={() => toggle(setTreatmentFilter, treatmentFilter, o)} />
+                    <Pill key={o} label={o} active={treatmentFilter.includes(o)} disabled={!FILTERS_ENABLED.treatment} onClick={() => toggle(setTreatmentFilter, treatmentFilter, o)} />
                   ))}
                 </PillWrap>
               </DrawerSection>
@@ -577,17 +766,25 @@ function ClinicsPage() {
               >
                 Clear All
               </button>
-              <button
-                onClick={saveFilters}
-                style={{ flex: 1, border: `0.5px solid ${CRIMSON}`, background: WARM_WHITE, color: CRIMSON, fontSize: 13, fontWeight: 800, borderRadius: 8, padding: 12, cursor: "pointer", fontFamily: "inherit" }}
-              >
-                {savedConfirm ? "Saved!" : "Save Filters"}
-              </button>
+              {/* Saved filters were written but never re-applied on return, so the control is
+                  disabled rather than confirming something that does not happen. */}
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                <button
+                  type="button"
+                  disabled={!SAVE_FILTERS_ENABLED}
+                  aria-disabled={!SAVE_FILTERS_ENABLED}
+                  title="Saved filters aren't restored yet"
+                  style={{ width: "100%", border: `0.5px solid ${CRIMSON}`, background: WARM_WHITE, color: CRIMSON, fontSize: 13, fontWeight: 800, borderRadius: 8, padding: 12, cursor: "default", fontFamily: "inherit", opacity: 0.4 }}
+                >
+                  Save Filters
+                </button>
+                <span style={{ fontSize: 9, color: MUTED, lineHeight: 1.3 }}>Saved filters aren't restored yet.</span>
+              </div>
               <button
                 onClick={() => setDrawerOpen(false)}
                 style={{ flex: 2, border: "none", background: CRIMSON, color: WARM_WHITE, fontSize: 13, fontWeight: 800, borderRadius: 8, padding: 12, cursor: "pointer", fontFamily: "inherit", textAlign: "center" }}
               >
-                Show {filtered.length} Clinics
+                Show {filtered.length} {filtered.length === 1 ? "Clinic" : "Clinics"}
               </button>
             </div>
           </div>
@@ -603,12 +800,13 @@ function toggle(setter: React.Dispatch<React.SetStateAction<string[]>>, arr: str
   else setter([...arr, val]);
 }
 
-function DrawerSection({ title, children, last }: { title: string; children: React.ReactNode; last?: boolean }) {
+function DrawerSection({ title, children, hint, last }: { title: string; children: React.ReactNode; hint?: string; last?: boolean }) {
   return (
     <div>
       <div style={{ padding: "16px 16px 12px" }}>
         <div style={{ ...SECTION_LABEL, borderLeft: `2px solid ${CRIMSON}`, paddingLeft: 8, marginBottom: 10 }}>{title}</div>
         {children}
+        {hint && <div style={{ fontSize: 10, color: MUTED, marginTop: 8, lineHeight: 1.4 }}>{hint}</div>}
       </div>
       {!last && <div style={{ height: 8, background: DIVIDER }} />}
     </div>
@@ -619,10 +817,13 @@ function PillWrap({ children }: { children: React.ReactNode }) {
   return <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{children}</div>;
 }
 
-function Pill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function Pill({ label, active, onClick, disabled }: { label: string; active: boolean; onClick: () => void; disabled?: boolean }) {
   return (
     <button
-      onClick={onClick}
+      type="button"
+      disabled={disabled}
+      aria-disabled={disabled ? true : undefined}
+      onClick={disabled ? undefined : onClick}
       style={{
         padding: "7px 14px",
         borderRadius: 999,
@@ -631,7 +832,8 @@ function Pill({ label, active, onClick }: { label: string; active: boolean; onCl
         border: `0.5px solid ${active ? ESPRESSO : BORDER}`,
         background: active ? ESPRESSO : "#FFFFFF",
         color: active ? WARM_WHITE : MUTED,
-        cursor: "pointer",
+        opacity: disabled ? 0.4 : 1,
+        cursor: disabled ? "default" : "pointer",
         fontFamily: "inherit",
         whiteSpace: "nowrap",
       }}
@@ -666,7 +868,8 @@ function SaveBtn({ isSaved, onToggleSave }: { isSaved: boolean; onToggleSave: ()
 }
 
 function HeroCard({ clinic, onOpen, isSaved, onToggleSave }: { clinic: Clinic; onOpen: () => void; isSaved: boolean; onToggleSave: () => void }) {
-  const score = clinic.skintea_score ?? clinic.trust_score;
+  const recommend = recommendFor(clinic);
+  const reviews = reviewCountLabel(clinic);
   const tags = clinic.best_for ?? [];
   const visibleTags = tags.slice(0, 3);
   const extra = tags.length - visibleTags.length;
@@ -677,13 +880,17 @@ function HeroCard({ clinic, onOpen, isSaved, onToggleSave }: { clinic: Clinic; o
       style={{ background: "#FFFFFF", borderRadius: 14, overflow: "hidden", cursor: "pointer", border: `1px solid ${CRIMSON}` }}
     >
       <ClinicImage images={images} height={172} showCount>
-        <span style={{ position: "absolute", top: 10, left: 10, background: CRIMSON, color: WARM_WHITE, fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", borderRadius: 4, padding: "3px 8px" }}>
-          ☕ Skintea Pick
-        </span>
-        {score != null && (
+        {/* Badge gated on the recorded editorial decision, not on reaching this card shape. */}
+        {isEditorialPick(clinic) && (
+          <span style={{ position: "absolute", top: 10, left: 10, background: CRIMSON, color: WARM_WHITE, fontSize: 9, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", borderRadius: 4, padding: "3px 8px" }}>
+            ☕ Skintea Pick
+          </span>
+        )}
+        {/* One value, one label: "% recommend" with its sample size, on both card shapes. */}
+        {recommend && (
           <div style={{ position: "absolute", top: 10, right: 10, background: "rgba(28,10,0,0.55)", borderRadius: 8, padding: "5px 9px", textAlign: "right" }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: WARM_WHITE, lineHeight: 1 }}>{score}%</div>
-            <div style={{ fontSize: 7.5, color: "rgba(255,252,248,0.75)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2 }}>recommend</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: WARM_WHITE, lineHeight: 1 }}>{recommend.pct}%</div>
+            <div style={{ fontSize: 7.5, color: "rgba(255,252,248,0.75)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 2 }}>recommend · {recommend.n} reviews</div>
           </div>
         )}
       </ClinicImage>
@@ -691,7 +898,7 @@ function HeroCard({ clinic, onOpen, isSaved, onToggleSave }: { clinic: Clinic; o
       <div style={{ padding: "11px 13px 12px" }}>
         <div style={{ fontSize: 16, fontWeight: 800, color: ESPRESSO, lineHeight: 1.2 }}>{clinic.name}</div>
         <div style={{ fontSize: 11, color: MUTED, marginTop: 2, marginBottom: 8 }}>
-          {clinic.neighborhood ?? ""}{clinic.distance_miles != null ? ` · ${clinic.distance_miles} mi` : ""}
+          {clinic.neighborhood ?? ""}{distanceSuffix(clinic)}
         </div>
         {clinic.known_for && <KnownForRow value={clinic.known_for} />}
 
@@ -712,7 +919,7 @@ function HeroCard({ clinic, onOpen, isSaved, onToggleSave }: { clinic: Clinic; o
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {clinic.is_verified && (
+            {isVerified(clinic) && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                 <span style={{ width: 5, height: 5, borderRadius: 999, background: CRIMSON }} />
                 <span style={{ fontSize: 10, fontWeight: 800, color: CRIMSON, textTransform: "uppercase", letterSpacing: "0.06em" }}>Verified</span>
@@ -734,8 +941,8 @@ function HeroCard({ clinic, onOpen, isSaved, onToggleSave }: { clinic: Clinic; o
             {clinic.price_tier && (
               <span style={{ fontSize: 11, fontWeight: 700, color: ESPRESSO }}>{clinic.price_tier}</span>
             )}
-            {clinic.yelp_review_count != null && (
-              <span style={{ fontSize: 10, color: MUTED }}>{clinic.yelp_review_count} reviews</span>
+            {reviews && (
+              <span style={{ fontSize: 10, color: MUTED }}>{reviews}</span>
             )}
             <SaveBtn isSaved={isSaved} onToggleSave={onToggleSave} />
           </div>
@@ -746,7 +953,8 @@ function HeroCard({ clinic, onOpen, isSaved, onToggleSave }: { clinic: Clinic; o
 }
 
 function CompactCard({ clinic, onOpen, isSaved, onToggleSave }: { clinic: Clinic; onOpen: () => void; isSaved: boolean; onToggleSave: () => void }) {
-  const score = clinic.skintea_score ?? clinic.trust_score;
+  const recommend = recommendFor(clinic);
+  const reviews = reviewCountLabel(clinic);
   const images = displayImages(clinic, useCategoryImages(), 240);
   return (
     <div
@@ -754,10 +962,11 @@ function CompactCard({ clinic, onOpen, isSaved, onToggleSave }: { clinic: Clinic
       style={{ background: "#FFFFFF", borderRadius: 12, overflow: "hidden", cursor: "pointer", border: `0.5px solid ${BORDER}`, display: "flex", height: 104 }}
     >
       <ClinicImage images={images} width={88} height={104} compact showCount>
-        {score != null && (
+        {/* Same value, same label as the hero card: "% recommend", with its sample size. */}
+        {recommend && (
           <div style={{ position: "absolute", bottom: 6, left: 0, right: 0, textAlign: "center" }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: WARM_WHITE, lineHeight: 1, textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>{score}%</div>
-            <div style={{ fontSize: 7, color: "rgba(255,252,248,0.85)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 1, textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>score</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: WARM_WHITE, lineHeight: 1, textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>{recommend.pct}%</div>
+            <div style={{ fontSize: 7, color: "rgba(255,252,248,0.85)", textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 1, textShadow: "0 1px 2px rgba(0,0,0,0.6)" }}>recommend · {recommend.n} reviews</div>
           </div>
         )}
       </ClinicImage>
@@ -767,7 +976,7 @@ function CompactCard({ clinic, onOpen, isSaved, onToggleSave }: { clinic: Clinic
           <div style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 10, color: MUTED, marginTop: 2 }}>
             <MapPin size={10} color={MUTED} />
             <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {clinic.neighborhood ?? ""}{clinic.distance_miles != null ? ` · ${clinic.distance_miles} mi` : ""}
+              {clinic.neighborhood ?? ""}{distanceSuffix(clinic)}
             </span>
           </div>
         </div>
@@ -777,8 +986,8 @@ function CompactCard({ clinic, onOpen, isSaved, onToggleSave }: { clinic: Clinic
             {clinic.price_tier ?? ""}
           </span>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {clinic.yelp_review_count != null && (
-              <span style={{ fontSize: 9, color: MUTED }}>{clinic.yelp_review_count} reviews</span>
+            {reviews && (
+              <span style={{ fontSize: 9, color: MUTED }}>{reviews}</span>
             )}
             <SaveBtn isSaved={isSaved} onToggleSave={onToggleSave} />
           </div>

@@ -9,7 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TreatmentTalk2RouteImport } from './routes/treatment-talk2'
+import { Route as TreatmentTalkRouteImport } from './routes/treatment-talk'
 import { Route as TeaProductsRouteImport } from './routes/tea-products'
 import { Route as TeaRouteImport } from './routes/tea'
 import { Route as SurgeryTalkRouteImport } from './routes/surgery-talk'
@@ -37,9 +37,9 @@ import { Route as AdminTreatmentsRouteImport } from './routes/admin.treatments'
 import { Route as ApiPublicConsultationClickRouteImport } from './routes/api/public/consultation-click'
 import { Route as ApiPublicCacheSocialThumbnailRouteImport } from './routes/api/public/cache-social-thumbnail'
 
-const TreatmentTalk2Route = TreatmentTalk2RouteImport.update({
-  id: '/treatment-talk2',
-  path: '/treatment-talk2',
+const TreatmentTalkRoute = TreatmentTalkRouteImport.update({
+  id: '/treatment-talk',
+  path: '/treatment-talk',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TeaProductsRoute = TeaProductsRouteImport.update({
@@ -190,7 +190,7 @@ export interface FileRoutesByFullPath {
   '/surgery-talk': typeof SurgeryTalkRoute
   '/tea': typeof TeaRoute
   '/tea-products': typeof TeaProductsRouteWithChildren
-  '/treatment-talk2': typeof TreatmentTalk2Route
+  '/treatment-talk': typeof TreatmentTalkRoute
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
@@ -219,7 +219,7 @@ export interface FileRoutesByTo {
   '/surgery-talk': typeof SurgeryTalkRoute
   '/tea': typeof TeaRoute
   '/tea-products': typeof TeaProductsRouteWithChildren
-  '/treatment-talk2': typeof TreatmentTalk2Route
+  '/treatment-talk': typeof TreatmentTalkRoute
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
@@ -249,7 +249,7 @@ export interface FileRoutesById {
   '/surgery-talk': typeof SurgeryTalkRoute
   '/tea': typeof TeaRoute
   '/tea-products': typeof TeaProductsRouteWithChildren
-  '/treatment-talk2': typeof TreatmentTalk2Route
+  '/treatment-talk': typeof TreatmentTalkRoute
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
@@ -280,7 +280,7 @@ export interface FileRouteTypes {
     | '/surgery-talk'
     | '/tea'
     | '/tea-products'
-    | '/treatment-talk2'
+    | '/treatment-talk'
     | '/admin/treatments'
     | '/category/$slug'
     | '/clinics/$id'
@@ -309,7 +309,7 @@ export interface FileRouteTypes {
     | '/surgery-talk'
     | '/tea'
     | '/tea-products'
-    | '/treatment-talk2'
+    | '/treatment-talk'
     | '/admin/treatments'
     | '/category/$slug'
     | '/clinics/$id'
@@ -338,7 +338,7 @@ export interface FileRouteTypes {
     | '/surgery-talk'
     | '/tea'
     | '/tea-products'
-    | '/treatment-talk2'
+    | '/treatment-talk'
     | '/admin/treatments'
     | '/category/$slug'
     | '/clinics/$id'
@@ -368,7 +368,7 @@ export interface RootRouteChildren {
   SurgeryTalkRoute: typeof SurgeryTalkRoute
   TeaRoute: typeof TeaRoute
   TeaProductsRoute: typeof TeaProductsRouteWithChildren
-  TreatmentTalk2Route: typeof TreatmentTalk2Route
+  TreatmentTalkRoute: typeof TreatmentTalkRoute
   AdminTreatmentsRoute: typeof AdminTreatmentsRoute
   CategorySlugRoute: typeof CategorySlugRoute
   ClinicsIdRoute: typeof ClinicsIdRoute
@@ -384,11 +384,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/treatment-talk2': {
-      id: '/treatment-talk2'
-      path: '/treatment-talk2'
-      fullPath: '/treatment-talk2'
-      preLoaderRoute: typeof TreatmentTalk2RouteImport
+    '/treatment-talk': {
+      id: '/treatment-talk'
+      path: '/treatment-talk'
+      fullPath: '/treatment-talk'
+      preLoaderRoute: typeof TreatmentTalkRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tea-products': {
@@ -603,7 +603,7 @@ const rootRouteChildren: RootRouteChildren = {
   SurgeryTalkRoute: SurgeryTalkRoute,
   TeaRoute: TeaRoute,
   TeaProductsRoute: TeaProductsRouteWithChildren,
-  TreatmentTalk2Route: TreatmentTalk2Route,
+  TreatmentTalkRoute: TreatmentTalkRoute,
   AdminTreatmentsRoute: AdminTreatmentsRoute,
   CategorySlugRoute: CategorySlugRoute,
   ClinicsIdRoute: ClinicsIdRoute,

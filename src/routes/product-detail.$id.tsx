@@ -88,12 +88,16 @@ export const Route = createFileRoute("/product-detail/$id")({
   }),
 });
 
-const STORE_LINKS = [
-  { name: "Amazon", url: "https://www.amazon.com" },
-  { name: "Sephora", url: "https://www.sephora.com" },
-  { name: "Ulta", url: "https://www.ulta.com" },
-  { name: "YesStyle", url: "https://www.yesstyle.com" },
-];
+// Retailer chips render from real per-product URLs only. The four fixed chips that used to sit here
+// (Amazon, Sephora, Ulta, YesStyle) pointed at those retailers' home pages on every product, which is
+// not a link to this product — removed 2026-09-15. The brand's own page still ships as the "Shop"
+// chip from products.product_url. No per-retailer URL column exists on `products` yet, so this list is
+// empty and no retailer chip renders; when one is added (e.g. products.retailer_urls jsonb holding
+// [{ name, url }] per product), read it here and the chips come back automatically.
+function retailerLinks(product: any): { name: string; url: string }[] {
+  void product;
+  return [];
+}
 
 const CONFIDENCE_RANK: Record<string, number> = { high: 3, medium: 2, low: 1 };
 
@@ -547,6 +551,19 @@ function ProductPage() {
   const redditItems = redditAll.slice(0, REDDIT_DISPLAY_CAP);
 
   const tiktokRows = socialReviews.filter((r) => r.platform === "tiktok" && isDisplayRow(r));
+  // One card per video, exactly as the grid renders it. The tab badge and the "posts collected"
+  // line read this same list, so no count can disagree with what is on screen.
+  const tiktokRowsDeduped = (() => {
+    const map = new Map<string, typeof tiktokRows[number]>();
+    for (const r of tiktokRows) {
+      const key = r.source_url ?? r.id;
+      const existing = map.get(key);
+      if (!existing || (r.likes ?? 0) > (existing.likes ?? 0)) {
+        map.set(key, r);
+      }
+    }
+    return Array.from(map.values());
+  })();
   const instagramRows = socialReviews.filter((r) => r.platform === "instagram" && isDisplayRow(r));
   const instagramRowsDeduped = (() => {
     const map = new Map<string, typeof instagramRows[number]>();
@@ -705,7 +722,8 @@ function ProductPage() {
           {[
             { val: hasEnoughSentimentData && recommendPct !== null ? `${recommendPct}%` : "—", label: opinionScope === "line" ? "Recommend (line)" : "Recommend" },
             { val: `${sentimentTotal}`, label: opinionScope === "line" ? "Line opinions" : isShadeLine ? "Shade opinions" : "Tagged opinions" },
-            { val: confidence, label: "Confidence" },
+            // No tagged opinions is not "Low confidence", it is no reading at all.
+            { val: sentimentTotal > 0 ? confidence : "—", label: "Confidence" },
           ].map((s, i, arr) => (
             <div key={s.label} className={`flex-1 py-[13px] text-center ${i < arr.length - 1 ? "border-r border-brand-border" : ""}`}>
               <div className="text-[19px] font-semibold text-brand-espresso">{s.val}</div>
@@ -715,22 +733,28 @@ function ProductPage() {
         </div>
 
         {/* 4. Price + buy links */}
-        <div className="px-3.5 py-2.5 border-b border-brand-border flex items-center gap-2 overflow-x-auto">
-          <span className="text-sm font-semibold text-brand-espresso flex-none">
-            {activeProduct?.price ? `$${activeProduct.price}` : "—"}
-          </span>
-          <span className="text-brand-muted flex-none">·</span>
-          {activeProduct?.product_url && (
-            <a href={activeProduct.product_url} target="_blank" rel="noopener noreferrer" className="flex-none bg-brand-espresso text-brand-cream rounded-[20px] px-[13px] py-1.5 text-[11px] font-semibold flex items-center gap-1 no-underline">
-              Shop <ExternalLink width={10} height={10} />
-            </a>
-          )}
-          {STORE_LINKS.map((s) => (
-            <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer" className="flex-none bg-transparent text-brand-espresso border border-brand-border rounded-[20px] px-[13px] py-1.5 text-[11px] flex items-center gap-1 no-underline">
-              {s.name} <ExternalLink width={10} height={10} />
-            </a>
-          ))}
-        </div>
+        {(() => {
+          const retailers = retailerLinks(activeProduct);
+          const hasAnyLink = Boolean(activeProduct?.product_url) || retailers.length > 0;
+          return (
+            <div className="px-3.5 py-2.5 border-b border-brand-border flex items-center gap-2 overflow-x-auto">
+              <span className="text-sm font-semibold text-brand-espresso flex-none">
+                {activeProduct?.price ? `$${activeProduct.price}` : "—"}
+              </span>
+              {hasAnyLink && <span className="text-brand-muted flex-none">·</span>}
+              {activeProduct?.product_url && (
+                <a href={activeProduct.product_url} target="_blank" rel="noopener noreferrer" className="flex-none bg-brand-espresso text-brand-cream rounded-[20px] px-[13px] py-1.5 text-[11px] font-semibold flex items-center gap-1 no-underline">
+                  Shop <ExternalLink width={10} height={10} />
+                </a>
+              )}
+              {retailers.map((s) => (
+                <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer" className="flex-none bg-transparent text-brand-espresso border border-brand-border rounded-[20px] px-[13px] py-1.5 text-[11px] flex items-center gap-1 no-underline">
+                  {s.name} <ExternalLink width={10} height={10} />
+                </a>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* 5. What people say */}
         <Section title="What people say">
@@ -746,10 +770,12 @@ function ProductPage() {
               )}
               <div className="grid grid-cols-2 gap-2.5">
                 {[
-                  { label: majorityIsPositive ? "Recommend" : "Don't recommend", pct: majorityIsPositive ? shares.pos : shares.neg, n: majorityIsPositive ? posCount : negCount, barCls: "bg-brand-crimson", sentence: majorityQuote ?? "Based on tagged social posts.", wide: false },
-                  { label: majorityIsPositive ? "Don't recommend" : "Recommend", pct: majorityIsPositive ? shares.neg : shares.pos, n: majorityIsPositive ? negCount : posCount, barCls: "bg-brand-crimson/40", sentence: minorityQuote ?? "Based on tagged social posts.", wide: false },
+                  // `sentence` is a real tagged row or nothing. It never falls back to a written-here
+                  // sentence: an empty quote slot is correct when no row carries that sentiment.
+                  { label: majorityIsPositive ? "Recommend" : "Don't recommend", pct: majorityIsPositive ? shares.pos : shares.neg, n: majorityIsPositive ? posCount : negCount, barCls: "bg-brand-crimson", sentence: majorityQuote, wide: false },
+                  { label: majorityIsPositive ? "Don't recommend" : "Recommend", pct: majorityIsPositive ? shares.neg : shares.pos, n: majorityIsPositive ? negCount : posCount, barCls: "bg-brand-crimson/40", sentence: minorityQuote, wide: false },
                   ...(mixedCount > 0
-                    ? [{ label: "Mixed", pct: shares.mix, n: mixedCount, barCls: "bg-brand-espresso/30", sentence: mixedQuote ?? "Opinions with both good and bad points.", wide: true }]
+                    ? [{ label: "Mixed", pct: shares.mix, n: mixedCount, barCls: "bg-brand-espresso/30", sentence: mixedQuote, wide: true }]
                     : []),
                 ].map((c) => (
                   <div key={c.label} className={`bg-card border border-brand-border rounded-xl p-3.5 ${c.wide ? "col-span-2" : ""}`}>
@@ -758,9 +784,7 @@ function ProductPage() {
                     <div className="h-[3px] bg-brand-border rounded-sm my-2 overflow-hidden">
                       <div className={`h-full ${c.barCls}`} style={{ width: `${c.pct}%` }} />
                     </div>
-                    {typeof c.sentence === "string" ? (
-                      <div className="text-xs text-brand-espresso leading-[1.5]">{c.sentence}</div>
-                    ) : (() => {
+                    {!c.sentence ? null : (() => {
                       const q = quoteDisplay(c.sentence, quoteTerms(c.sentence));
                       const formLabel = quoteFormLabel(q.form, q.excerpted);
                       return (
@@ -1008,7 +1032,7 @@ function ProductPage() {
         <Section title="What people are saying">
           <div className="flex">
             {(["tiktok", "instagram", "reddit"] as const).map((t) => {
-              const count = t === "tiktok" ? tiktokRows.length : t === "instagram" ? instagramRowsDeduped.length : redditAll.length;
+              const count = t === "tiktok" ? tiktokRowsDeduped.length : t === "instagram" ? instagramRowsDeduped.length : redditAll.length;
               const active = tab === t;
               const label = t === "tiktok" ? "TikTok" : t === "instagram" ? "Instagram" : "Reddit";
               return (
@@ -1030,19 +1054,12 @@ function ProductPage() {
           <div className="border-b border-brand-border" />
           <div className="mt-3">
             {tab === "tiktok" && (
-              tiktokRows.length > 0 ? (
+              tiktokRowsDeduped.length > 0 ? (
                 <div className="grid grid-cols-2 gap-2">
                   {(() => {
-                    const bestPerVideo = new Map<string, typeof tiktokRows[number]>();
-                    for (const r of tiktokRows) {
-                      const key = r.source_url ?? r.id;
-                      const existing = bestPerVideo.get(key);
-                      if (!existing || (r.likes ?? 0) > (existing.likes ?? 0)) {
-                        bestPerVideo.set(key, r);
-                      }
-                    }
-                    const list = Array.from(bestPerVideo.values()).map((r) => ({
-                      user: r.author_handle ?? "@user",
+                    const list = tiktokRowsDeduped.map((r) => ({
+                      // No handle recorded means no byline. Never a stand-in handle.
+                      user: (r.author_handle ?? null) as string | null,
                       views: formatViewCount(r.views),
                       likes: r.likes ? `${r.likes}` : "—",
                       caption: r.content ?? "",
@@ -1057,7 +1074,7 @@ function ProductPage() {
                             <Play width={14} height={14} color="#fff" fill="#fff" />
                           </div>
                           <div className="absolute bottom-0 left-0 right-0 px-2.5 py-2 bg-gradient-to-t from-black/85 to-transparent">
-                            <div className="text-[11px] font-semibold text-white">{t.user}</div>
+                            {t.user && <div className="text-[11px] font-semibold text-white">{t.user}</div>}
                             <div className="text-[9px] text-white/70 mt-0.5 leading-[1.3] overflow-hidden line-clamp-2">{t.caption}</div>
                             <div className="text-[9px] text-white/50 mt-[3px]">{t.views} views</div>
                           </div>
@@ -1065,14 +1082,14 @@ function ProductPage() {
                       );
                       return t.source_url ? (
                         <button
-                          key={`${t.user}-${i}`}
+                          key={`${t.source_url ?? t.user ?? "row"}-${i}`}
                           onClick={() => setActiveTikTokEmbed(t.source_url)}
                           className="no-underline border-none p-0 bg-none cursor-pointer block w-full"
                         >
                           {card}
                         </button>
                       ) : (
-                        <div key={`${t.user}-${i}`}>{card}</div>
+                        <div key={`${t.source_url ?? t.user ?? "row"}-${i}`}>{card}</div>
                       );
                     });
                   })()}
@@ -1089,22 +1106,27 @@ function ProductPage() {
                       const thumbUrl = r.thumbnail_path
                         ? supabase.storage.from("social-thumbnails").getPublicUrl(r.thumbnail_path).data.publicUrl
                         : null;
+                      // Only disclosure values with a label in DISCLOSURE_LABELS render. An unmapped
+                      // value shows nothing rather than leaking the raw enum string onto the tile.
+                      const disclosureLabels = (Array.isArray(r.disclosure) ? (r.disclosure as string[]) : [])
+                        .filter((d) => Boolean(DISCLOSURE_LABELS[d]));
                       const card = (
                         <div className="rounded-xl overflow-hidden aspect-[9/16] relative" style={{ background: thumbUrl ? `#1a2620 url(${thumbUrl}) center/cover no-repeat` : "#1a2620" }}>
                           <div className="absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
                             <Play width={14} height={14} color="#fff" fill="#fff" />
                           </div>
                           <div className="absolute bottom-0 left-0 right-0 px-2.5 py-2 bg-gradient-to-t from-black/85 to-transparent">
-                            {Array.isArray(r.disclosure) && r.disclosure.length > 0 && (
+                            {disclosureLabels.length > 0 && (
                               <div className="flex flex-wrap gap-[3px] mb-1">
-                                {r.disclosure.map((d: string) => (
+                                {disclosureLabels.map((d) => (
                                   <span key={d} className="text-[8px] font-medium text-white bg-white/20 rounded-[3px] px-[5px] py-0.5 whitespace-nowrap">
-                                    {DISCLOSURE_LABELS[d] ?? d}
+                                    {DISCLOSURE_LABELS[d]}
                                   </span>
                                 ))}
                               </div>
                             )}
-                            <div className="text-[11px] font-semibold text-white">{r.author_handle ?? "@user"}</div>
+                            {/* No handle recorded means no byline. Never a stand-in handle. */}
+                            {r.author_handle && <div className="text-[11px] font-semibold text-white">{r.author_handle}</div>}
                             <div className="text-[9px] text-white/70 mt-0.5 leading-[1.3] overflow-hidden line-clamp-2">{r.content ?? ""}</div>
                             <div className="text-[9px] text-white/50 mt-[3px]">{formatViewCount(r.views)} views</div>
                           </div>
@@ -1174,7 +1196,7 @@ function ProductPage() {
                     );
                   })}
                   <div className="text-[10px] text-brand-muted mt-0.5">
-                    {redditAll.length > redditItems.length ? `${redditItems.length} of ${redditAll.length}` : redditItems.length} {redditAll.length === 1 ? "quote" : "quotes"}{redditScope === "line" ? ` about the ${lineName} line` : isShadeLine ? ` naming ${shadeName ?? "this shade"}` : ""} from Reddit threads. Each is marked as quoted as written or edited by Skintea; tap one to read the original.
+                    {redditAll.length > redditItems.length ? `${redditItems.length} of ${redditAll.length}` : redditItems.length} {redditAll.length === 1 ? "quote" : "quotes"}{redditScope === "line" ? ` about the ${lineName} line` : isShadeLine ? ` naming ${shadeName ?? "this shade"}` : ""} from Reddit threads. Each labelled quote says whether it is quoted as written or edited by Skintea; tap one to read the original.
                   </div>
                 </div>
               ) : (
@@ -1187,11 +1209,14 @@ function ProductPage() {
         </Section>
 
         {/* 10. Confidence strip */}
-        {(tiktokRows.length + instagramRowsDeduped.length > 0 || sentimentTotal > 0) && (
+        {(tiktokRowsDeduped.length + instagramRowsDeduped.length > 0 || sentimentTotal > 0) && (
         <div className="px-4 py-3.5 bg-brand-cream border border-brand-border rounded-[10px] mx-4 mt-3 mb-2 flex items-center gap-2.5">
-          <span className="bg-brand-crimson text-brand-cream text-[11px] font-semibold px-3 py-[3px] rounded-[20px]">{confidence}</span>
+          {/* The badge grades the tagged opinions. With none, there is nothing to grade. */}
+          {sentimentTotal > 0 && (
+            <span className="bg-brand-crimson text-brand-cream text-[11px] font-semibold px-3 py-[3px] rounded-[20px]">{confidence}</span>
+          )}
           <span className="text-[11px] text-brand-muted leading-[1.4]">
-            {tiktokRows.length + instagramRowsDeduped.length} TikTok and Instagram post{tiktokRows.length + instagramRowsDeduped.length === 1 ? "" : "s"} collected; {sentimentTotal} tagged opinion{sentimentTotal === 1 ? "" : "s"} from TikTok, Instagram, and Reddit{opinionScope === "line" ? ` about the ${lineName} line` : opinionScope === "shade" ? ` about ${shadeName ?? "this shade"}` : isShadeLine ? ` naming ${shadeName ?? "this shade"} (${lineTaggedCount} about the ${lineName} line, too few to show)` : ""}
+            {tiktokRowsDeduped.length + instagramRowsDeduped.length} TikTok and Instagram post{tiktokRowsDeduped.length + instagramRowsDeduped.length === 1 ? "" : "s"} collected; {sentimentTotal} tagged opinion{sentimentTotal === 1 ? "" : "s"} from TikTok, Instagram, and Reddit{opinionScope === "line" ? ` about the ${lineName} line` : opinionScope === "shade" ? ` about ${shadeName ?? "this shade"}` : isShadeLine ? ` naming ${shadeName ?? "this shade"} (${lineTaggedCount} about the ${lineName} line, too few to show)` : ""}
           </span>
         </div>
         )}

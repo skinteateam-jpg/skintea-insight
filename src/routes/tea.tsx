@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import BottomNav from "@/components/BottomNav";
 import AppFrame from "@/components/AppFrame";
 import { TeaProductsContent } from "./tea-products";
-import { TreatmentTalkContent } from "./treatment-talk2";
+import { TreatmentTalkContent } from "./treatment-talk";
 import { SurgeryTalkContent } from "./surgery-talk";
 
 export const Route = createFileRoute("/tea")({
@@ -33,19 +34,51 @@ const TABS: { id: Tab; label: string }[] = [
 function TeaPage() {
   const [tab, setTab] = useState<Tab>("product");
 
+  /* The tab content has sticky bars of its own (the Product Talk tag bar, the
+     Surgery Talk filter header). They used to sit at the same offset and z-index
+     as this header and fight it for the top of the screen. This header now
+     publishes its own measured height as --tea-header-h and takes the higher
+     z-index, so a child bar sticks directly beneath it. A child that does not
+     read the variable falls back to 0px and behaves exactly as before. */
+  const headerRef = useRef<HTMLElement | null>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const measure = () => setHeaderHeight(el.getBoundingClientRect().height);
+    measure();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", measure);
+      return () => window.removeEventListener("resize", measure);
+    }
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <AppFrame>
-    <div style={{ background: CREAM, minHeight: "100vh", fontFamily: "'DM Sans', sans-serif", paddingBottom: 80 }}>
+    <div
+      style={{
+        background: CREAM,
+        minHeight: "100vh",
+        fontFamily: "'DM Sans', sans-serif",
+        paddingBottom: 80,
+        "--tea-header-h": `${headerHeight}px`,
+      } as CSSProperties}
+    >
       <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
       {/* Header */}
       <header
+        ref={headerRef}
         style={{
           background: WARM_WHITE,
           borderBottom: `1px solid ${BORDER}`,
           position: "sticky",
           top: 0,
-          zIndex: 20,
+          zIndex: 40,
         }}
       >
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "14px 16px 0" }}>
@@ -84,7 +117,13 @@ function TeaPage() {
         </div>
       </header>
 
-      {/* Content */}
+      {/* Content.
+          All three tabs stay, always. Each tab owns its own empty state: a tab
+          with no rows shows one honest line ("No product talk yet. Posting opens
+          soon.", "No surgery stories yet — be the first to share.") and renders
+          no section heading above nothing. This page must not paper over an
+          empty tab, and must not hide a tab because it is empty today — the
+          content returns by itself when rows exist. */}
       <main>
         {tab === "product" && <TeaProductsContent embedded />}
         {tab === "treatment" && <TreatmentTalkContent embedded />}

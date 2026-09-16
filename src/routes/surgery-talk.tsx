@@ -25,14 +25,17 @@ const WARM_WHITE = "#FFFCF8";
 const BORDER = "#E8DDD4";
 const MUTED = "#999999";
 
-const FALLBACK_SURGERIES = [
-  "Rhinoplasty (Nose Job)", "Upper Blepharoplasty", "Lower Blepharoplasty", "Double Eyelid Surgery",
-  "Facelift", "Mini Facelift", "Fat Grafting", "Buccal Fat Removal", "Chin Implant", "Jaw Reduction",
-  "Forehead Reduction", "Hairline Lowering", "Ear Pinning", "BBL", "Liposuction", "Abdominoplasty",
-  "Breast Augmentation", "Breast Lift",
-];
+/* The surgery filter is whatever `surgeries` holds. There is no hard-coded list
+   standing in for it: a substituted list offers filters that match nothing and
+   hides the fact that the query failed. */
 
 type Surgery = { id: string; name: string };
+
+/* Ranking needs a population to rank. Below this many posts, every ranking
+   surface stays hidden — medals, rank numbers, "Top Tea", "Most Controversial"
+   and the day's pick — because #1 of three posts is not a ranking. Raise or
+   lower it in one place; the whole ranking UI follows. */
+const MIN_RANKED_POSTS = 25;
 
 const SKIN_TYPES = [
   { id: "all", label: "All", emoji: "" },
@@ -79,9 +82,12 @@ type PostRow = {
 
 type EnrichedPost = PostRow & {
   surgery_name: string;
-  user_name: string;
+  /** profiles.name. null when the author has none — then no name renders. */
+  user_name: string | null;
+  /** Emoji for a known skin type only. "" when the skin type is unknown. */
   user_emoji: string;
-  user_member_line: string;
+  /** e.g. "oily skin". "" when the skin type is unknown. No membership claim. */
+  user_skin_line: string;
   user_is_derm: boolean;
 };
 
@@ -90,6 +96,7 @@ type EnrichedPost = PostRow & {
 function useSurgeries() {
   const [surgeries, setSurgeries] = useState<Surgery[]>([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -100,20 +107,23 @@ function useSurgeries() {
           .eq("active", true)
           .order("sort_order", { ascending: true });
         if (cancelled) return;
-        if (error || !data || data.length === 0) {
-          setSurgeries(FALLBACK_SURGERIES.map((n) => ({ id: n, name: n })));
+        if (error) {
+          console.error("surgeries fetch failed", error);
+          setFailed(true);
+          setSurgeries([]);
         } else {
-          setSurgeries(data as Surgery[]);
+          // An empty table is an empty filter row, not a reason to invent one.
+          setSurgeries((data ?? []) as Surgery[]);
         }
-      } catch {
-        if (!cancelled) setSurgeries(FALLBACK_SURGERIES.map((n) => ({ id: n, name: n })));
+      } catch (err) {
+        if (!cancelled) { console.error("surgeries fetch failed", err); setFailed(true); setSurgeries([]); }
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
   }, []);
-  return { surgeries, loading };
+  return { surgeries, loading, failed };
 }
 
 function useSession() {
@@ -165,9 +175,11 @@ function usePosts(surgeries: Surgery[]) {
             ...p,
             photos: Array.isArray(p.photos) ? (p.photos as Photo[]) : [],
             surgery_name: p.surgery_id ? (surgMap.get(p.surgery_id) ?? "—") : "—",
-            user_name: prof?.name || "Anonymous",
-            user_emoji: SKIN_EMOJI[skin] || "🫧",
-            user_member_line: `${skin ? skin.toLowerCase() + " skin · " : ""}member`,
+            // No stand-in name, no stand-in avatar, and no "member": nothing in
+            // the database says any of those.
+            user_name: prof?.name ?? null,
+            user_emoji: SKIN_EMOJI[skin] ?? "",
+            user_skin_line: skin ? `${skin.toLowerCase()} skin` : "",
             user_is_derm: prof?.is_derm ?? false,
           };
         });
@@ -278,17 +290,20 @@ function MetaCell({ label, value }: { label: string; value: string }) {
   );
 }
 
-function painDescriptor(level: number): { label: string; descriptor: string } {
-  if (level <= 2) return { label: "None", descriptor: "barely felt anything" };
-  if (level <= 4) return { label: "Mild", descriptor: "easier than a blood draw" };
-  if (level <= 6) return { label: "Moderate", descriptor: "worse than a blood draw, manageable with meds" };
-  if (level <= 8) return { label: "Moderate-High", descriptor: "needed prescription painkillers" };
-  return { label: "Severe", descriptor: "the worst pain I've felt" };
+/* A neutral name for a position on the 1–10 scale. Nothing here describes what
+   the pain felt like: the poster chose a number, not a sentence, and comparisons
+   like "easier than a blood draw" were never anyone's words. */
+function painScaleLabel(level: number): string {
+  if (level <= 2) return "None";
+  if (level <= 4) return "Mild";
+  if (level <= 6) return "Moderate";
+  if (level <= 8) return "Moderate-High";
+  return "Severe";
 }
 
 function PainBar({ level }: { level: number }) {
   const pct = (level / 10) * 100;
-  const { label, descriptor } = painDescriptor(level);
+  const label = painScaleLabel(level);
   return (
     <div>
       <div className="text-[7px] font-bold uppercase tracking-wider mb-2" style={{ color: MUTED }}>
@@ -303,12 +318,7 @@ function PainBar({ level }: { level: number }) {
             border: `1px solid ${BORDER}`,
           }}
         />
-        {/* reference marker at 40% (blood draw) */}
-        <div className="absolute" style={{ left: "40%", top: 0, transform: "translateX(-50%)" }}>
-          <div style={{ width: 6, height: 6, borderRadius: 3, background: "#999", margin: "0 auto" }} />
-          <div style={{ width: 1, height: 12, background: "#999", margin: "0 auto" }} />
-        </div>
-        {/* user dot */}
+        {/* The only mark on the scale is the level the poster picked. */}
         <div className="absolute"
           style={{
             left: `${pct}%`, top: 4, transform: "translateX(-50%)",
@@ -318,14 +328,11 @@ function PainBar({ level }: { level: number }) {
         />
       </div>
       <div className="mt-2 flex items-baseline gap-2">
-        <span className="text-[11px] font-bold" style={{ color: ESPRESSO }}>{label}</span>
-        <span className="text-[10px]" style={{ color: MUTED }}>— {descriptor}</span>
+        <span className="text-[11px] font-bold" style={{ color: ESPRESSO }}>{level}/10</span>
+        <span className="text-[10px]" style={{ color: MUTED }}>{label}</span>
       </div>
       <div className="mt-1 flex justify-between text-[8px]" style={{ color: MUTED }}>
         <span>None</span><span>Mild</span><span>Moderate</span><span>Severe</span>
-      </div>
-      <div className="mt-1 text-[8px]" style={{ color: MUTED, textAlign: "center" }}>
-        ◆ standard reference: blood draw
       </div>
     </div>
   );
@@ -364,7 +371,7 @@ function OutcomeBadge({ outcome }: { outcome: PostRow["outcome"] }) {
 }
 
 // ============= Comments =============
-type CommentRow = { id: string; user_id: string; content: string; created_at: string; user_name?: string };
+type CommentRow = { id: string; user_id: string; content: string; created_at: string; user_name?: string | null };
 
 function CommentSection({ postId, userId }: { postId: string; userId: string | null }) {
   const [comments, setComments] = useState<CommentRow[]>([]);
@@ -381,7 +388,8 @@ function CommentSection({ postId, userId }: { postId: string; userId: string | n
     const ids = Array.from(new Set(data.map((c) => c.user_id)));
     const { data: profs } = await supabase.from("profiles").select("user_id, name").in("user_id", ids);
     const map = new Map(profs?.map((p) => [p.user_id, p.name]) ?? []);
-    setComments(data.map((c) => ({ ...c, user_name: map.get(c.user_id) || "Anon" })));
+    // No stand-in name: an unnamed commenter shows no name.
+    setComments(data.map((c) => ({ ...c, user_name: map.get(c.user_id) ?? null })));
   }, [postId]);
 
   useEffect(() => { load(); }, [load]);
@@ -407,7 +415,9 @@ function CommentSection({ postId, userId }: { postId: string; userId: string | n
               💭
             </div>
             <div className="flex-1 rounded-lg px-2 py-1.5" style={{ background: "#fff", border: `1px solid ${BORDER}` }}>
-              <div className="text-[9px] font-bold" style={{ color: ESPRESSO }}>{c.user_name}</div>
+              {c.user_name && (
+                <div className="text-[9px] font-bold" style={{ color: ESPRESSO }}>{c.user_name}</div>
+              )}
               <div className="text-[10px]" style={{ color: ESPRESSO }}>{c.content}</div>
               <div className="text-[8px] mt-0.5" style={{ color: MUTED }}>
                 {new Date(c.created_at).toLocaleString()}
@@ -467,7 +477,7 @@ function PostCard({ post, locked, userId, onLikeChange }: { post: EnrichedPost; 
   }, [post.id, userId]);
 
   async function toggleLike() {
-    if (!userId || post.user_id === "demo") return;
+    if (!userId) return;
     if (liked) {
       await supabase.from("surgery_likes").delete().eq("post_id", post.id).eq("user_id", userId);
       setLiked(false); setLikesCount((c) => Math.max(0, c - 1));
@@ -478,7 +488,7 @@ function PostCard({ post, locked, userId, onLikeChange }: { post: EnrichedPost; 
     }
   }
   async function toggleSave() {
-    if (!userId || post.user_id === "demo") return;
+    if (!userId) return;
     if (saved) {
       await supabase.from("surgery_saves").delete().eq("post_id", post.id).eq("user_id", userId);
       setSaved(false);
@@ -503,13 +513,17 @@ function PostCard({ post, locked, userId, onLikeChange }: { post: EnrichedPost; 
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <div className="text-[12px] font-bold truncate" style={{ color: ESPRESSO }}>{post.user_name}</div>
+                {post.user_name && (
+                  <div className="text-[12px] font-bold truncate" style={{ color: ESPRESSO }}>{post.user_name}</div>
+                )}
                 {post.user_is_derm && (
                   <span className="rounded-full px-1.5 py-0.5 text-[8px] font-bold"
                     style={{ background: "#F0EDF8", color: "#4A3580" }}>✓ Derm</span>
                 )}
               </div>
-              <div className="text-[10px]" style={{ color: MUTED }}>{post.user_member_line}</div>
+              {post.user_skin_line && (
+                <div className="text-[10px]" style={{ color: MUTED }}>{post.user_skin_line}</div>
+              )}
             </div>
           </div>
           <span className="rounded-full px-2 py-1 text-[9px] font-bold shrink-0"
@@ -659,37 +673,45 @@ function PostCard({ post, locked, userId, onLikeChange }: { post: EnrichedPost; 
 // ============= Engagement sections =============
 function TodaysTea({ post }: { post: EnrichedPost | null }) {
   if (!post) return null;
-  const quote = post.my_thoughts_vs_reality || post.surprised_me || post.what_happened || "Read the full spill →";
+  // Quoted text is the poster's own writing or there is no quote. A caption the
+  // app generated must never appear inside quotation marks.
+  const quote = post.my_thoughts_vs_reality || post.surprised_me || post.what_happened || "";
   return (
     <section className="mb-5">
       <div className="mb-2 flex items-end justify-between">
         <h2 className="text-[16px]" style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }}>
           ☕ Today's Tea
         </h2>
-        <span className="text-[10px]" style={{ color: MUTED }}>refreshes daily</span>
+        {/* What this actually is: the most-liked post of the last 24 hours,
+            worked out in the browser each time the page loads. Nothing
+            "refreshes daily". */}
+        <span className="text-[10px]" style={{ color: MUTED }}>most liked in the last 24 hours</span>
       </div>
       <div className="rounded-xl p-4" style={{ background: ESPRESSO }}>
-        <span className="inline-block rounded-full px-2 py-0.5 text-[9px] font-bold"
-          style={{ background: "rgba(255,255,255,0.12)", color: "#fff" }}>
-          🔥 Featured spill
-        </span>
-        <div className="mt-2 text-[10px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.7)" }}>
-          {post.surgery_name} · {post.city || "—"}
+        <div className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.7)" }}>
+          {post.surgery_name}{post.city ? ` · ${post.city}` : ""}
         </div>
-        <p className="mt-2 text-[14px] leading-snug" style={{ fontFamily: "'Playfair Display', serif", color: "#fff" }}>
-          "{quote.length > 140 ? quote.slice(0, 140) + "…" : quote}"
-        </p>
+        {quote ? (
+          <p className="mt-2 text-[14px] leading-snug" style={{ fontFamily: "'Playfair Display', serif", color: "#fff" }}>
+            "{quote.length > 140 ? quote.slice(0, 140) + "…" : quote}"
+          </p>
+        ) : (
+          <p className="mt-2 text-[12px]" style={{ color: "rgba(255,255,255,0.7)" }}>
+            This post has no written story yet.
+          </p>
+        )}
         <div className="mt-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex items-center justify-center rounded-full"
               style={{ width: 24, height: 24, background: SKIN_BG[post.skin_type ?? ""] ?? CREAM, fontSize: 12 }}>
               {post.user_emoji}
             </div>
-            <span className="text-[10px]" style={{ color: "#fff" }}>{post.user_name}</span>
+            {post.user_name && <span className="text-[10px]" style={{ color: "#fff" }}>{post.user_name}</span>}
           </div>
+          {/* Likes are a stored count. The comment count here was a literal 0
+              that nothing counted, so it is gone. */}
           <div className="flex items-center gap-3 text-[10px]" style={{ color: "rgba(255,255,255,0.85)" }}>
             <span className="flex items-center gap-1"><Heart size={11} /> {post.likes_count}</span>
-            <span className="flex items-center gap-1"><MessageCircle size={11} /> 0</span>
           </div>
         </div>
       </div>
@@ -719,9 +741,17 @@ function TopTea({ posts }: { posts: EnrichedPost[] }) {
               <div className="text-[8px] uppercase tracking-wider" style={{ color: MUTED }}>
                 {p.surgery_name}
               </div>
-              <div className="mt-0.5 text-[11px] font-medium leading-snug" style={{ color: ESPRESSO }}>
-                {(p.my_thoughts_vs_reality || p.what_happened || "—").slice(0, 50)}…
-              </div>
+              {/* The ellipsis belongs to text that was actually cut. An empty
+                  post renders no excerpt rather than "—…". */}
+              {(() => {
+                const excerpt = p.my_thoughts_vs_reality || p.what_happened || "";
+                if (!excerpt) return null;
+                return (
+                  <div className="mt-0.5 text-[11px] font-medium leading-snug" style={{ color: ESPRESSO }}>
+                    {excerpt.length > 50 ? `${excerpt.slice(0, 50)}…` : excerpt}
+                  </div>
+                );
+              })()}
               <div className="mt-2 flex items-center justify-between text-[10px]" style={{ color: MUTED }}>
                 <span>🔥 {p.likes_count}</span>
                 <span style={{ color: CRIMSON, fontWeight: 700 }}>#{i + 1}</span>
@@ -736,7 +766,7 @@ function TopTea({ posts }: { posts: EnrichedPost[] }) {
 
 function MostControversial({ post }: { post: EnrichedPost | null }) {
   if (!post) return null;
-  const quote = post.warn_if || post.my_thoughts_vs_reality || post.surprised_me || "—";
+  const quote = post.warn_if || post.my_thoughts_vs_reality || post.surprised_me || "";
   return (
     <section className="mb-5">
       <div className="mb-2">
@@ -754,11 +784,13 @@ function MostControversial({ post }: { post: EnrichedPost | null }) {
             </span>
           </div>
           <div className="mt-1 text-[9px]" style={{ color: MUTED }}>
-            {post.surgery_name} · {post.city || "—"}
+            {post.surgery_name}{post.city ? ` · ${post.city}` : ""}
           </div>
-          <p className="mt-1 text-[11px]" style={{ color: ESPRESSO }}>
-            "{quote.length > 100 ? quote.slice(0, 100) + "…" : quote}"
-          </p>
+          {quote && (
+            <p className="mt-1 text-[11px]" style={{ color: ESPRESSO }}>
+              "{quote.length > 100 ? quote.slice(0, 100) + "…" : quote}"
+            </p>
+          )}
         </div>
         <div className="flex flex-col items-center gap-1">
           <div className="flex items-center justify-center rounded-full"
@@ -859,7 +891,7 @@ function Composer({ onClose, surgeries, userId, onCreated }: {
     onCreated(); onClose();
   }
 
-  const painInfo = painDescriptor(form.pain_level);
+  const painLabel = painScaleLabel(form.pain_level);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" style={{ background: "rgba(28,10,0,0.5)" }}>
@@ -895,7 +927,7 @@ function Composer({ onClose, surgeries, userId, onCreated }: {
           </Field>
 
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: MUTED }}>Pain level: {form.pain_level}/10 — {painInfo.label}</div>
+            <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: MUTED }}>Pain level: {form.pain_level}/10 — {painLabel}</div>
             <PainBar level={form.pain_level} />
             <input type="range" min={1} max={10} value={form.pain_level}
               onChange={(e) => update("pain_level", Number(e.target.value))}
@@ -1002,7 +1034,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } = {}) {
   const navigate = useNavigate();
   const userId = useSession();
-  const { surgeries, loading: surgeriesLoading } = useSurgeries();
+  const { surgeries, loading: surgeriesLoading, failed: surgeriesFailed } = useSurgeries();
   const { posts, loading: postsLoading, reload, updatePost } = usePosts(surgeries);
   const [chip, setChip] = useState<string>("All");
   const [skin, setSkin] = useState<string>("all");
@@ -1042,25 +1074,34 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
       .filter((p) => skin === "all" ? true : p.skin_type === skin);
   }, [posts, chip, skin]);
 
+  /* Every ranking below is gated on MIN_RANKED_POSTS. Under the floor the
+     sections render nothing at all — the components stay, so they come back on
+     their own once there are enough posts to rank. */
+  const rankingReady = posts.length >= MIN_RANKED_POSTS;
+
   const todaysTea = useMemo(() => {
+    if (!rankingReady) return null;
     const since = Date.now() - 24 * 60 * 60 * 1000;
+    // No fallback to "any post": if nothing was posted in the last 24 hours
+    // there is no post of the day.
     return [...posts]
       .filter((p) => new Date(p.created_at).getTime() >= since)
-      .sort((a, b) => b.likes_count - a.likes_count)[0]
-      ?? posts[0] ?? null;
-  }, [posts]);
+      .sort((a, b) => b.likes_count - a.likes_count)[0] ?? null;
+  }, [posts, rankingReady]);
 
   const topTea = useMemo(() => {
+    if (!rankingReady) return [];
     const since = Date.now() - 7 * 24 * 60 * 60 * 1000;
     return [...posts]
       .filter((p) => new Date(p.created_at).getTime() >= since)
       .sort((a, b) => b.likes_count - a.likes_count)
       .slice(0, 5);
-  }, [posts]);
+  }, [posts, rankingReady]);
 
   const controversial = useMemo(() => {
+    if (!rankingReady) return null;
     return [...posts].filter((p) => p.outcome === "Wouldn't").sort((a, b) => b.likes_count - a.likes_count)[0] ?? null;
-  }, [posts]);
+  }, [posts, rankingReady]);
 
 
   function handleSpillClick() {
@@ -1075,6 +1116,8 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
     }
   }
 
+  /* Medals are a ranking too, so they wait for MIN_RANKED_POSTS with the rest.
+     Under the floor the chips are plain filters. */
   function renderSurgeryChip(item: { id: string; label: string }, isActive: boolean) {
     const count = surgeryChips.find((c) => c.id === item.id)?.count ?? 0;
     const idx = surgeryChips.findIndex((c) => c.id === item.id);
@@ -1085,7 +1128,7 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
       border: `1px solid ${isActive ? ESPRESSO : BORDER}`,
     };
     let suffix = "";
-    if (item.id !== "All" && count > 0) {
+    if (rankingReady && item.id !== "All" && count > 0) {
       if (idx === 1) {
         prefix = "🥇 "; suffix = " 🔥";
         if (!isActive) style = { backgroundColor: "#FFFBEE", color: ESPRESSO, border: "1px solid #D4A800" };
@@ -1105,30 +1148,35 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-      <div className="min-h-screen overflow-x-hidden pb-24"
+      {/* pb clears the floating button: 72px offset + ~40px button on mobile,
+          less on desktop where BottomNav (md:hidden) is not there. */}
+      <div className="min-h-screen overflow-x-hidden pb-[132px] md:pb-24"
         style={{ background: CREAM, fontFamily: "'DM Sans', sans-serif", maxWidth: "100vw" }}>
 
-        {/* Header */}
-        <header className="sticky top-0 z-30"
-          style={{ background: WARM_WHITE, borderBottom: `1px solid ${BORDER}` }}>
-          {/* Surgery filter */}
+        {/* Header. Sits under the /tea header when embedded there — that header
+            publishes its height as --tea-header-h and takes the higher z-index;
+            standalone, the fallback of 0px keeps it at the top. */}
+        <header className="sticky z-30"
+          style={{ background: WARM_WHITE, borderBottom: `1px solid ${BORDER}`, top: "var(--tea-header-h, 0px)" }}>
+          {/* Surgery filter. Only called "ranked" while there is enough to rank. */}
           <div className="px-4 pt-2">
             <div className="text-[8px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>
-              Surgery · ranked by today's posts
+              {rankingReady ? "Surgery · ranked by today's posts" : "Surgery"}
             </div>
           </div>
           {surgeriesLoading ? (
             <ChipSkeleton />
-          ) : (
+          ) : surgeriesFailed ? (
+            <div className="px-4 py-2 text-[10px]" style={{ color: CRIMSON }}>
+              Couldn't load the surgery filter. Reload to try again.
+            </div>
+          ) : surgeries.length > 0 ? (
             <ChipScroll
               items={surgeryChips.map((c) => ({ id: c.id, label: c.label }))}
               active={chip} onChange={setChip}
               renderChip={renderSurgeryChip}
             />
-          )}
-          <div className="px-4 pb-1 text-[9px]" style={{ color: MUTED }}>
-            ↻ Updates daily at midnight
-          </div>
+          ) : null}
 
           {/* Skin filter */}
           <ChipScroll items={SKIN_TYPES} active={skin} onChange={setSkin} />
@@ -1139,14 +1187,19 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
           {topTea.length > 0 && <TopTea posts={topTea} />}
           <MostControversial post={controversial} />
 
-          <div className="mb-3 flex items-end justify-between">
-            <h1 className="text-[18px]" style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }}>
-              All Spills
-            </h1>
-            <span className="text-[11px]" style={{ color: MUTED }}>
-              {filtered.length.toLocaleString()} teas
-            </span>
-          </div>
+          {/* Heading and count wait for rows: a title over a skeleton, or over
+              "no stories yet", describes nothing. The count is the plain number
+              of posts on screen. */}
+          {!postsLoading && filtered.length > 0 && (
+            <div className="mb-3 flex items-end justify-between">
+              <h1 className="text-[18px]" style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }}>
+                All Spills
+              </h1>
+              <span className="text-[11px]" style={{ color: MUTED }}>
+                {filtered.length} {filtered.length === 1 ? "tea" : "teas"}
+              </span>
+            </div>
+          )}
 
           <div className="space-y-4">
             {postsLoading ? (
@@ -1163,14 +1216,20 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
             ) : filtered.length === 0 ? (
               <div className="rounded-xl p-6 text-center text-[12px]"
                 style={{ background: "#fff", border: `1px solid ${BORDER}`, color: MUTED }}>
-                No surgery stories yet — be the first to share.
+                {posts.length === 0
+                  ? "No surgery stories yet — be the first to share."
+                  : "No stories match these filters."}
               </div>
             ) : (
-              filtered.map((p, i) => (
+              /* No paywall: there is no paid tier, and the old rule locked every
+                 post after the first for everyone, signed in or not. PostCard
+                 keeps its `locked` prop and gate overlay for a membership tier
+                 that may exist later; nothing sets it today. */
+              filtered.map((p) => (
                 <PostCard
                   key={p.id}
                   post={p}
-                  locked={i >= 1}
+                  locked={false}
                   userId={userId}
                   onLikeChange={(delta) => updatePost(p.id, { likes_count: Math.max(0, p.likes_count + delta) })}
                 />
@@ -1190,9 +1249,8 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
 
         <button
           onClick={handleSpillClick}
+          className="fixed bottom-[72px] md:bottom-6"
           style={{
-            position: "fixed",
-            bottom: 72,
             left: "50%",
             transform: "translateX(-50%)",
             background: "#A8001C",

@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Lock, X } from "lucide-react";
+import { Lock, X, User } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -38,7 +38,7 @@ type TeaPost = {
   bg_color: string | null;
   caption: string | null;
   created_at: string;
-  likes_count: number;
+  likes_count: number | null;
 };
 type ShelfItem = {
   id: string;
@@ -71,6 +71,10 @@ function PublicProfilePage() {
   const [openPost, setOpenPost] = useState<TeaPost | null>(null);
   const [shelfItems, setShelfItems] = useState<ShelfItem[]>([]);
   const [wishlistItems, setWishlistItems] = useState<WishItem[]>([]);
+  // "missing" = the tea_posts table does not exist yet (posting is not built), "error" = a real failure.
+  const [postsError, setPostsError] = useState<false | "missing" | "error">(false);
+  const [shelfError, setShelfError] = useState(false);
+  const [wishlistError, setWishlistError] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -113,48 +117,51 @@ function PublicProfilePage() {
     let alive = true;
     (async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("tea_posts" as any)
           .select("id,emoji,bg_color,caption,created_at,likes_count")
           .eq("user_id", uid)
           .eq("is_public", true)
           .order("created_at", { ascending: false })
           .limit(18);
-        if (alive) setPosts(((data as any[]) ?? []) as TeaPost[]);
-      } catch { if (alive) setPosts([]); }
+        if (error) throw error;
+        if (alive) { setPosts(((data as any[]) ?? []) as TeaPost[]); setPostsError(false); }
+      } catch (e: any) {
+        if (alive) { setPosts([]); setPostsError(/does not exist|42P01|schema cache/i.test(String(e?.message ?? e)) ? "missing" : "error"); }
+      }
     })();
     (async () => {
+      // This is a public page: every shelf query on it is filtered to is_public. There is no fallback query —
+      // the previous one retried WITHOUT that filter, so any error on the first query published private items.
+      // An error shows an error state and nothing else.
       try {
-        let { data, error } = await supabase
+        const { data, error } = await supabase
           .from("shelf_items" as any)
           .select("id,category,product_name,brand,emoji,is_top_pick")
           .eq("user_id", uid)
           .eq("is_public", true)
           .order("created_at", { ascending: false });
-        if (error) {
-          const fb = await supabase
-            .from("shelf_items" as any)
-            .select("id,category,product_name,brand,emoji,is_top_pick")
-            .eq("user_id", uid)
-            .order("created_at", { ascending: false });
-          data = fb.data;
-        }
-        if (alive) setShelfItems(((data as any[]) ?? []) as ShelfItem[]);
-      } catch { if (alive) setShelfItems([]); }
+        if (error) throw error;
+        if (alive) { setShelfItems(((data as any[]) ?? []) as ShelfItem[]); setShelfError(false); }
+      } catch { if (alive) { setShelfItems([]); setShelfError(true); } }
     })();
     (async () => {
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("gift_wishlist" as any)
           .select("id,product_name,brand,category,emoji,affiliate_url,affiliate_store,type")
           .eq("user_id", uid)
           .eq("is_public", true)
           .order("created_at", { ascending: false });
-        if (alive) setWishlistItems(((data as any[]) ?? []) as WishItem[]);
-      } catch { if (alive) setWishlistItems([]); }
+        if (error) throw error;
+        if (alive) { setWishlistItems(((data as any[]) ?? []) as WishItem[]); setWishlistError(false); }
+      } catch { if (alive) { setWishlistItems([]); setWishlistError(true); } }
     })();
     return () => { alive = false; };
   }, [profile?.user_id]);
+
+  // Locked only when there is something behind the lock.
+  const locked = !isMember && logs.length > 0;
 
   const shelfGrouped = useMemo(() => {
     const map = new Map<string, ShelfItem[]>();
@@ -182,7 +189,10 @@ function PublicProfilePage() {
       <header style={{ position: "sticky", top: 0, zIndex: 30, background: "#FFFFFF", borderBottom: `0.5px solid ${C.border}` }}>
         <div style={{ maxWidth: 960, margin: "0 auto", padding: "16px 16px 0" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#FFF5F5", display: "grid", placeItems: "center", fontSize: 28 }}>🌷</div>
+            {/* Neutral placeholder: this profile has no avatar, and a flower would read as something they chose. */}
+            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#F2EEE9", display: "grid", placeItems: "center", flexShrink: 0 }}>
+              <User size={26} color={C.muted} aria-hidden />
+            </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 16 }}>@{profile.username}</div>
               {profile.name && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{profile.name}</div>}
@@ -192,8 +202,10 @@ function PublicProfilePage() {
           {/* WHAT I'VE DONE strip — public, read-only */}
           <div style={{ marginTop: 16 }}>
             <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: C.crimson, marginBottom: 8 }}>What I've Done</div>
+            {/* Only lock a section that actually hides something. With no public treatments there is nothing behind
+                the blur, so the empty state is shown plainly instead of asking the visitor to unlock nothing. */}
             <div style={{ position: "relative" }}>
-              <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, filter: isMember ? "none" : "blur(8px)", pointerEvents: isMember ? "auto" : "none" }}>
+              <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, filter: locked ? "blur(8px)" : "none", pointerEvents: locked ? "none" : "auto" }}>
                 {logs.length === 0 && (
                   <div style={{ fontSize: 12, color: C.muted, padding: "16px 0" }}>No public treatments yet.</div>
                 )}
@@ -207,12 +219,12 @@ function PublicProfilePage() {
                   </div>
                 ))}
               </div>
-              {!isMember && (
-                <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, background: "rgba(255,252,248,0.6)" }}>
+              {locked && (
+                <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, background: "rgba(255,252,248,0.6)", textAlign: "center", padding: "0 12px" }}>
                   <Lock size={20} color={C.crimson} />
-                  <button style={{ background: C.crimson, color: "#FFFCF8", border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "system-ui, -apple-system, sans-serif" }}>
-                    Unlock $9.99/mo
-                  </button>
+                  {/* No price: there is no paid tier to quote. Nothing here is clickable until membership exists. */}
+                  <div style={{ fontSize: 13, fontWeight: 800, color: C.crimson }}>Members only</div>
+                  <div style={{ fontSize: 11, color: C.muted }}>Memberships aren't open yet.</div>
                 </div>
               )}
             </div>
@@ -242,14 +254,19 @@ function PublicProfilePage() {
 
       <main style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px 80px", fontFamily: "'DM Sans', system-ui, -apple-system, sans-serif" }}>
         {tab === "tea" && (
-          posts.length === 0 ? (
+          postsError === "missing" ? (
+            <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "32px 12px" }}>Posting isn't open yet.</div>
+          ) : postsError ? (
+            <div style={{ fontSize: 13, color: C.crimson, textAlign: "center", padding: "32px 12px", fontWeight: 600 }}>Couldn't load posts. Reload the page to try again.</div>
+          ) : posts.length === 0 ? (
             <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "32px 12px" }}>No posts yet.</div>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4 }}>
               {posts.map(p => (
                 <button key={p.id} onClick={() => setOpenPost(p)}
                   style={{ aspectRatio: "1", background: p.bg_color ?? "#F5F0EB", border: "none", cursor: "pointer", display: "grid", placeItems: "center", padding: 0 }}>
-                  <span style={{ fontSize: 40 }}>{p.emoji ?? "🌸"}</span>
+                  {/* The post's own emoji only — no stand-in when the post has none. */}
+                  {p.emoji && <span style={{ fontSize: 40 }}>{p.emoji}</span>}
                 </button>
               ))}
             </div>
@@ -257,7 +274,9 @@ function PublicProfilePage() {
         )}
 
         {tab === "shelf" && (
-          shelfItems.length === 0 ? (
+          shelfError ? (
+            <div style={{ fontSize: 13, color: C.crimson, textAlign: "center", padding: "32px 12px", fontWeight: 600 }}>Couldn't load this shelf. Reload the page to try again.</div>
+          ) : shelfItems.length === 0 ? (
             <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "32px 12px" }}>Shelf is empty.</div>
           ) : (
             <div>
@@ -267,8 +286,8 @@ function PublicProfilePage() {
                   <div style={{ display: "flex", gap: 10, overflowX: "auto", margin: "0 -16px", padding: "0 16px 8px" }}>
                     {items.map(p => (
                       <div key={p.id} style={{ flexShrink: 0, width: 120, background: "#FFFFFF", border: `0.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden", position: "relative" }}>
-                        {p.is_top_pick && <div style={{ position: "absolute", top: 6, left: 6, background: "#C9A227", color: "#fff", fontSize: 8, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
-                        <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 36 }}>{p.emoji ?? "🧴"}</div>
+                        {p.is_top_pick && <div style={{ position: "absolute", top: 6, left: 6, background: "#C9A227", color: "#fff", fontSize: 10, fontWeight: 800, padding: "2px 5px", borderRadius: 3, letterSpacing: 0.5 }}>TOP PICK</div>}
+                        <div style={{ aspectRatio: "1", background: "#F5F0EB", display: "grid", placeItems: "center", fontSize: 36 }}>{p.emoji ?? ""}</div>
                         <div style={{ padding: 8 }}>
                           <div style={{ fontSize: 11, fontWeight: 700, color: C.ink, lineHeight: 1.2, minHeight: 26 }}>{p.product_name}</div>
                           {p.brand && <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{p.brand}</div>}
@@ -284,32 +303,37 @@ function PublicProfilePage() {
 
         {tab === "gift" && (
           <>
-            <div style={{ background: C.ink, borderRadius: 12, padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: C.bg, marginBottom: 3 }}>🎁 Gift this person</div>
-                <div style={{ fontSize: 10, color: "rgba(255,252,248,0.55)", lineHeight: 1.4 }}>Pick something from their wishlist — they'll love it.</div>
+            {/* The banner invites the visitor to pick from the wishlist, so it only renders when there is one.
+                Share is kept but disabled: nothing shares a wishlist yet. */}
+            {wishlistItems.length > 0 && (
+              <div style={{ background: C.ink, borderRadius: 12, padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: C.bg, marginBottom: 3 }}>🎁 Gift this person</div>
+                  <div style={{ fontSize: 10, color: "rgba(255,252,248,0.55)", lineHeight: 1.4 }}>Pick something from their wishlist — they'll love it.</div>
+                </div>
+                <button type="button" disabled title="Sharing this wishlist isn't available yet" style={{ background: "transparent", color: "rgba(255,252,248,0.5)", border: "1px solid rgba(255,252,248,0.3)", borderRadius: 99, padding: "8px 14px", fontSize: 10, fontWeight: 800, whiteSpace: "nowrap", cursor: "not-allowed" }}>Share · not yet</button>
               </div>
-              <button style={{ background: C.crimson, color: C.bg, border: "none", borderRadius: 99, padding: "8px 14px", fontSize: 10, fontWeight: 800, whiteSpace: "nowrap", cursor: "pointer" }}>Share</button>
-            </div>
-            {wishlistItems.length === 0 ? (
+            )}
+            {wishlistError ? (
+              <div style={{ fontSize: 13, color: C.crimson, textAlign: "center", padding: "32px 12px", fontWeight: 600 }}>Couldn't load this wishlist. Reload the page to try again.</div>
+            ) : wishlistItems.length === 0 ? (
               <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "32px 12px" }}>Nothing on wishlist yet.</div>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 {wishlistItems.map(item => (
                   <div key={item.id} style={{ background: "#fff", border: `0.5px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
                     <div style={{ height: 75, background: "#FFFCF8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, borderBottom: `0.5px solid ${C.border}` }}>
-                      {item.emoji ?? "🎁"}
+                      {item.emoji ?? ""}
                     </div>
                     <div style={{ padding: "7px 8px 8px" }}>
-                      {item.category && <div style={{ fontSize: 7, color: C.crimson, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{item.category}</div>}
-                      {item.brand && <div style={{ fontSize: 8, color: C.muted }}>{item.brand}</div>}
-                      <div style={{ fontSize: 10, fontWeight: 700, color: C.ink, marginBottom: 5 }}>{item.product_name}</div>
-                      {item.affiliate_url ? (
-                        <a href={item.affiliate_url} target="_blank" rel="noreferrer" style={{ display: "block", background: C.ink, color: C.bg, borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 700, textAlign: "center", textDecoration: "none" }}>
+                      {item.category && <div style={{ fontSize: 10, color: C.crimson, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>{item.category}</div>}
+                      {item.brand && <div style={{ fontSize: 10, color: C.muted }}>{item.brand}</div>}
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.ink, marginBottom: 5 }}>{item.product_name}</div>
+                      {/* No link, no button: a black "Buy →" box that cannot be clicked is worse than nothing. */}
+                      {item.affiliate_url && (
+                        <a href={item.affiliate_url} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: C.ink, color: C.bg, borderRadius: 6, padding: 6, fontSize: 10, fontWeight: 700, textAlign: "center", textDecoration: "none" }}>
                           Buy{item.affiliate_store ? ` → ${item.affiliate_store}` : " →"}
                         </a>
-                      ) : (
-                        <div style={{ background: C.ink, color: C.bg, borderRadius: 6, padding: 5, fontSize: 8, fontWeight: 700, textAlign: "center" }}>Buy →</div>
                       )}
                     </div>
                   </div>
@@ -330,12 +354,13 @@ function PublicProfilePage() {
               style={{ position: "absolute", top: 14, right: 14, width: 30, height: 30, borderRadius: "50%", background: "#fff", border: `1px solid ${C.border}`, display: "grid", placeItems: "center", cursor: "pointer" }}>
               <X size={14} />
             </button>
-            <div style={{ aspectRatio: "1", background: openPost.bg_color ?? "#F5F0EB", display: "grid", placeItems: "center", fontSize: 120, borderRadius: 12, marginBottom: 16 }}>{openPost.emoji ?? "🌸"}</div>
+            <div style={{ aspectRatio: "1", background: openPost.bg_color ?? "#F5F0EB", display: "grid", placeItems: "center", fontSize: 120, borderRadius: 12, marginBottom: 16 }}>{openPost.emoji ?? ""}</div>
             <div style={{ fontSize: 11, color: C.muted }}>
               {new Date(openPost.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
             </div>
             {openPost.caption && <p style={{ marginTop: 10, fontSize: 14, lineHeight: 1.5, color: C.ink }}>{openPost.caption}</p>}
-            <div style={{ fontSize: 13, color: C.ink, marginTop: 8 }}>♥ {openPost.likes_count ?? 0}</div>
+            {/* An unknown count is not zero, so nothing renders when it is null. */}
+            {openPost.likes_count != null && <div style={{ fontSize: 13, color: C.ink, marginTop: 8 }}>♥ {openPost.likes_count}</div>}
           </div>
         </div>
       )}

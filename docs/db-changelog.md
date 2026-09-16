@@ -529,3 +529,18 @@ Nothing below was reconstructed from memory without a source.
 - **No lead event fires from the new line.** `lead_events.event_type` allows only stage_change, field_set,
   quiz_completed, clinic_view, consultation_click, booking_link_click and email_submitted. None describes "a visitor
   offered to tell us what happened", and adding one is a schema change, so nothing is recorded for that click.
+
+### 2026-09-16 18:10–18:50 UTC — listing second pass: solo practices back, non-clinics out (pipeline session, clinic layer)
+- Who: skintea-pipeline session; statements in `sql/2026-09-16_listings_second_pass_querydb_log.sql` (pipeline repo).
+- What (`clinics.listing_filter`, rows kept, reason in `field_provenance.listing_filter`, source `manual_web_check`):
+  - `dropped` → `passed` (3): Dennis Bang MD, Dr. Sean Satey, Rebecca Fitzgerald MD Inc. — solo practices with their own
+    website and booking. A practice under the practitioner's name is a business. Names kept as listed.
+  - `passed` → `dropped` (4): VI Peel (the product brand's corporate shop), "MY Doctor | Dermatologists"
+    (medical-marijuana card telehealth site), Luxe Naturals (product shop), Young's Gift & Cosmetic (retail store).
+  - The other 51 person-named rows stay `dropped`: hospital/directory provider pages (Kaiser, CHLA, Keck, Adventist,
+    Portrait Collective, a jany.io microsite), rows with no website, staff of practices listed separately, and one listing
+    at a hospital address whose own practice is in another city.
+  - Passed clinics 185 → 184.
+- Why: owner's rule — a solo practice with its own site and booking is a business; a physician page inside a hospital
+  group or directory is not; a product brand, shop or telehealth service is not a clinic.
+- Deleted session_ids: none. No rows deleted.

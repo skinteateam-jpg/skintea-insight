@@ -872,6 +872,127 @@ function ClinicDetailPage() {
     return <div style={{ padding: 40, textAlign: "center", color: MUTED, fontSize: 12, background: WARM_WHITE, minHeight: "100vh" }}>Clinic not found.</div>;
   }
 
+  const verified = clinic.is_verified === true
+    && clinic.field_provenance?.is_verified?.source != null
+    && clinic.field_provenance?.is_verified?.recorded_at != null;
+  const featured = clinic.is_featured === true
+    && clinic.field_provenance?.is_featured?.source != null
+    && clinic.field_provenance?.is_featured?.recorded_at != null;
+  const badges: string[] = Array.isArray(clinic.badges) && sourced(clinic, "badges") ? clinic.badges : [];
+  const hasTake = typeof clinic.tea_quote === "string" && clinic.tea_quote.trim() !== "" && sourced(clinic, "tea_quote");
+  const hasBestFor = Array.isArray(clinic.best_for) && clinic.best_for.length > 0;
+  const hasKnownFor = typeof clinic.known_for === "string" && clinic.known_for.trim() !== "" && sourced(clinic, "known_for");
+  const pricedN = treatments.filter((t) => shownPrice(t.price_from, t.price_unit, t.field_provenance)).length;
+  const priceTier = clinic.price_tier != null && sourced(clinic, "price_tier") ? String(clinic.price_tier) : null;
+  const priceFrom = clinic.price_from != null && sourced(clinic, "price_from") ? Number(clinic.price_from) : null;
+  const hoursGroups = groupHours(clinic.hours);
+  const now = openNow(clinic.hours);
+  const hasAddress = typeof clinic.address === "string" && clinic.address.trim() !== "";
+  const latitude = typeof clinic.latitude === "number" ? clinic.latitude : clinic.latitude != null ? Number(clinic.latitude) : NaN;
+  const longitude = typeof clinic.longitude === "number" ? clinic.longitude : clinic.longitude != null ? Number(clinic.longitude) : NaN;
+  const hasCoords = Number.isFinite(latitude) && Number.isFinite(longitude) && !(latitude === 0 && longitude === 0);
+  const mapsHref = hasAddress
+    ? `https://maps.google.com/?q=${encodeURIComponent(clinic.address)}`
+    : typeof clinic.google_maps_url === "string" && /^https:\/\//.test(clinic.google_maps_url) ? clinic.google_maps_url : null;
+  const hasParkingText = clinic.parking_available != null || !!clinic.parking_notes || clinic.parking_is_free != null;
+  const hasParkingPhotos = parkingPhotos.length > 0;
+  const hasYelp = clinic.yelp_rating != null && sourced(clinic, "yelp_rating");
+  const aboutVideos = videos.filter((v) => v.relationship !== "official");
+  const officialVideos = videos.filter((v) => v.relationship === "official");
+  const visibleVideos = activeVideoTab === "about" ? aboutVideos : officialVideos;
+  const videoPlatform = activeVideo?.platform === "tiktok" ? "tiktok" : "instagram";
+  const videoPlatformLabel = videoPlatform === "tiktok" ? "TikTok" : "Instagram";
+
+  const sectionNodes: { key: string; hasData: boolean; node: React.ReactNode }[] = [
+    {
+      key: "take", hasData: hasTake, node: (
+        <Section title="Skintea's take">
+          {hasTake ? <div style={{ fontSize: 13, lineHeight: 1.6, color: ESPRESSO, fontStyle: "italic" }}>“{clinic.tea_quote}”</div>
+            : <EmptyState>Skintea's own one-line read on this clinic: who it suits and what it is actually good at. Not written yet.</EmptyState>}
+        </Section>
+      ),
+    },
+    {
+      key: "best_for", hasData: hasBestFor, node: (
+        <Section title="What it's best for">
+          {hasBestFor ? <><div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{clinic.best_for.map((b: string) => <span key={b} style={{ background: CREAM_TINT, color: ESPRESSO, fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 20 }}>{b}</span>)}</div><div style={{ fontSize: 9.5, color: MUTED, marginTop: 8 }}>As the clinic describes itself on its own website.</div></>
+            : <EmptyState>The concerns, audiences and ways of working this clinic states on its own website. Nothing recorded for this clinic yet.</EmptyState>}
+        </Section>
+      ),
+    },
+    {
+      key: "treatments", hasData: treatments.length > 0, node: (
+        <Section title="Treatments">
+          {treatments.length === 0 ? <EmptyState>The treatments this clinic offers, each read from the clinic's own website, with a price only where the site states one. None recorded for this clinic yet.</EmptyState> : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {treatments.map((t) => {
+                const tName = t.treatments?.name ?? "Treatment";
+                const price = shownPrice(t.price_from, t.price_unit, t.field_provenance);
+                return <div key={t.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ width: 34, height: 34, background: CREAM_TINT, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>💉</div>
+                    <div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 700, color: ESPRESSO }}>{tName}</div>{price && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}><span style={{ fontWeight: 700, color: ESPRESSO }}>{price.text}</span>{" · "}{price.url ? <a href={price.url} target="_blank" rel="noopener noreferrer" style={{ color: MUTED }}>{price.dateLabel}</a> : price.dateLabel}</div>}</div>
+                    <button onClick={() => setInquireFor(t)} style={{ background: CRIMSON_TINT, color: CRIMSON, border: "none", fontSize: 10, fontWeight: 800, textTransform: "uppercase", padding: "6px 12px", borderRadius: 20, cursor: "pointer" }}>Inquire</button>
+                  </div>
+                  {t.treatments?.slug && t.treatments?.active !== false && <div style={{ paddingLeft: 44 }}><button onClick={() => { const slug = t.treatments?.slug; if (slug) navigate({ to: "/treatments/$slug", params: { slug } }).catch(() => {}); }} style={{ background: "none", border: "none", color: CRIMSON, fontSize: 10, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4, padding: 0 }}><FileText size={11} /> What is {tName}?</button></div>}
+                </div>;
+              })}
+            </div>
+          )}
+        </Section>
+      ),
+    },
+    {
+      key: "videos", hasData: videos.length > 0, node: (
+        <Section title="Videos">
+          <div role="tablist" aria-label="Clinic videos" style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}`, marginBottom: 10 }}>
+            {(["about", "official"] as const).map((tab) => {
+              const count = tab === "about" ? aboutVideos.length : officialVideos.length;
+              return <button key={tab} type="button" role="tab" aria-selected={activeVideoTab === tab} onClick={() => { setActiveVideoTab(tab); setShowAllVideos(false); }} style={{ flex: 1, background: "none", border: "none", borderBottom: activeVideoTab === tab ? `2px solid ${CRIMSON}` : "2px solid transparent", color: activeVideoTab === tab ? ESPRESSO : MUTED, fontSize: 10.5, fontWeight: activeVideoTab === tab ? 700 : 600, padding: "8px 3px 6px", cursor: "pointer" }}>{tab === "about" ? "About this clinic" : "From the clinic"}{count > 0 ? ` (${count})` : ""}</button>;
+            })}
+          </div>
+          {visibleVideos.length > 0 ? <>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 7 }}>{visibleVideos.slice(0, showAllVideos ? visibleVideos.length : 6).map((v) => <VideoCard key={v.id} v={v} onPlay={() => { setActiveVideo(v); logIntent("video_play", v.platform === "tiktok" ? "tiktok" : "instagram", "clinic_posts"); }} />)}</div>
+            {visibleVideos.length > 6 && !showAllVideos && <button type="button" onClick={() => setShowAllVideos(true)} style={{ display: "block", margin: "12px auto 0", background: "none", border: `0.5px solid ${BORDER}`, borderRadius: 6, color: ESPRESSO, fontSize: 10.5, fontWeight: 700, padding: "6px 12px", cursor: "pointer" }}>See all {visibleVideos.length}</button>}
+          </> : <EmptyState>{activeVideoTab === "about" ? "Videos about this clinic from people who went and from creators. Each card says who posted it and carries a paid-partnership label where one was disclosed. None collected yet." : "Posts from this clinic's own Instagram and TikTok accounts. None recorded yet."}</EmptyState>}
+        </Section>
+      ),
+    },
+    {
+      key: "price", hasData: !!priceTier || priceFrom != null, node: (
+        <Section title="Price tier">{priceTier || priceFrom != null ? <div style={{ fontSize: 12.5, color: ESPRESSO }}>{priceTier && <span style={{ fontWeight: 800 }}>{priceTier}</span>}{priceTier && priceFrom != null ? " · " : ""}{priceFrom != null && <span>from ${priceFrom}</span>}</div> : <EmptyState>How expensive this clinic is overall, from the prices it publishes. {pricedN > 0 ? `${pricedN} treatment price${pricedN === 1 ? " is" : "s are"} listed below; that is not enough to place the clinic in a tier yet.` : "No tier recorded yet."}</EmptyState>}</Section>
+      ),
+    },
+    {
+      key: "practitioners", hasData: practitioners.length > 0, node: (
+        <Section title="Practitioners">{practitioners.length === 0 ? <EmptyState>The doctors, nurses and aestheticians who treat patients here, as the clinic lists them. None recorded yet; a clinic can send its team through the link at the bottom of this page.</EmptyState> : <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{practitioners.map((p) => { const initials = p.name.split(" ").map((s) => s[0]).slice(0, 2).join("").toUpperCase(); return <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10 }}><div style={{ width: 42, height: 42, borderRadius: 42, background: BORDER, color: ESPRESSO, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{initials}</div><div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 700, color: ESPRESSO }}>{p.name}</div><div style={{ fontSize: 11, color: MUTED }}>{p.role}</div></div>{p.specialty && <span style={{ background: CRIMSON_TINT, color: CRIMSON, fontSize: 9, fontWeight: 800, padding: "4px 8px", borderRadius: 4, textTransform: "uppercase" }}>{p.specialty}</span>}</div>; })}</div>}</Section>
+      ),
+    },
+    {
+      key: "known_for", hasData: hasKnownFor, node: <Section title="Known for">{hasKnownFor ? <div style={{ fontSize: 12.5, lineHeight: 1.6, color: ESPRESSO }}>{clinic.known_for}</div> : <EmptyState>What this clinic is known for in its own right — a signature treatment, a technique, a following. Nothing recorded yet.</EmptyState>}</Section>,
+    },
+    {
+      key: "badges", hasData: verified || featured || badges.length > 0, node: (
+        <Section title="Badges">{verified || featured || badges.length > 0 ? <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{verified && <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: CRIMSON_TINT, color: CRIMSON, fontSize: 10, fontWeight: 700, padding: "4px 8px", borderRadius: 20 }}><span style={{ width: 5, height: 5, borderRadius: 5, background: CRIMSON }} /> Verified</span>}{featured && <span style={{ background: ESPRESSO, color: WARM_WHITE, fontSize: 10, fontWeight: 700, padding: "4px 8px", borderRadius: 20 }}>Skintea Pick</span>}{badges.map((b) => <span key={b} style={{ background: CREAM_TINT, color: ESPRESSO, fontSize: 10, fontWeight: 700, padding: "4px 8px", borderRadius: 20 }}>{b}</span>)}</div> : <EmptyState>Verified, Skintea Pick and other badges. Each is awarded only against a written rule and recorded with who awarded it and when. No rule exists yet, so no clinic holds a badge.</EmptyState>}</Section>
+      ),
+    },
+    {
+      key: "yelp", hasData: hasYelp, node: <Section title="Yelp rating">{hasYelp ? <div style={{ fontSize: 12.5, color: ESPRESSO }}><span style={{ fontWeight: 800 }}>{clinic.yelp_rating}</span> on Yelp{clinic.yelp_review_count != null && sourced(clinic, "yelp_review_count") ? ` · ${clinic.yelp_review_count} reviews` : ""}<div style={{ fontSize: 9.5, color: MUTED, marginTop: 4 }}>Source: Yelp</div></div> : <EmptyState>This clinic's Yelp rating and review count, shown with Yelp named as the source. Skintea has no licensed Yelp data yet, so nothing is shown.</EmptyState>}</Section>,
+    },
+    {
+      key: "hours", hasData: hoursGroups.length > 0, node: <Section title="Hours">{hoursGroups.length > 0 ? <>{now && <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, fontSize: 12 }}><span style={{ width: 7, height: 7, borderRadius: 7, background: now.open ? "#2D7A3A" : MUTED }} /><span style={{ color: now.open ? "#2D7A3A" : MUTED, fontWeight: 700 }}>{now.label}</span><span style={{ color: MUTED, fontSize: 10.5 }}>· from the listed hours</span></div>}<div style={{ display: "flex", flexDirection: "column" }}>{hoursGroups.map((h, i) => <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0", borderBottom: `0.5px solid ${BORDER}`, fontSize: 12 }}><span style={{ color: MUTED }}>{h.label}</span><span style={{ color: ESPRESSO, fontWeight: 600, textAlign: "right" }}>{h.hours}</span></div>)}</div></> : <EmptyState>Opening hours, and whether the clinic is open right now. No hours recorded for this clinic yet; a clinic can send its own through the link at the bottom of this page.</EmptyState>}</Section>,
+    },
+    {
+      key: "location", hasData: hasAddress || hasCoords, node: <Section title="Location">{!hasAddress && !hasCoords ? <EmptyState>The clinic's address and a map. No address recorded for this clinic yet.</EmptyState> : <>{hasAddress && <div style={{ display: "flex", alignItems: "flex-start", gap: 6, fontSize: 12, color: ESPRESSO, lineHeight: 1.45 }}><MapPin size={14} style={{ flexShrink: 0, marginTop: 1 }} /><span>{clinic.address}</span></div>}{hasCoords && <ClinicMap lat={latitude} lng={longitude} name={clinic.name} />}{mapsHref && <a href={mapsHref} target="_blank" rel="noreferrer" onClick={() => logIntent("directions", "maps", "location_section")} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: CREAM_TINT, borderRadius: 10, height: 44, marginTop: 10, color: ESPRESSO, fontSize: 11, fontWeight: 700, textDecoration: "none" }}><MapIcon size={14} /> Open in Maps</a>}</>}</Section>,
+    },
+    {
+      key: "parking", hasData: hasParkingText || hasParkingPhotos, node: <Section title="Parking">{hasParkingText || hasParkingPhotos ? <>{hasParkingText && <div style={{ display: "flex", alignItems: "center", gap: 10 }}><Car size={16} color={ESPRESSO} /><div style={{ flex: 1 }}><div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>{clinic.parking_available === true ? "Parking available" : clinic.parking_available === false ? "No parking" : "Parking"}</div>{clinic.parking_notes && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{clinic.parking_notes}</div>}</div>{clinic.parking_is_free != null && <span style={{ background: clinic.parking_is_free ? "#E8F5E9" : CREAM_TINT, color: clinic.parking_is_free ? "#2D7A3A" : MUTED, fontSize: 10, fontWeight: 800, padding: "4px 8px", borderRadius: 4, textTransform: "uppercase" }}>{clinic.parking_is_free ? "Free" : "Paid"}</span>}</div>}{hasParkingPhotos ? <div style={{ marginTop: hasParkingText ? 10 : 0 }}><PhotoGrid photos={parkingPhotos} alt={`Parking at ${clinic.name}`} /></div> : <div style={{ fontSize: 10.5, color: MUTED, marginTop: 8 }}>No parking photos yet.</div>}</> : <EmptyState>Whether there is parking, whether it is free, and photos of where to park and the entrance from the lot. Nothing recorded yet; photos come only from the clinic itself, with permission, or from Skintea.</EmptyState>}</Section>,
+    },
+  ];
+  const sortedSectionNodes = sectionNodes.map((section, index) => ({ ...section, index })).sort((a, b) => Number(b.hasData) - Number(a.hasData) || a.index - b.index);
+  const contactSocials = ["instagram", "tiktok", "youtube"].flatMap((platform) => socials.filter((social) => social.platform === platform));
+  const hasContactLinks = !!clinic.website_url || contactSocials.length > 0 || !!clinic.phone || !!mapsHref;
+
   return (
     <div style={{ background: WARM_WHITE, minHeight: "100vh", color: ESPRESSO, fontFamily: "system-ui, -apple-system, sans-serif" }}>
       {/* 1. Sticky top bar */}

@@ -435,3 +435,22 @@ Nothing below was reconstructed from memory without a source.
   evidence URL, so no link is shown. **No clinic_supplied row exists yet**; none was inserted in this pass.
 - **Price menus that are images or PDFs are not read.** This pass does not OCR them; the files it found are listed in
   the 2026-09-16 report and in `work/r9/price_menu_files.json`.
+
+### 05:40 UTC — two prices cleared after a hand check (pipeline session)
+- Who: skintea-pipeline session, guarded DO block through `query_database` (no file; the block is quoted in the
+  2026-09-16 report and reproduced below in substance).
+- What: `price_from` and `price_unit` set to NULL on 3 links, **67 → 64 priced links**. The old
+  `field_provenance.price_from` / `.price_unit` entries were removed and replaced by a `price_cleared` record holding
+  the date, the reason and the previous price and URL, so the removal is auditable.
+  - **LaserAway rejuran, both locations** (Los Feliz, South Park), was $778 per session. The page does name Rejuran,
+    but it prices **"Rejuran Healing Essence" applied topically** during LaserAway's SkinPen "Salmon DNA Facial"
+    ("Rejuran Healing Essence is then applied", "applied topically post-treatment"). The Rejuran treatment page is the
+    **injectable**; `a3/reddit/TREATMENT_TAGGING_RULES.md` already excludes topical PDRN and Rejuran-brand products
+    from that treatment. A topical price does not price the injection.
+    - Consequence: rejuran per session drops from 4 priced clinics to 2, so **no rejuran range renders**.
+    - Open question for the owner, not acted on: the two LaserAway → rejuran *mappings* rest on the same topical
+      evidence, so they may not belong on the rejuran page either. The links were left in place.
+  - **Viora MedSpa botox**, was $70 starting_from. The injectables page lists "Daxxify $70.00+" with **no unit**
+    (not per unit, per area or per session) and states no Botox price at all: the unit-not-stated rule applies.
+- Why: a wrong price on a clinic page damages the relationship this layer exists to start.
+- Deleted session_ids: none. No rows deleted; two fields cleared on three rows.

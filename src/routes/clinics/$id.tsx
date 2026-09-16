@@ -404,6 +404,10 @@ function ClinicDetailPage() {
     void recordConsultationClick(id);
   };
 
+  // The booking CTA must be able to act. With a website it opens the site; with only a phone it becomes
+  // "Call to book" on a tel: link; with neither it does not render at all (it used to record a click and do nothing).
+  const bookMode: "website" | "call" | null = clinic?.website_url ? "website" : clinic?.phone ? "call" : null;
+
   if (loading) {
     return <div style={{ padding: 40, textAlign: "center", color: MUTED, fontSize: 12, background: WARM_WHITE, minHeight: "100vh" }}>Loading…</div>;
   }
@@ -1031,20 +1035,22 @@ function ClinicDetailPage() {
         </Link>
       </div>
 
-      {/* 15. Spacer */}
-      <div style={{ height: 76 }} />
+      {/* 15. Spacer — only when the fixed bar below renders */}
+      {(clinic.phone || (typeof clinic.address === "string" && clinic.address.trim() !== "") || bookMode) && <div style={{ height: 76 }} />}
 
       {/*
         16. Fixed bottom bar — Call renders only with a phone number and Directions only with
         an address, so neither can open tel:null or an empty Maps search. Flex gaps only appear
         between buttons that render, so the bar stays right with three, two or one.
       */}
+      {(clinic.phone || (typeof clinic.address === "string" && clinic.address.trim() !== "") || bookMode) && (
       <div style={{
         position: "fixed", bottom: 0, left: 0, right: 0,
         background: WARM_WHITE, borderTop: `0.5px solid ${BORDER}`,
         padding: "12px 16px 20px", display: "flex", gap: 6, zIndex: 20,
       }}>
-        {clinic.phone && (
+        {/* When the booking CTA is itself the phone link, a second Call button would duplicate it. */}
+        {clinic.phone && bookMode !== "call" && (
         <a href={`tel:${clinic.phone}`} style={{
           flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
           background: "#fff", border: `0.5px solid ${BORDER}`, borderRadius: 10,
@@ -1069,11 +1075,27 @@ function ClinicDetailPage() {
           <span style={{ fontSize: 8, fontWeight: 800, color: MUTED, textTransform: "uppercase", letterSpacing: "0.08em" }}>{userOrigin && clinic.travel_minutes != null ? `${clinic.travel_minutes} min away` : "Directions"}</span>
         </a>
         )}
+        {bookMode === "website" && (
         <button onClick={handleBook} style={{
           flex: 2, background: CRIMSON, color: WARM_WHITE, border: "none",
           borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: "pointer",
         }}>Book Consultation</button>
+        )}
+        {bookMode === "call" && (
+        <a
+          href={`tel:${clinic.phone}`}
+          onClick={() => { void recordConsultationClick(id); }}
+          style={{
+            flex: 2, background: CRIMSON, color: WARM_WHITE, border: "none",
+            borderRadius: 10, fontSize: 13, fontWeight: 800, textDecoration: "none",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+          }}
+        >
+          <Phone size={14} color={WARM_WHITE} /> Call to book
+        </a>
+        )}
       </div>
+      )}
 
       {/* Inquire bottom sheet */}
       {inquireFor && (

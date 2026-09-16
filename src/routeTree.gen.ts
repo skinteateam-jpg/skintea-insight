@@ -22,6 +22,7 @@ import { Route as ProductsRouteImport } from './routes/products'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForClinicsRouteImport } from './routes/for-clinics'
+import { Route as DisclosureRouteImport } from './routes/disclosure'
 import { Route as BrowseRouteImport } from './routes/browse'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
@@ -35,6 +36,7 @@ import { Route as ProductDetailIdRouteImport } from './routes/product-detail.$id
 import { Route as ClinicsIdRouteImport } from './routes/clinics/$id'
 import { Route as CategorySlugRouteImport } from './routes/category.$slug'
 import { Route as AdminTreatmentsRouteImport } from './routes/admin.treatments'
+import { Route as AdminRetailersRouteImport } from './routes/admin.retailers'
 import { Route as AdminClinicIntentsRouteImport } from './routes/admin.clinic-intents'
 import { Route as ApiPublicConsultationClickRouteImport } from './routes/api/public/consultation-click'
 import { Route as ApiPublicCacheSocialThumbnailRouteImport } from './routes/api/public/cache-social-thumbnail'
@@ -104,6 +106,11 @@ const ForClinicsRoute = ForClinicsRouteImport.update({
   path: '/for-clinics',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DisclosureRoute = DisclosureRouteImport.update({
+  id: '/disclosure',
+  path: '/disclosure',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BrowseRoute = BrowseRouteImport.update({
   id: '/browse',
   path: '/browse',
@@ -169,6 +176,11 @@ const AdminTreatmentsRoute = AdminTreatmentsRouteImport.update({
   path: '/admin/treatments',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRetailersRoute = AdminRetailersRouteImport.update({
+  id: '/admin/retailers',
+  path: '/admin/retailers',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminClinicIntentsRoute = AdminClinicIntentsRouteImport.update({
   id: '/admin/clinic-intents',
   path: '/admin/clinic-intents',
@@ -191,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/browse': typeof BrowseRoute
+  '/disclosure': typeof DisclosureRoute
   '/for-clinics': typeof ForClinicsRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
@@ -205,6 +218,7 @@ export interface FileRoutesByFullPath {
   '/tea-products': typeof TeaProductsRouteWithChildren
   '/treatment-talk': typeof TreatmentTalkRoute
   '/admin/clinic-intents': typeof AdminClinicIntentsRoute
+  '/admin/retailers': typeof AdminRetailersRoute
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
@@ -222,6 +236,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/browse': typeof BrowseRoute
+  '/disclosure': typeof DisclosureRoute
   '/for-clinics': typeof ForClinicsRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
@@ -236,6 +251,7 @@ export interface FileRoutesByTo {
   '/tea-products': typeof TeaProductsRouteWithChildren
   '/treatment-talk': typeof TreatmentTalkRoute
   '/admin/clinic-intents': typeof AdminClinicIntentsRoute
+  '/admin/retailers': typeof AdminRetailersRoute
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
@@ -254,6 +270,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/browse': typeof BrowseRoute
+  '/disclosure': typeof DisclosureRoute
   '/for-clinics': typeof ForClinicsRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
@@ -268,6 +285,7 @@ export interface FileRoutesById {
   '/tea-products': typeof TeaProductsRouteWithChildren
   '/treatment-talk': typeof TreatmentTalkRoute
   '/admin/clinic-intents': typeof AdminClinicIntentsRoute
+  '/admin/retailers': typeof AdminRetailersRoute
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
@@ -287,6 +305,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/browse'
+    | '/disclosure'
     | '/for-clinics'
     | '/login'
     | '/privacy'
@@ -301,6 +320,7 @@ export interface FileRouteTypes {
     | '/tea-products'
     | '/treatment-talk'
     | '/admin/clinic-intents'
+    | '/admin/retailers'
     | '/admin/treatments'
     | '/category/$slug'
     | '/clinics/$id'
@@ -318,6 +338,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/browse'
+    | '/disclosure'
     | '/for-clinics'
     | '/login'
     | '/privacy'
@@ -332,6 +353,7 @@ export interface FileRouteTypes {
     | '/tea-products'
     | '/treatment-talk'
     | '/admin/clinic-intents'
+    | '/admin/retailers'
     | '/admin/treatments'
     | '/category/$slug'
     | '/clinics/$id'
@@ -349,6 +371,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/browse'
+    | '/disclosure'
     | '/for-clinics'
     | '/login'
     | '/privacy'
@@ -363,6 +386,7 @@ export interface FileRouteTypes {
     | '/tea-products'
     | '/treatment-talk'
     | '/admin/clinic-intents'
+    | '/admin/retailers'
     | '/admin/treatments'
     | '/category/$slug'
     | '/clinics/$id'
@@ -381,6 +405,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   BrowseRoute: typeof BrowseRoute
+  DisclosureRoute: typeof DisclosureRoute
   ForClinicsRoute: typeof ForClinicsRoute
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -395,6 +420,7 @@ export interface RootRouteChildren {
   TeaProductsRoute: typeof TeaProductsRouteWithChildren
   TreatmentTalkRoute: typeof TreatmentTalkRoute
   AdminClinicIntentsRoute: typeof AdminClinicIntentsRoute
+  AdminRetailersRoute: typeof AdminRetailersRoute
   AdminTreatmentsRoute: typeof AdminTreatmentsRoute
   CategorySlugRoute: typeof CategorySlugRoute
   ClinicsIdRoute: typeof ClinicsIdRoute
@@ -501,6 +527,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ForClinicsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/disclosure': {
+      id: '/disclosure'
+      path: '/disclosure'
+      fullPath: '/disclosure'
+      preLoaderRoute: typeof DisclosureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/browse': {
       id: '/browse'
       path: '/browse'
@@ -592,6 +625,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminTreatmentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/retailers': {
+      id: '/admin/retailers'
+      path: '/admin/retailers'
+      fullPath: '/admin/retailers'
+      preLoaderRoute: typeof AdminRetailersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/clinic-intents': {
       id: '/admin/clinic-intents'
       path: '/admin/clinic-intents'
@@ -632,6 +672,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   BrowseRoute: BrowseRoute,
+  DisclosureRoute: DisclosureRoute,
   ForClinicsRoute: ForClinicsRoute,
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,
@@ -646,6 +687,7 @@ const rootRouteChildren: RootRouteChildren = {
   TeaProductsRoute: TeaProductsRouteWithChildren,
   TreatmentTalkRoute: TreatmentTalkRoute,
   AdminClinicIntentsRoute: AdminClinicIntentsRoute,
+  AdminRetailersRoute: AdminRetailersRoute,
   AdminTreatmentsRoute: AdminTreatmentsRoute,
   CategorySlugRoute: CategorySlugRoute,
   ClinicsIdRoute: ClinicsIdRoute,

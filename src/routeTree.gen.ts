@@ -34,6 +34,7 @@ import { Route as ProductDetailIdRouteImport } from './routes/product-detail.$id
 import { Route as ClinicsIdRouteImport } from './routes/clinics/$id'
 import { Route as CategorySlugRouteImport } from './routes/category.$slug'
 import { Route as AdminTreatmentsRouteImport } from './routes/admin.treatments'
+import { Route as AdminClinicIntentsRouteImport } from './routes/admin.clinic-intents'
 import { Route as ApiPublicConsultationClickRouteImport } from './routes/api/public/consultation-click'
 import { Route as ApiPublicCacheSocialThumbnailRouteImport } from './routes/api/public/cache-social-thumbnail'
 
@@ -162,6 +163,11 @@ const AdminTreatmentsRoute = AdminTreatmentsRouteImport.update({
   path: '/admin/treatments',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminClinicIntentsRoute = AdminClinicIntentsRouteImport.update({
+  id: '/admin/clinic-intents',
+  path: '/admin/clinic-intents',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicConsultationClickRoute =
   ApiPublicConsultationClickRouteImport.update({
     id: '/api/public/consultation-click',
@@ -192,6 +198,7 @@ export interface FileRoutesByFullPath {
   '/tea-products': typeof TeaProductsRouteWithChildren
   '/treatment-talk': typeof TreatmentTalkRoute
   '/admin/treatments': typeof AdminTreatmentsRoute
+  '/admin/clinic-intents': typeof AdminClinicIntentsRoute
   '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
   '/product-detail/$id': typeof ProductDetailIdRoute
@@ -221,6 +228,7 @@ export interface FileRoutesByTo {
   '/tea-products': typeof TeaProductsRouteWithChildren
   '/treatment-talk': typeof TreatmentTalkRoute
   '/admin/treatments': typeof AdminTreatmentsRoute
+  '/admin/clinic-intents': typeof AdminClinicIntentsRoute
   '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
   '/product-detail/$id': typeof ProductDetailIdRoute
@@ -251,6 +259,7 @@ export interface FileRoutesById {
   '/tea-products': typeof TeaProductsRouteWithChildren
   '/treatment-talk': typeof TreatmentTalkRoute
   '/admin/treatments': typeof AdminTreatmentsRoute
+  '/admin/clinic-intents': typeof AdminClinicIntentsRoute
   '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
   '/product-detail/$id': typeof ProductDetailIdRoute
@@ -282,6 +291,7 @@ export interface FileRouteTypes {
     | '/tea-products'
     | '/treatment-talk'
     | '/admin/treatments'
+    | '/admin/clinic-intents'
     | '/category/$slug'
     | '/clinics/$id'
     | '/product-detail/$id'
@@ -311,6 +321,7 @@ export interface FileRouteTypes {
     | '/tea-products'
     | '/treatment-talk'
     | '/admin/treatments'
+    | '/admin/clinic-intents'
     | '/category/$slug'
     | '/clinics/$id'
     | '/product-detail/$id'
@@ -340,6 +351,7 @@ export interface FileRouteTypes {
     | '/tea-products'
     | '/treatment-talk'
     | '/admin/treatments'
+    | '/admin/clinic-intents'
     | '/category/$slug'
     | '/clinics/$id'
     | '/product-detail/$id'
@@ -370,6 +382,7 @@ export interface RootRouteChildren {
   TeaProductsRoute: typeof TeaProductsRouteWithChildren
   TreatmentTalkRoute: typeof TreatmentTalkRoute
   AdminTreatmentsRoute: typeof AdminTreatmentsRoute
+  AdminClinicIntentsRoute: typeof AdminClinicIntentsRoute
   CategorySlugRoute: typeof CategorySlugRoute
   ClinicsIdRoute: typeof ClinicsIdRoute
   ProductDetailIdRoute: typeof ProductDetailIdRoute
@@ -559,6 +572,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminTreatmentsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/clinic-intents': {
+      id: '/admin/clinic-intents'
+      path: '/admin/clinic-intents'
+      fullPath: '/admin/clinic-intents'
+      preLoaderRoute: typeof AdminClinicIntentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/consultation-click': {
       id: '/api/public/consultation-click'
       path: '/api/public/consultation-click'
@@ -605,6 +625,7 @@ const rootRouteChildren: RootRouteChildren = {
   TeaProductsRoute: TeaProductsRouteWithChildren,
   TreatmentTalkRoute: TreatmentTalkRoute,
   AdminTreatmentsRoute: AdminTreatmentsRoute,
+  AdminClinicIntentsRoute: AdminClinicIntentsRoute,
   CategorySlugRoute: CategorySlugRoute,
   ClinicsIdRoute: ClinicsIdRoute,
   ProductDetailIdRoute: ProductDetailIdRoute,

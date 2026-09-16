@@ -3,6 +3,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { leadEvent, recordConsultationClick } from "@/lib/leads";
+import { logClinicIntent, previousTreatmentSlug, websiteChannel } from "@/lib/clinicIntent";
+import { classifyWebsite, isBookingPath, websiteLinkLabel } from "@/lib/bookingPath";
 import { ClinicImage } from "@/components/ClinicImage";
 import { displayImages, useCategoryImages } from "@/lib/clinicPhotos";
 import { shownPrice } from "@/lib/clinicPrices";
@@ -178,6 +180,19 @@ function Section({ title, right, children }: { title: string; right?: React.Reac
 function ClinicDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+
+  // Treatment context for intent logging: the treatment page the visitor came from, read once on arrival.
+  const [arrivalTreatmentId, setArrivalTreatmentId] = useState<string | null>(null);
+  useEffect(() => {
+    const slug = previousTreatmentSlug();
+    if (!slug) { setArrivalTreatmentId(null); return; }
+    let alive = true;
+    (async () => {
+      const { data } = await supabase.from("treatments").select("id").eq("slug", slug).maybeSingle();
+      if (alive) setArrivalTreatmentId((data as { id: string } | null)?.id ?? null);
+    })();
+    return () => { alive = false; };
+  }, [id]);
 
   const [clinic, setClinic] = useState<Clinic | null>(null);
   const [skinScores, setSkinScores] = useState<SkinScore[]>([]);
@@ -400,13 +415,26 @@ function ClinicDetailPage() {
 
   const handleBook = () => {
     if (clinic?.website_url) window.open(clinic.website_url, "_blank");
+    logIntent("book", websiteKind === "booking_platform" ? "booking_platform" : "website", "action_bar");
     // consultation_click event, then the consultation_clicks row (linked to the lead server-side).
     void recordConsultationClick(id);
   };
 
   // The booking CTA must be able to act. With a website it opens the site; with only a phone it becomes
   // "Call to book" on a tel: link; with neither it does not render at all (it used to record a click and do nothing).
-  const bookMode: "website" | "call" | null = clinic?.website_url ? "website" : clinic?.phone ? "call" : null;
+  // A website only counts as a booking path when it is the clinic's own site or a booking platform — an Instagram
+  // profile, a directory, a hospital page, a short link or a mail-builder page cannot take a booking (src/lib/bookingPath.ts).
+  const websiteKind = classifyWebsite(clinic?.website_url);
+  const bookMode: "website" | "call" | null =
+    clinic?.website_url && isBookingPath(websiteKind) ? "website" : clinic?.phone ? "call" : null;
+
+  // One intent row per outbound action; fire-and-forget, never awaited, so the link follows at once.
+  const logIntent = (
+    action: "call" | "book" | "directions" | "website" | "social",
+    channel: Parameters<typeof logClinicIntent>[0]["channel"],
+    surface: Parameters<typeof logClinicIntent>[0]["surface"],
+    treatmentId?: string | null,
+  ) => logClinicIntent({ clinicId: id, action, channel, page: "clinic_page", surface, treatmentId: treatmentId ?? arrivalTreatmentId });
 
   if (loading) {
     return <div style={{ padding: 40, textAlign: "center", color: MUTED, fontSize: 12, background: WARM_WHITE, minHeight: "100vh" }}>Loading…</div>;
@@ -476,7 +504,8 @@ function ClinicDetailPage() {
         {socials.length > 0 && (
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
             {socials.map((s) => (
-              <a key={s.url} href={s.url} target="_blank" rel="noopener noreferrer" style={{
+              <a key={s.url} href={s.url} target="_blank" rel="noopener noreferrer"
+                onClick={() => logIntent("social", s.platform === "instagram" ? "instagram" : "tiktok", "social_chips")} style={{
                 display: "inline-flex", alignItems: "center", gap: 4, background: CREAM_TINT, color: ESPRESSO,
                 fontSize: 11, fontWeight: 700, padding: "4px 9px", borderRadius: 20, textDecoration: "none",
               }}>
@@ -996,6 +1025,7 @@ function ClinicDetailPage() {
             <a
               href={`https://maps.google.com/?q=${encodeURIComponent(clinic.address)}`}
               target="_blank" rel="noreferrer"
+              onClick={() => logIntent("directions", "maps", "location_section")}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                 background: CREAM_TINT, borderRadius: 10, height: 44,
@@ -1051,7 +1081,7 @@ function ClinicDetailPage() {
       }}>
         {/* When the booking CTA is itself the phone link, a second Call button would duplicate it. */}
         {clinic.phone && bookMode !== "call" && (
-        <a href={`tel:${clinic.phone}`} style={{
+        <a href={`tel:${clinic.phone}`} onClick={() => logIntent("call", "tel", "action_bar")} style={{
           flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
           background: "#fff", border: `0.5px solid ${BORDER}`, borderRadius: 10,
           padding: "8px 0", textDecoration: "none", gap: 2,
@@ -1064,6 +1094,7 @@ function ClinicDetailPage() {
         <a
           href={`https://maps.google.com/dir/?destination=${encodeURIComponent(clinic.address)}`}
           target="_blank" rel="noreferrer"
+          onClick={() => logIntent("directions", "maps", "action_bar")}
           style={{
             flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
             background: "#fff", border: `0.5px solid ${BORDER}`, borderRadius: 10,
@@ -1084,7 +1115,7 @@ function ClinicDetailPage() {
         {bookMode === "call" && (
         <a
           href={`tel:${clinic.phone}`}
-          onClick={() => { void recordConsultationClick(id); }}
+          onClick={() => { logIntent("book", "tel", "action_bar"); void recordConsultationClick(id); }}
           style={{
             flex: 2, background: CRIMSON, color: WARM_WHITE, border: "none",
             borderRadius: 10, fontSize: 13, fontWeight: 800, textDecoration: "none",
@@ -1113,7 +1144,7 @@ function ClinicDetailPage() {
             {/* Each row needs its own recorded value; 61 listed clinics have no website and
                 many have no phone, and a link to nothing is worse than no link. */}
             {clinic.phone && (
-            <a href={`tel:${clinic.phone}`} style={{
+            <a href={`tel:${clinic.phone}`} onClick={() => logIntent("call", "tel", "inquire_sheet", inquireFor.treatment_id)} style={{
               display: "flex", alignItems: "center", gap: 8, padding: "12px 0",
               borderTop: `0.5px solid ${BORDER}`, color: ESPRESSO,
               fontSize: 13, fontWeight: 600, textDecoration: "none",
@@ -1122,12 +1153,16 @@ function ClinicDetailPage() {
             </a>
             )}
             {clinic.website_url && (
-            <a href={clinic.website_url} target="_blank" rel="noreferrer" onClick={() => { void leadEvent("booking_link_click", { clinic_id: id, link: "website_url" }); }} style={{
+            <a href={clinic.website_url} target="_blank" rel="noreferrer" onClick={() => {
+              void leadEvent("booking_link_click", { clinic_id: id, link: "website_url" });
+              if (websiteKind) logIntent("website", websiteChannel(websiteKind), "inquire_sheet", inquireFor.treatment_id);
+            }} style={{
               display: "flex", alignItems: "center", gap: 8, padding: "12px 0",
               borderTop: `0.5px solid ${BORDER}`, color: CRIMSON,
               fontSize: 13, fontWeight: 700, textDecoration: "none",
             }}>
-              Visit website →
+              {/* Labelled for what the link is: a directory listing or an Instagram profile is not "the website". */}
+              {websiteKind ? websiteLinkLabel(clinic.website_url, websiteKind) : "Visit website →"}
             </a>
             )}
             {!clinic.phone && !clinic.website_url && (

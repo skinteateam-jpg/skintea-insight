@@ -1,4 +1,5 @@
 import { createRouter, useRouter } from "@tanstack/react-router";
+import { rememberPreviousPath } from "@/lib/clinicIntent";
 import { routeTree } from "./routeTree.gen";
 
 function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
@@ -62,6 +63,14 @@ export const getRouter = () => {
     defaultPreloadStaleTime: 0,
     defaultErrorComponent: DefaultErrorComponent,
   });
+
+  // Clinic intent logging needs to know whether the visitor reached a clinic page from a treatment page.
+  // Record the page they are leaving before the next route loads; a fresh page load has no previous page.
+  if (typeof window !== "undefined") {
+    router.subscribe("onBeforeLoad", (e) => {
+      if (e.pathChanged) rememberPreviousPath(e.fromLocation?.pathname ?? "");
+    });
+  }
 
   return router;
 };

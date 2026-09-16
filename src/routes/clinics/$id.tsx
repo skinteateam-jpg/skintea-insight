@@ -132,6 +132,37 @@ const SECTION_LABEL: React.CSSProperties = {
   textTransform: "uppercase", color: CRIMSON,
 };
 
+// The honest empty state, same shape as the treatment page: the section header and frame always render, and where
+// there is no data the frame says what it will hold and that there is not enough yet. A section is never hidden for
+// being empty and never filled with placeholder content.
+function EmptyState({ children, cta }: { children: React.ReactNode; cta?: React.ReactNode }) {
+  return (
+    <div style={{ border: `1px dashed ${BORDER}`, borderRadius: 10, padding: "12px 13px", background: CREAM_TINT }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: MUTED, marginBottom: 5 }}>Not enough data yet</div>
+      <div style={{ fontSize: 11.5, color: MUTED, lineHeight: 1.55 }}>{children}</div>
+      {cta}
+    </div>
+  );
+}
+
+// One line under the sections that can only be filled by someone who went. No lead event fires: the allowed
+// lead_events.event_type values are stage_change, field_set, quiz_completed, clinic_view, consultation_click,
+// booking_link_click and email_submitted, and none of them describes this click. Adding one is a schema change.
+function ExperienceCta({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        marginTop: 8, background: "none", border: "none", padding: 0, cursor: "pointer",
+        color: CRIMSON, fontSize: 11.5, fontWeight: 700, textAlign: "left",
+      }}
+    >
+      Been here? Tell us what actually happened.
+    </button>
+  );
+}
+
 function Section({ title, right, children }: { title: string; right?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div style={{ padding: "16px", borderBottom: `0.5px solid ${BORDER}` }}>
@@ -165,7 +196,25 @@ function ClinicDetailPage() {
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [videos, setVideos] = useState<any[]>([]);
   const [activeVideoTab, setActiveVideoTab] = useState<"tiktok" | "instagram">("tiktok");
+  // Review submission. clinic_reviews already accepts a signed-in author's own row (RLS "Users can create reviews":
+  // auth.uid() = user_id, plus the signed-in-author and integrity triggers), so no schema or policy change is needed.
+  const [userId, setUserId] = useState<string | null>(null);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewBody, setReviewBody] = useState("");
+  const [reviewSkin, setReviewSkin] = useState("");
+  const [reviewTreatment, setReviewTreatment] = useState("");
+  const [reviewState, setReviewState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [reviewError, setReviewError] = useState<string | null>(null);
 
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      if (alive) setUserId(data.user?.id ?? null);
+    })();
+    return () => { alive = false; };
+  }, []);
 
   useEffect(() => {
     try {
@@ -226,6 +275,93 @@ function ClinicDetailPage() {
     if (typeof document === "undefined" || !clinic?.name) return;
     document.title = `${clinic.name} — Skintea`;
   }, [clinic?.name]);
+
+  // A visitor's own review. agree_count is left at its default 0 (the integrity trigger rejects a seeded count) and
+  // field_provenance stays {} — a signed-in author is the source, recorded by user_id.
+  async function submitReview() {
+    if (!userId || reviewBody.trim().length < 10) return;
+    setReviewState("saving");
+    setReviewError(null);
+    const { error } = await supabase.from("clinic_reviews").insert({
+      clinic_id: id,
+      user_id: userId,
+      body: reviewBody.trim(),
+      skin_type: reviewSkin || null,
+      treatment_id: reviewTreatment || null,
+    } as any);
+    if (error) {
+      setReviewState("error");
+      setReviewError(error.message);
+      return;
+    }
+    setReviewState("saved");
+    setReviewBody("");
+    const { data } = await supabase.from("clinic_reviews").select("*, treatments(name)").eq("clinic_id", id).order("created_at", { ascending: false });
+    setReviews((data as any) || []);
+    setShowReviewForm(false);
+  }
+
+  // The submission form itself. Shown only when the visitor asks for it, and only usable when signed in: the table's
+  // policy requires user_id = auth.uid(), so an anonymous insert is refused by the database, not just by this UI.
+  const reviewFormBlock = !showReviewForm ? null : (
+    <div style={{ marginTop: 12, border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: 12, background: "#fff" }}>
+      {!userId ? (
+        <div style={{ fontSize: 11.5, color: MUTED, lineHeight: 1.55 }}>
+          Reviews are signed, so we know each one comes from a real visit.{" "}
+          <Link to="/login" style={{ color: CRIMSON, fontWeight: 700 }}>Sign in</Link> to add yours.
+        </div>
+      ) : (
+        <>
+          <div style={{ fontSize: 11.5, color: ESPRESSO, marginBottom: 8 }}>What actually happened? Your review is published under your account, not your name.</div>
+          <select
+            value={reviewTreatment}
+            onChange={(e) => setReviewTreatment(e.target.value)}
+            style={{ width: "100%", marginBottom: 8, padding: "7px 8px", fontSize: 12, border: `0.5px solid ${BORDER}`, borderRadius: 6, background: "#fff", color: ESPRESSO }}
+          >
+            <option value="">Treatment (optional)</option>
+            {treatments.map((t) => (
+              <option key={t.id} value={t.treatment_id}>{t.treatments?.name ?? "Treatment"}</option>
+            ))}
+          </select>
+          <select
+            value={reviewSkin}
+            onChange={(e) => setReviewSkin(e.target.value)}
+            style={{ width: "100%", marginBottom: 8, padding: "7px 8px", fontSize: 12, border: `0.5px solid ${BORDER}`, borderRadius: 6, background: "#fff", color: ESPRESSO }}
+          >
+            <option value="">Your skin type (optional)</option>
+            {["oily", "combination", "dry", "sensitive", "normal"].map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+          <textarea
+            value={reviewBody}
+            onChange={(e) => setReviewBody(e.target.value)}
+            rows={4}
+            placeholder="What you had done, how it went, anything you wish you had known."
+            style={{ width: "100%", padding: "8px", fontSize: 12, border: `0.5px solid ${BORDER}`, borderRadius: 6, resize: "vertical", color: ESPRESSO, fontFamily: "inherit" }}
+          />
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+            <button
+              type="button"
+              onClick={() => { void submitReview(); }}
+              disabled={reviewState === "saving" || reviewBody.trim().length < 10}
+              style={{
+                background: reviewBody.trim().length < 10 ? BORDER : CRIMSON, color: "#fff", border: "none",
+                fontSize: 11, fontWeight: 800, textTransform: "uppercase", padding: "7px 14px", borderRadius: 20,
+                cursor: reviewBody.trim().length < 10 ? "default" : "pointer",
+              }}
+            >
+              {reviewState === "saving" ? "Posting…" : "Post"}
+            </button>
+            <button type="button" onClick={() => setShowReviewForm(false)} style={{ background: "none", border: "none", color: MUTED, fontSize: 11, cursor: "pointer" }}>Cancel</button>
+            {reviewState === "error" && (
+              <span style={{ fontSize: 11, color: CRIMSON }}>Could not post: {reviewError}</span>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
 
   const categoryImages = useCategoryImages();
   const [failedPhotos, setFailedPhotos] = useState<Set<string>>(new Set());
@@ -423,6 +559,38 @@ function ClinicDetailPage() {
         );
       })()}
 
+      {/* 6b. The tea — Skintea's own line on this clinic (clinics.tea_quote). */}
+      <Section title="The tea">
+        {typeof clinic.tea_quote === "string" && clinic.tea_quote.trim() !== "" ? (
+          <div style={{ fontSize: 13, lineHeight: 1.6, color: ESPRESSO, fontStyle: "italic" }}>“{clinic.tea_quote}”</div>
+        ) : (
+          <EmptyState>Skintea's own one-line read on this clinic: who it suits and what it is actually good at. Not written yet.</EmptyState>
+        )}
+      </Section>
+
+      {/* 6c. What it's best for (clinics.best_for). Every row in the table currently holds an empty array, so this
+           renders its empty state until the column carries sourced values. */}
+      <Section title="What it's best for">
+        {Array.isArray(clinic.best_for) && clinic.best_for.length > 0 ? (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {clinic.best_for.map((b: string) => (
+              <span key={b} style={{ background: CREAM_TINT, color: ESPRESSO, fontSize: 11, fontWeight: 700, padding: "5px 10px", borderRadius: 20 }}>{b}</span>
+            ))}
+          </div>
+        ) : (
+          <EmptyState>The concerns and treatments this clinic is strongest on. Nothing recorded for this clinic yet.</EmptyState>
+        )}
+      </Section>
+
+      {/* 6d. Known for (clinics.known_for). */}
+      <Section title="Known for">
+        {typeof clinic.known_for === "string" && clinic.known_for.trim() !== "" ? (
+          <div style={{ fontSize: 12.5, lineHeight: 1.6, color: ESPRESSO }}>{clinic.known_for}</div>
+        ) : (
+          <EmptyState>What this clinic is known for in its own right — a signature treatment, a technique, a following. Nothing recorded yet.</EmptyState>
+        )}
+      </Section>
+
       {/* 7. Treatments (each mapping carries a recorded source; prices only where a source states one) */}
       {treatments.length > 0 && (
       <Section title="Treatments">
@@ -483,7 +651,12 @@ function ClinicDetailPage() {
       </Section>
       )}
 
-      {/* 8. Videos (filmstrip) — only when the clinic has videos */}
+      {/* 8. Video — the section always renders; with no rows it says what it will hold. */}
+      {videos.length === 0 && (
+        <Section title="Video">
+          <EmptyState>Clips showing this clinic's own work, from its TikTok and Instagram. None recorded for this clinic yet.</EmptyState>
+        </Section>
+      )}
       {videos.length > 0 && (
       <div style={{ padding: "16px", borderBottom: `0.5px solid ${BORDER}` }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -600,14 +773,20 @@ function ClinicDetailPage() {
       </div>
       )}
 
-      {/* 9. Your visits (clinic_who_visited is private: a signed-in user only sees their own rows) */}
-      {visitors.length > 0 && (
-      <Section title="Your visits">
-        <div style={{ fontSize: 11, color: MUTED }}>
-          {`You logged ${visitors.length === 1 ? "a visit" : `${visitors.length} visits`} here — last on ${new Date(visitors[0].visited_at).toLocaleDateString()}. Only you can see this.`}
-        </div>
+      {/* 9. Who goes here (clinic_who_visited). The table's SELECT policy is "Users see only their own visits", so this
+           section can only ever show the signed-in visitor their own rows: an aggregate would need a policy change. */}
+      <Section title="Who goes here">
+        {visitors.length > 0 ? (
+          <div style={{ fontSize: 11, color: MUTED }}>
+            {`You logged ${visitors.length === 1 ? "a visit" : `${visitors.length} visits`} here — last on ${new Date(visitors[0].visited_at).toLocaleDateString()}. Only you can see this.`}
+          </div>
+        ) : (
+          <EmptyState cta={<ExperienceCta onClick={() => setShowReviewForm(true)} />}>
+            Who actually goes to this clinic, and what they went in for, from the people who tell us. Nobody has yet.
+            Your own visits stay private to you.
+          </EmptyState>
+        )}
       </Section>
-      )}
 
       {/* 10. Practitioners */}
       {practitioners.length > 0 && (
@@ -637,6 +816,14 @@ function ClinicDetailPage() {
         A type with no rows is simply absent; it never shows a dash and an empty bar, which
         reads as a measured zero. Hidden entirely when no type qualifies (the state today).
       */}
+      {shownSkinScores.length === 0 && (
+        <Section title="Works for your skin?">
+          <EmptyState cta={<ExperienceCta onClick={() => setShowReviewForm(true)} />}>
+            How people with each skin type rate this clinic, counted from signed-in reviews. A skin type needs at least
+            {" "}{MIN_TAGGED} of its own reviews here before a figure is shown; no type qualifies yet.
+          </EmptyState>
+        </Section>
+      )}
       {shownSkinScores.length > 0 && (
       <Section title="Works for your skin?">
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -668,9 +855,19 @@ function ClinicDetailPage() {
       </Section>
       )}
 
-      {/* 12. Reviews — only when the clinic has reviews */}
+      {/* 12. What people say (clinic_reviews). The section always renders: with no rows it says so and offers the
+           visitor a way to add the first one. Every review is written by its signed-in author. */}
+      {reviews.length === 0 && (
+        <Section title="What people say">
+          <EmptyState cta={<ExperienceCta onClick={() => setShowReviewForm(true)} />}>
+            First-hand accounts from people who went: what they had done, how it went, and their skin type. No reviews
+            for this clinic yet.
+          </EmptyState>
+          {reviewFormBlock}
+        </Section>
+      )}
       {reviews.length > 0 && (
-      <Section title="Reviews" right={
+      <Section title="What people say" right={
         <div style={{ display: "flex", gap: 10, fontSize: 11, fontWeight: 700 }}>
           {userSkin && (
             <button onClick={() => setReviewFilter(userSkin)} style={{
@@ -736,8 +933,36 @@ function ClinicDetailPage() {
             </button>
           </div>
         )}
+        <ExperienceCta onClick={() => setShowReviewForm(true)} />
+        {reviewFormBlock}
       </Section>
       )}
+
+      {/* 12b. Trust score and Skintea score. Both are Skintea's own measurements; neither is ever computed from Google
+           ratings or review counts, and neither is derived from the other. */}
+      <Section title="Trust & Skintea score">
+        {clinic.trust_score != null || clinic.skintea_score != null ? (
+          <div style={{ display: "flex", gap: 24 }}>
+            {clinic.trust_score != null && (
+              <div>
+                <div style={{ fontSize: 19, fontWeight: 800, color: ESPRESSO }}>{clinic.trust_score}</div>
+                <div style={{ fontSize: 9, textTransform: "uppercase", color: MUTED, letterSpacing: "0.08em", marginTop: 2 }}>Trust score</div>
+              </div>
+            )}
+            {clinic.skintea_score != null && (
+              <div>
+                <div style={{ fontSize: 19, fontWeight: 800, color: ESPRESSO }}>{clinic.skintea_score}%</div>
+                <div style={{ fontSize: 9, textTransform: "uppercase", color: MUTED, letterSpacing: "0.08em", marginTop: 2 }}>Skintea score</div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <EmptyState>
+            Skintea's own scores: how much of what this clinic publishes is verified, and how many signed-in visitors
+            recommend it. Neither is computed from Google's rating or review count. Not measured for this clinic yet.
+          </EmptyState>
+        )}
+      </Section>
 
       {/* 13. Hours & Location — hours when recorded, address when recorded, hidden when neither */}
       {(() => {

@@ -2816,6 +2816,15 @@ export type Database = {
         }[]
       }
       clinic_photos_valid: { Args: { p: Json }; Returns: boolean }
+      clinic_public_visitor_names: {
+        Args: { p_clinic: string }
+        Returns: {
+          avatar_url: string
+          name: string
+          user_id: string
+          username: string
+        }[]
+      }
       distinct_product_subcategories: {
         Args: never
         Returns: {

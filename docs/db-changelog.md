@@ -643,3 +643,27 @@ Nothing below was reconstructed from memory without a source.
   ("E2E TEST CLINIC e2e1 (delete me)"). Storage object `clinic-submissions/pending/0060c3b4-8c9d-42eb-b2dc-7c98c5a400ac/01-test-photo.png`
   (id `0148cfdd-e7d0-43e1-a616-7ddde379e7ee`) must be removed through the Storage API (direct SQL delete is blocked).
 - Deleted session_ids: `269378b8-c21a-429a-924c-bb204ae68d27`
+
+### 2026-09-16 21:00-22:20 UTC - clinic social URLs, menu-based treatment mappings, dead links cleared (pipeline session, clinic layer)
+- Who: skintea-pipeline session (Claude Code). Guarded DO blocks through `query_database`; files in the pipeline repo
+  (commits `63b48f3`, `e521b6c`, `f228fe4`). No schema, function, view, trigger, policy or grant changed.
+- What:
+  - `clinics.instagram_url` / `tiktok_url`: set on 104 of 184 listed clinics (101 Instagram, 36 TikTok) from the website
+    crawl datasets already on disk. Only a handle the clinic's own page links to; each re-verified against the cited page.
+    28 candidates rejected with reasons (platform boilerplate, embedded creators, theme vendor, other locations, a staff
+    account, a parent organisation, a broken link to someone else's account). Sculpt Med Spa Instagram left empty: its
+    homepage links three handles of equal standing. Provenance `field_provenance.instagram_url` / `.tiktok_url` =
+    {source clinic_website_crawl, recorded_at, url (evidence page), detail (href, link text, dataset)}.
+    `sql/2026-09-16_clinics_social_urls.sql`; decisions `data/clinics/social_decisions_2026-09-16.json`.
+  - Four of those links cleared the same evening because the accounts do not exist (TikTok @socalsurgerycenter,
+    @blossommedla, @msclinic5; Instagram massage_laser_moodspa). Old value kept under `field_provenance.*_cleared`.
+    Now: Instagram 100, TikTok 33, either 104. `sql/2026-09-16_clinics_social_urls_dead_cleared.sql`.
+  - `clinic_treatments`: +52 mappings on 21 listed clinics (543 -> 595), no prices, from the service menus in the same
+    crawl. All 112 unmapped (clinic, treatment) pairs named on the clinics' own pages were read; 60 rejected with reasons
+    (contraindication lists, FAQ and comparison copy, quoted reviews, template logins, topical Rejuran, devices already
+    mapped). `sql/2026-09-16_clinic_treatments_menus.sql`; decisions
+    `data/clinics/clinic_treatments_menus_decisions_2026-09-16.json`.
+- Why: clinic page content from sources already paid for; no new crawl.
+- Not applied: `sql/2026-09-16_clinic_videos_01..28.sql` (1,056 official videos). A parallel session had already
+  inserted 1,366 `clinic_videos` rows at 22:06 UTC; applying these would duplicate them.
+- Deleted session_ids: none. No rows deleted.

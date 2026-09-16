@@ -197,8 +197,8 @@ export interface FileRoutesByFullPath {
   '/tea': typeof TeaRoute
   '/tea-products': typeof TeaProductsRouteWithChildren
   '/treatment-talk': typeof TreatmentTalkRoute
-  '/admin/treatments': typeof AdminTreatmentsRoute
   '/admin/clinic-intents': typeof AdminClinicIntentsRoute
+  '/admin/treatments': typeof AdminTreatmentsRoute
   '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
   '/product-detail/$id': typeof ProductDetailIdRoute
@@ -227,8 +227,8 @@ export interface FileRoutesByTo {
   '/tea': typeof TeaRoute
   '/tea-products': typeof TeaProductsRouteWithChildren
   '/treatment-talk': typeof TreatmentTalkRoute
-  '/admin/treatments': typeof AdminTreatmentsRoute
   '/admin/clinic-intents': typeof AdminClinicIntentsRoute
+  '/admin/treatments': typeof AdminTreatmentsRoute
   '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
   '/product-detail/$id': typeof ProductDetailIdRoute
@@ -258,8 +258,8 @@ export interface FileRoutesById {
   '/tea': typeof TeaRoute
   '/tea-products': typeof TeaProductsRouteWithChildren
   '/treatment-talk': typeof TreatmentTalkRoute
-  '/admin/treatments': typeof AdminTreatmentsRoute
   '/admin/clinic-intents': typeof AdminClinicIntentsRoute
+  '/admin/treatments': typeof AdminTreatmentsRoute
   '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
   '/product-detail/$id': typeof ProductDetailIdRoute
@@ -290,8 +290,8 @@ export interface FileRouteTypes {
     | '/tea'
     | '/tea-products'
     | '/treatment-talk'
-    | '/admin/treatments'
     | '/admin/clinic-intents'
+    | '/admin/treatments'
     | '/category/$slug'
     | '/clinics/$id'
     | '/product-detail/$id'
@@ -320,8 +320,8 @@ export interface FileRouteTypes {
     | '/tea'
     | '/tea-products'
     | '/treatment-talk'
-    | '/admin/treatments'
     | '/admin/clinic-intents'
+    | '/admin/treatments'
     | '/category/$slug'
     | '/clinics/$id'
     | '/product-detail/$id'
@@ -350,8 +350,8 @@ export interface FileRouteTypes {
     | '/tea'
     | '/tea-products'
     | '/treatment-talk'
-    | '/admin/treatments'
     | '/admin/clinic-intents'
+    | '/admin/treatments'
     | '/category/$slug'
     | '/clinics/$id'
     | '/product-detail/$id'
@@ -381,8 +381,8 @@ export interface RootRouteChildren {
   TeaRoute: typeof TeaRoute
   TeaProductsRoute: typeof TeaProductsRouteWithChildren
   TreatmentTalkRoute: typeof TreatmentTalkRoute
-  AdminTreatmentsRoute: typeof AdminTreatmentsRoute
   AdminClinicIntentsRoute: typeof AdminClinicIntentsRoute
+  AdminTreatmentsRoute: typeof AdminTreatmentsRoute
   CategorySlugRoute: typeof CategorySlugRoute
   ClinicsIdRoute: typeof ClinicsIdRoute
   ProductDetailIdRoute: typeof ProductDetailIdRoute
@@ -624,8 +624,8 @@ const rootRouteChildren: RootRouteChildren = {
   TeaRoute: TeaRoute,
   TeaProductsRoute: TeaProductsRouteWithChildren,
   TreatmentTalkRoute: TreatmentTalkRoute,
-  AdminTreatmentsRoute: AdminTreatmentsRoute,
   AdminClinicIntentsRoute: AdminClinicIntentsRoute,
+  AdminTreatmentsRoute: AdminTreatmentsRoute,
   CategorySlugRoute: CategorySlugRoute,
   ClinicsIdRoute: ClinicsIdRoute,
   ProductDetailIdRoute: ProductDetailIdRoute,

@@ -352,13 +352,12 @@ function ProductPage() {
     const productId = activeProduct?.id ?? null;
     if (!productId) { setShopButtons([]); return; }
     (async () => {
-      const { retailers, links, carriedRetailerIds } = await fetchShopData(productId, activeProduct?.brand ?? null);
+      const { retailers, links } = await fetchShopData(productId);
       if (cancelled) return;
       setShopButtons(
         buildShopButtons({
           retailers,
           links,
-          carriedRetailerIds,
           brand: activeProduct?.brand ?? null,
           productName: activeProduct?.name ?? null,
           productUrl: activeProduct?.product_url ?? null,
@@ -762,8 +761,8 @@ function ProductPage() {
           ))}
         </div>
 
-        {/* 4. Price + shop buttons. Amazon, Sephora and Ulta always render; the product's own shop
-            link leads when it exists. The row itself never disappears. */}
+        {/* 4. Price + the "Shop at" row. All six retailers always render, in their fixed order,
+            after the product's own Shop link. Nothing here is hidden for missing data. */}
         <div className="px-3.5 py-2.5 border-b border-brand-border">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-brand-espresso flex-none">
@@ -771,7 +770,7 @@ function ProductPage() {
             </span>
           </div>
           <div className="flex items-center gap-2 mt-2.5 overflow-x-auto">
-            <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-brand-crimson flex-none">Shop</span>
+            <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-brand-crimson flex-none">Shop at</span>
             {shopButtons.map((b, i) => (
               <a
                 key={b.retailerId}
@@ -790,14 +789,10 @@ function ProductPage() {
                 className={`flex-none rounded-[20px] px-[13px] py-1.5 text-[11px] font-semibold flex items-center gap-1 no-underline whitespace-nowrap ${
                   i === 0
                     ? "bg-brand-espresso text-brand-cream"
-                    : "bg-transparent text-brand-espresso border border-brand-border"
+                    : "bg-transparent text-brand-espresso border-[0.5px] border-brand-border"
                 }`}
               >
-                {b.logoUrl ? (
-                  <img src={b.logoUrl} alt={b.name} className="h-[11px] w-auto" loading="lazy" />
-                ) : (
-                  b.name
-                )}
+                {b.name}
                 {b.price !== null && <span className="font-normal">${b.price}</span>}
                 <ExternalLink width={10} height={10} />
               </a>

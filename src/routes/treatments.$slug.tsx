@@ -103,6 +103,43 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+// ---------- Restored 2026-09-16 (owner): You might also like, Before & After, Ages ----------
+
+type SimilarTreatment = { id: string; slug: string; name: string; category: string | null; subtitle: string | null; average_cost: string | null };
+
+// A before-and-after pair renders only when it is sourced and consented (owner, 2026-09-16), never padded and never
+// behind a paywall:
+//   is_active = true, before_url and after_url both set,
+//   field_provenance.before_url.source and .after_url.source are "clinic_supplied" or "published_source",
+//   field_provenance.consent.recorded_at is set and field_provenance.consent.granted_by is "patient" or
+//   "clinic_with_patient_consent".
+// The database also refuses photo URLs without that consent record (constraint treatment_before_afters_consent_required).
+type BeforeAfterRow = {
+  id: string; before_url: string | null; after_url: string | null; skin_type: string | null; age: number | null;
+  sessions: string | null; outcome: string | null; is_active: boolean | null; field_provenance: Record<string, any> | null;
+};
+const BA_SOURCES = ["clinic_supplied", "published_source"];
+const BA_CONSENT = ["patient", "clinic_with_patient_consent"];
+function isShowableBeforeAfter(r: BeforeAfterRow): boolean {
+  const p = r.field_provenance ?? {};
+  return r.is_active === true && !!r.before_url && !!r.after_url
+    && BA_SOURCES.includes(p.before_url?.source) && BA_SOURCES.includes(p.after_url?.source)
+    && typeof p.consent?.recorded_at === "string" && p.consent.recorded_at !== "" && BA_CONSENT.includes(p.consent?.granted_by);
+}
+
+// Ages people stated in Reddit reviews of this treatment (treatment_reviews.age_bracket). Shown only once at least
+// MIN_TREATMENT_REVIEWS (30) reviews state an age, always with the count. It describes who mentioned an age, not who
+// gets the treatment. There is no country chart: no source records where a reviewer lives.
+const AGE_ORDER = ["teens", "20s", "30s", "40s", "50s", "60s", "60s+", "70s+"];
+function ageRows(rows: { age_bracket: string | null }[]) {
+  const counts = new Map<string, number>();
+  for (const r of rows) if (r.age_bracket) counts.set(r.age_bracket, (counts.get(r.age_bracket) ?? 0) + 1);
+  const n = Array.from(counts.values()).reduce((a, b) => a + b, 0);
+  const rank = (k: string) => (AGE_ORDER.indexOf(k) === -1 ? 99 : AGE_ORDER.indexOf(k));
+  const buckets = Array.from(counts.entries()).sort((a, b) => rank(a[0]) - rank(b[0]) || a[0].localeCompare(b[0]));
+  return { n, buckets };
+}
+
 // A field with no sourced text is not rendered at all (no "Not added yet."). A field with text always shows
 // where it comes from.
 function Field({ label, value, sources }: { label: string; value: string | null; sources: SourceLink[] }) {
@@ -303,6 +340,8 @@ function TreatmentPage() {
   const [links, setLinks] = useState<ClinicLink[]>([]);
   const [reviewRows, setReviewRows] = useState<TreatmentReviewRow[]>([]);
   const [quoteRows, setQuoteRows] = useState<TreatmentQuoteRow[]>([]);
+  const [similar, setSimilar] = useState<SimilarTreatment[]>([]);
+  const [beforeAfters, setBeforeAfters] = useState<BeforeAfterRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -347,10 +386,27 @@ function TreatmentPage() {
           .order("created_at", { ascending: false });
         if (!alive) return;
         setQuoteRows(((qr as any[]) ?? []) as TreatmentQuoteRow[]);
+        // You might also like: other active treatments in the same category (as before 2026-09-14).
+        const category = (t as any).category as string | null;
+        const { data: sim } = category
+          ? await supabase.from("treatments").select("id, slug, name, category, subtitle, average_cost")
+              .eq("category", category).eq("active", true).neq("slug", slug).order("sort_order", { ascending: true }).limit(3)
+          : { data: [] as SimilarTreatment[] };
+        if (!alive) return;
+        setSimilar(((sim as any[]) ?? []).filter((x) => x.slug) as SimilarTreatment[]);
+        const { data: ba } = await (supabase as any)
+          .from("treatment_before_afters")
+          .select("id, before_url, after_url, skin_type, age, sessions, outcome, is_active, field_provenance")
+          .eq("treatment_id", (t as any).id)
+          .eq("is_active", true);
+        if (!alive) return;
+        setBeforeAfters((((ba as any[]) ?? []) as BeforeAfterRow[]).filter(isShowableBeforeAfter));
       } else {
         setLinks([]);
         setReviewRows([]);
         setQuoteRows([]);
+        setSimilar([]);
+        setBeforeAfters([]);
       }
       setLoading(false);
     })();
@@ -483,6 +539,37 @@ function TreatmentPage() {
           );
         })()}
 
+        {(() => {
+          const { n, buckets } = ageRows(quoteRows);
+          return (
+            <Section title="Ages people stated">
+              {n >= MIN_TREATMENT_REVIEWS ? (
+                <div className="bg-card border border-brand-border rounded-xl p-3.5">
+                  {buckets.map(([age, count]) => {
+                    const pct = Math.round((count / n) * 100);
+                    return (
+                      <div key={age} className="py-1">
+                        <div className="flex justify-between text-xs text-brand-espresso">
+                          <span>{age}</span>
+                          <span className="text-brand-muted">{count} of {n}</span>
+                        </div>
+                        <div className="h-[3px] bg-brand-border rounded-sm mt-1 overflow-hidden">
+                          <div className="h-full bg-brand-crimson" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="text-[10px] text-brand-muted mt-1.5 leading-[1.4]">
+                    Only Reddit reviewers who mentioned their age. It shows who talked about {treatment.name}, not who gets it.
+                  </div>
+                </div>
+              ) : (
+                <DataPending>{n} of {MIN_TREATMENT_REVIEWS} Reddit reviews stating an age needed.</DataPending>
+              )}
+            </Section>
+          );
+        })()}
+
         {/*
           Price. Two different facts, never merged: what listed clinics state on their own websites
           (clinic_treatments, clinic_website_crawl evidence; a range per unit only with >= 3 listed
@@ -600,6 +687,74 @@ function TreatmentPage() {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </Section>
+
+        <Section title="Before & After">
+          {beforeAfters.length === 0 ? (
+            <DataPending>
+              No before-and-after photos yet. A pair shows only with the source of each photo and the patient's recorded consent.
+            </DataPending>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {beforeAfters.map((r) => {
+                const p = r.field_provenance ?? {};
+                const sourceUrl: string | undefined = p.before_url?.url ?? p.after_url?.url;
+                const details = [r.skin_type ? `${r.skin_type} skin` : null, r.age != null ? `age ${r.age}` : null, r.sessions, r.outcome].filter(Boolean);
+                return (
+                  <div key={r.id} style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 10, overflow: "hidden" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                      {([["Before", r.before_url], ["After", r.after_url]] as const).map(([label, url]) => (
+                        <div key={label} style={{ position: "relative", aspectRatio: "1", background: CREAM_TINT }}>
+                          <img src={url!} alt={`${label}: ${treatment.name}`} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                          <span style={{ position: "absolute", left: 6, top: 6, background: "rgba(28,10,0,0.75)", color: WARM_WHITE, fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 4 }}>{label}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ padding: "8px 10px", fontSize: 11, color: MUTED, lineHeight: 1.5 }}>
+                      {details.length > 0 && <div style={{ color: ESPRESSO }}>{details.join(" · ")}</div>}
+                      <div>
+                        Shared with the patient's consent{p.consent?.granted_by === "clinic_with_patient_consent" ? " by the clinic" : ""}.{" "}
+                        {sourceUrl ? (
+                          <a href={sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: MUTED, textDecoration: "underline" }}>Source</a>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Section>
+
+        <Section title="You might also like">
+          {similar.length === 0 ? (
+            <DataPending>No other treatments in this category yet.</DataPending>
+          ) : (
+            <div className="no-scrollbar" style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
+              {similar.map((sim) => (
+                <Link
+                  key={sim.id}
+                  to="/treatments/$slug"
+                  params={{ slug: sim.slug }}
+                  style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: 10, width: 130, flexShrink: 0, textDecoration: "none" }}
+                >
+                  {sim.category && (
+                    <div style={{ fontSize: 9, fontWeight: 800, color: CRIMSON, textTransform: "uppercase", letterSpacing: "0.08em" }}>{sim.category}</div>
+                  )}
+                  <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO, marginTop: 4, lineHeight: 1.25 }}>{sim.name}</div>
+                  {sim.subtitle && (
+                    <div style={{ fontSize: 10, color: MUTED, marginTop: 4, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                      {sim.subtitle}
+                    </div>
+                  )}
+                  {sim.average_cost && (
+                    <div style={{ fontSize: 11, color: CRIMSON, marginTop: 6, fontWeight: 700 }}>{sim.average_cost}</div>
+                  )}
+                  <div style={{ fontSize: 10, fontWeight: 800, color: CRIMSON, marginTop: 6 }}>See treatment →</div>
+                </Link>
+              ))}
             </div>
           )}
         </Section>

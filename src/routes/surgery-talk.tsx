@@ -160,11 +160,11 @@ function usePosts(surgeries: Surgery[]) {
       } else {
         const surgMap = new Map(surgeriesRef.current.map((s) => [s.id, s.name]));
         const userIds = Array.from(new Set(data.map((p) => p.user_id)));
-        let profileMap = new Map<string, { name: string | null; skin_type: string | null; is_derm: boolean }>();
+        let profileMap = new Map<string, { name: string | null; skin_type: string | null; is_derm: boolean; field_provenance: any }>();
         if (userIds.length > 0) {
           const { data: profs } = await supabase
             .from("profiles")
-            .select("user_id, name, skin_type, is_derm")
+            .select("user_id, name, skin_type, is_derm, field_provenance")
             .in("user_id", userIds);
           if (profs) profileMap = new Map(profs.map((p) => [p.user_id, p as any]));
         }
@@ -180,7 +180,9 @@ function usePosts(surgeries: Surgery[]) {
             user_name: prof?.name ?? null,
             user_emoji: SKIN_EMOJI[skin] ?? "",
             user_skin_line: skin ? `${skin.toLowerCase()} skin` : "",
-            user_is_derm: prof?.is_derm ?? false,
+            // The Derm badge needs a recorded verification: profiles.field_provenance.is_derm {source, recorded_at}, which the
+            // profiles_enforce_provenance trigger requires before is_derm can be true (2026-09-16). No verification, no badge.
+            user_is_derm: prof?.is_derm === true && !!prof?.field_provenance?.is_derm?.source && !!prof?.field_provenance?.is_derm?.recorded_at,
           };
         });
         setPosts(enriched);

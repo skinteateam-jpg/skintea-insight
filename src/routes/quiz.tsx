@@ -546,7 +546,7 @@ function QuizPage() {
                 LOCATION
               </div>
               <h1 style={{ fontSize: 24, lineHeight: 1.25, fontWeight: 800, margin: 0 }}>
-                So we can show what's near you
+                So we can show Los Angeles clinics for your area
               </h1>
               <input
                 inputMode="numeric"
@@ -775,7 +775,7 @@ function QuizPage() {
                 : <>Next <ArrowRight size={16} /></>}
           </button>
           <div style={{ textAlign: "center", marginTop: 10, fontSize: 11, color: C.textLight }}>
-            No account needed. Your answers, skin type, ZIP, budget and treatment interest are saved with an anonymous ID so we can build your result and show clinics near you.{" "}
+            No account needed. Your answers, skin type, ZIP, budget and treatment interest are saved with an anonymous ID so we can build your result and show clinics in the Los Angeles area.{" "}
             <Link to="/privacy" style={{ color: C.textLight, textDecoration: "underline" }}>Privacy policy</Link>
           </div>
         </div>

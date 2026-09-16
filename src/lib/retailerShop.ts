@@ -157,7 +157,8 @@ export function logOutboundClick(args: {
   }
 }
 
-export async function fetchShopData(productId: string, brand: string | null) {
+// brand_retailers is optional data now and is not read here: no retailer is gated on it.
+export async function fetchShopData(productId: string) {
   const [{ data: retailers }, { data: links }] = await Promise.all([
     (supabase as any)
       .from("retailers")
@@ -169,17 +170,8 @@ export async function fetchShopData(productId: string, brand: string | null) {
       .select("id,product_id,retailer_id,product_url,affiliate_url,price,in_stock,verified")
       .eq("product_id", productId),
   ]);
-  let carried: string[] = [];
-  if (brand) {
-    const { data: pairs } = await (supabase as any)
-      .from("brand_retailers")
-      .select("retailer_id")
-      .ilike("brand", brand);
-    carried = (pairs ?? []).map((p: any) => p.retailer_id);
-  }
   return {
     retailers: (retailers ?? []) as RetailerRow[],
     links: (links ?? []) as ProductRetailerLinkRow[],
-    carriedRetailerIds: new Set<string>(carried),
   };
 }

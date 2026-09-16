@@ -33,6 +33,14 @@ export const MAX_SENSITIVITY_POINTS = 10;
 // Second check under the sensitivity test, for treatment pages only. The product page keeps MIN_TAGGED.
 export const MIN_TREATMENT_REVIEWS = 30;
 
+// PLATFORM ALLOWLIST (owner, 2026-09-16). Only rows from these platforms enter any figure on a treatment page:
+// percentages, subgroups, Top regrets and the Reddit price. A row from any other platform is ignored even if it is in
+// treatment_reviews. Adding a platform is a reviewed decision made here in code, never a side effect of inserting rows.
+// TikTok and Instagram are excluded by decision (they select for positive, face-visible posts and carry clinic
+// promotion). Korean/Japanese communities and clinics are excluded from percentages by decision. First-party Skintea
+// accounts are not on this list until the conditions in a3/reddit/FIRST_PARTY_TREATMENT_ACCOUNTS_SPEC.md are met.
+export const COUNTED_PLATFORMS: readonly string[] = ["reddit"];
+
 export type TreatmentReviewRow = {
   verdict: string | null;
   is_first_time: boolean | null;
@@ -42,11 +50,15 @@ export type TreatmentReviewRow = {
   tag_confidence: string | null;
   tagged_at: string | null;
   query: string | null; // field_provenance->'detail'->>'query': the search that found the row
+  platform: string | null; // must be in COUNTED_PLATFORMS to count; a row fetched without it counts for nothing
 };
 
-// Counted rows: tagged, and tagged with high or medium confidence.
+// Counted rows: from an allowlisted platform, tagged, and tagged with high or medium confidence.
 export function isCountedReview(r: TreatmentReviewRow): boolean {
-  return r.tagged_at != null && (r.tag_confidence === "high" || r.tag_confidence === "medium");
+  return (
+    r.platform != null && COUNTED_PLATFORMS.includes(r.platform) &&
+    r.tagged_at != null && (r.tag_confidence === "high" || r.tag_confidence === "medium")
+  );
 }
 
 export function isRegretSeeking(r: TreatmentReviewRow): boolean {

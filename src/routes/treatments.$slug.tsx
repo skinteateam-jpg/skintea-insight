@@ -101,6 +101,13 @@ function reviewsLabel(n: number) {
 
 // A percentage renders only when its own cell passes the sensitivity test (see treatmentReviews.ts),
 // and always with the number of reviews it is based on.
+// Display only: a shown worth-it figure is rounded to the nearest 5 (owner, 2026-09-16). At 30–50 counted reviews the
+// interval is roughly ±13–16 points, so "70%" would claim precision the sample does not have. The gate, the floor, the
+// sensitivity test and the stored computation all use the exact figure; only the number on screen is rounded.
+function roundToFive(pct: number): number {
+  return Math.round(pct / 5) * 5;
+}
+
 function VerdictBars({ cell, who }: { cell: VerdictCell; who: string }) {
   if (cell.gate !== "open" || cell.worthPct === null || cell.notWorthPct === null) {
     return (
@@ -118,8 +125,8 @@ function VerdictBars({ cell, who }: { cell: VerdictCell; who: string }) {
     );
   }
   const cards = [
-    { label: "Worth it", pct: cell.worthPct, count: cell.worth, barCls: "bg-brand-crimson" },
-    { label: "Not worth it", pct: cell.notWorthPct, count: cell.notWorth, barCls: "bg-brand-crimson/40" },
+    { label: "Worth it", pct: roundToFive(cell.worthPct), count: cell.worth, barCls: "bg-brand-crimson" },
+    { label: "Not worth it", pct: roundToFive(cell.notWorthPct), count: cell.notWorth, barCls: "bg-brand-crimson/40" },
   ];
   return (
     <>

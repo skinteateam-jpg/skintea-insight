@@ -704,3 +704,24 @@ Nothing below was reconstructed from memory without a source.
   on UPDATE; anon and authenticated hold INSERT/UPDATE/DELETE grants on `clinic_videos` and on the
   `clinic_visitor_profile` view (blocked by RLS / not updatable, but broader than needed).
 - Apify spend: account cycle 2026-09-14 at 15.71 of 180 before these two runs (caps 5.00 + 3.00 USD), 22.59 after (other sessions ran in between); these runs 3.73.
+
+### 2026-09-16 23:00 UTC — publish blockers, posting paths, Before & After consent, Derm verification
+- Who: "publish-blockers and the dead posting paths" session.
+- Schema:
+  - `treatment_before_afters` CHECK `treatment_before_afters_consent_required`: a row with a before or after photo URL
+    needs `field_provenance.consent.recorded_at` and `field_provenance.consent.granted_by` in (`patient`,
+    `clinic_with_patient_consent`). Table had 0 rows. Tested (rolled back): sourced but no consent rejected; consent but no
+    photo source rejected by the existing provenance trigger; sourced + consent accepted.
+  - `profiles.field_provenance jsonb NOT NULL DEFAULT '{}'`; trigger `profiles_enforce_provenance` =
+    `enforce_field_provenance('is_derm')`; `GRANT SELECT (field_provenance) ON profiles TO anon, authenticated` (no
+    INSERT/UPDATE grant, so users cannot write it). 0 profiles had `is_derm = true`. Tested (rolled back): `is_derm = true`
+    without provenance rejected, with provenance accepted, unrelated update accepted, a user writing their own
+    `field_provenance` rejected. Keep verification detail free of personal identifiers (licence numbers etc.): anon reads it.
+- No rows written or deleted. Composer checks (posts, saved_posts, surgery_posts + saves/likes/comments, product_posts)
+  ran as a signed-in user inside a block that raised at the end, so nothing persisted.
+- App changes in other sessions' files, kept minimal (skintea-insight `b48c6ab`, `3565fe6`, `be09c88`):
+  `src/components/ClinicImage.tsx` (no category stock image in a clinic photo slot), `src/routes/clinics.index.tsx` (Top Rated
+  / Most Reviewed disabled: Google-ordered), `src/routes/clinics/$id.tsx` (no clinic_who_visited query for anonymous
+  visitors; the What people say video tabs had already been removed by the clinic-page session), `src/routes/surgery-talk.tsx`
+  (Derm badge gate).
+- Deleted session_ids: none.

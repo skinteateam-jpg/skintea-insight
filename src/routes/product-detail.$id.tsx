@@ -789,14 +789,10 @@ function ProductPage() {
                 className={`flex-none rounded-[20px] px-[13px] py-1.5 text-[11px] font-semibold flex items-center gap-1 no-underline whitespace-nowrap ${
                   i === 0
                     ? "bg-brand-espresso text-brand-cream"
-                    : "bg-transparent text-brand-espresso border border-brand-border"
+                    : "bg-transparent text-brand-espresso border-[0.5px] border-brand-border"
                 }`}
               >
-                {b.logoUrl ? (
-                  <img src={b.logoUrl} alt={b.name} className="h-[11px] w-auto" loading="lazy" />
-                ) : (
-                  b.name
-                )}
+                {b.name}
                 {b.price !== null && <span className="font-normal">${b.price}</span>}
                 <ExternalLink width={10} height={10} />
               </a>

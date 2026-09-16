@@ -795,20 +795,57 @@ export const AAD_INGREDIENTS: Record<string, IngredientGroups> = {
  }
 };
 
-// Combines the quiz's skin type, the sensitivity modifier and the main concern. An item AAD says to avoid for any of them
-// is never also listed as good or watch (e.g. lactic acid and urea: good for dry skin, avoid with rosacea).
+// Several AAD pages name the same thing in different words ("alcohol" / "alcohol (except for hand sanitizer)", "retinol" /
+// "retinoids"). Items in one family are shown once, and a family AAD says to avoid for any of the answers is never also
+// shown under Watch out or Good for you; Watch out likewise wins over Good for you.
+const FAMILIES: [RegExp, string][] = [
+  [/during pregnancy/i, "retinoids-pregnancy"],
+  [/retino/i, "retinoid"],
+  [/^products that contain alcohol or fragrance$/i, "alcohol+fragrance"],
+  [/^alcohol-based cleansers$/i, "alcohol-based cleansers"],
+  [/^alcohol\b/i, "alcohol"],
+  [/^fragrance-free (sunscreen|moisturizer)/i, ""],
+  [/fragrance-free|products labeled "sensitive skin"|products made for sensitive skin/i, "fragrance-free products"],
+  [/^fragrance\b/i, "fragrance"],
+  [/deodorant soaps/i, "deodorant soaps"],
+  [/unscented/i, "unscented"],
+  [/(cream|ointment).*(lotion)/i, "cream over lotion"],
+  [/^menthol, camphor, sodium lauryl sulfate$/i, "menthol+camphor+sls"],
+  [/mechanical exfoliation|physical exfoliants/i, "mechanical exfoliation"],
+  [/over-?exfoliat|overused exfoliators/i, "over-exfoliation"],
+];
+function familyOf(name: string): string {
+  for (const [re, fam] of FAMILIES) if (re.test(name) && fam) return fam;
+  return name.toLowerCase();
+}
+// A combined entry is dropped when every family it names is already listed on its own.
+const COMPOSITES: Record<string, string[]> = {
+  "alcohol+fragrance": ["alcohol", "fragrance"],
+  "menthol+camphor+sls": ["menthol", "camphor", "sodium lauryl sulfate (often found in shampoos and toothpaste)"],
+};
+
+// Combines the quiz's skin type, the sensitivity modifier and the main concern.
 export function sourcedIngredients(skinType: string, sensitivity: boolean, concern: string): IngredientGroups & { rosacea: boolean } {
   const parts = [AAD_INGREDIENTS[skinType], sensitivity ? AAD_INGREDIENTS["modifier:sensitive"] : undefined, AAD_INGREDIENTS[`concern:${concern}`]].filter(Boolean) as IngredientGroups[];
+  const taken = new Set<string>();
   const pick = (g: keyof IngredientGroups) => {
-    const seen = new Set<string>();
     const list: SourcedIngredient[] = [];
-    for (const p of parts) for (const it of p[g]) { const k = it.name.toLowerCase(); if (!seen.has(k)) { seen.add(k); list.push(it); } }
-    return list;
+    for (const p of parts) {
+      for (const it of p[g]) {
+        const fam = familyOf(it.name);
+        if (taken.has(fam)) continue;
+        taken.add(fam);
+        list.push(it);
+      }
+    }
+    return list.filter((it) => {
+      const members = COMPOSITES[familyOf(it.name)];
+      return !members || !members.every((m) => taken.has(familyOf(m)));
+    });
   };
+  // Order matters: avoid claims its families first, then watch, then good.
   const avoid = pick("avoid");
-  const avoidNames = new Set(avoid.map((i) => i.name.toLowerCase()));
-  const watch = pick("watch").filter((i) => !avoidNames.has(i.name.toLowerCase()));
-  const watchNames = new Set(watch.map((i) => i.name.toLowerCase()));
-  const good = pick("good").filter((i) => !avoidNames.has(i.name.toLowerCase()) && !watchNames.has(i.name.toLowerCase()));
+  const watch = pick("watch");
+  const good = pick("good");
   return { good, watch, avoid, rosacea: concern === "redness" };
 }

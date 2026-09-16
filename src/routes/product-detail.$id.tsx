@@ -346,6 +346,27 @@ function ProductPage() {
     return () => { cancelled = true; };
   }, [id]);
 
+  // Shop buttons for the shade actually on screen.
+  useEffect(() => {
+    let cancelled = false;
+    const productId = activeProduct?.id ?? null;
+    if (!productId) { setShopButtons([]); return; }
+    (async () => {
+      const { retailers, links, carriedRetailerIds } = await fetchShopData(productId, activeProduct?.brand ?? null);
+      if (cancelled) return;
+      setShopButtons(
+        buildShopButtons({
+          retailers,
+          links,
+          carriedRetailerIds,
+          brand: activeProduct?.brand ?? null,
+          productName: activeProduct?.name ?? null,
+        }),
+      );
+    })();
+    return () => { cancelled = true; };
+  }, [activeProduct?.id, activeProduct?.brand, activeProduct?.name]);
+
   const autoTabbedFor = useRef<string | null>(null);
   useEffect(() => {
     if (autoTabbedFor.current === id) return;
@@ -739,29 +760,56 @@ function ProductPage() {
           ))}
         </div>
 
-        {/* 4. Price + buy links */}
-        {(() => {
-          const retailers = retailerLinks(activeProduct);
-          const hasAnyLink = Boolean(activeProduct?.product_url) || retailers.length > 0;
-          return (
-            <div className="px-3.5 py-2.5 border-b border-brand-border flex items-center gap-2 overflow-x-auto">
-              <span className="text-sm font-semibold text-brand-espresso flex-none">
-                {activeProduct?.price ? `$${activeProduct.price}` : "—"}
-              </span>
-              {hasAnyLink && <span className="text-brand-muted flex-none">·</span>}
-              {activeProduct?.product_url && (
-                <a href={activeProduct.product_url} target="_blank" rel="noopener noreferrer" className="flex-none bg-brand-espresso text-brand-cream rounded-[20px] px-[13px] py-1.5 text-[11px] font-semibold flex items-center gap-1 no-underline">
-                  Shop <ExternalLink width={10} height={10} />
-                </a>
-              )}
-              {retailers.map((s) => (
-                <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer" className="flex-none bg-transparent text-brand-espresso border border-brand-border rounded-[20px] px-[13px] py-1.5 text-[11px] flex items-center gap-1 no-underline">
-                  {s.name} <ExternalLink width={10} height={10} />
-                </a>
-              ))}
-            </div>
-          );
-        })()}
+        {/* 4. Price + shop buttons. One button per retailer that can actually reach this product;
+            the whole row disappears when none can. Sorted by price, cheapest first — never by commission. */}
+        <div className="px-3.5 py-2.5 border-b border-brand-border">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-brand-espresso flex-none">
+              {activeProduct?.price ? `$${activeProduct.price}` : "—"}
+            </span>
+          </div>
+          {shopButtons.length > 0 && (
+            <>
+              <div className="flex items-center gap-2 mt-2.5 overflow-x-auto">
+                <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-brand-crimson flex-none">Shop</span>
+                {shopButtons.map((b, i) => (
+                  <a
+                    key={b.retailerId}
+                    href={b.url}
+                    target="_blank"
+                    rel="sponsored noopener noreferrer"
+                    onClick={() =>
+                      logOutboundClick({
+                        productId: activeProduct?.id ?? id,
+                        retailerId: b.retailerId,
+                        userId,
+                        linkType: b.linkType,
+                        source_page: "product-detail",
+                      } as any)
+                    }
+                    className={`flex-none rounded-[20px] px-[13px] py-1.5 text-[11px] font-semibold flex items-center gap-1 no-underline whitespace-nowrap ${
+                      i === 0
+                        ? "bg-brand-espresso text-brand-cream"
+                        : "bg-transparent text-brand-espresso border border-brand-border"
+                    }`}
+                  >
+                    {b.logoUrl ? (
+                      <img src={b.logoUrl} alt={b.name} className="h-[11px] w-auto" loading="lazy" />
+                    ) : (
+                      b.name
+                    )}
+                    {b.price !== null && <span className="font-normal">${b.price}</span>}
+                    <ExternalLink width={10} height={10} />
+                  </a>
+                ))}
+              </div>
+              <div className="text-[10px] text-brand-muted mt-2 leading-[1.5]">
+                Skintea may earn a commission from purchases. This never affects our ratings.{" "}
+                <Link to="/disclosure" className="text-brand-crimson no-underline">Learn more</Link>
+              </div>
+            </>
+          )}
+        </div>
 
         {/* 5. What people say */}
         <Section title="What people say">

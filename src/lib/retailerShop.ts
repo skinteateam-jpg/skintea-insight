@@ -1,7 +1,8 @@
 // Shop buttons on the product page. One button per retailer that can actually reach this product.
 //
 // Affiliate IDs are not approved yet, so today every button ends up on the retailer's normal
-// product page (link_type "direct") or its search page (link_type "search"). When an affiliate
+// product page (link_type "direct"). A retailer with no per-product URL renders no button: a search
+// page is not evidence the retailer sells this product (CLAUDE.md, "Product retailer chips", 2026-09-16). When an affiliate
 // URL or an affiliate id lands in the database, resolveRetailerLink starts returning it and the
 // UI does not change.
 import { supabase } from "@/integrations/supabase/client";
@@ -41,9 +42,8 @@ export type ShopButton = {
   price: number | null;
 };
 
-// The six retailers of the "Shop at" row. Every one of them renders a button on every product,
-// whether or not brand_retailers or product_retailer_links hold a row — brand_retailers is not a
-// gate for any retailer. They render in this order.
+// The six retailers of the "Shop at" row, in render order. A retailer renders a button only when
+// product_retailer_links holds a real URL for this product; otherwise it renders nothing.
 export const SHOP_ROW_SLUGS = [
   "sephora",
   "ulta",
@@ -58,8 +58,9 @@ function appendParam(url: string, param: string): string {
   return `${url}${sep}${param}`;
 }
 
-// Order of resolution: affiliate_url, then product_url + affiliate param, then product_url,
-// then the retailer's search page with "{brand} {product name}".
+// Order of resolution: affiliate_url, then product_url + affiliate param, then product_url.
+// No search-page fallback (removed 2026-09-16): a retailer's search results are not a per-product URL,
+// and a search link would show a retailer that may not carry the product at all.
 export function resolveRetailerLink(
   retailer: RetailerRow,
   link: ProductRetailerLinkRow | undefined,
@@ -75,17 +76,12 @@ export function resolveRetailerLink(
     return { url: link.product_url, linkType: "direct" };
   }
 
-  if (retailer.search_url_template) {
-    const q = [opts.brand ?? "", opts.productName ?? ""].join(" ").trim();
-    if (!q) return null;
-    return { url: retailer.search_url_template.replace("{q}", encodeURIComponent(q)), linkType: "search" };
-  }
-
+  void opts;
   return null;
 }
 
-// The product's own "Shop" link (brand_site) leads when the product has a URL, then the six
-// retailers in their fixed order. No retailer is ever hidden for missing data.
+// The product's own "Shop" link (brand_site) leads when the product has a URL, then each of the six
+// retailers that has a per-product URL, in their fixed order.
 export function buildShopButtons(args: {
   retailers: RetailerRow[];
   links: ProductRetailerLinkRow[];
@@ -113,7 +109,7 @@ export function buildShopButtons(args: {
     });
   }
 
-  // 2. The six retailers, always, in their fixed order.
+  // 2. The six retailers in their fixed order, each only with a per-product URL.
   for (const slug of SHOP_ROW_SLUGS) {
     const r = bySlug.get(slug);
     if (!r) continue;

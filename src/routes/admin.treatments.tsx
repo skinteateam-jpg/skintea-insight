@@ -235,7 +235,6 @@ function TreatmentModal({
       ? (treatment!.category as Category)
       : "Other"
   );
-  const [description, setDescription] = useState(treatment?.description ?? "");
   const [active, setActive] = useState(treatment?.active ?? true);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -245,14 +244,13 @@ function TreatmentModal({
     setSaving(true); setErr(null);
     if (treatment) {
       const { error } = await supabase.from("treatments")
-        .update({ name: name.trim(), category, description: description.trim() || null, active })
+        .update({ name: name.trim(), category, active })
         .eq("id", treatment.id);
       if (error) { setErr(error.message); setSaving(false); return; }
     } else {
       const { error } = await supabase.from("treatments").insert({
         name: name.trim(),
         category,
-        description: description.trim() || null,
         active,
         sort_order: existingMaxOrder + 1,
       });
@@ -303,15 +301,8 @@ function TreatmentModal({
             </select>
           </Field>
 
-          <Field label="Description (optional)">
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }}
-            />
-          </Field>
-
+          {/* No description input: treatments copy needs a recorded source (treatments_enforce_provenance) and is
+              written by scripts/treatments/gen_treatment_copy.py in the pipeline repo, never typed here. */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={{ fontSize: 13, color: ESPRESSO }}>Active</span>
             <Toggle on={active} onChange={() => setActive((v) => !v)} />

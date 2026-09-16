@@ -761,8 +761,8 @@ function ProductPage() {
           ))}
         </div>
 
-        {/* 4. Price + the "Shop at" row. All six retailers always render, in their fixed order,
-            after the product's own Shop link. Nothing here is hidden for missing data. */}
+        {/* 4. Price + the "Shop at" row: the product's own Shop link, then each retailer that has a
+            per-product URL, in fixed order. A retailer with no URL renders nothing (no search links). */}
         <div className="px-3.5 py-2.5 border-b border-brand-border">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-brand-espresso flex-none">

@@ -479,3 +479,53 @@ Nothing below was reconstructed from memory without a source.
 - Why: the audit found real people listed as bookable clinics, a duplicate listing, and badge/score columns that would start
   rendering unsourced values the moment anything wrote to them. Rows and columns are kept so each feature returns with real data.
 - Deleted session_ids: none. Rows deleted: 2 `clinic_treatments` mappings (listed above). No other deletions.
+
+### 07:00–07:40 UTC — chain prices count once; LaserAway Rejuran removed; clinic-page sections restored (pipeline session)
+- Who: skintea-pipeline session. App: `src/lib/clinicPrices.ts`, `src/routes/clinics/$id.tsx` (Lovable `0f19921`,
+  re-cut on top of the same-day "Fake data out, features kept" commit after its md5 guard correctly rejected the first
+  attempt). Database: one guarded DO block through `query_database`.
+- What:
+  - **A chain counts once.** LaserAway and BHRC each publish ONE price page for every location, so their locations are
+    not independent price sources. Rows whose `field_provenance.price_from.caution` says the price is chain-wide are
+    now collapsed to one source per brand (the evidence page's host) for BOTH the 3-source minimum and the displayed
+    count; the chain's price still counts in the range. Every row stays in the database and each location keeps its own
+    price on its own clinic page. The range line says so: "across 11 listed clinics (a chain's locations count once)".
+  - **Two `clinic_treatments` rows deleted** (LaserAway → rejuran, both locations):
+    `f4f9a998-ef5f-4f47-9aca-c1c883aa6243` (Los Feliz) and `6cd46736-d0ea-43a4-a8db-052be7a56c63` (South Park).
+    Reason: the evidence page sells **Rejuran Healing Essence applied topically** after SkinPen microneedling
+    (LaserAway's "Salmon DNA Facial"). `a3/reddit/TREATMENT_TAGGING_RULES.md` excludes topical PDRN and Rejuran-brand
+    products from the Rejuran treatment, which is the injectable, so the mapping fails the same test its price failed
+    at 05:40. LaserAway no longer appears on the Rejuran page. clinic_treatments 545 → 543.
+  - **Range state after both changes** (listed, active, fresh prices; sources after collapsing):
+    botox per unit 11 sources $8–$15 · fillers per syringe 6 $450–$900 · fillers per area 3 $600–$1,350 · fillers
+    starting from 3 $325–$600 · peels per session 5 $129–$350 · hydrafacial per session 3 $200–$350 — all shown.
+    **potenza per session: 3 clinic rows but 2 sources (one chain + one clinic), so it is now HELD.** Do not re-open it
+    by counting LaserAway's two locations again. **rejuran: 2 sources, held**, after the deletion above.
+  - **Clinic page sections restored, each with the treatment page's honest empty state** (header and frame always
+    render; the frame says what the section will hold and that there is not enough yet; never hidden, never filled with
+    placeholder): The tea (`clinics.tea_quote`), What it's best for (`clinics.best_for`), Known for
+    (`clinics.known_for`), Who goes here (`clinic_who_visited`), Works for your skin? (`clinic_skin_scores`), What
+    people say (`clinic_reviews`), Video (`clinic_videos`), Trust & Skintea score (`clinics.trust_score`,
+    `clinics.skintea_score`). No column or table was missing; all eight sources exist.
+  - **Visitor submission.** The three sections that only a visitor can fill (Who goes here, Works for your skin?, What
+    people say) carry one line: "Been here? Tell us what actually happened." It opens a short form that inserts into
+    `clinic_reviews` as the signed-in author. **No schema or policy change was needed or made:** the existing policy
+    "Users can create reviews" (`auth.uid() = user_id`) plus `enforce_signed_in_author` and `enforce_review_integrity`
+    already allow exactly that, `agree_count` keeps its default 0, and an anonymous insert is refused by the database,
+    not just by the UI. A signed-out visitor is pointed at `/login`.
+- Why: deleting fabricated rows was right; removing the sections was not, and left the clinic page indistinguishable
+  from a directory listing.
+- Deleted session_ids: none. Rows deleted: the 2 `clinic_treatments` ids listed above.
+
+#### What these sections are waiting for (so nobody re-fills them by hand)
+- **`clinics.best_for` is non-null on 445 clinics but every one of them is an empty array** (`{}`), so the section
+  renders its empty state today. There is no archived content to restore: `seed_clinic_archive` holds no `best_for`
+  value. It needs a real source (the clinic's own site, or `/for-clinics`) before anything renders.
+- **`tea_quote`, `known_for`, `trust_score`, `skintea_score` are empty on every clinic** (0 rows each), and
+  `clinic_reviews`, `clinic_skin_scores`, `clinic_who_visited`, `clinic_videos` hold 0 rows.
+- **"Who goes here" can never show an aggregate under the current policy.** `clinic_who_visited`'s SELECT policy is
+  "Users see only their own visits" (`auth.uid() = user_id`), so a visitor can only ever see their own rows. Showing
+  who else goes there would need a new policy or an aggregate view — neither was created; reported instead.
+- **No lead event fires from the new line.** `lead_events.event_type` allows only stage_change, field_set,
+  quiz_completed, clinic_view, consultation_click, booking_link_click and email_submitted. None describes "a visitor
+  offered to tell us what happened", and adding one is a schema change, so nothing is recorded for that click.

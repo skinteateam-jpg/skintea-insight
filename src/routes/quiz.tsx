@@ -4,6 +4,7 @@ import { ArrowRight, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getLeadSessionId } from "@/lib/leadSession";
 import { leadFlushHeld, noteLeadCreated } from "@/lib/leads";
+import { sourcedIngredients } from "@/lib/sourcedIngredients";
 
 export const Route = createFileRoute("/quiz")({
   component: QuizPage,
@@ -172,67 +173,11 @@ const CHARACTER_META: Record<CharacterKey, { name: string; emoji: string; taglin
   "desert-girl":    { name: "The Cracker",          emoji: "🫙", tagline: "Balanced and steady. Don't break what isn't broken." },
 };
 
+// Ingredient guidance comes only from American Academy of Dermatology pages (src/lib/sourcedIngredients.ts, 2026-09-16).
+// The earlier hard-coded rules had no source and partly contradicted AAD (e.g. mineral oil, which AAD lists for dry skin).
 function deriveIngredients(skinType: SkinTypeKey, sensitivity: boolean, concern: string) {
-  const good = new Set<string>();
-  const watch = new Set<string>();
-  const avoid = new Set<string>();
-
-  if (skinType === "oily") {
-    ["Niacinamide", "Salicylic acid", "Zinc PCA"].forEach(i => good.add(i));
-    ["Coconut oil", "Heavy butters"].forEach(i => watch.add(i));
-    ["Mineral oil", "Occlusive oils"].forEach(i => avoid.add(i));
-  } else if (skinType === "dry") {
-    ["Hyaluronic acid", "Ceramides", "Squalane"].forEach(i => good.add(i));
-    ["Retinol", "AHA (Glycolic)"].forEach(i => watch.add(i));
-    ["High-% alcohol", "Clay masks"].forEach(i => avoid.add(i));
-  } else if (skinType === "combination") {
-    ["Niacinamide", "Light AHA", "Hyaluronic acid"].forEach(i => good.add(i));
-    ["Heavy serums"].forEach(i => watch.add(i));
-    ["Over-stripping cleansers"].forEach(i => avoid.add(i));
-  } else if (skinType === "sensitive") {
-    ["Centella asiatica", "Allantoin", "Panthenol"].forEach(i => good.add(i));
-    ["Retinol", "AHA (Glycolic)"].forEach(i => watch.add(i));
-    ["Synthetic fragrance", "Denatured alcohol"].forEach(i => avoid.add(i));
-  } else {
-    ["Niacinamide", "Hyaluronic acid", "Vitamin C", "Retinol"].forEach(i => good.add(i));
-  }
-
-  if (sensitivity) {
-    ["Centella asiatica", "Allantoin", "Azelaic acid"].forEach(i => good.add(i));
-    ["Fragrance", "Essential oils", "Pure Vitamin C (L-AA)"].forEach(i => watch.add(i));
-    ["Synthetic fragrance", "Denatured alcohol", "Harsh exfoliants"].forEach(i => avoid.add(i));
-  }
-
-  if (concern === "pigmentation") {
-    good.add("Vitamin C"); good.add("Kojic acid");
-  }
-  if (concern === "acne") {
-    good.add("Zinc PCA"); good.add("Salicylic acid");
-  }
-  if (concern === "texture") {
-    good.add("Lactic acid"); good.add("Urea");
-  }
-  if (concern === "redness") {
-    good.add("Azelaic acid"); good.add("Centella asiatica");
-  }
-  if (concern === "barrier") {
-    good.add("Ceramides"); good.add("Panthenol");
-    watch.add("Exfoliating acids");
-  }
-  if (concern === "aging") {
-    if (sensitivity) {
-      watch.add("Retinol");
-      good.add("Peptides");
-    } else {
-      good.add("Retinol"); good.add("Peptides");
-    }
-  }
-
-  return {
-    good: Array.from(good),
-    watch: Array.from(watch),
-    avoid: Array.from(avoid),
-  };
+  const g = sourcedIngredients(skinType, sensitivity, concern);
+  return { good: g.good.map((i) => i.name), watch: g.watch.map((i) => i.name), avoid: g.avoid.map((i) => i.name), source: "aad" as const };
 }
 
 const SKIN_TYPE_LABEL: Record<SkinTypeKey, string> = {

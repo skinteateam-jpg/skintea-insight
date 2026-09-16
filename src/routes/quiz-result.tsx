@@ -4,6 +4,7 @@ import { Lock, Check, AlertTriangle, X, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { MIN_TAGGED, isOpinionRow, aggregate } from "@/lib/opinionAggregate";
 import { leadSubmitEmail } from "@/lib/leads";
+import { sourcedIngredients, type SourcedIngredient } from "@/lib/sourcedIngredients";
 
 export const Route = createFileRoute("/quiz-result")({
   component: QuizResultPage,
@@ -43,6 +44,8 @@ type Payload = {
   persona?: { name: string; emoji: string; tagline: string };
   concerns?: string[];
   ingredients?: { good: string[]; watch: string[]; avoid: string[] };
+  topConcern?: string | null;
+  rawAnswers?: { reaction?: string | null } | null;
   treatmentInterest?: string | null;
   treatmentIds?: string[];
 };
@@ -224,7 +227,11 @@ function QuizResultPage() {
   const hashtags = CHARACTER_HASHTAGS[character] ?? CHARACTER_HASHTAGS["glazed-donut"];
   const skinTypeLabel = payload.skinTypeLabel ?? skinType.charAt(0).toUpperCase() + skinType.slice(1);
   const concerns = payload.concerns ?? [];
-  const ingredients = payload.ingredients ?? null;
+  // Computed at render from the quiz answers, never from the stored list (older quiz versions stored unsourced rules):
+  // AAD guidance for the skin type, the sensitivity modifier and the main concern.
+  const sensitivity = skinType === "sensitive" || payload.rawAnswers?.reaction === "reacts-most";
+  const ingredients = sourcedIngredients(skinType, sensitivity, payload.topConcern ?? "");
+  const ingredientSources = Array.from(new Map([...ingredients.good, ...ingredients.watch, ...ingredients.avoid].map((i) => [i.url, i])).values());
 
   return (
     <div style={{ background: C.bg, color: C.espresso, minHeight: "100vh" }}>
@@ -324,21 +331,39 @@ function QuizResultPage() {
           )}
 
           {/* INGREDIENT LIST */}
-          {ingredients && (
-            <>
-              <SectionLabel>YOUR INGREDIENT LIST</SectionLabel>
-              <Card>
-                <IngredientGroup title="Good for you" icon={<Check size={14} />} fg={C.good} bg={C.goodBg} items={ingredients.good ?? []} />
+          <SectionLabel>YOUR INGREDIENT LIST</SectionLabel>
+          <Card>
+            {ingredients.good.length + ingredients.watch.length + ingredients.avoid.length === 0 ? (
+              <p style={{ margin: 0, fontSize: 13, color: C.textLight }}>
+                The American Academy of Dermatology names no ingredients for this combination of answers yet.
+              </p>
+            ) : (
+              <>
+                <IngredientGroup title="Good for you" icon={<Check size={14} />} fg={C.good} bg={C.goodBg} items={ingredients.good} />
                 <div style={{ height: 12 }} />
-                <IngredientGroup title="Watch out" icon={<AlertTriangle size={14} />} fg={C.warn} bg={C.warnBg} items={ingredients.watch ?? []} />
+                <IngredientGroup title="Watch out" icon={<AlertTriangle size={14} />} fg={C.warn} bg={C.warnBg} items={ingredients.watch} />
                 <div style={{ height: 12 }} />
-                <IngredientGroup title="Avoid" icon={<X size={14} />} fg={C.bad} bg={C.badBg} items={ingredients.avoid ?? []} />
-                <p style={{ marginTop: 14, marginBottom: 0, fontSize: 12, color: C.textLight, fontStyle: "italic" }}>
-                  From the ingredient list, not from reviews.
-                </p>
-              </Card>
-            </>
-          )}
+                <IngredientGroup title="Avoid" icon={<X size={14} />} fg={C.bad} bg={C.badBg} items={ingredients.avoid} />
+              </>
+            )}
+            <p style={{ marginTop: 14, marginBottom: 0, fontSize: 12, color: C.textLight, lineHeight: 1.5 }}>
+              General guidance from the American Academy of Dermatology for your answers{ingredients.rosacea ? " (redness uses its rosacea advice)" : ""}.
+              Not a check of any product and not medical advice. An item marked * carries a warning on its source page.
+            </p>
+            {ingredientSources.length > 0 && (
+              <p style={{ marginTop: 6, marginBottom: 0, fontSize: 11, color: C.textLight, lineHeight: 1.6 }}>
+                Sources:{" "}
+                {ingredientSources.map((src, i) => (
+                  <span key={src.url}>
+                    {i > 0 && " · "}
+                    <a href={src.url} target="_blank" rel="noopener noreferrer" style={{ color: C.textLight, textDecoration: "underline" }}>
+                      {aadPageLabel(src.url)}
+                    </a>
+                  </span>
+                ))}
+              </p>
+            )}
+          </Card>
 
           {/* FITS YOU */}
           <SectionLabel>FITS YOU</SectionLabel>
@@ -530,7 +555,7 @@ function EmailCapture() {
         {saved && (
           <div role="status" style={{ fontSize: 12, color: C.espresso, lineHeight: 1.5 }}>
             {saved.consent
-              ? "Saved. Matched clinics near you may contact you about a consultation."
+              ? "Saved. Matched clinics in the Los Angeles area may contact you about a consultation."
               : "Saved. You can tick the box above and submit again if you'd like matched clinics to contact you."}
           </div>
         )}
@@ -563,6 +588,16 @@ function Card({ children }: { children: React.ReactNode }) {
   );
 }
 
+// "AAD — oily skin" from the page path, so each source link says which AAD page it is.
+function aadPageLabel(url: string): string {
+  try {
+    const last = new URL(url).pathname.split("/").filter(Boolean).pop() ?? "";
+    return "AAD — " + last.replace(/-/g, " ");
+  } catch {
+    return "AAD";
+  }
+}
+
 function IngredientGroup({
   title, icon, fg, bg, items,
 }: {
@@ -570,8 +605,19 @@ function IngredientGroup({
   icon: React.ReactNode;
   fg: string;
   bg: string;
-  items: string[];
+  items: SourcedIngredient[];
 }) {
+  if (items.length === 0) {
+    return (
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+          <span style={{ width: 22, height: 22, borderRadius: 999, background: bg, color: fg, display: "grid", placeItems: "center" }}>{icon}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: fg }}>{title}</span>
+        </div>
+        <div style={{ fontSize: 12, color: "#999999" }}>Nothing named by the source for your answers.</div>
+      </div>
+    );
+  }
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
@@ -582,12 +628,16 @@ function IngredientGroup({
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {items.map((i) => (
-          <span
-            key={i}
-            style={{ fontSize: 12, padding: "6px 10px", borderRadius: 999, background: bg, color: fg, fontWeight: 600, border: `1px solid ${fg}22` }}
+          <a
+            key={i.name}
+            href={i.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={i.caveat ? i.quote + " (" + i.caveat + ")" : i.quote}
+            style={{ fontSize: 12, padding: "6px 10px", borderRadius: 999, background: bg, color: fg, fontWeight: 600, border: `1px solid ${fg}22`, textDecoration: "none" }}
           >
-            {i}
-          </span>
+            {i.name}{i.caveat ? " *" : ""}
+          </a>
         ))}
       </div>
     </div>

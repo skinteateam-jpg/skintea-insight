@@ -15,11 +15,11 @@ import { Route as TeaRouteImport } from './routes/tea'
 import { Route as SurgeryTalkRouteImport } from './routes/surgery-talk'
 import { Route as SkinProfileRouteImport } from './routes/skin-profile'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as QuizResultRouteImport } from './routes/quiz-result'
 import { Route as QuizRouteImport } from './routes/quiz'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForClinicsRouteImport } from './routes/for-clinics'
 import { Route as BrowseRouteImport } from './routes/browse'
@@ -69,6 +69,11 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QuizResultRoute = QuizResultRouteImport.update({
   id: '/quiz-result',
   path: '/quiz-result',
@@ -87,11 +92,6 @@ const ProductsRoute = ProductsRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -194,10 +194,10 @@ export interface FileRoutesByFullPath {
   '/for-clinics': typeof ForClinicsRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
-  '/reset-password': typeof ResetPasswordRoute
   '/products': typeof ProductsRoute
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/skin-profile': typeof SkinProfileRoute
   '/surgery-talk': typeof SurgeryTalkRoute
@@ -225,10 +225,10 @@ export interface FileRoutesByTo {
   '/for-clinics': typeof ForClinicsRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
-  '/reset-password': typeof ResetPasswordRoute
   '/products': typeof ProductsRoute
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/skin-profile': typeof SkinProfileRoute
   '/surgery-talk': typeof SurgeryTalkRoute
@@ -257,10 +257,10 @@ export interface FileRoutesById {
   '/for-clinics': typeof ForClinicsRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
-  '/reset-password': typeof ResetPasswordRoute
   '/products': typeof ProductsRoute
   '/quiz': typeof QuizRoute
   '/quiz-result': typeof QuizResultRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/skin-profile': typeof SkinProfileRoute
   '/surgery-talk': typeof SurgeryTalkRoute
@@ -290,10 +290,10 @@ export interface FileRouteTypes {
     | '/for-clinics'
     | '/login'
     | '/privacy'
-    | '/reset-password'
     | '/products'
     | '/quiz'
     | '/quiz-result'
+    | '/reset-password'
     | '/signup'
     | '/skin-profile'
     | '/surgery-talk'
@@ -321,10 +321,10 @@ export interface FileRouteTypes {
     | '/for-clinics'
     | '/login'
     | '/privacy'
-    | '/reset-password'
     | '/products'
     | '/quiz'
     | '/quiz-result'
+    | '/reset-password'
     | '/signup'
     | '/skin-profile'
     | '/surgery-talk'
@@ -352,10 +352,10 @@ export interface FileRouteTypes {
     | '/for-clinics'
     | '/login'
     | '/privacy'
-    | '/reset-password'
     | '/products'
     | '/quiz'
     | '/quiz-result'
+    | '/reset-password'
     | '/signup'
     | '/skin-profile'
     | '/surgery-talk'
@@ -384,10 +384,10 @@ export interface RootRouteChildren {
   ForClinicsRoute: typeof ForClinicsRoute
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
-  ResetPasswordRoute: typeof ResetPasswordRoute
   ProductsRoute: typeof ProductsRoute
   QuizRoute: typeof QuizRoute
   QuizResultRoute: typeof QuizResultRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   SkinProfileRoute: typeof SkinProfileRoute
   SurgeryTalkRoute: typeof SurgeryTalkRoute
@@ -452,6 +452,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/quiz-result': {
       id: '/quiz-result'
       path: '/quiz-result'
@@ -478,13 +485,6 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -635,10 +635,10 @@ const rootRouteChildren: RootRouteChildren = {
   ForClinicsRoute: ForClinicsRoute,
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,
-  ResetPasswordRoute: ResetPasswordRoute,
   ProductsRoute: ProductsRoute,
   QuizRoute: QuizRoute,
   QuizResultRoute: QuizResultRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   SkinProfileRoute: SkinProfileRoute,
   SurgeryTalkRoute: SurgeryTalkRoute,

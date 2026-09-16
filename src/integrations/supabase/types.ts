@@ -2026,27 +2026,6 @@ export type Database = {
           },
         ]
       }
-      treatment_copy_staging: {
-        Row: {
-          field: string
-          provenance: Json | null
-          slug: string
-          value: string | null
-        }
-        Insert: {
-          field: string
-          provenance?: Json | null
-          slug: string
-          value?: string | null
-        }
-        Update: {
-          field?: string
-          provenance?: Json | null
-          slug?: string
-          value?: string | null
-        }
-        Relationships: []
-      }
       treatment_influencers: {
         Row: {
           created_at: string

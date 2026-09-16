@@ -387,3 +387,51 @@ Nothing below was reconstructed from memory without a source.
     breakdown, dropped 22:07.
 - Why: the clinic page showed empty Treatments for 149 of 240 listed clinics; social profiles belong on the page, emails do not.
 - Deleted session_ids: none (no rows deleted).
+
+## 2026-09-16
+
+### 04:20–05:20 UTC — targeted price crawl: 53 clinic prices, dated and linked (pipeline session)
+- Who: skintea-pipeline session. Database: `sql/2026-09-16_clinic_treatments_prices.sql` (pipeline `a7b1b7d`, payload md5
+  `cc72214ca47e1b15bb3abc5551462403`), UPDATE through `query_database`. App: `src/lib/clinicPrices.ts`,
+  `src/routes/treatments.$slug.tsx`, `src/routes/clinics/$id.tsx` (Lovable `636d8f7`, date format `d1d5e79`).
+- What:
+  - **Prices.** `clinic_treatments.price_from` / `price_unit` set on 53 more links: **14 → 67 priced links, 7 → 25
+    clinics** (66 of the 67 are listed clinics). Units: per_session 27, per_unit 13, starting_from 12, per_syringe 8,
+    per_area 7. Jubilee Aesthetics Botox $12.50/unit is now stored, the column having become numeric(10,2).
+  - **Every priced row carries the crawl date** in `field_provenance.price_from.recorded_at` (2026-09-15 on the first
+    14, 2026-09-16 on the 53), with the evidence page URL, the dataset and the price string as quoted.
+  - **Display.** A price renders with its date and a link to the page it was read from ("$450 per session · as listed
+    on their site, 16 Sep 2026"), on both the treatment page and the clinic page.
+  - **Staleness.** `MAX_PRICE_AGE_DAYS = 120` in `src/lib/clinicPrices.ts`: a price recorded more than 120 days ago, or
+    with no readable date, is hidden everywhere — the per-clinic line and the range across clinics alike — until it is
+    re-verified. Nothing re-crawls automatically. A published price that is wrong damages the clinic relationship.
+  - **Ranges** (per unit, minimum 3 listed clinics, units never mixed): botox $8–$15 per unit across 13; fillers
+    $450–$900 per syringe across 8, $600–$1,350 per area across 3, starting prices $325–$600 across 3; peels $129–$350
+    per session across 6; hydrafacial $200–$350 per session across 4; rejuran $450–$778 per session across 4; potenza
+    $750–$800 per session across 3.
+  - No schema change, no deletions, no other table touched.
+- Why: the earlier crawls looked for treatment names and only reached shallow pages, so dollar amounts appeared on 31
+  of 93 sites. Med spas publish prices on a dedicated page.
+- Evidence: 128 clinic sites crawled (apify/website-content-crawler, root + 16 pricing paths, depth 2, 1,926 pages,
+  $1.24). 160 links had a dollar amount near their treatment; every one was read in context. Decisions and every
+  rejection with its reason: `data/clinics/clinic_prices_decisions_2026-09-16.json`. Each accepted quote was checked
+  mechanically against the crawled page it cites (`scripts/clinics/verify_price_decisions.py`).
+- Deleted session_ids: none.
+
+#### Method note — clinic prices
+- **Accepted only when the clinic's own page states that price for that treatment.** Left NULL: call-for-pricing,
+  packages and series, promotions and first-visit or loyalty rates, another location's menu, another treatment's price
+  (a device with its own page prices only that page), shop and membership and consult fees, column layouts whose
+  name-to-price pairing the crawl lost, and units the page does not state. Never average, never divide a package,
+  never round, never carry a price across clinics.
+- **A site that contradicts itself publishes nothing.** BHRC's own pages give different figures for hydrafacial, peels,
+  morpheus8, fillers and sculptra (price-list vs the service pages vs packages), so those ten links stay unpriced.
+  Botox and IPL, where every BHRC page agrees, are stored.
+- **Chain price pages** (LaserAway, BHRC) are the clinic's own site and are accepted, with `caution` recording that the
+  figure is chain-wide rather than location-specific.
+- **A second source is allowed: `clinic_supplied`.** When a clinic sends its own price list, the row records
+  `field_provenance.price_from = {source: 'clinic_supplied', recorded_at, detail: who sent it and when}` plus the
+  price string as received. It is subject to the same 120-day rule and renders the same way, with the date; there is no
+  evidence URL, so no link is shown. **No clinic_supplied row exists yet**; none was inserted in this pass.
+- **Price menus that are images or PDFs are not read.** This pass does not OCR them; the files it found are listed in
+  the 2026-09-16 report and in `work/r9/price_menu_files.json`.

@@ -22,6 +22,7 @@ import { Route as ProductsRouteImport } from './routes/products'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForClinicsRouteImport } from './routes/for-clinics'
+import { Route as DisclosureRouteImport } from './routes/disclosure'
 import { Route as BrowseRouteImport } from './routes/browse'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
@@ -102,6 +103,11 @@ const LoginRoute = LoginRouteImport.update({
 const ForClinicsRoute = ForClinicsRouteImport.update({
   id: '/for-clinics',
   path: '/for-clinics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DisclosureRoute = DisclosureRouteImport.update({
+  id: '/disclosure',
+  path: '/disclosure',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BrowseRoute = BrowseRouteImport.update({
@@ -191,6 +197,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/browse': typeof BrowseRoute
+  '/disclosure': typeof DisclosureRoute
   '/for-clinics': typeof ForClinicsRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
@@ -222,6 +229,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/browse': typeof BrowseRoute
+  '/disclosure': typeof DisclosureRoute
   '/for-clinics': typeof ForClinicsRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
@@ -254,6 +262,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/browse': typeof BrowseRoute
+  '/disclosure': typeof DisclosureRoute
   '/for-clinics': typeof ForClinicsRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
@@ -287,6 +296,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/browse'
+    | '/disclosure'
     | '/for-clinics'
     | '/login'
     | '/privacy'
@@ -318,6 +328,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/browse'
+    | '/disclosure'
     | '/for-clinics'
     | '/login'
     | '/privacy'
@@ -349,6 +360,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/browse'
+    | '/disclosure'
     | '/for-clinics'
     | '/login'
     | '/privacy'
@@ -381,6 +393,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   BrowseRoute: typeof BrowseRoute
+  DisclosureRoute: typeof DisclosureRoute
   ForClinicsRoute: typeof ForClinicsRoute
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -499,6 +512,13 @@ declare module '@tanstack/react-router' {
       path: '/for-clinics'
       fullPath: '/for-clinics'
       preLoaderRoute: typeof ForClinicsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/disclosure': {
+      id: '/disclosure'
+      path: '/disclosure'
+      fullPath: '/disclosure'
+      preLoaderRoute: typeof DisclosureRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/browse': {
@@ -632,6 +652,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   BrowseRoute: BrowseRoute,
+  DisclosureRoute: DisclosureRoute,
   ForClinicsRoute: ForClinicsRoute,
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,

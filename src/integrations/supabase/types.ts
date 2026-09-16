@@ -14,6 +14,35 @@ export type Database = {
   }
   public: {
     Tables: {
+      brand_retailers: {
+        Row: {
+          brand: string
+          created_at: string
+          id: string
+          retailer_id: string
+        }
+        Insert: {
+          brand: string
+          created_at?: string
+          id?: string
+          retailer_id: string
+        }
+        Update: {
+          brand?: string
+          created_at?: string
+          id?: string
+          retailer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brand_retailers_retailer_id_fkey"
+            columns: ["retailer_id"]
+            isOneToOne: false
+            referencedRelation: "retailers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       category_images: {
         Row: {
           active: boolean
@@ -1144,6 +1173,51 @@ export type Database = {
         }
         Relationships: []
       }
+      outbound_clicks: {
+        Row: {
+          created_at: string
+          id: string
+          link_type: string
+          product_id: string | null
+          retailer_id: string | null
+          source_page: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          link_type: string
+          product_id?: string | null
+          retailer_id?: string | null
+          source_page?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          link_type?: string
+          product_id?: string | null
+          retailer_id?: string | null
+          source_page?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outbound_clicks_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outbound_clicks_retailer_id_fkey"
+            columns: ["retailer_id"]
+            isOneToOne: false
+            referencedRelation: "retailers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       posts: {
         Row: {
           cost: string | null
@@ -1320,6 +1394,60 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_retailer_links: {
+        Row: {
+          affiliate_url: string | null
+          created_at: string
+          id: string
+          in_stock: boolean
+          price: number | null
+          product_id: string
+          product_url: string | null
+          retailer_id: string
+          updated_at: string
+          verified: boolean
+        }
+        Insert: {
+          affiliate_url?: string | null
+          created_at?: string
+          id?: string
+          in_stock?: boolean
+          price?: number | null
+          product_id: string
+          product_url?: string | null
+          retailer_id: string
+          updated_at?: string
+          verified?: boolean
+        }
+        Update: {
+          affiliate_url?: string | null
+          created_at?: string
+          id?: string
+          in_stock?: boolean
+          price?: number | null
+          product_id?: string
+          product_url?: string | null
+          retailer_id?: string
+          updated_at?: string
+          verified?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_retailer_links_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_retailer_links_retailer_id_fkey"
+            columns: ["retailer_id"]
+            isOneToOne: false
+            referencedRelation: "retailers"
             referencedColumns: ["id"]
           },
         ]
@@ -1509,6 +1637,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      retailers: {
+        Row: {
+          affiliate_id: string | null
+          affiliate_param_template: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          search_url_template: string | null
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          affiliate_id?: string | null
+          affiliate_param_template?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name: string
+          search_url_template?: string | null
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          affiliate_id?: string | null
+          affiliate_param_template?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          search_url_template?: string | null
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       saved_clinics: {
         Row: {

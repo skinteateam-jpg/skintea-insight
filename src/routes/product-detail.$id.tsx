@@ -784,8 +784,8 @@ function ProductPage() {
                         retailerId: b.retailerId,
                         userId,
                         linkType: b.linkType,
-                        source_page: "product-detail",
-                      } as any)
+                        sourcePage: "product-detail",
+                      })
                     }
                     className={`flex-none rounded-[20px] px-[13px] py-1.5 text-[11px] font-semibold flex items-center gap-1 no-underline whitespace-nowrap ${
                       i === 0

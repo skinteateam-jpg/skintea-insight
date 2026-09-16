@@ -622,7 +622,7 @@ function UserPostList({ posts }: { posts: UserPost[] }) {
         const s = USER_POST_LABEL[p.kind];
         return (
           <Link key={p.key} to={p.href as any}
-            style={{ display: "block", padding: "10px 12px", border: `0.5px solid ${C.border}`, borderRadius: 10, background: "#FFFFFF", textDecoration: "none", color: C.text }}>
+            style={{ display: "block", padding: "10px 12px", border: `0.5px solid ${C.border}`, borderRadius: 10, background: "#FFFFFF", textDecoration: "none", color: C.ink }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ background: s.bg, color: "#FFFCF8", fontSize: 10, fontWeight: 800, padding: "3px 6px", borderRadius: 3, letterSpacing: "0.08em", flexShrink: 0 }}>{s.label}</span>
               <span style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</span>

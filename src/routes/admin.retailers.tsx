@@ -25,6 +25,8 @@ type Retailer = {
   search_url_template: string | null;
   affiliate_id: string | null;
   affiliate_param_template: string | null;
+  network: string | null;
+  notes: string | null;
   is_active: boolean;
   sort_order: number;
 };

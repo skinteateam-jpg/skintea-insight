@@ -59,7 +59,11 @@ type SourceLink = { url: string; publisher?: string; title?: string };
 function sourcesOf(t: Treatment, field: string): SourceLink[] {
   const p = t.field_provenance?.[field];
   if (!p) return [];
-  if (Array.isArray(p.sources) && p.sources.length > 0) return p.sources.filter((x) => typeof x?.url === "string");
+  if (Array.isArray(p.sources) && p.sources.length > 0) {
+    // A source backing several sentences is stored once per quote; link it once.
+    const seen = new Set<string>();
+    return p.sources.filter((x) => typeof x?.url === "string" && !seen.has(x.url) && (seen.add(x.url), true));
+  }
   return p.url ? [{ url: p.url }] : [];
 }
 

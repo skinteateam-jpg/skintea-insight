@@ -991,7 +991,7 @@ function ClinicDetailPage() {
   ];
   const sortedSectionNodes = sectionNodes.map((section, index) => ({ ...section, index })).sort((a, b) => Number(b.hasData) - Number(a.hasData) || a.index - b.index);
   const contactSocials = ["instagram", "tiktok", "youtube"].flatMap((platform) => socials.filter((social) => social.platform === platform));
-  const hasContactLinks = !!clinic.website_url || contactSocials.length > 0 || !!clinic.phone || !!mapsHref;
+  const hasContactLinks = !!clinic.website_url || contactSocials.length > 0 || !!clinic.phone || hasAddress;
 
   return (
     <div style={{ background: WARM_WHITE, minHeight: "100vh", color: ESPRESSO, fontFamily: "system-ui, -apple-system, sans-serif" }}>
@@ -1160,7 +1160,7 @@ function ClinicDetailPage() {
                   </a>
                 ))}
                 {clinic.phone && <a href={`tel:${clinic.phone}`} onClick={() => logIntent("call", "tel", "contact_links")} style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 0", borderBottom: `0.5px solid ${BORDER}`, color: ESPRESSO, textDecoration: "none", fontSize: 12 }}><Phone size={14} /><span style={{ flex: 1 }}>{clinic.phone}</span><span style={{ color: MUTED }}>↗</span></a>}
-                {mapsHref && <a href={mapsHref} target="_blank" rel="noopener noreferrer" onClick={() => logIntent("directions", "maps", "contact_links")} style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 0", color: ESPRESSO, textDecoration: "none", fontSize: 12 }}><MapPin size={14} /><span style={{ flex: 1 }}>{hasAddress ? clinic.address : "Open in Maps"}</span><span style={{ color: MUTED }}>↗</span></a>}
+                {hasAddress && mapsHref && <a href={mapsHref} target="_blank" rel="noopener noreferrer" onClick={() => logIntent("directions", "maps", "contact_links")} style={{ display: "flex", alignItems: "center", gap: 9, padding: "10px 0", color: ESPRESSO, textDecoration: "none", fontSize: 12 }}><MapPin size={14} /><span style={{ flex: 1 }}>{clinic.address}</span><span style={{ color: MUTED }}>↗</span></a>}
               </div>
             ) : <EmptyState>The clinic's website, social accounts and phone number. None recorded for this clinic yet.</EmptyState>}
           </Section>

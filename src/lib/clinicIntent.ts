@@ -50,20 +50,22 @@ export function logClinicIntent(intent: ClinicIntent): void {
   })();
 }
 
-// Treatment context: the treatment page the visitor was on immediately before this clinic page, if any.
-// src/router.tsx records the previous pathname on every navigation; the clinic page reads it once on mount.
-const PREV_PATH_KEY = "skintea.prevPath";
+// Treatment context: the treatment page the visitor was on immediately before THIS clinic page, if any.
+// src/router.tsx records every navigation as {from, to}. A context only counts when its "to" is the page being
+// read, so a full page load, a direct link or a later navigation can never inherit a stale treatment.
+const NAV_KEY = "skintea.lastNavigation";
 
-export function rememberPreviousPath(pathname: string | undefined): void {
-  if (typeof window === "undefined" || !pathname) return;
-  try { window.sessionStorage.setItem(PREV_PATH_KEY, pathname); } catch { /* storage blocked: no context, nothing else breaks */ }
+export function rememberNavigation(from: string | undefined, to: string | undefined): void {
+  if (typeof window === "undefined" || !to) return;
+  try { window.sessionStorage.setItem(NAV_KEY, JSON.stringify({ from: from ?? "", to })); } catch { /* storage blocked: no context */ }
 }
 
-export function previousTreatmentSlug(): string | null {
+export function previousTreatmentSlug(currentPath: string): string | null {
   if (typeof window === "undefined") return null;
   try {
-    const p = window.sessionStorage.getItem(PREV_PATH_KEY) ?? "";
-    const m = p.match(/^\/treatments\/([a-z0-9-]+)\/?$/);
+    const nav = JSON.parse(window.sessionStorage.getItem(NAV_KEY) ?? "null") as { from?: string; to?: string } | null;
+    if (!nav || nav.to !== currentPath) return null;
+    const m = (nav.from ?? "").match(/^\/treatments\/([a-z0-9-]+)\/?$/);
     return m ? m[1] : null;
   } catch {
     return null;

@@ -184,7 +184,7 @@ function ClinicDetailPage() {
   // Treatment context for intent logging: the treatment page the visitor came from, read once on arrival.
   const [arrivalTreatmentId, setArrivalTreatmentId] = useState<string | null>(null);
   useEffect(() => {
-    const slug = previousTreatmentSlug();
+    const slug = previousTreatmentSlug(`/clinics/${id}`);
     if (!slug) { setArrivalTreatmentId(null); return; }
     let alive = true;
     (async () => {

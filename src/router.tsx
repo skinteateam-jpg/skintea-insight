@@ -1,5 +1,5 @@
 import { createRouter, useRouter } from "@tanstack/react-router";
-import { rememberPreviousPath } from "@/lib/clinicIntent";
+import { rememberNavigation } from "@/lib/clinicIntent";
 import { routeTree } from "./routeTree.gen";
 
 function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
@@ -65,10 +65,11 @@ export const getRouter = () => {
   });
 
   // Clinic intent logging needs to know whether the visitor reached a clinic page from a treatment page.
-  // Record the page they are leaving before the next route loads; a fresh page load has no previous page.
+  // Record each navigation as {from, to} before the next route loads.
   if (typeof window !== "undefined") {
     router.subscribe("onBeforeLoad", (e) => {
-      if (e.pathChanged) rememberPreviousPath(e.fromLocation?.pathname ?? "");
+      // A first load has no fromLocation, which records "arrived from nowhere" for this page.
+      rememberNavigation(e.fromLocation?.pathname, e.toLocation.pathname);
     });
   }
 

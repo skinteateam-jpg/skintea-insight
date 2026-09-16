@@ -216,24 +216,54 @@ function AdminRetailers() {
           </div>
           <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
             {retailers.map((r) => (
-              <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", borderTop: `0.5px solid ${BORDER}`, paddingTop: 10 }}>
-                <div style={{ width: 150, fontSize: 13, fontWeight: 600 }}>{r.name}</div>
-                <input
-                  style={{ ...input, width: 200 }}
-                  placeholder="affiliate id (none yet)"
-                  defaultValue={r.affiliate_id ?? ""}
-                  onBlur={(e) => {
-                    const v = e.target.value.trim() || null;
-                    if (v !== (r.affiliate_id ?? null)) saveRetailer(r, { affiliate_id: v });
-                  }}
-                />
-                <label style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
-                  <input type="checkbox" checked={r.is_active} onChange={(e) => saveRetailer(r, { is_active: e.target.checked })} />
-                  Active
-                </label>
-                <div style={{ fontSize: 11, color: MUTED, flex: 1, minWidth: 160, wordBreak: "break-all" }}>
-                  {r.affiliate_param_template ? `param: ${r.affiliate_param_template} · ` : ""}
-                  {r.search_url_template ?? "no search page"}
+              <div key={r.id} style={{ borderTop: `0.5px solid ${BORDER}`, paddingTop: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <div style={{ width: 150, fontSize: 13, fontWeight: 600 }}>{r.name}</div>
+                  <input
+                    style={{ ...input, width: 200 }}
+                    placeholder="affiliate id (none yet)"
+                    defaultValue={r.affiliate_id ?? ""}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim() || null;
+                      if (v !== (r.affiliate_id ?? null)) saveRetailer(r, { affiliate_id: v });
+                    }}
+                  />
+                  <input
+                    style={{ ...input, width: 200 }}
+                    placeholder="affiliate param, e.g. tag={id}"
+                    defaultValue={r.affiliate_param_template ?? ""}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim() || null;
+                      if (v !== (r.affiliate_param_template ?? null)) saveRetailer(r, { affiliate_param_template: v });
+                    }}
+                  />
+                  <input
+                    style={{ ...input, width: 160 }}
+                    placeholder="network, e.g. Rakuten"
+                    defaultValue={r.network ?? ""}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim() || null;
+                      if (v !== (r.network ?? null)) saveRetailer(r, { network: v });
+                    }}
+                  />
+                  <label style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                    <input type="checkbox" checked={r.is_active} onChange={(e) => saveRetailer(r, { is_active: e.target.checked })} />
+                    Active
+                  </label>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 8 }}>
+                  <input
+                    style={{ ...input, flex: 1, minWidth: 260 }}
+                    placeholder="notes (application status, contact, terms)"
+                    defaultValue={r.notes ?? ""}
+                    onBlur={(e) => {
+                      const v = e.target.value.trim() || null;
+                      if (v !== (r.notes ?? null)) saveRetailer(r, { notes: v });
+                    }}
+                  />
+                  <div style={{ fontSize: 11, color: MUTED, flex: 1, minWidth: 160, wordBreak: "break-all" }}>
+                    {r.search_url_template ?? "no search page"}
+                  </div>
                 </div>
               </div>
             ))}

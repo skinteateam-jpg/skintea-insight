@@ -2548,6 +2548,26 @@ export type Database = {
           product_count: number
         }[]
       }
+      clinic_intent_report: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: {
+          bookings: number
+          bookings_via_call: number
+          bookings_via_website: number
+          calls: number
+          clinic_id: string
+          clinic_name: string
+          directions: number
+          first_event: string
+          last_event: string
+          listed: boolean
+          phone_intents: number
+          sessions: number
+          social_opens: number
+          total_actions: number
+          website_opens: number
+        }[]
+      }
       clinic_photos_valid: { Args: { p: Json }; Returns: boolean }
       distinct_product_subcategories: {
         Args: never

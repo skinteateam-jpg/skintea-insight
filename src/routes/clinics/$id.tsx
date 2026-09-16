@@ -269,22 +269,40 @@ function PhotoGrid({ photos, alt }: { photos: SectionPhoto[]; alt: string }) {
 }
 
 // ---------- Map ----------
-// OpenStreetMap's embed needs no API key and no script, so there is nothing to fail to load: the frame is a plain iframe
-// at a fixed height, with OpenStreetMap's attribution. It renders only with both coordinates; without them the section
-// shows the address and a link out, never an empty map frame.
+// Why not an embed or a map library: OpenStreetMap's embed page now draws with WebGL (MapLibre), which renders a blank
+// frame wherever WebGL is unavailable (headless browsers, some in-app webviews, low-power modes), and a keyed library adds
+// a script, a key and a CSP surface that can each fail silently. This draws plain OpenStreetMap raster tiles (256 px
+// <img>s at zoom 16) positioned around the clinic's coordinates, with a marker and the required attribution. No script,
+// no key, no WebGL. It renders only with both coordinates; without them the section shows the address and a link out.
+// OpenStreetMap's tile policy allows light use with attribution; move to a tile provider before heavy public traffic.
+const MAP_ZOOM = 16;
 function ClinicMap({ lat, lng, name }: { lat: number; lng: number; name: string }) {
-  const d = 0.004;
-  const bbox = [lng - d, lat - d, lng + d, lat + d].map((n) => n.toFixed(6)).join(",");
-  const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat.toFixed(6)},${lng.toFixed(6)}`;
+  const n = 256 * 2 ** MAP_ZOOM;
+  const px = ((lng + 180) / 360) * n;
+  const rad = (lat * Math.PI) / 180;
+  const py = ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n;
+  const tx0 = Math.floor(px / 256);
+  const ty0 = Math.floor(py / 256);
+  const tiles: { key: string; src: string; left: number; top: number }[] = [];
+  for (let dx = -2; dx <= 2; dx++) {
+    for (let dy = -1; dy <= 1; dy++) {
+      const tx = tx0 + dx;
+      const ty = ty0 + dy;
+      tiles.push({ key: `${tx}-${ty}`, src: `https://tile.openstreetmap.org/${MAP_ZOOM}/${tx}/${ty}.png`, left: tx * 256 - px, top: ty * 256 - py });
+    }
+  }
   return (
     <div style={{ marginTop: 10 }}>
-      <iframe
-        title={`Map showing ${name}`}
-        src={src}
-        loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
-        style={{ width: "100%", height: 180, border: `0.5px solid ${BORDER}`, borderRadius: 10, display: "block" }}
-      />
+      <div role="img" aria-label={`Map showing the location of ${name}`}
+        style={{ position: "relative", width: "100%", height: 180, overflow: "hidden", border: `0.5px solid ${BORDER}`, borderRadius: 10, background: CREAM_TINT }}>
+        <div style={{ position: "absolute", left: "50%", top: "50%" }}>
+          {tiles.map((t) => (
+            <img key={t.key} src={t.src} alt="" draggable={false} loading="lazy" referrerPolicy="strict-origin-when-cross-origin"
+              style={{ position: "absolute", width: 256, height: 256, left: t.left, top: t.top, maxWidth: "none" }} />
+          ))}
+          <div style={{ position: "absolute", left: -8, top: -8, width: 16, height: 16, borderRadius: 16, background: CRIMSON, border: "2px solid #fff", boxSizing: "border-box" }} />
+        </div>
+      </div>
       <div style={{ fontSize: 9.5, color: MUTED, marginTop: 4 }}>
         Map ©{" "}
         <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style={{ color: MUTED }}>OpenStreetMap contributors</a>

@@ -361,11 +361,13 @@ function ProductPage() {
           carriedRetailerIds,
           brand: activeProduct?.brand ?? null,
           productName: activeProduct?.name ?? null,
+          productUrl: activeProduct?.product_url ?? null,
+          productPrice: activeProduct?.price ?? null,
         }),
       );
     })();
     return () => { cancelled = true; };
-  }, [activeProduct?.id, activeProduct?.brand, activeProduct?.name]);
+  }, [activeProduct?.id, activeProduct?.brand, activeProduct?.name, activeProduct?.product_url, activeProduct?.price]);
 
   const autoTabbedFor = useRef<string | null>(null);
   useEffect(() => {

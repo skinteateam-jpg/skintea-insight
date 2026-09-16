@@ -6,7 +6,7 @@ import AppFrame from "@/components/AppFrame";
 import BottomNav from "@/components/BottomNav";
 import TreatmentVoices from "@/components/TreatmentVoices";
 import {
-  breakdown, MIN_TAGGED, MIN_COST_VALUES, MAX_SENSITIVITY_POINTS, REGRET_LABELS, VERDICT_LABELS,
+  breakdown, MIN_TREATMENT_REVIEWS, MIN_COST_VALUES, MAX_SENSITIVITY_POINTS, REGRET_LABELS, VERDICT_LABELS,
   type TreatmentQuoteRow, type TreatmentReviewRow, type VerdictCell,
 } from "@/lib/treatmentReviews";
 import { clinicPriceRanges, formatClinicPrice, formatPriceRange } from "@/lib/clinicPrices";
@@ -105,7 +105,7 @@ function VerdictBars({ cell, who }: { cell: VerdictCell; who: string }) {
     return (
       <DataPending>
         {cell.gate === "too_few" && (
-          <>{cell.n} of {MIN_TAGGED} counted worth-it / not-worth-it reviews{who ? ` ${who}` : ""} needed. {mixedNote(cell.mixed)}</>
+          <>{cell.n} of {MIN_TREATMENT_REVIEWS} counted worth-it / not-worth-it reviews{who ? ` ${who}` : ""} needed. {mixedNote(cell.mixed)}</>
         )}
         {cell.gate === "no_comparison" && (
           <>Held: every counted review here was found by searching for regrets, so the figure cannot be checked for that bias yet.</>
@@ -196,7 +196,7 @@ function QuoteSection({ rows }: { rows: TreatmentQuoteRow[] }) {
                         Paid {formatUsd(q.cost_paid_usd)}
                       </span>
                     )}
-                    <span className="text-[10px] text-brand-muted">Excerpt, quoted as written</span>
+                    <span className="text-[10px] text-brand-muted">Quoted as written</span>
                   </span>
                   <span className="flex items-center gap-[3px] text-[10px] text-brand-muted shrink-0">
                     Read on Reddit <ExternalLink width={10} height={10} />
@@ -347,7 +347,9 @@ function TreatmentPage() {
               <VerdictBars cell={br.repeat} who="from repeat patients" />
 
               <SubLabel>Top regrets</SubLabel>
-              {br.regrets.top.length === 0 ? (
+              {br.regrets.named < MIN_TREATMENT_REVIEWS ? (
+                <DataPending>{br.regrets.named} of {MIN_TREATMENT_REVIEWS} counted reviews naming a regret needed.</DataPending>
+              ) : br.regrets.top.length === 0 ? (
                 <DataPending>No counted review names a regret yet.</DataPending>
               ) : (
                 <div className="bg-card border border-brand-border rounded-xl p-3.5">

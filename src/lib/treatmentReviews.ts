@@ -9,7 +9,15 @@
 //   cell passes the SENSITIVITY TEST, computed here from the rows at render time:
 //     (a) at least MIN_TAGGED counted worth_it / not_worth_it rows, and
 //     (b) recomputing Worth it with every regret-seeking row removed (the row's search query
-//         contains "regret") moves it by MAX_SENSITIVITY_POINTS or less.
+//         contains "regret") moves it by MAX_SENSITIVITY_POINTS or less, and
+//     (c) at least MIN_TREATMENT_REVIEWS counted rows in that cell (owner, 2026-09-15). This floor
+//         sits underneath the sensitivity test, it does not replace it: treatments are costly and
+//         invasive, and (b) cannot see a bias that the whole corpus shares. Neither check detects
+//         that this corpus was collected with "regret" / "worth it" / "before and after honest"
+//         query shapes, so it is skewed by construction: 30 skewed rows are still skewed. No
+//         verdict percentage ships from this corpus until it is re-collected with neutral shapes
+//         mixed in ("<treatment> experience", "<treatment> results", "got <treatment>").
+//         See a3/reddit/TREATMENT_HANDOFF_2026-09-15.md in the pipeline repo.
 //   The figure shown is computed from ALL counted rows; (b) only checks that the suspect rows are
 //   not what makes the number. The share of regret-seeking rows is not the test: on 2026-09-15
 //   botox had a 32% regret share and moved 4 points, fillers had 33% and moved 21.
@@ -22,6 +30,8 @@ import { MIN_TAGGED, opinionShares } from "./opinionAggregate";
 export { MIN_TAGGED };
 export const MIN_COST_VALUES = 5;
 export const MAX_SENSITIVITY_POINTS = 10;
+// Second check under the sensitivity test, for treatment pages only. The product page keeps MIN_TAGGED.
+export const MIN_TREATMENT_REVIEWS = 30;
 
 export type TreatmentReviewRow = {
   verdict: string | null;
@@ -45,7 +55,7 @@ export function isRegretSeeking(r: TreatmentReviewRow): boolean {
 
 export type GateState =
   | "open"
-  | "too_few" // fewer than MIN_TAGGED counted worth_it / not_worth_it rows
+  | "too_few" // fewer than MIN_TAGGED, or fewer than MIN_TREATMENT_REVIEWS, counted worth_it / not_worth_it rows
   | "no_comparison" // every counted row came from a regret-seeking query, so (b) cannot be run
   | "unstable"; // removing regret-seeking rows moves Worth it by more than MAX_SENSITIVITY_POINTS
 
@@ -75,7 +85,11 @@ export function verdictCell(rows: TreatmentReviewRow[]): VerdictCell {
   const worthPctExRegret = nExRegret > 0 ? (100 * ex.filter((r) => r.verdict === "worth_it").length) / nExRegret : null;
   const delta = worthPctAll !== null && worthPctExRegret !== null ? Math.abs(worthPctAll - worthPctExRegret) : null;
   const gate: GateState =
-    n < MIN_TAGGED ? "too_few" : delta === null ? "no_comparison" : delta > MAX_SENSITIVITY_POINTS ? "unstable" : "open";
+    n < MIN_TAGGED ? "too_few"
+      : delta === null ? "no_comparison"
+      : delta > MAX_SENSITIVITY_POINTS ? "unstable"
+      : n < MIN_TREATMENT_REVIEWS ? "too_few" // passes the sensitivity test, still under the floor
+      : "open";
   // Largest-remainder rounding of two own counts (mix = 0), same as the product page.
   const shares = gate === "open" ? opinionShares(worth, notWorth, 0) : null;
   return {
@@ -114,7 +128,7 @@ export const REGRET_LABELS: Record<string, string> = {
 };
 
 export type RegretSummary = {
-  named: number; // counted reviews that name a regret reason other than 'none'
+  named: number; // counted reviews that name a regret reason other than 'none'; needs MIN_TREATMENT_REVIEWS to render
   top: { reason: string; count: number }[];
 };
 

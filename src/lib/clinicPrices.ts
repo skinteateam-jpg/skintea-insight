@@ -56,12 +56,16 @@ export function isPriceFresh(recordedAt: string | null, now: Date = new Date()):
   return age !== null && age >= 0 && age <= MAX_PRICE_AGE_DAYS;
 }
 
-// "15 Sep 2026"
+// "15 Sep 2026". The month names are fixed here rather than left to the viewer's locale, which renders
+// September as "Sept" and other months differently from one browser to the next.
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
 export function formatPriceDate(recordedAt: string | null): string | null {
   if (!recordedAt) return null;
   const t = Date.parse(recordedAt);
   if (Number.isNaN(t)) return null;
-  return new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  const d = new Date(t);
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
 export type PricedLink = {

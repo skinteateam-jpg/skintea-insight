@@ -801,3 +801,23 @@ Nothing below was reconstructed from memory without a source.
   Verified: an anon insert with a client time 2 hours off was accepted and stored within 1 second of `now()`; rolled back,
   0 rows left. SQL: `sql/2026-09-16_clinic_submissions_results_authorization.sql` step 4 (pipeline repo).
 - Deleted session_ids: none. No rows written.
+
+### 2026-09-17 00:35–00:43 UTC — `clinic_videos` creator rows for Koreatown (70), thumbnails cached
+- Who: creator-videos session (Chi's brief: fill "About this clinic" for the 52 listed Koreatown clinics).
+- Rows: `clinic_videos` 1,087 → **1,157**: +70 `relationship = 'creator'` (51 Instagram, 19 TikTok; 15 clinics; 5
+  `disclosed_paid`). INSERT only, run by the Lovable agent from `sql/2026-09-17_clinic_videos_creator_ktown.sql` (pipeline
+  repo, md5 `bdee3433…`, upload ETag equal). Verified by query: key md5 over (clinic_id|source_url) Instagram `ee52600d…`,
+  TikTok `f97fa585…` (equal to the local file); every row on a `passed` Koreatown clinic; official rows still 1,087.
+- Source: Apify `apify/instagram-scraper` mentions feed of each clinic Instagram handle (run `cnek1tun2mNgvxLyj`, $0.49)
+  and `clockworks/tiktok-scraper` video search by clinic name / name + LA / TikTok handle (run `CsDysdpha2jFVQr10`, $5.04);
+  one-clinic tests $0.26. 350 candidates with a mechanical tie, every one read and decided
+  (`data/clinics/clinic_videos_creator_ktown_decisions_2026-09-17.json`).
+- `field_provenance`: views/likes/caption/author_handle `{published_source, url, recorded_at, detail}` (the shape the
+  official rows use); `relationship {source: post_attribution, actor, run, dataset, signals[handle_tag|location_tag|caption_name]}`;
+  `disclosure {paid_partnership_flag, signal, platform_ad}`; `thumbnail {source: platform_cdn, cdn_url}`.
+- New server route `src/routes/api/public/cache-clinic-video-thumbnail.ts` (Lovable `dd528be`, allowlist fix `41a99bc`,
+  md5 `34248142…`): pipeline-key only; stores creator-video thumbnails at `social-thumbnails/clinic-videos/<id>.<ext>` and
+  UPDATEs `clinic_videos.thumbnail_url` (not a provenance-tracked column) to the public object. Run on the preview host:
+  70 of 70 cached. Verified by JOIN against `storage.objects`: 70 objects exist, all non-empty (smallest 22,471 bytes),
+  object name = row id.
+- Deleted session_ids: none. No rows deleted.

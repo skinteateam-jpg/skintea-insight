@@ -843,3 +843,33 @@ Nothing below was reconstructed from memory without a source.
   (`595fb6de…`). Passed clinics without an address: 0. Without hours: 27 → 12 (no source states them; reasons in
   `data/clinics/contact_fill_2026-09-17/decisions.json`).
 - Deleted session_ids: none. No rows deleted.
+
+### 2026-09-17 20:25 UTC — clinic_treatments: 18 prices and 8 mappings read from the clinics' own websites
+- Who: menu+price session (Chi's brief "Fill treatment menus and prices from clinic websites").
+- What: one all-or-nothing `DO` block through `query_database` (postgres), 26 guarded statements —
+  `sql/2026-09-17_clinic_treatments_menu_price.sql` in the pipeline repo, md5 `cc36e480…`, run exactly as committed.
+  - 18 prices onto existing mappings (17 `UPDATE ... WHERE price_from IS NULL`) and 1 new mapping inserted with its
+    price (R&J Medspa / laser-resurfacing). 7 clinics: Chungdam MS Clinic (botox $10/unit, PRP $400, RF microneedling
+    $600, skin booster $300), Irene's Skintopia (laser resurfacing and Rejuran $650/session), Marina Medspa (botox
+    $15/unit, HydraFacial $250/session — the non-member prices), NassifMD Medical Spa (PRP $700), R&J Medspa (CO2
+    $500/session), Revive & Rejuvenate (botox $15/unit, filler $800/syringe), Skin Verse Medical Spa (botox $150,
+    filler $750, IPL $250, CO2 $800 per area; peel $250 and PRP $650 per session).
+  - 8 mappings with no price, each because the site names the treatment but publishes no standing price for it:
+    BeyondSkin MedSpa, Giffen Health, Marina Medspa (IPL), Misarang Beauty & M Clinic, Polaris Medical Aesthetics,
+    The Skin Agency Beverly Hills (chain-wide page, recorded as such), VIP Aesthetics, Vermont Med spa.
+  - `field_provenance` per field: `{source: clinic_website_crawl, url, quote, detail, dataset, recorded_at}` — the exact
+    page URL, the exact phrase the price came from, and the crawl date, as the price rules require. No price was written
+    without an exact phrase on that clinic's own page.
+  - Not written, recorded with the reason in `scripts/clinics/gen_menu_price_sql.py` `REJECT`: promotional and
+    limited-time prices (Cleopatra, Sienna, Dermaster, Michelle's, Re:Lune, Sculpt), package- and membership-only
+    pricing (IVE, Giffen, VIP, Formula Fig), unstated units (R&J botox "From $6"), general cost statements that are not
+    the clinic's own price (NassifMD botox average, Skin Verse HydraFacial range, Vermont's Burlington VT quote), a
+    booking-widget microsite (Viora), a site that contradicts itself (Irene's Scarlet SRF $750 vs $800), facial menu
+    items that merely contain a peel or booster step, and template text.
+- Source: Apify `apify/website-content-crawler`, cheerio, clinic sites only, 2026-09-17, dataset `Iuz9QJobeDAQR8Onb`,
+  $0.40. No directory, no Google, no booking aggregator price, no other location of a chain.
+- Verified by query, not by the tool's self-report: the 26 rows read back and md5-compared per row against the committed
+  file (key, source, url, quote, detail, dataset, recorded_at) — all 26 identical; duplicate `(clinic_id, treatment_id)`
+  pairs: 0. 9 rows inserted and 17 updated; `clinic_treatments` now 604 rows, 82 of them priced (was 64).
+  Passed clinics with at least one price 22 → 29; with at least one mapping 98 → 100.
+- Deleted session_ids: none. No rows deleted, no schema change.

@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import AppFrame from "@/components/AppFrame";
 import BottomNav from "@/components/BottomNav";
 import TreatmentVoices from "@/components/TreatmentVoices";
+import TreatmentVideos from "@/components/TreatmentVideos";
 import {
   breakdown, COUNTED_PLATFORMS, MIN_TREATMENT_REVIEWS, MIN_COST_VALUES, MAX_SENSITIVITY_POINTS, REGRET_LABELS, VERDICT_LABELS,
   type TreatmentQuoteRow, type TreatmentReviewRow, type VerdictCell,
@@ -569,6 +570,12 @@ function TreatmentPage() {
             </Section>
           );
         })()}
+
+        {/*
+          Patient videos: what the treatment looks like (owner-approved, up to 6; see TreatmentVideos).
+          Display only, never counted in Worth it. Separate component and query from "Who has talked about it".
+        */}
+        <TreatmentVideos treatmentId={treatment.id} />
 
         {/*
           Price. Two different facts, never merged: what listed clinics state on their own websites

@@ -821,3 +821,25 @@ Nothing below was reconstructed from memory without a source.
   70 of 70 cached. Verified by JOIN against `storage.objects`: 70 objects exist, all non-empty (smallest 22,471 bytes),
   object name = row id.
 - Deleted session_ids: none. No rows deleted.
+
+### 2026-09-17 ~01:40 UTC — clinics: missing address / phone / hours / neighborhood / coordinates filled (15 listed clinics)
+- Who: contact-fill session (Chi's brief "Fill missing address, phone, hours for listed clinics").
+- What: guarded UPDATEs on 15 `passed` clinics, each only where the field was still empty, all-or-nothing, through
+  `query_database` (postgres): `sql/2026-09-17_clinics_contact_fill_querydb.sql` (pipeline repo, md5 `0d6a904d…`).
+  - 8 clinics had no address, phone, hours, neighborhood or coordinates: Beverly Wilshire Aesthetics, BHRC West Hollywood,
+    BHRC West Los Angeles, Dr. Refresh Med Spa, Laureate Aesthetics, Me.LosAngeles Aesthetics, Skin Verse Medical Spa,
+    The Skin Agency Beverly Hills. All five fields set; address, phone and neighborhood from each clinic's own page
+    (`manual_web_check`, url + verbatim quote), coordinates from the US Census geocoder (`census_geocoder`, all exact
+    matches with the same ZIP), hours as below.
+  - 7 more got hours (and phone where it was empty): Seoul Clinic, Marina Medspa (+phone), NassifMD Medical Spa, Glow
+    Aesthetic Center (+phone), My Botox LA Med Spa (+phone), True Jewel Cosmetic Center (+phone), Your Laser Skin Care (+phone).
+  - Hours `[{day, hours}]`: from the clinic's own page; a day the site does not state (BWA Sat, Dr. Refresh Sun, NassifMD
+    Sat/Sun) or states twice with different values (Glow Mon) was filled from Google Places, recorded in
+    `field_provenance.hours.google_filled_days`. Your Laser Skin Care's site states no hours: all days `google_maps_scrape`
+    (development-only).
+- Google Places: Apify `compass/crawler-google-places`, 5 runs, $0.18 total (datasets in
+  `data/clinics/contact_fill_2026-09-17/raw/`).
+- Verified by query: md5 over id, every value written and every new provenance source/detail equals the local file
+  (`595fb6de…`). Passed clinics without an address: 0. Without hours: 27 → 12 (no source states them; reasons in
+  `data/clinics/contact_fill_2026-09-17/decisions.json`).
+- Deleted session_ids: none. No rows deleted.

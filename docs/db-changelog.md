@@ -789,3 +789,15 @@ Nothing below was reconstructed from memory without a source.
   rejuran, skin-boosters), verified by md5 over every stored field. Video ids are kept out of this public file; the
   classification record is in the private pipeline repo.
 - Deleted session_ids: none.
+
+### 2026-09-16 (applied from Claude chat; recorded 2026-09-17) — clinic_intent_events checks for the restructured clinic page, server-stamped Results attestation
+- Who: owner (Chi) via Claude chat. Recorded by the creator-videos session. Live and verified in pg_catalog; do NOT re-run.
+- `clinic_intent_events_channel_check`: added `'youtube'` (Contact and links YouTube profile).
+- `clinic_intent_events_surface_check`: added `'contact_links'` (Contact and links section) and `'clinic_posts'` (Videos
+  section and its player).
+- `clinic_intent_events_action_check`: added `'video_play'` (a tap that plays a clinic video inside Skintea).
+- Function + trigger `clinic_submissions_stamp_results_authorization` (BEFORE INSERT on `clinic_submissions`): when
+  `results_patient_authorization_at` is not null it is overwritten with `now()`. The client clock is never trusted.
+  Verified: an anon insert with a client time 2 hours off was accepted and stored within 1 second of `now()`; rolled back,
+  0 rows left. SQL: `sql/2026-09-16_clinic_submissions_results_authorization.sql` step 4 (pipeline repo).
+- Deleted session_ids: none. No rows written.

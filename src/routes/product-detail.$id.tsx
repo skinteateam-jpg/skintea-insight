@@ -555,7 +555,8 @@ function ProductPage() {
   const redditLineCount = socialReviews.filter(
     (r) => r.platform === "reddit" && isOpinionRow(r),
   ).length;
-  const REDDIT_DISPLAY_CAP = 8;
+  // Six quotes (owner, 2026-09-17). The tab badge and the footer still count everything available.
+  const REDDIT_DISPLAY_CAP = 6;
   const redditAll = (() => {
     // Same scope as the headline (patch 02): a shade page lists its own shade's quotes; it lists the
     // whole line's quotes only when the headline is showing the line, and says so below the list.
@@ -578,6 +579,12 @@ function ProductPage() {
   })();
   // What renders is capped; the tab badge and the footer count everything available.
   const redditItems = redditAll.slice(0, REDDIT_DISPLAY_CAP);
+  // With no Reddit quote for this product the tab is not offered at all (owner, 2026-09-17): an empty
+  // box that says "still gathering" is one more thing to read for nothing. TikTok and Instagram keep
+  // their own empty states, because their tabs are always offered.
+  const socialTabs = (["tiktok", "instagram", "reddit"] as const).filter((t) => t !== "reddit" || redditAll.length > 0);
+  // If the selected tab is not on offer (Reddit, hidden), fall back to the first one that is.
+  const activeTab = socialTabs.includes(tab) ? tab : socialTabs[0];
 
   const tiktokRows = socialReviews.filter((r) => r.platform === "tiktok" && isDisplayRow(r));
   // One card per video, exactly as the grid renders it. The tab badge and the "posts collected"
@@ -1065,9 +1072,9 @@ function ProductPage() {
         {/* 9. What people are saying */}
         <Section title="What people are saying">
           <div className="flex">
-            {(["tiktok", "instagram", "reddit"] as const).map((t) => {
+            {socialTabs.map((t) => {
               const count = t === "tiktok" ? tiktokRowsDeduped.length : t === "instagram" ? instagramRowsDeduped.length : redditAll.length;
-              const active = tab === t;
+              const active = activeTab === t;
               const label = t === "tiktok" ? "TikTok" : t === "instagram" ? "Instagram" : "Reddit";
               return (
                 <button
@@ -1087,7 +1094,7 @@ function ProductPage() {
           </div>
           <div className="border-b border-brand-border" />
           <div className="mt-3">
-            {tab === "tiktok" && (
+            {activeTab === "tiktok" && (
               tiktokRowsDeduped.length > 0 ? (
                 <div className="grid grid-cols-2 gap-2">
                   {(() => {
@@ -1132,7 +1139,7 @@ function ProductPage() {
                 <DataPending>No TikTok videos collected for this product yet. We're still gathering them.</DataPending>
               )
             )}
-            {tab === "instagram" && (
+            {activeTab === "instagram" && (
               instagramRowsDeduped.length > 0 ? (
                 <div>
                   <div className="flex flex-row gap-2 overflow-x-auto snap-x snap-mandatory pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
@@ -1185,7 +1192,7 @@ function ProductPage() {
                 <DataPending>No Instagram reels collected for this product yet. We're still gathering them.</DataPending>
               )
             )}
-            {tab === "reddit" && (
+            {activeTab === "reddit" && (
               redditItems.length > 0 ? (
                 <div className="flex flex-col gap-2">
                   {redditItems.map((rv) => {

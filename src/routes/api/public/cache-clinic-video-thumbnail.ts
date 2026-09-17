@@ -10,7 +10,7 @@ import { createHash, timingSafeEqual } from 'crypto'
 const BUCKET = 'social-thumbnails'
 const MAX_ITEMS = 50
 const MAX_BYTES = 5 * 1024 * 1024
-const ALLOWED_HOST_SUFFIXES = ['cdninstagram.com', 'fbcdn.net', 'tiktokcdn.com', 'tiktokcdn-us.com']
+const ALLOWED_HOST_SUFFIXES = ['cdninstagram.com', 'fbcdn.net', 'tiktokcdn.com', 'tiktokcdn-us.com', 'tiktokcdn-eu.com']
 const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/avif': 'avif', 'image/heic': 'heic' }
 
 function json(body: unknown, status = 200) {

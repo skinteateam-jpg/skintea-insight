@@ -40,6 +40,7 @@ import { Route as AdminRetailersRouteImport } from './routes/admin.retailers'
 import { Route as AdminClinicIntentsRouteImport } from './routes/admin.clinic-intents'
 import { Route as ApiPublicConsultationClickRouteImport } from './routes/api/public/consultation-click'
 import { Route as ApiPublicCacheSocialThumbnailRouteImport } from './routes/api/public/cache-social-thumbnail'
+import { Route as ApiPublicCacheClinicVideoThumbnailRouteImport } from './routes/api/public/cache-clinic-video-thumbnail'
 
 const TreatmentTalkRoute = TreatmentTalkRouteImport.update({
   id: '/treatment-talk',
@@ -198,6 +199,12 @@ const ApiPublicCacheSocialThumbnailRoute =
     path: '/api/public/cache-social-thumbnail',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCacheClinicVideoThumbnailRoute =
+  ApiPublicCacheClinicVideoThumbnailRouteImport.update({
+    id: '/api/public/cache-clinic-video-thumbnail',
+    path: '/api/public/cache-clinic-video-thumbnail',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -229,6 +236,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/clinics/': typeof ClinicsIndexRoute
   '/treatments/': typeof TreatmentsIndexRoute
+  '/api/public/cache-clinic-video-thumbnail': typeof ApiPublicCacheClinicVideoThumbnailRoute
   '/api/public/cache-social-thumbnail': typeof ApiPublicCacheSocialThumbnailRoute
   '/api/public/consultation-click': typeof ApiPublicConsultationClickRoute
 }
@@ -262,6 +270,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/clinics': typeof ClinicsIndexRoute
   '/treatments': typeof TreatmentsIndexRoute
+  '/api/public/cache-clinic-video-thumbnail': typeof ApiPublicCacheClinicVideoThumbnailRoute
   '/api/public/cache-social-thumbnail': typeof ApiPublicCacheSocialThumbnailRoute
   '/api/public/consultation-click': typeof ApiPublicConsultationClickRoute
 }
@@ -296,6 +305,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/clinics/': typeof ClinicsIndexRoute
   '/treatments/': typeof TreatmentsIndexRoute
+  '/api/public/cache-clinic-video-thumbnail': typeof ApiPublicCacheClinicVideoThumbnailRoute
   '/api/public/cache-social-thumbnail': typeof ApiPublicCacheSocialThumbnailRoute
   '/api/public/consultation-click': typeof ApiPublicConsultationClickRoute
 }
@@ -331,6 +341,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/clinics/'
     | '/treatments/'
+    | '/api/public/cache-clinic-video-thumbnail'
     | '/api/public/cache-social-thumbnail'
     | '/api/public/consultation-click'
   fileRoutesByTo: FileRoutesByTo
@@ -364,6 +375,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/clinics'
     | '/treatments'
+    | '/api/public/cache-clinic-video-thumbnail'
     | '/api/public/cache-social-thumbnail'
     | '/api/public/consultation-click'
   id:
@@ -397,6 +409,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/clinics/'
     | '/treatments/'
+    | '/api/public/cache-clinic-video-thumbnail'
     | '/api/public/cache-social-thumbnail'
     | '/api/public/consultation-click'
   fileRoutesById: FileRoutesById
@@ -430,6 +443,7 @@ export interface RootRouteChildren {
   AdminIndexRoute: typeof AdminIndexRoute
   ClinicsIndexRoute: typeof ClinicsIndexRoute
   TreatmentsIndexRoute: typeof TreatmentsIndexRoute
+  ApiPublicCacheClinicVideoThumbnailRoute: typeof ApiPublicCacheClinicVideoThumbnailRoute
   ApiPublicCacheSocialThumbnailRoute: typeof ApiPublicCacheSocialThumbnailRoute
   ApiPublicConsultationClickRoute: typeof ApiPublicConsultationClickRoute
 }
@@ -653,6 +667,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCacheSocialThumbnailRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cache-clinic-video-thumbnail': {
+      id: '/api/public/cache-clinic-video-thumbnail'
+      path: '/api/public/cache-clinic-video-thumbnail'
+      fullPath: '/api/public/cache-clinic-video-thumbnail'
+      preLoaderRoute: typeof ApiPublicCacheClinicVideoThumbnailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -697,6 +718,8 @@ const rootRouteChildren: RootRouteChildren = {
   AdminIndexRoute: AdminIndexRoute,
   ClinicsIndexRoute: ClinicsIndexRoute,
   TreatmentsIndexRoute: TreatmentsIndexRoute,
+  ApiPublicCacheClinicVideoThumbnailRoute:
+    ApiPublicCacheClinicVideoThumbnailRoute,
   ApiPublicCacheSocialThumbnailRoute: ApiPublicCacheSocialThumbnailRoute,
   ApiPublicConsultationClickRoute: ApiPublicConsultationClickRoute,
 }

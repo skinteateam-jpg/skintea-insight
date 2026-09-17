@@ -2,13 +2,12 @@ import * as React from "react";
 import { createFileRoute, useNavigate, Outlet, useMatchRoute } from "@tanstack/react-router";
 import BottomNav from "@/components/BottomNav";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  MessageCircle, Bookmark, Send, X, ImagePlus, Tag, Plus, Flame, Search,
-} from "lucide-react";
+import { X, Plus, Search } from "lucide-react";
+import TalkPostCard, {
+  BORDER, CAPTION, CARD_BORDER, CRIMSON, DISABLED, ESPRESSO, NEUTRAL_FILL, SANS, WARM_WHITE,
+  TalkProductModule, TalkRoutineSteps,
+} from "@/components/TalkPostCard";
 
 export const Route = createFileRoute("/tea-products")({
   head: () => ({
@@ -24,7 +23,6 @@ export const Route = createFileRoute("/tea-products")({
 
 /* ---------- Types & constants ---------- */
 
-export type SkinType = "oily" | "dry" | "combo" | "sensitive" | "normal";
 type TagKey =
   | "night-out"
   | "hot-tea"
@@ -41,67 +39,48 @@ type PostType = "skin-tea" | "look-tea" | "spill";
    no persona name or emoji generated from skin type — a post with no signed-in
    author renders with no name, not with an invented one. */
 
-export const SKIN_BG: Record<SkinType, string> = {
-  oily: "#fef3c7",
-  dry: "#fce7f3",
-  combo: "#ede9fe",
-  sensitive: "#fee2e2",
-  normal: "#e0f2fe",
-};
-
-/** Avatar background for a post. Neutral when the author's skin type is unknown. */
-export function skinBg(t: SkinType | null | undefined) {
-  return t ? SKIN_BG[t] : "#f5f0ea";
-}
-
-/** profiles.skin_type is stored capitalised ("Combination"); the feed keys are lowercase. */
-export function normalizeSkinType(raw: string | null | undefined): SkinType | null {
-  switch ((raw ?? "").trim().toLowerCase()) {
-    case "oily": return "oily";
-    case "dry": return "dry";
-    case "combo":
-    case "combination": return "combo";
-    case "sensitive": return "sensitive";
-    case "normal": return "normal";
-    default: return null;
-  }
-}
-
-export function formatAgo(diffSec: number) {
-  const diff = Math.max(1, Math.floor(diffSec));
-  if (diff < 60) return `${diff}s`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-  return `${Math.floor(diff / 86400)}d`;
-}
-
-/** "3h ago" from a real epoch-ms timestamp, or null when the post has none. */
-export function postAgeLabel(createdAt: number | null | undefined): string | null {
-  if (typeof createdAt !== "number" || !Number.isFinite(createdAt) || createdAt <= 0) return null;
-  return `${formatAgo((Date.now() - createdAt) / 1000)} ago`;
-}
-
+/* Filter and compose tags. The emoji they used to carry are gone: no emoji renders anywhere in the UI. */
 const TAGS: { key: TagKey | "all"; label: string }[] = [
   { key: "all", label: "All" },
-  { key: "night-out", label: "🌙 Night Out" },
-  { key: "am-routine", label: "☀️ AM Routine" },
-  { key: "hot-tea", label: "🔥 Hot Tea" },
-  { key: "makeup", label: "💄 Makeup" },
-  { key: "glazed-skin", label: "✨ Glazed Skin" },
-  { key: "warned-you", label: "⚠️ Warned You" },
+  { key: "night-out", label: "Night Out" },
+  { key: "am-routine", label: "AM Routine" },
+  { key: "hot-tea", label: "Hot Tea" },
+  { key: "makeup", label: "Makeup" },
+  { key: "glazed-skin", label: "Glazed Skin" },
+  { key: "warned-you", label: "Warned You" },
 ];
 
 export const TAG_LABEL: Record<TagKey, string> = {
-  "night-out": "💋 Night Out",
-  "hot-tea": "☕ Hot Tea",
-  review: "✨ Review",
-  grwm: "📸 GRWM",
-  question: "❓ Question",
-  "am-routine": "☀️ AM Routine",
-  makeup: "💄 Makeup",
-  "glazed-skin": "✨ Glazed Skin",
-  "warned-you": "⚠️ Warned You",
+  "night-out": "Night Out",
+  "hot-tea": "Hot Tea",
+  review: "Review",
+  grwm: "GRWM",
+  question: "Question",
+  "am-routine": "AM Routine",
+  makeup: "Makeup",
+  "glazed-skin": "Glazed Skin",
+  "warned-you": "Warned You",
 };
+
+/* "Warned You" is the one tag that is itself a warning, so it is the one that renders in crimson. */
+const WARNING_TAGS = new Set<TagKey>(["warned-you"]);
+
+const POST_TYPE_LABEL: Record<PostType, string> = {
+  "skin-tea": "Skin Tea",
+  "look-tea": "Look Tea",
+  spill: "Spill",
+};
+
+/* The same four verdicts the product page's Post tea form offers, so one vocabulary fills
+   product_posts.verdict wherever a post is written. "Wouldn't repurchase" is the negative one. */
+export const PRODUCT_VERDICTS = ["Repurchased", "Would buy again", "On the fence", "Wouldn't repurchase"] as const;
+const NEGATIVE_VERDICTS = new Set<string>(["Wouldn't repurchase"]);
+
+export function verdictStamp(verdict: string | null | undefined): { label: string; tone: "positive" | "negative" } | null {
+  const v = (verdict ?? "").trim();
+  if (!v) return null;
+  return { label: v, tone: NEGATIVE_VERDICTS.has(v) ? "negative" : "positive" };
+}
 
 type TaggedProduct = {
   id: string;
@@ -110,49 +89,72 @@ type TaggedProduct = {
   image?: string;
 };
 
-export type Post = {
+/** One row of public.product_posts, with the product it names joined in. */
+export type ProductPost = {
   id: string;
-  /** The author's own skin type, read from their profile. null when unknown — never guessed. */
-  skinType: SkinType | null;
-  /** The tag the author picked. null when they picked none. */
-  tag: TagKey | null;
-  postType: PostType;
-  hashtags?: string[];
-  text: string;
-  images: string[];
-  products: TaggedProduct[];
-  helped: number;
-  helpedByMe: boolean;
-  saved: boolean;
-  comments: number;
-  promptContext?: string;
-  /** Epoch ms. null when the post carries no real timestamp — then no age renders. */
-  createdAt: number | null;
-  /** profiles.username of the author. null when there is no signed-in author. */
+  productId: string | null;
+  userId: string;
+  /** profiles.username of the author. null when they have not set one — never invented. */
   authorUsername: string | null;
-  steps?: { num: number; label: string; product: string; type: "skin" | "makeup" }[];
-  totalSteps?: number;
-  skinTeaMode?: "single" | "routine";
+  /** The author's own skin type, read from their profile at post time. null when unknown. */
+  skinType: string | null;
+  headline: string | null;
+  body: string;
+  verdict: string | null;
+  usageDuration: string | null;
+  whenToUse: string | null;
+  howMuch: string | null;
+  watchOut: string | null;
+  postType: PostType;
+  tag: TagKey | null;
+  hashtags: string[];
+  steps: { num: number; label: string; product: string }[];
+  createdAt: string;
+  product: TaggedProduct | null;
 };
 
-type ComposeStage = "type" | "skin-tea" | "look-tea" | "spill";
+export const PRODUCT_POST_COLS =
+  "id, product_id, user_id, username, skin_type, headline, body, verdict, usage_duration, when_to_use, how_much, watch_out, post_type, tag, hashtags, steps, created_at, products(id, name, brand, image_url)";
+
+export function mapProductPost(row: any): ProductPost {
+  const p = row?.products ?? null;
+  const rawSteps = Array.isArray(row?.steps) ? row.steps : [];
+  return {
+    id: row.id,
+    productId: row.product_id ?? null,
+    userId: row.user_id,
+    authorUsername: row.username ?? null,
+    skinType: row.skin_type ?? null,
+    headline: row.headline ?? null,
+    body: row.body ?? "",
+    verdict: row.verdict ?? null,
+    usageDuration: row.usage_duration ?? null,
+    whenToUse: row.when_to_use ?? null,
+    howMuch: row.how_much ?? null,
+    watchOut: row.watch_out ?? null,
+    postType: (["skin-tea", "look-tea", "spill"] as const).includes(row.post_type) ? row.post_type : "spill",
+    tag: row.tag ?? null,
+    hashtags: Array.isArray(row.hashtags) ? row.hashtags : [],
+    steps: rawSteps
+      .filter((s: any) => s && typeof s.label === "string")
+      .map((s: any, i: number) => ({ num: Number(s.num) || i + 1, label: String(s.label), product: String(s.product ?? "") })),
+    createdAt: row.created_at,
+    product: p ? { id: p.id, name: p.name, brand: p.brand ?? "", image: p.image_url ?? undefined } : null,
+  };
+}
+
+type ComposeStage = "type" | "skin-tea" | "spill";
 type SkinTeaMode = "single" | "routine";
 
 type ComposeStep = {
   id: string;
   label: string;
   product: string;
-  type: "skin" | "makeup";
 };
 
 const SKIN_STEPS = [
   "Cleanse", "Tone", "Serum", "Moisturize", "SPF",
   "Eye Cream", "Spot Treatment", "Face Oil", "Exfoliate", "Mask",
-];
-
-const MAKEUP_STEPS = [
-  "Skin Prep", "Base", "Concealer", "Contour",
-  "Blush", "Highlighter", "Eyes", "Lips", "Setting",
 ];
 
 /* Compose-time detail fields are the poster's own words. Nothing is pre-filled:
@@ -162,7 +164,7 @@ const MAKEUP_STEPS = [
    a rotating daily feature. One is shown as a prompt, and only alongside a real
    feed. Nothing here is ever injected between posts. */
 const PROMPTS = [
-  "what's in your 'just in case tonight' bag? 💋",
+  "What's in your 'just in case tonight' bag?",
   "Worst skincare mistake you've ever made?",
   "Drugstore dupe that beat the luxury original?",
   "What's currently sitting on your shelf collecting dust?",
@@ -172,98 +174,54 @@ const PROMPTS = [
    reachable there. "all" is a filter, not a tag. */
 const COMPOSE_TAGS = TAGS.filter((t): t is { key: TagKey; label: string } => t.key !== "all");
 
-/* ---------- Helpers ---------- */
+/* ---------- Photo uploads ----------
 
-export function skinTypeLabel(t: SkinType) {
-  return t === "oily" ? "oily" : t === "dry" ? "dry" : t === "combo" ? "combination" : t === "sensitive" ? "sensitive" : "normal";
-}
+   There is no storage bucket for post photos, and the composer's old picker produced
+   blob: URLs, which mean nothing once they are stored and nothing to anyone else. So no
+   photo is written. Look Tea's whole point is the face photo, so that type stays closed
+   with a notice rather than opening a form that would post a look with no look; Skin Tea
+   and Spill say that uploads are not open and post the writing, which is what
+   Treatment Talk already does. Remove this block in the same change that adds the bucket. */
+const PHOTO_UPLOAD_ENABLED = false;
+const PHOTO_NOTICE = "Photo uploads aren't open yet. Your written post can go up now.";
 
-/* ---------- Posting switch ----------
-
-   Product Talk posts belong in `product_posts`, which only accepts a row whose
-   user_id is the signed-in author (enforce_signed_in_author). That write path is
-   not built in this route yet, so posting stays closed: the composer opens and
-   can be filled in, the submit buttons are visibly disabled, and the feed shows
-   an honest empty state instead of a community that does not exist. Drafts held
-   on one device are not community posts, so none are read back or shown.
-
-   Flip this to true in the same change that wires the database write — the feed,
-   its headings and the prompt return on their own. */
-const POSTING_ENABLED: boolean = false;
-
-/* ---------- Posts store (module-level, shared across routes) ---------- */
-
-const _STORAGE_KEY = "skintea.posts.v1";
-function _loadInitial(): Post[] {
-  if (!POSTING_ENABLED) return [];
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Post[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-let _posts: Post[] = _loadInitial();
-const _listeners = new Set<() => void>();
-function _persist() {
-  if (!POSTING_ENABLED) return;
-  if (typeof window === "undefined") return;
-  try { window.localStorage.setItem(_STORAGE_KEY, JSON.stringify(_posts)); } catch {}
-}
-function _emit() { _persist(); _listeners.forEach((l) => l()); }
-
-export function setPostsStore(updater: (prev: Post[]) => Post[]) {
-  _posts = updater(_posts);
-  _emit();
-}
-
-export function getPostsStore() { return _posts; }
-
-function _subscribe(cb: () => void) {
-  _listeners.add(cb);
-  return () => { _listeners.delete(cb); };
-}
-
-export function usePostsStore(): [Post[], (u: (prev: Post[]) => Post[]) => void] {
-  const snap = React.useSyncExternalStore(_subscribe, getPostsStore, getPostsStore);
-  return [snap, setPostsStore];
-}
-
-/* ---------- Viewer — the signed-in profile a new post would belong to ---------- */
+/* ---------- Viewer — the signed-in profile a new post belongs to ---------- */
 
 export type ViewerProfile = {
   userId: string;
   username: string | null;
-  skinType: SkinType | null;
+  avatarUrl: string | null;
+  /** As stored on the profile ("Combination"). Never normalised into a guess, never invented. */
+  skinType: string | null;
 };
 
-function useViewerProfile(): ViewerProfile | null {
+function useViewerProfile(): { viewer: ViewerProfile | null; loaded: boolean } {
   const [viewer, setViewer] = React.useState<ViewerProfile | null>(null);
+  const [loaded, setLoaded] = React.useState(false);
 
   React.useEffect(() => {
     let cancelled = false;
 
     const load = async (userId: string | null) => {
       if (!userId) {
-        if (!cancelled) setViewer(null);
+        if (!cancelled) { setViewer(null); setLoaded(true); }
         return;
       }
       const { data, error } = await supabase
         .from("profiles")
-        .select("username, skin_type")
+        .select("username, avatar_url, skin_type")
         .eq("user_id", userId)
         .maybeSingle();
       if (cancelled) return;
       if (error) console.error("viewer profile fetch failed", error);
-      const row = data as { username: string | null; skin_type: string | null } | null;
+      const row = data as { username: string | null; avatar_url: string | null; skin_type: string | null } | null;
       setViewer({
         userId,
         username: row?.username ?? null,
-        skinType: normalizeSkinType(row?.skin_type),
+        avatarUrl: row?.avatar_url ?? null,
+        skinType: row?.skin_type ?? null,
       });
+      setLoaded(true);
     };
 
     supabase.auth.getSession().then(({ data }) => { void load(data.session?.user?.id ?? null); });
@@ -273,7 +231,7 @@ function useViewerProfile(): ViewerProfile | null {
     return () => { cancelled = true; sub.subscription.unsubscribe(); };
   }, []);
 
-  return viewer;
+  return { viewer, loaded };
 }
 
 /* ---------- Product search — the real catalog, never a hard-coded list ---------- */
@@ -323,14 +281,43 @@ function useProductSearch(term: string): ProductSearchState {
   return { results, status };
 }
 
+/* ---------- Feed ---------- */
+
+function useProductPosts() {
+  const [posts, setPosts] = React.useState<ProductPost[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [failed, setFailed] = React.useState(false);
+
+  const load = React.useCallback(async () => {
+    const { data, error } = await (supabase as any)
+      .from("product_posts")
+      .select(PRODUCT_POST_COLS)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error) {
+      console.error("product_posts fetch failed", error);
+      setFailed(true);
+    } else {
+      setFailed(false);
+      setPosts(((data ?? []) as any[]).map(mapProductPost));
+    }
+    setLoading(false);
+  }, []);
+
+  React.useEffect(() => { void load(); }, [load]);
+  return { posts, loading, failed, reload: load, setPosts };
+}
+
 /* ---------- Page ---------- */
 
 export function TeaProductsContent({ embedded = false }: { embedded?: boolean } = {}) {
   const [activeTag, setActiveTag] = React.useState<TagKey | "all">("all");
-  const [posts, setPosts] = usePostsStore();
+  const { posts, loading, failed, reload, setPosts } = useProductPosts();
+  const { viewer } = useViewerProfile();
   const navigate = useNavigate();
   const [composeOpen, setComposeOpen] = React.useState(false);
   const [composePrompt, setComposePrompt] = React.useState<string | undefined>();
+  const [rowError, setRowError] = React.useState<string | null>(null);
 
   // One editorial prompt, shown only alongside a real feed. Not framed as daily:
   // it does not rotate, and nothing here measures a day.
@@ -338,45 +325,33 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
 
   const filtered = activeTag === "all" ? posts : posts.filter((p) => p.tag === activeTag);
 
-  const toggleHelped = (id: string) => {
-    setPosts((prev) => prev.map((p) =>
-      p.id === id ? { ...p, helpedByMe: !p.helpedByMe, helped: p.helped + (p.helpedByMe ? -1 : 1) } : p
-    ));
-  };
-  const toggleSaved = (id: string) => {
-    setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, saved: !p.saved } : p)));
-  };
-
-  const addPost = (newPost: Omit<Post, "id" | "helped" | "helpedByMe" | "saved" | "comments" | "createdAt">) => {
-    const post: Post = {
-      ...newPost,
-      id: Math.random().toString(36).slice(2),
-      helped: 0, helpedByMe: false, saved: false, comments: 0,
-      createdAt: Date.now(),
-    };
-    setPosts((prev) => [post, ...prev]);
-    setActiveTag("all");
-  };
-
-  // While posting is closed the composer does not open at all: a form that can be filled in and then saves nothing loses
-  // what someone typed (owner, 2026-09-16). A notice says posting here isn't open and where product posts can be written.
-  const [closedNoticeOpen, setClosedNoticeOpen] = React.useState(false);
+  // A signed-out visitor goes to /login rather than being shown a form that cannot write.
   const openCompose = (prompt?: string) => {
-    if (!POSTING_ENABLED) { setClosedNoticeOpen(true); return; }
+    if (!viewer) { void navigate({ to: "/login" }); return; }
     setComposePrompt(prompt);
     setComposeOpen(true);
   };
+
+  async function deletePost(postId: string) {
+    if (!viewer) return;
+    if (!window.confirm("Delete this post? It is removed for everyone and cannot be undone.")) return;
+    setRowError(null);
+    const { error, count } = await (supabase as any)
+      .from("product_posts").delete({ count: "exact" }).eq("id", postId).eq("user_id", viewer.userId);
+    if (error || count === 0) {
+      setRowError(error ? `Couldn't delete: ${error.message}` : "Couldn't delete this post.");
+      return;
+    }
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+  }
 
   // The feed is posts and nothing else. Prompt cards are never spliced in — an
   // injected card is not something anyone posted.
   const hasFeed = filtered.length > 0;
 
   return (
-    <div style={{ background: "#faf8f5", fontFamily: "'DM Sans', system-ui, sans-serif" }} className="min-h-screen">
+    <div style={{ background: WARM_WHITE, fontFamily: SANS }} className="min-h-screen">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=DM+Sans:wght@400;500;600;700&display=swap');
-        .font-display { font-family: 'Fraunces', Georgia, serif; }
-        .font-body { font-family: 'DM Sans', system-ui, sans-serif; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
@@ -387,10 +362,10 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
             publishes its own height as --tea-header-h and sits at a higher
             z-index, and the fallback of 0px is the standalone route. */}
         <div
-          className="sticky border-b"
+          className="sticky"
           style={{
-            background: "#faf8f5",
-            borderColor: "#f0ede8",
+            background: WARM_WHITE,
+            borderBottom: CARD_BORDER,
             top: "var(--tea-header-h, 0px)",
             zIndex: 20,
           }}
@@ -402,11 +377,17 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
                 <button
                   key={t.key}
                   onClick={() => setActiveTag(t.key)}
-                  className="whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors"
+                  className="whitespace-nowrap rounded-full"
                   style={{
-                    background: active ? "#1C0A00" : "#FFFCF8",
-                    color: active ? "#FFFCF8" : "#1C0A00",
-                    borderColor: active ? "#1C0A00" : "#E8DDD4",
+                    minHeight: 44,
+                    padding: "0 16px",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    background: active ? ESPRESSO : WARM_WHITE,
+                    color: active ? WARM_WHITE : ESPRESSO,
+                    border: `1px solid ${active ? ESPRESSO : BORDER}`,
+                    fontFamily: SANS,
+                    cursor: "pointer",
                   }}
                 >
                   {t.label}
@@ -416,25 +397,27 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
           </div>
         </div>
 
-
         {/* Prompt banner — a conversation starter, shown only when there is a
             feed for it to sit above. No daily framing: nothing rotates it. */}
         {hasFeed && (
           <section className="pt-5" style={{ margin: "0 16px 16px" }}>
             <div
               className="flex items-center gap-3 p-3"
-              style={{ background: "#1C0A00", color: "#FFFCF8", borderRadius: "14px" }}
+              style={{ background: ESPRESSO, color: WARM_WHITE, borderRadius: 12 }}
             >
               <div className="flex-1">
-                <p style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.8px", color: "#A8001C", fontWeight: 700 }}>
+                <p style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: WARM_WHITE, fontWeight: 500 }}>
                   Skintea prompt
                 </p>
-                <p className="mt-1" style={{ fontSize: "13px", color: "#FFFCF8", lineHeight: 1.4 }}>{featuredPrompt}</p>
+                <p className="mt-1" style={{ fontSize: 13, color: WARM_WHITE, lineHeight: 1.4 }}>{featuredPrompt}</p>
               </div>
               <button
                 onClick={() => openCompose(featuredPrompt)}
-                className="flex-shrink-0 transition-transform active:scale-95"
-                style={{ background: "#A8001C", color: "#FFFCF8", borderRadius: "20px", fontSize: "12px", padding: "8px 16px", fontWeight: 600 }}
+                className="flex-shrink-0"
+                style={{
+                  background: CRIMSON, color: WARM_WHITE, borderRadius: 999, fontSize: 13,
+                  minHeight: 44, padding: "0 18px", fontWeight: 500, border: "none", cursor: "pointer", fontFamily: SANS,
+                }}
               >
                 Spill
               </button>
@@ -447,32 +430,35 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
           {hasFeed && (
             <p
               style={{
-                fontSize: "11px",
-                fontWeight: 500,
-                color: "#aaa",
-                textTransform: "uppercase",
-                letterSpacing: "0.8px",
-                marginBottom: "10px",
-                marginTop: "4px",
+                fontSize: 11, fontWeight: 500, color: CAPTION, textTransform: "uppercase",
+                letterSpacing: "0.08em", marginBottom: 10, marginTop: 4,
               }}
             >
               Fresh Tea
             </p>
           )}
-          {!hasFeed && (
-            <div className="rounded-2xl bg-white p-8 text-center text-sm text-neutral-500 shadow-sm">
-              {POSTING_ENABLED
-                ? "No product talk yet — be the first to post."
-                : "No product talk yet. Posting opens soon."}
+          {rowError && <p style={{ fontSize: 13, color: CRIMSON, marginBottom: 10 }}>{rowError}</p>}
+          {loading ? (
+            <div style={{ background: "#fff", border: CARD_BORDER, borderRadius: 12, padding: 24, textAlign: "center", fontSize: 13, color: CAPTION }}>
+              Loading…
             </div>
-          )}
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          ) : failed ? (
+            <div style={{ background: "#fff", border: CARD_BORDER, borderRadius: 12, padding: 24, textAlign: "center", fontSize: 13, color: CAPTION }}>
+              Couldn't load product talk. Reload to try again.
+            </div>
+          ) : !hasFeed ? (
+            <div style={{ background: "#fff", border: CARD_BORDER, borderRadius: 12, padding: 24, textAlign: "center", fontSize: 13, color: CAPTION }}>
+              {posts.length === 0 ? "No product talk yet — be the first to post." : "No posts match this tag."}
+            </div>
+          ) : null}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {filtered.map((post) => (
-              <PostCard
+              <ProductPostCard
                 key={post.id}
                 post={post}
-                onHelped={() => toggleHelped(post.id)}
-                onSaved={() => toggleSaved(post.id)}
+                isOwn={!!viewer && viewer.userId === post.userId}
+                onOpen={() => navigate({ to: "/tea-products/$postId", params: { postId: post.id } })}
+                onDelete={() => void deletePost(post.id)}
               />
             ))}
           </div>
@@ -489,48 +475,32 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
         style={{
           left: "50%",
           transform: "translateX(-50%)",
-          background: "#A8001C",
-          color: "#FFFCF8",
+          background: CRIMSON,
+          color: WARM_WHITE,
           fontSize: 14,
-          fontWeight: 700,
-          borderRadius: 30,
-          padding: "12px 28px",
+          fontWeight: 500,
+          borderRadius: 999,
+          minHeight: 44,
+          padding: "0 28px",
           border: "none",
           zIndex: 40,
           cursor: "pointer",
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: SANS,
         }}
       >
-        {POSTING_ENABLED ? "Spill the tea 🫖" : "Posting opens soon"}
+        Spill the tea
       </button>
 
-      {/* Posting closed: a notice, never the form. */}
-      <Sheet open={closedNoticeOpen} onOpenChange={setClosedNoticeOpen}>
-        <SheetContent side="bottom" className="mx-auto max-w-[480px] rounded-t-3xl border-0 p-6" style={{ background: "#FFFCF8" }}>
-          <p style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, color: "#1C0A00", margin: 0 }}>Posting isn't open here yet</p>
-          <p style={{ fontSize: 13, color: "#1C0A00", lineHeight: 1.5, marginTop: 10 }}>
-            Product Talk posts can't be written on this page yet, so there is no form to fill in and nothing you type here could
-            be lost. To post about a product now, open the product and use Post tea on its page.
-          </p>
-          <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-            <Button onClick={() => { setClosedNoticeOpen(false); void navigate({ to: "/products" }); }} style={{ background: "#A8001C", color: "#FFFCF8" }}>
-              Browse products
-            </Button>
-            <Button variant="outline" onClick={() => setClosedNoticeOpen(false)}>Close</Button>
-          </div>
-        </SheetContent>
-      </Sheet>
-
       {/* Compose sheet */}
-      <ComposeSheet
-        open={composeOpen}
-        onOpenChange={setComposeOpen}
-        promptContext={composePrompt}
-        onSubmit={(data) => {
-          addPost(data);
-          setComposeOpen(false);
-        }}
-      />
+      {viewer && (
+        <ComposeSheet
+          open={composeOpen}
+          onOpenChange={setComposeOpen}
+          promptContext={composePrompt}
+          viewer={viewer}
+          onPosted={() => { setComposeOpen(false); void reload(); setActiveTag("all"); }}
+        />
+      )}
       {!embedded && <BottomNav />}
     </div>
   );
@@ -543,334 +513,87 @@ function TeaProductsPage() {
   return <TeaProductsContent />;
 }
 
-/* ---------- Post Card ---------- */
+/* ---------- Post card ---------- */
 
-const POST_TYPE_BADGE: Record<PostType, { label: string; bg: string; color: string }> = {
-  "skin-tea": { label: "Skin Tea", bg: "#FFF0F0", color: "#A8001C" },
-  "look-tea": { label: "Look Tea", bg: "#F0EDF8", color: "#5B3FA6" },
-  spill: { label: "Spill", bg: "#FFF7E6", color: "#B45309" },
-};
-
-const STEP_COLOR = { skin: "#A8001C", makeup: "#C4743A" } as const;
-
-function PostCard({ post, onHelped, onSaved }: { post: Post; onHelped: () => void; onSaved: () => void }) {
-  const [activeImg, setActiveImg] = React.useState(0);
-  const badge = POST_TYPE_BADGE[post.postType];
-  const isSpill = post.postType === "spill";
-  const ageLabel = postAgeLabel(post.createdAt);
-  const heroProduct = !isSpill && post.products.length > 0 ? post.products[0] : null;
-  const steps = post.steps;
-  const navigate = useNavigate();
+export function ProductPostCard({
+  post, isOwn, onOpen, onDelete,
+}: {
+  post: ProductPost;
+  isOwn: boolean;
+  onOpen?: () => void;
+  onDelete?: () => void;
+}) {
+  const tagLabel = post.tag ? TAG_LABEL[post.tag] : null;
+  const hasRoutine = post.steps.length > 0;
 
   return (
-    <article
-      onClick={() => navigate({ to: "/tea-products/$postId", params: { postId: post.id } })}
-      style={{
-        background: "#fff",
-        border: "0.5px solid #E8DDD4",
-        borderRadius: "14px",
-        overflow: "hidden",
-        padding: "10px",
-        cursor: "pointer",
+    <TalkPostCard
+      authorName={post.authorUsername}
+      isOwn={isOwn}
+      skinType={post.skinType}
+      createdAt={post.createdAt}
+      typeLabel={{
+        text: tagLabel ?? POST_TYPE_LABEL[post.postType],
+        warning: !!post.tag && WARNING_TAGS.has(post.tag),
       }}
-    >
-      {post.promptContext && (
-        <div
-          className="-mx-2.5 -mt-2.5 mb-2.5 px-2.5 py-2"
-          style={{
-            background: "rgba(251,191,36,0.12)",
-            borderBottom: "1px solid rgba(251,191,36,0.3)",
-            borderTopLeftRadius: "13px",
-            borderTopRightRadius: "13px",
-          }}
-        >
-          <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "#92500a" }}>
-            replying to prompt
-          </p>
-          <p className="mt-0.5 text-xs font-medium text-[#1a1a1a]">{post.promptContext}</p>
-        </div>
-      )}
-
-      {/* Author row — the real username or nothing at all */}
-      <div className="flex items-center gap-2">
-        <div
-          className="flex flex-shrink-0 items-center justify-center rounded-full"
-          style={{ width: 28, height: 28, background: skinBg(post.skinType), fontSize: 12, lineHeight: 1, color: "#1C0A00", fontWeight: 600 }}
-        >
-          {post.authorUsername ? post.authorUsername.slice(0, 1).toUpperCase() : ""}
-        </div>
-        <div className="min-w-0 flex-1">
-          {post.authorUsername && (
-            <div className="flex items-center gap-1.5">
-              <p className="font-semibold text-[#1C0A00]" style={{ fontSize: 13 }}>{post.authorUsername}</p>
-            </div>
-          )}
-          {ageLabel && <p style={{ fontSize: 10, color: "#999999" }}>{ageLabel}</p>}
-        </div>
-        <span
-          className="flex-shrink-0"
-          style={{
-            background: badge.bg,
-            color: badge.color,
-            fontSize: 9,
-            padding: "2px 7px",
-            borderRadius: 20,
-            fontWeight: 500,
-          }}
-        >
-          {badge.label}
-        </span>
-      </div>
-
-      {/* Text */}
-      <div className="pt-2.5">
-        <p className="leading-snug text-[#1C0A00]" style={{ fontSize: 13 }}>{post.text}</p>
-      </div>
-
-      {/* Hashtags */}
-      {post.hashtags && post.hashtags.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {post.hashtags.map((h) => (
-            <span
-              key={h}
-              style={{
-                background: "#FFF0F0",
-                color: "#A8001C",
-                fontSize: 10,
-                padding: "2px 7px",
-                borderRadius: 20,
-              }}
-            >
-              {h}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Photos */}
-      {post.images.length > 0 && (
-        <div className="mt-2.5">
-          {isSpill ? (
-            <div className="flex gap-1.5">
-              {post.images.slice(0, 3).map((src, i) => (
-                <img
-                  key={i}
-                  src={src}
-                  alt=""
-                  style={{ flex: 1, height: 60, borderRadius: 8, objectFit: "cover", minWidth: 0 }}
-                />
-              ))}
-            </div>
-          ) : (
-            <>
-              <div style={{ width: "100%", aspectRatio: "4/5", borderRadius: 12, overflow: "hidden", marginBottom: 8 }}>
-                <img
-                  src={post.images[activeImg] ?? post.images[0]}
-                  alt=""
-                  style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block" }}
-                />
-              </div>
-              {post.images.length > 1 && (
-                <div className="mt-2 flex items-center justify-center gap-1">
-                  {post.images.map((_, i) => {
-                    const on = i === activeImg;
-                    return (
-                      <button
-                        key={i}
-                        onClick={(e) => { e.stopPropagation(); setActiveImg(i); }}
-                        aria-label={`Image ${i + 1}`}
-                        style={{
-                          width: on ? 12 : 4,
-                          height: 4,
-                          borderRadius: 2,
-                          background: on ? "#1C0A00" : "#E8DDD4",
-                          border: 0,
-                          padding: 0,
-                          cursor: "pointer",
-                          transition: "width 0.2s",
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Hot Pick card */}
-      {heroProduct && (
-        <div
-          className="mt-2.5"
-          style={{
-            background: "#FFF0F0",
-            border: "1px solid #f5d0d0",
-            borderRadius: 10,
-            padding: "8px 10px",
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          {heroProduct.image && (
-            <img
-              src={heroProduct.image}
-              alt={heroProduct.name}
-              style={{ width: 30, height: 30, borderRadius: 8, objectFit: "cover", flexShrink: 0 }}
+      subject={post.product?.name ?? null}
+      verdict={verdictStamp(post.verdict)}
+      hook={post.headline}
+      body={post.body}
+      onOpen={onOpen}
+      module={
+        <>
+          {post.product && (
+            <TalkProductModule
+              name={post.product.name}
+              brand={post.product.brand}
+              imageUrl={post.product.image}
+              meta={post.usageDuration ? `used ${post.usageDuration}` : null}
             />
           )}
-          <div className="min-w-0 flex-1">
-            <p style={{ color: "#A8001C", fontSize: 9, textTransform: "uppercase", fontWeight: 600, letterSpacing: 0.4 }}>
-              Hot Pick
-            </p>
-            <p style={{ fontSize: 12, color: "#1C0A00", fontWeight: 500 }} className="truncate">
-              {heroProduct.name}
-            </p>
-            {heroProduct.brand && (
-              <p style={{ fontSize: 10, color: "#999" }} className="truncate">{heroProduct.brand}</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Steps preview */}
-      {!isSpill && steps && steps.length > 0 && (
-        <div className="mt-2 space-y-1">
-          {steps.slice(0, 3).map((s) => {
-            const color = STEP_COLOR[s.type];
-            return (
-              <div key={s.num} className="flex items-center gap-2">
-                <div
-                  style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: "50%",
-                    background: color,
-                    color: "#FFFCF8",
-                    fontSize: 9,
-                    fontWeight: 600,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  {s.num}
-                </div>
-                <span style={{ fontSize: 9, color: "#aaa", width: 44, flexShrink: 0 }}>{s.label}</span>
-                <span style={{ fontSize: 11, fontWeight: 500, color }} className="truncate">
-                  {s.product}
-                </span>
-              </div>
-            );
-          })}
-          {post.totalSteps && post.totalSteps > 1 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate({ to: "/tea-products/$postId", params: { postId: post.id } });
-              }}
-              className="mt-1"
-              style={{
-                fontSize: 10,
-                color: "#888",
-                border: "0.5px solid #ddd",
-                borderRadius: 8,
-                padding: "4px 9px",
-                background: "#faf8f5",
-                cursor: "pointer",
-              }}
-            >
-              + See full breakdown ({post.totalSteps} steps)
-            </button>
+          {hasRoutine && <TalkRoutineSteps steps={post.steps} total={post.steps.length} />}
+          {post.hashtags.length > 0 && (
+            <div style={{ marginTop: 10, fontSize: 13, color: CAPTION }}>{post.hashtags.join("  ")}</div>
           )}
-        </div>
-      )}
-
-      {/* Action bar */}
-      <div
-        className="mt-2.5"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          padding: "6px 10px 8px",
-          borderTop: "0.5px solid #f5f0ea",
-          marginLeft: -10,
-          marginRight: -10,
-          marginBottom: -10,
-        }}
-      >
-        <button
-          onClick={(e) => { e.stopPropagation(); onHelped(); }}
-          style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, background: "none", border: 0, padding: 0, cursor: "pointer" }}
-          aria-label="Agree"
-        >
-          <div
-            style={{
-              width: 24,
-              height: 24,
-              borderRadius: "50%",
-              background: "#FFF0E8",
-              border: "1px solid #FFD4B0",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 13,
-              opacity: post.helpedByMe ? 1 : 0.95,
-            }}
-          >
-            🔥
-          </div>
-          <span style={{ color: "#D97706", fontSize: 8, fontWeight: 600, lineHeight: 1 }}>{post.helped}</span>
-          <span style={{ color: "#D97706", fontSize: 8, lineHeight: 1 }}>agree</span>
-        </button>
-
-        {/* Commenting is not wired yet, so the control is disabled rather than
-            silently inert, and a count of 0 that nothing measured is not shown. */}
-        <button
-          type="button"
-          disabled
-          title="Comments open when posting does"
-          style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: 0, padding: 0, cursor: "not-allowed", color: "#cccccc" }}
-          aria-label="Comments (not available yet)"
-        >
-          <MessageCircle className="h-4 w-4" />
-          {post.comments > 0 && <span style={{ fontSize: 11 }}>{post.comments}</span>}
-        </button>
-
-        <div className="flex-1" />
-
-        <button
-          onClick={(e) => { e.stopPropagation(); onSaved(); }}
-          style={{ background: "none", border: 0, padding: 4, cursor: "pointer", color: post.saved ? "#1C0A00" : "#999999" }}
-          aria-label="Save"
-        >
-          <Bookmark className="h-4 w-4" fill={post.saved ? "currentColor" : "none"} />
-        </button>
-        {/* Sharing a card from the feed is not built; the post page has a working
-            share control. Disabled here rather than looking available. */}
-        <button
-          type="button"
-          disabled
-          title="Open the post to share it"
-          style={{ background: "none", border: 0, padding: 4, cursor: "not-allowed", color: "#cccccc" }}
-          aria-label="Share (not available here)"
-        >
-          <Send className="h-4 w-4" />
-        </button>
-      </div>
-    </article>
+        </>
+      }
+      details={[
+        { label: "When to use", value: post.whenToUse ?? "" },
+        { label: "How much", value: post.howMuch ?? "" },
+        { label: "Wish I knew before", value: post.watchOut ?? "", warning: true },
+      ]}
+      reply={{ key: "Reply", label: "Reply", disabled: true, title: "Replies open when commenting does" }}
+      quote={{ key: "Quote", label: "Quote", disabled: true, title: "Quoting is not built yet" }}
+      save={{ key: "Save", disabled: true, title: "Saving product posts isn't built yet" }}
+      share={{
+        key: "Share",
+        title: "Copy a link to this post",
+        onClick: () => {
+          const url = `${window.location.origin}/tea-products/${post.id}`;
+          void navigator.clipboard?.writeText(url).catch(() => {});
+        },
+      }}
+      onDelete={isOwn && onDelete ? onDelete : undefined}
+    />
   );
 }
-
 
 /* ---------- Compose sheet ---------- */
 
 /* Top-level helper components for ComposeSheet.
    Extracted out so React doesn't recreate them on every render,
    which would unmount inputs on every keystroke. */
+
+const FIELD_LABEL: React.CSSProperties = {
+  fontSize: 11, fontWeight: 500, color: CAPTION, textTransform: "uppercase",
+  letterSpacing: "0.08em", marginBottom: 8,
+};
+
+const INPUT_STYLE: React.CSSProperties = {
+  width: "100%", background: "#fff", border: CARD_BORDER, borderRadius: 10,
+  padding: "11px 13px", fontSize: 13, color: ESPRESSO, outline: "none",
+  fontFamily: SANS, boxSizing: "border-box", minHeight: 44,
+};
 
 function TextHashtagBlock({
   text, setText, hashtags, setHashtags, hashtagInput, setHashtagInput, placeholder,
@@ -886,31 +609,30 @@ function TextHashtagBlock({
   const addHashtag = () => {
     const tag = hashtagInput.trim().replace(/^#/, "");
     if (tag && !hashtags.includes(`#${tag}`)) {
-      setHashtags(prev => [...prev, `#${tag}`]);
+      setHashtags((prev) => [...prev, `#${tag}`]);
     }
     setHashtagInput("");
   };
   return (
     <>
-      <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 8 }}>Your take</div>
+      <div style={FIELD_LABEL}>Your take</div>
       <textarea
         value={text}
-        onChange={e => setText(e.target.value)}
+        onChange={(e) => setText(e.target.value)}
         placeholder={placeholder}
-        style={{
-          width: "100%", minHeight: 80, resize: "none",
-          background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12,
-          padding: "11px 13px", fontSize: 13, color: "#1C0A00", lineHeight: 1.6,
-          fontFamily: "'DM Sans', sans-serif", outline: "none", boxSizing: "border-box",
-          marginBottom: 8,
-        }}
+        style={{ ...INPUT_STYLE, minHeight: 96, resize: "none", lineHeight: 1.6, marginBottom: 8 }}
       />
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
-        {hashtags.map(tag => (
-          <div key={tag} style={{ display: "flex", alignItems: "center", gap: 4, background: "#FFF0F0", border: "1px solid #f5d0d0", borderRadius: 20, padding: "3px 9px" }}>
-            <span style={{ fontSize: 11, color: "#A8001C" }}>{tag}</span>
-            <button onClick={() => setHashtags(prev => prev.filter(t => t !== tag))} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: 0 }}>
-              <X size={10} color="#A8001C" />
+        {hashtags.map((tag) => (
+          <div key={tag} style={{ display: "flex", alignItems: "center", gap: 4, background: WARM_WHITE, border: CARD_BORDER, borderRadius: 999, padding: "3px 9px" }}>
+            <span style={{ fontSize: 13, color: ESPRESSO }}>{tag}</span>
+            <button
+              type="button"
+              onClick={() => setHashtags((prev) => prev.filter((t) => t !== tag))}
+              aria-label={`Remove ${tag}`}
+              style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: 0 }}
+            >
+              <X size={12} color={CAPTION} />
             </button>
           </div>
         ))}
@@ -918,12 +640,16 @@ function TextHashtagBlock({
       <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
         <input
           value={hashtagInput}
-          onChange={e => setHashtagInput(e.target.value)}
-          onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); addHashtag(); } }}
-          placeholder="add hashtag..."
-          style={{ flex: 1, background: "#f5f0ea", border: "none", borderRadius: 20, padding: "7px 13px", fontSize: 12, color: "#333", outline: "none", fontFamily: "'DM Sans', sans-serif" }}
+          onChange={(e) => setHashtagInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); addHashtag(); } }}
+          placeholder="add hashtag"
+          style={{ ...INPUT_STYLE, flex: 1, borderRadius: 999 }}
         />
-        <button onClick={addHashtag} style={{ background: "#f5f0ea", border: "none", borderRadius: 20, padding: "7px 13px", fontSize: 12, color: "#888", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+        <button
+          type="button"
+          onClick={addHashtag}
+          style={{ background: NEUTRAL_FILL, border: "none", borderRadius: 999, minHeight: 44, padding: "0 16px", fontSize: 13, color: ESPRESSO, cursor: "pointer", fontFamily: SANS }}
+        >
           Add
         </button>
       </div>
@@ -943,32 +669,35 @@ function ProductSearch({
   return (
     <div>
       <div style={{ position: "relative" }}>
-        <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#aaa" }} />
+        <Search size={15} style={{ position: "absolute", left: 13, top: "50%", transform: "translateY(-50%)", color: CAPTION }} />
         <input
           value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="search products..."
-          style={{ width: "100%", background: "#f5f0ea", border: "none", borderRadius: 20, padding: "9px 14px 9px 34px", fontSize: 12, color: "#333", outline: "none", fontFamily: "'DM Sans', sans-serif", boxSizing: "border-box" }}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="search products"
+          style={{ ...INPUT_STYLE, borderRadius: 999, paddingLeft: 36 }}
         />
       </div>
       {/* "Nothing found" is only said once a search has actually finished. */}
       {searchStatus === "done" && searchResults.length === 0 && (
-        <div style={{ marginTop: 6, fontSize: 11, color: "#999", padding: "0 4px" }}>
+        <div style={{ marginTop: 6, fontSize: 13, color: CAPTION, padding: "0 4px" }}>
           No products match that search.
         </div>
       )}
       {searchResults.length > 0 && (
-        <div style={{ marginTop: 6, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, overflow: "hidden" }}>
-          {searchResults.map(p => (
-            <button key={p.id} onClick={() => onSelect(p)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "none", border: "none", borderBottom: "0.5px solid #f5f0ea", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
-              {p.image && (
-                <img src={p.image} style={{ width: 32, height: 32, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />
-              )}
-              <div style={{ flex: 1, textAlign: "left" }}>
-                <div style={{ fontSize: 12, fontWeight: 500, color: "#1C0A00" }}>{p.name}</div>
-                <div style={{ fontSize: 11, color: "#999" }}>{p.brand}</div>
+        <div style={{ marginTop: 6, background: "#fff", border: CARD_BORDER, borderRadius: 12, overflow: "hidden" }}>
+          {searchResults.map((p) => (
+            <button
+              type="button"
+              key={p.id}
+              onClick={() => onSelect(p)}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", minHeight: 44, background: "none", border: "none", borderBottom: CARD_BORDER, cursor: "pointer", fontFamily: SANS }}
+            >
+              {p.image && <img src={p.image} alt="" style={{ width: 32, height: 32, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />}
+              <div style={{ flex: 1, textAlign: "left", minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 500, color: ESPRESSO }}>{p.name}</div>
+                <div style={{ fontSize: 13, color: CAPTION }}>{p.brand}</div>
               </div>
-              <Plus size={14} color="#aaa" />
+              <Plus size={15} color={CAPTION} />
             </button>
           ))}
         </div>
@@ -978,7 +707,7 @@ function ProductSearch({
 }
 
 function HotPickSelected({
-  hotPick, setHotPick, search, setSearch, searchResults, searchStatus, bgColor, borderColor, onSelect,
+  hotPick, setHotPick, search, setSearch, searchResults, searchStatus, onSelect,
 }: {
   hotPick: TaggedProduct | null;
   setHotPick: React.Dispatch<React.SetStateAction<TaggedProduct | null>>;
@@ -986,21 +715,17 @@ function HotPickSelected({
   setSearch: React.Dispatch<React.SetStateAction<string>>;
   searchResults: TaggedProduct[];
   searchStatus: ProductSearchState["status"];
-  bgColor: string;
-  borderColor: string;
   onSelect: (p: TaggedProduct) => void;
 }) {
   return hotPick ? (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, background: bgColor, border: `1px solid ${borderColor}`, borderRadius: 10, padding: "10px 12px", marginBottom: 14 }}>
-      {hotPick.image && (
-        <img src={hotPick.image} style={{ width: 38, height: 38, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
-      )}
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 12, fontWeight: 500, color: "#1C0A00" }}>{hotPick.name}</div>
-        <div style={{ fontSize: 11, color: "#999" }}>{hotPick.brand}</div>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: CARD_BORDER, borderRadius: 10, padding: "10px 12px", marginBottom: 14 }}>
+      {hotPick.image && <img src={hotPick.image} alt="" style={{ width: 38, height: 38, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 500, color: ESPRESSO }}>{hotPick.name}</div>
+        <div style={{ fontSize: 13, color: CAPTION }}>{hotPick.brand}</div>
       </div>
-      <button onClick={() => setHotPick(null)} style={{ background: "none", border: "none", cursor: "pointer" }}>
-        <X size={15} color="#aaa" />
+      <button type="button" onClick={() => setHotPick(null)} aria-label="Remove product" style={{ background: "none", border: "none", cursor: "pointer", minWidth: 44, minHeight: 44 }}>
+        <X size={16} color={CAPTION} />
       </button>
     </div>
   ) : (
@@ -1021,22 +746,21 @@ function TagPicker({
 }) {
   return (
     <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 8 }}>
-        Tag — optional
-      </div>
+      <div style={FIELD_LABEL}>Tag — optional</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-        {COMPOSE_TAGS.map(t => {
+        {COMPOSE_TAGS.map((t) => {
           const on = tag === t.key;
           return (
             <button
+              type="button"
               key={t.key}
               onClick={() => setTag(on ? null : t.key)}
               style={{
-                fontSize: 11, padding: "5px 11px", borderRadius: 20, cursor: "pointer",
-                fontFamily: "'DM Sans', sans-serif",
-                background: on ? "#1C0A00" : "#fff",
-                color: on ? "#FFFCF8" : "#888",
-                border: `1px solid ${on ? "#1C0A00" : "#E8DDD4"}`,
+                fontSize: 13, minHeight: 44, padding: "0 14px", borderRadius: 999, cursor: "pointer",
+                fontFamily: SANS,
+                background: on ? ESPRESSO : "#fff",
+                color: on ? WARM_WHITE : ESPRESSO,
+                border: `1px solid ${on ? ESPRESSO : BORDER}`,
               }}
             >
               {t.label}
@@ -1048,96 +772,121 @@ function TagPicker({
   );
 }
 
-/* Shown at the top of the composer while POSTING_ENABLED is false, so nobody
-   fills in a form that has nowhere to go. */
-function PostingClosedNotice() {
-  if (POSTING_ENABLED) return null;
+function VerdictPicker({
+  verdict, setVerdict,
+}: {
+  verdict: string | null;
+  setVerdict: React.Dispatch<React.SetStateAction<string | null>>;
+}) {
   return (
-    <div style={{ background: "#f5f0ea", border: "1px solid #E8DDD4", borderRadius: 10, padding: "9px 12px", marginBottom: 14, fontSize: 12, color: "#6b6258", lineHeight: 1.5 }}>
-      Posting isn't open yet. You can look around the composer, but nothing is posted or saved.
+    <div style={{ marginBottom: 14 }}>
+      <div style={FIELD_LABEL}>Your verdict — optional</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        {PRODUCT_VERDICTS.map((v) => {
+          const on = verdict === v;
+          const negative = NEGATIVE_VERDICTS.has(v);
+          const tone = negative ? CRIMSON : ESPRESSO;
+          return (
+            <button
+              type="button"
+              key={v}
+              onClick={() => setVerdict(on ? null : v)}
+              style={{
+                fontSize: 13, minHeight: 44, padding: "0 14px", borderRadius: 999, cursor: "pointer",
+                fontFamily: SANS,
+                background: on ? tone : "#fff",
+                color: on ? WARM_WHITE : tone,
+                border: `1px solid ${on ? tone : BORDER}`,
+              }}
+            >
+              {v}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/** Photo uploads are not open. The slot stays on screen and says so, instead of a picker that drops what it takes. */
+function PhotoNotice() {
+  if (PHOTO_UPLOAD_ENABLED) return null;
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <div style={FIELD_LABEL}>Photo</div>
+      <div style={{ border: `1px dashed ${BORDER}`, background: WARM_WHITE, borderRadius: 10, padding: "12px 13px", fontSize: 13, color: CAPTION, lineHeight: 1.5 }}>
+        {PHOTO_NOTICE}
+      </div>
     </div>
   );
 }
 
 function StepBuilder({
-  steps, setSteps, showStepPicker, setShowStepPicker, allowMakeup,
+  steps, setSteps, showStepPicker, setShowStepPicker,
 }: {
   steps: ComposeStep[];
   setSteps: React.Dispatch<React.SetStateAction<ComposeStep[]>>;
   showStepPicker: boolean;
   setShowStepPicker: React.Dispatch<React.SetStateAction<boolean>>;
-  allowMakeup: boolean;
 }) {
-  const addStep = (label: string, type: "skin" | "makeup") => {
-    setSteps(prev => [...prev, { id: Math.random().toString(36).slice(2), label, product: "", type }]);
+  const addStep = (label: string) => {
+    setSteps((prev) => [...prev, { id: Math.random().toString(36).slice(2), label, product: "" }]);
     setShowStepPicker(false);
   };
   const updateStepProduct = (id: string, value: string) => {
-    setSteps(prev => prev.map(s => s.id === id ? { ...s, product: value } : s));
+    setSteps((prev) => prev.map((s) => (s.id === id ? { ...s, product: value } : s)));
   };
-  const removeStep = (id: string) => {
-    setSteps(prev => prev.filter(s => s.id !== id));
-  };
-  const availableSkin = SKIN_STEPS.filter(s => !steps.find(st => st.label === s));
-  const availableMakeup = allowMakeup ? MAKEUP_STEPS.filter(s => !steps.find(st => st.label === s)) : [];
+  const removeStep = (id: string) => setSteps((prev) => prev.filter((s) => s.id !== id));
+  const available = SKIN_STEPS.filter((s) => !steps.find((st) => st.label === s));
+
   return (
     <div style={{ marginBottom: 14 }}>
       {steps.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 10 }}>
-          {steps.map((step, i) => {
-            const color = step.type === "skin" ? "#A8001C" : "#C4743A";
-            return (
-              <div key={step.id} style={{ display: "flex", alignItems: "center", gap: 9, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 10, padding: "9px 11px" }}>
-                <div style={{ width: 22, height: 22, borderRadius: "50%", background: color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 500, color: "#fff", flexShrink: 0 }}>{i + 1}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 10, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 2 }}>{step.label}</div>
-                  <input
-                    value={step.product}
-                    onChange={e => updateStepProduct(step.id, e.target.value)}
-                    placeholder="product name..."
-                    style={{ fontSize: 12, color: "#333", background: "none", border: "none", width: "100%", outline: "none", fontFamily: "'DM Sans', sans-serif" }}
-                  />
-                </div>
-                <button onClick={() => removeStep(step.id)} style={{ background: "none", border: "none", cursor: "pointer" }}>
-                  <X size={13} color="#ccc" />
-                </button>
+          {steps.map((step, i) => (
+            <div key={step.id} style={{ display: "flex", alignItems: "center", gap: 9, background: "#fff", border: CARD_BORDER, borderRadius: 10, padding: "9px 11px" }}>
+              <div style={{ width: 22, height: 22, borderRadius: "50%", border: `1px solid ${ESPRESSO}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: ESPRESSO, flexShrink: 0 }}>{i + 1}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, color: CAPTION, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 2 }}>{step.label}</div>
+                <input
+                  value={step.product}
+                  onChange={(e) => updateStepProduct(step.id, e.target.value)}
+                  placeholder="product name"
+                  style={{ fontSize: 13, color: ESPRESSO, background: "none", border: "none", width: "100%", outline: "none", fontFamily: SANS }}
+                />
               </div>
-            );
-          })}
+              <button type="button" onClick={() => removeStep(step.id)} aria-label={`Remove ${step.label}`} style={{ background: "none", border: "none", cursor: "pointer", minWidth: 44, minHeight: 44 }}>
+                <X size={14} color={CAPTION} />
+              </button>
+            </div>
+          ))}
         </div>
       )}
       {!showStepPicker ? (
         <button
+          type="button"
           onClick={() => setShowStepPicker(true)}
-          style={{ display: "flex", alignItems: "center", gap: 6, background: "#f5f0ea", border: "none", borderRadius: 20, padding: "8px 16px", fontSize: 12, color: "#888", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
+          style={{ display: "flex", alignItems: "center", gap: 6, background: NEUTRAL_FILL, border: "none", borderRadius: 999, minHeight: 44, padding: "0 16px", fontSize: 13, color: ESPRESSO, cursor: "pointer", fontFamily: SANS }}
         >
-          <Plus size={13} color="#888" /> Add step
+          <Plus size={14} color={ESPRESSO} /> Add step
         </button>
       ) : (
-        <div style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, overflow: "hidden" }}>
-          {availableSkin.length > 0 && (
-            <>
-              <div style={{ padding: "7px 12px", fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.6px", borderBottom: "0.5px solid #f5f0ea" }}>Skin</div>
-              {availableSkin.map(s => (
-                <button key={s} onClick={() => addStep(s, "skin")} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "none", border: "none", borderBottom: "0.5px solid #f5f0ea", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
-                  <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#A8001C", flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, color: "#333" }}>{s}</span>
-                </button>
-              ))}
-            </>
-          )}
-          {allowMakeup && availableMakeup.length > 0 && (
-            <>
-              <div style={{ padding: "7px 12px", fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.6px", borderBottom: "0.5px solid #f5f0ea" }}>Makeup</div>
-              {availableMakeup.map(s => (
-                <button key={s} onClick={() => addStep(s, "makeup")} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "none", border: "none", borderBottom: "0.5px solid #f5f0ea", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
-                  <div style={{ width: 9, height: 9, borderRadius: "50%", background: "#C4743A", flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, color: "#333" }}>{s}</span>
-                </button>
-              ))}
-            </>
-          )}
-          <button onClick={() => setShowStepPicker(false)} style={{ width: "100%", padding: "8px", fontSize: 12, color: "#aaa", background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
+        <div style={{ background: "#fff", border: CARD_BORDER, borderRadius: 12, overflow: "hidden" }}>
+          {available.map((s) => (
+            <button
+              type="button"
+              key={s}
+              onClick={() => addStep(s)}
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "0 12px", minHeight: 44, background: "none", border: "none", borderBottom: CARD_BORDER, cursor: "pointer", fontFamily: SANS }}
+            >
+              <span style={{ fontSize: 13, color: ESPRESSO }}>{s}</span>
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setShowStepPicker(false)}
+            style={{ width: "100%", minHeight: 44, fontSize: 13, color: CAPTION, background: "none", border: "none", cursor: "pointer", fontFamily: SANS }}
+          >
             Cancel
           </button>
         </div>
@@ -1146,276 +895,126 @@ function StepBuilder({
   );
 }
 
-function PhotoOptional({
-  images, setImages, fileRef,
-}: {
-  images: string[];
-  setImages: React.Dispatch<React.SetStateAction<string[]>>;
-  fileRef: React.RefObject<HTMLInputElement | null>;
-}) {
-  const onFiles = (files: FileList | null) => {
-    if (!files) return;
-    const urls = Array.from(files).map(f => URL.createObjectURL(f));
-    setImages(prev => [...prev, ...urls]);
-  };
-  return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 8 }}>Photo — show your skin or the product</div>
-      {images.length > 0 ? (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
-          {images.map((src, i) => (
-            <div key={i} style={{ position: "relative", width: 72, height: 72, borderRadius: 10, overflow: "hidden" }}>
-              <img src={src} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              <button onClick={() => setImages(prev => prev.filter((_, idx) => idx !== i))} style={{ position: "absolute", top: 3, right: 3, width: 18, height: 18, borderRadius: "50%", background: "rgba(0,0,0,0.6)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <X size={10} color="#fff" />
-              </button>
-            </div>
-          ))}
-          <button onClick={() => fileRef.current?.click()} style={{ width: 72, height: 72, borderRadius: 10, border: "1.5px dashed #ddd", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Plus size={18} color="#ccc" />
-          </button>
-        </div>
-      ) : (
-        <>
-          <div
-            onClick={() => fileRef.current?.click()}
-            style={{ width: "100%", height: 90, borderRadius: 12, border: "1.5px dashed #f5d0d0", background: "#FFF8F8", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5, cursor: "pointer", marginBottom: 4 }}
-          >
-            <ImagePlus size={24} color="#f5d0d0" />
-            <span style={{ fontSize: 12, color: "#f5b0b0" }}>before/after · product shot · skin close-up</span>
-          </div>
-          <span style={{ fontSize: 11, color: "#bbb", display: "block", textAlign: "center", marginBottom: 0, cursor: "pointer" }}>
-            skip for now
-          </span>
-        </>
-      )}
-      <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={e => onFiles(e.target.files)} />
-    </div>
-  );
-}
-
-function PhotoMandatory({
-  images, setImages, lookFileRef,
-}: {
-  images: string[];
-  setImages: React.Dispatch<React.SetStateAction<string[]>>;
-  lookFileRef: React.RefObject<HTMLInputElement | null>;
-}) {
-  const onFiles = (files: FileList | null) => {
-    if (!files) return;
-    const urls = Array.from(files).map(f => URL.createObjectURL(f));
-    setImages(prev => [...urls, ...prev]);
-  };
-  return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 8 }}>
-        Your look photo <span style={{ color: "#A8001C" }}>required</span>
-      </div>
-      {images.length > 0 ? (
-        <div style={{ position: "relative", width: "100%", height: 180, borderRadius: 14, overflow: "hidden", marginBottom: 8 }}>
-          <img src={images[0]} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          <button onClick={() => setImages([])} style={{ position: "absolute", top: 8, right: 8, width: 24, height: 24, borderRadius: "50%", background: "rgba(0,0,0,0.6)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <X size={12} color="#fff" />
-          </button>
-          <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
-            <button onClick={() => lookFileRef.current?.click()} style={{ background: "rgba(0,0,0,0.5)", color: "#fff", border: "none", borderRadius: 20, padding: "5px 12px", fontSize: 11, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
-              + add more
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div
-          onClick={() => lookFileRef.current?.click()}
-          style={{ width: "100%", height: 160, borderRadius: 14, background: "#1C0A00", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer" }}
-        >
-          <ImagePlus size={32} color="rgba(255,255,255,0.4)" />
-          <span style={{ fontSize: 13, fontWeight: 500, color: "#FFFCF8" }}>Upload your look photo</span>
-          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>the face is the whole point — required to post</span>
-        </div>
-      )}
-      <input ref={lookFileRef} type="file" accept="image/*" multiple hidden onChange={e => onFiles(e.target.files)} />
-    </div>
-  );
-}
-
 function ComposeSheet({
-  open, onOpenChange, promptContext, onSubmit,
+  open, onOpenChange, promptContext, viewer, onPosted,
 }: {
   open: boolean;
   onOpenChange: (b: boolean) => void;
   promptContext?: string;
-  onSubmit: (p: Omit<Post, "id" | "helped" | "helpedByMe" | "saved" | "comments" | "createdAt">) => void;
+  viewer: ViewerProfile;
+  onPosted: () => void;
 }) {
-  const viewer = useViewerProfile();
   const [stage, setStage] = React.useState<ComposeStage>("type");
   const [skinTeaMode, setSkinTeaMode] = React.useState<SkinTeaMode>("single");
   const [tag, setTag] = React.useState<TagKey | null>(null);
+  const [verdict, setVerdict] = React.useState<string | null>(null);
   const [text, setText] = React.useState("");
-  const [images, setImages] = React.useState<string[]>([]);
   const [hashtags, setHashtags] = React.useState<string[]>([]);
   const [hashtagInput, setHashtagInput] = React.useState("");
   const [search, setSearch] = React.useState("");
   const [hotPick, setHotPick] = React.useState<TaggedProduct | null>(null);
   const [steps, setSteps] = React.useState<ComposeStep[]>([]);
   const [showStepPicker, setShowStepPicker] = React.useState(false);
-  const [, setShowProductSearch] = React.useState(false);
+  const [lookClosedOpen, setLookClosedOpen] = React.useState(false);
+  const [submitting, setSubmitting] = React.useState(false);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
   // Every detail field starts empty. Pre-filled usage guidance would ship as the
   // poster's own claim about a product.
-  const [skinTeaDetails, setSkinTeaDetails] = React.useState({
-    when: "" as string,
-    whenChoice: "" as string,
-    howMuch: "",
-    watchOut: "",
-    timeline: "" as string,
-    timelineChoice: "" as string,
-    includeWhen: true,
-    includeHowMuch: true,
-    includeWatchOut: true,
-    includeTimeline: true,
-  });
-  const fileRef = React.useRef<HTMLInputElement>(null);
-  const lookFileRef = React.useRef<HTMLInputElement>(null);
+  const [details, setDetails] = React.useState({ whenChoice: "", howMuch: "", watchOut: "", timelineChoice: "" });
 
+  // The sheet is reset when it opens, never while it is open: a failed insert must leave
+  // everything the poster typed exactly where it is.
   React.useEffect(() => {
-    if (open) {
-      setStage("type");
-      setSkinTeaMode("single");
-      setTag(null);
-      setText("");
-      setImages([]);
-      setHashtags([]);
-      setHashtagInput("");
-      setSearch("");
-      setHotPick(null);
-      setSteps([]);
-      setShowStepPicker(false);
-      setShowProductSearch(false);
-      setSkinTeaDetails({
-        when: "", whenChoice: "",
-        howMuch: "", watchOut: "",
-        timeline: "", timelineChoice: "",
-        includeWhen: true, includeHowMuch: true,
-        includeWatchOut: true, includeTimeline: true,
-      });
-    }
+    if (!open) return;
+    setStage("type");
+    setSkinTeaMode("single");
+    setTag(null);
+    setVerdict(null);
+    setText("");
+    setHashtags([]);
+    setHashtagInput("");
+    setSearch("");
+    setHotPick(null);
+    setSteps([]);
+    setShowStepPicker(false);
+    setLookClosedOpen(false);
+    setSubmitting(false);
+    setSubmitError(null);
+    setDetails({ whenChoice: "", howMuch: "", watchOut: "", timelineChoice: "" });
   }, [open]);
-
-  const onFiles = (files: FileList | null, prepend = false) => {
-    if (!files) return;
-    const urls = Array.from(files).map(f => URL.createObjectURL(f));
-    setImages(prev => prepend ? [...urls, ...prev] : [...prev, ...urls]);
-  };
 
   // Results come from the `products` table, debounced — there is no local catalogue.
   const { results: searchResults, status: searchStatus } = useProductSearch(search);
 
-  const addHashtag = () => {
-    const tag = hashtagInput.trim().replace(/^#/, "");
-    if (tag && !hashtags.includes(`#${tag}`)) {
-      setHashtags(prev => [...prev, `#${tag}`]);
-    }
-    setHashtagInput("");
-  };
-
   const selectHotPick = (product: TaggedProduct) => {
     setHotPick(product);
     setSearch("");
-    setShowProductSearch(false);
     // No autofill: the detail fields stay empty until the poster writes them.
   };
 
-  const addStep = (label: string, type: "skin" | "makeup") => {
-    setSteps(prev => [...prev, {
-      id: Math.random().toString(36).slice(2),
-      label, product: "", type,
-    }]);
-    setShowStepPicker(false);
-  };
+  /**
+   * The one write. Everything about the author comes from their own profile — an unknown
+   * username or skin type stays null rather than being guessed — and the row is inserted as
+   * the signed-in user, which is what RLS and enforce_signed_in_author both require.
+   */
+  async function submit(postType: PostType) {
+    if (submitting) return;
+    const body = text.trim();
+    if (!body) return;
+    setSubmitting(true);
+    setSubmitError(null);
 
-  const updateStepProduct = (id: string, value: string) => {
-    setSteps(prev => prev.map(s => s.id === id ? { ...s, product: value } : s));
-  };
+    const routineSteps = postType === "skin-tea" && skinTeaMode === "routine"
+      ? steps.map((s, i) => ({ num: i + 1, label: s.label, product: s.product.trim() || s.label }))
+      : [];
 
-  const removeStep = (id: string) => {
-    setSteps(prev => prev.filter(s => s.id !== id));
-  };
-
-  // The author is whoever is signed in, and nothing about them is invented:
-  // an unknown skin type stays null and an unknown username stays null.
-  const authorFields = {
-    skinType: viewer?.skinType ?? null,
-    authorUsername: viewer?.username ?? null,
-  };
-
-  const submitSpill = () => {
-    if (!POSTING_ENABLED || !text.trim()) return;
-    onSubmit({
-      ...authorFields, tag, postType: "spill",
-      text: text.trim(), images, hashtags,
-      // A spill may name one product; when it does, the post links it.
-      products: hotPick ? [hotPick] : [],
-      steps: [], totalSteps: 0, promptContext,
+    const { error } = await (supabase as any).from("product_posts").insert({
+      product_id: hotPick?.id ?? null,
+      user_id: viewer.userId,
+      username: viewer.username,
+      avatar_url: viewer.avatarUrl,
+      skin_type: viewer.skinType,
+      headline: promptContext ? promptContext.trim() : null,
+      body,
+      verdict: verdict,
+      usage_duration: details.timelineChoice || null,
+      when_to_use: details.whenChoice || null,
+      how_much: details.howMuch.trim() || null,
+      watch_out: details.watchOut.trim() || null,
+      post_type: postType,
+      tag,
+      hashtags,
+      steps: routineSteps,
+      // No photo is written: there is no bucket, and a blob: URL is meaningless to anyone else.
+      photo_urls: [],
     });
-    onOpenChange(false);
-  };
 
-  const submitSkinTea = () => {
-    if (!POSTING_ENABLED || !text.trim() || !hotPick) return;
-    const routineSteps = steps.map((s, i) => ({
-      num: i + 1, label: s.label, product: s.product || s.label, type: s.type,
-    }));
-    onSubmit({
-      ...authorFields, tag, postType: "skin-tea",
-      skinTeaMode,
-      text: text.trim(), images, hashtags,
-      products: [hotPick],
-      // A single-product post has no routine, so it carries no steps. Labelling
-      // the product a "Serum" would be a step the poster never wrote.
-      steps: skinTeaMode === "routine" ? routineSteps : [],
-      totalSteps: skinTeaMode === "routine" ? routineSteps.length : 0,
-      promptContext,
-    });
-    onOpenChange(false);
-  };
-
-  const submitLookTea = () => {
-    if (!POSTING_ENABLED || !text.trim() || !hotPick || images.length === 0) return;
-    onSubmit({
-      ...authorFields, tag, postType: "look-tea",
-      text: text.trim(), images, hashtags,
-      products: [hotPick],
-      steps: steps.map((s, i) => ({ num: i + 1, label: s.label, product: s.product || s.label, type: s.type })),
-      totalSteps: steps.length,
-      promptContext,
-    });
-    onOpenChange(false);
-  };
+    setSubmitting(false);
+    // On failure the sheet stays open with everything the poster typed.
+    if (error) { setSubmitError(`Couldn't post: ${error.message}`); return; }
+    onPosted();
+  }
 
   const BackBtn = ({ to }: { to: ComposeStage }) => (
     <button
+      type="button"
       onClick={() => setStage(to)}
-      style={{ background: "none", border: "none", cursor: "pointer", padding: "2px 4px", display: "flex", alignItems: "center" }}
+      aria-label="Back"
+      style={{ background: "none", border: "none", cursor: "pointer", minWidth: 44, minHeight: 44, display: "flex", alignItems: "center" }}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1C0A00" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={ESPRESSO} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <polyline points="15 18 9 12 15 6" />
       </svg>
     </button>
   );
 
-  const SheetHeader = ({ title, badge, badgeBg, badgeColor, backTo }: {
-    title: string; badge?: string; badgeBg?: string; badgeColor?: string; backTo?: ComposeStage;
-  }) => (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", borderBottom: "0.5px solid #E8DDD4", flexShrink: 0 }}>
+  const SheetHead = ({ title, backTo }: { title: string; backTo?: ComposeStage }) => (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 16px", borderBottom: CARD_BORDER, flexShrink: 0 }}>
       {backTo && <BackBtn to={backTo} />}
-      <span style={{ fontSize: 16, fontWeight: 500, color: "#1C0A00", flex: 1, fontFamily: "'DM Sans', sans-serif" }}>{title}</span>
-      {badge && (
-        <span style={{ fontSize: 11, fontWeight: 500, padding: "3px 9px", borderRadius: 20, background: badgeBg, color: badgeColor }}>
-          {badge}
-        </span>
-      )}
+      <span style={{ fontSize: 16, fontWeight: 500, color: ESPRESSO, flex: 1, fontFamily: SANS }}>{title}</span>
       {!backTo && (
-        <button onClick={() => onOpenChange(false)} style={{ background: "none", border: "none", cursor: "pointer" }}>
-          <X size={18} color="#1C0A00" />
+        <button type="button" onClick={() => onOpenChange(false)} aria-label="Close" style={{ background: "none", border: "none", cursor: "pointer", minWidth: 44, minHeight: 44 }}>
+          <X size={18} color={ESPRESSO} />
         </button>
       )}
     </div>
@@ -1423,63 +1022,92 @@ function ComposeSheet({
 
   const textBlockProps = { text, setText, hashtags, setHashtags, hashtagInput, setHashtagInput };
   const hotPickPropsBase = { hotPick, setHotPick, search, setSearch, searchResults, searchStatus, onSelect: selectHotPick };
-  const stepBuilderPropsBase = { steps, setSteps, showStepPicker, setShowStepPicker };
 
-  // While posting is closed the submit buttons are disabled and say so, rather
-  // than looking live and doing nothing.
-  const spillReady = POSTING_ENABLED && !!text.trim();
-  const skinTeaReady = POSTING_ENABLED && !!text.trim() && !!hotPick;
-  const lookTeaReady = POSTING_ENABLED && !!text.trim() && !!hotPick && images.length > 0;
+  const spillReady = !!text.trim() && !submitting;
+  const skinTeaReady = !!text.trim() && !!hotPick && !submitting;
+
+  const submitBar = (label: string, ready: boolean, onClick: () => void) => (
+    <div style={{ padding: "10px 16px 16px", borderTop: CARD_BORDER, background: WARM_WHITE }}>
+      {submitError && <div style={{ fontSize: 13, color: CRIMSON, marginBottom: 8 }}>{submitError}</div>}
+      <button
+        type="button"
+        disabled={!ready}
+        onClick={onClick}
+        style={{
+          width: "100%", background: ready ? CRIMSON : NEUTRAL_FILL, color: ready ? WARM_WHITE : DISABLED,
+          border: "none", borderRadius: 999, minHeight: 48, fontSize: 14, fontWeight: 500,
+          cursor: ready ? "pointer" : "not-allowed", fontFamily: SANS,
+        }}
+      >
+        {submitting ? "Posting…" : label}
+      </button>
+      <div style={{ fontSize: 13, color: CAPTION, lineHeight: 1.5, marginTop: 10 }}>
+        Your post is public on Skintea{viewer.username ? ` as ${viewer.username}` : " without a name"}.
+      </div>
+    </div>
+  );
+
+  const TYPE_OPTIONS = [
+    /* `example` is a made-up illustration of the format, so it is labelled as an example
+       and never rendered inside quotation marks — nobody said these words. */
+    { type: "skin-tea" as const, label: "Skin Tea", desc: "Skincare — one product, a full routine, skin prep, ingredients. Anything about your skin.", example: "Example: two weeks on this niacinamide and my t-zone is actually calm", open: true },
+    { type: "look-tea" as const, label: "Look Tea", desc: "A makeup look — show your face, then break down how you built it.", example: "Photo uploads aren't open yet, and a look with no look isn't a Look Tea.", open: false },
+    { type: "spill" as const, label: "Spill", desc: "Raw honest take — warning, hot opinion, experience others need to know. No steps needed.", example: "Example: nobody warned me tretinoin makes you look worse for 3 months", open: true },
+  ];
 
   const TypeStage = (
-    <div style={{ display: "flex", flexDirection: "column" as const, height: "100%" }}>
-      <SheetHeader title="What are you spilling?" />
-      <div style={{ flex: 1, overflowY: "auto" as const, padding: "16px" }}>
-        <PostingClosedNotice />
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <SheetHead title="What are you spilling?" />
+      <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
         {promptContext && (
-          <div style={{ background: "rgba(251,191,36,0.12)", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 10, padding: "10px 12px", marginBottom: 14 }}>
-            <div style={{ fontSize: 10, fontWeight: 500, textTransform: "uppercase" as const, letterSpacing: "0.6px", color: "#92500a", marginBottom: 3 }}>replying to</div>
-            <div style={{ fontSize: 12, color: "#1C0A00" }}>{promptContext}</div>
+          <div style={{ background: WARM_WHITE, border: CARD_BORDER, borderRadius: 10, padding: "10px 12px", marginBottom: 14 }}>
+            <div style={{ ...FIELD_LABEL, marginBottom: 3 }}>Replying to</div>
+            <div style={{ fontSize: 13, color: ESPRESSO }}>{promptContext}</div>
           </div>
         )}
-        {[
-          /* `example` is a made-up illustration of the format, so it is labelled
-             as an example and never rendered inside quotation marks — nobody
-             said these words. */
-          { type: "skin-tea" as ComposeStage, label: "Skin Tea", bg: "#FFF0F0", color: "#A8001C", border: "#f5d0d0", desc: "Skincare — one product, a full routine, skin prep, ingredients. Anything about your skin.", example: "Example: two weeks on this niacinamide and my t-zone is actually calm" },
-          { type: "look-tea" as ComposeStage, label: "Look Tea", bg: "#F0EDF8", color: "#5B3FA6", border: "#e0d8f5", desc: "A makeup look — show your face, then break down how you built it. Skin prep + makeup steps.", example: "Example: glazed skin met gala look — here's every product i used" },
-          { type: "spill" as ComposeStage, label: "Spill", bg: "#FFF7E6", color: "#B45309", border: "#f5edda", desc: "Raw honest take — warning, hot opinion, experience others need to know. No steps needed.", example: "Example: nobody warned me tretinoin makes you look worse for 3 months" },
-        ].map(opt => (
+        {TYPE_OPTIONS.map((opt) => (
           <button
+            type="button"
             key={opt.type}
-            onClick={() => setStage(opt.type)}
-            style={{ width: "100%", background: "#fff", border: `1px solid ${opt.border}`, borderRadius: 14, padding: "14px 16px", marginBottom: 10, textAlign: "left" as const, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
+            onClick={() => (opt.open ? setStage(opt.type as ComposeStage) : setLookClosedOpen(true))}
+            style={{
+              width: "100%", background: "#fff", border: CARD_BORDER, borderRadius: 12, padding: "14px 16px",
+              marginBottom: 10, textAlign: "left", cursor: "pointer", fontFamily: SANS,
+              opacity: opt.open ? 1 : 0.65,
+            }}
           >
-            <div style={{ fontSize: 11, fontWeight: 500, padding: "3px 10px", borderRadius: 20, background: opt.bg, color: opt.color, display: "inline-block", marginBottom: 7 }}>{opt.label}</div>
-            <div style={{ fontSize: 12, color: "#555", lineHeight: 1.5, marginBottom: 5 }}>{opt.desc}</div>
-            <div style={{ fontSize: 11, color: "#aaa", fontStyle: "italic" }}>{opt.example}</div>
+            <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", color: ESPRESSO, marginBottom: 7 }}>
+              {opt.label}{!opt.open && " — not open yet"}
+            </div>
+            <div style={{ fontSize: 13, color: ESPRESSO, lineHeight: 1.5, marginBottom: 5 }}>{opt.desc}</div>
+            <div style={{ fontSize: 13, color: CAPTION }}>{opt.example}</div>
           </button>
-         ))}
-       </div>
-     </div>
-   );
+        ))}
+        {lookClosedOpen && (
+          <div style={{ background: WARM_WHITE, border: CARD_BORDER, borderRadius: 10, padding: "12px 13px", fontSize: 13, color: ESPRESSO, lineHeight: 1.5 }}>
+            Look Tea needs a photo of your look, and photo uploads aren't open yet. Nothing you type here would be lost,
+            because there is no form to fill in. Skin Tea and Spill post now.
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   const SkinTeaStage = (
-    <div style={{ display: "flex", flexDirection: "column" as const, height: "100%" }}>
-      <SheetHeader title="Skin Tea" badge="Skin Tea" badgeBg="#FFF0F0" badgeColor="#A8001C" backTo="type" />
-      <div style={{ flex: 1, overflowY: "auto" as const, padding: "16px" }}>
-        <PostingClosedNotice />
-        <div style={{ display: "flex", background: "#f5f0ea", borderRadius: 10, padding: 3, marginBottom: 16 }}>
-          {(["single", "routine"] as SkinTeaMode[]).map(mode => (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <SheetHead title="Skin Tea" backTo="type" />
+      <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+        <div style={{ display: "flex", background: NEUTRAL_FILL, borderRadius: 10, padding: 3, marginBottom: 16 }}>
+          {(["single", "routine"] as SkinTeaMode[]).map((mode) => (
             <button
+              type="button"
               key={mode}
               onClick={() => setSkinTeaMode(mode)}
               style={{
-                flex: 1, padding: "7px 10px", borderRadius: 8, border: "none",
-                fontSize: 12, fontWeight: 500, cursor: "pointer",
-                fontFamily: "'DM Sans', sans-serif",
-                background: skinTeaMode === mode ? "#fff" : "none",
-                color: skinTeaMode === mode ? "#1C0A00" : "#888",
+                flex: 1, minHeight: 44, borderRadius: 8, border: "none",
+                fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: SANS,
+                background: skinTeaMode === mode ? "#fff" : "transparent",
+                color: skinTeaMode === mode ? ESPRESSO : CAPTION,
               }}
             >
               {mode === "single" ? "Single product" : "Full routine"}
@@ -1487,211 +1115,98 @@ function ComposeSheet({
           ))}
         </div>
 
-        <PhotoOptional images={images} setImages={setImages} fileRef={fileRef} />
+        <PhotoNotice />
         <TextHashtagBlock {...textBlockProps} placeholder="what did this actually do for your skin?" />
 
         {skinTeaMode === "single" ? (
           <>
-            <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Hot Pick — the product</div>
-            <HotPickSelected {...hotPickPropsBase} bgColor="#FFF0F0" borderColor="#f5d0d0" />
+            <div style={FIELD_LABEL}>The product</div>
+            <HotPickSelected {...hotPickPropsBase} />
 
             {hotPick && (
               <>
-                <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Details — toggle what applies</div>
-                <div style={{ background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, overflow: "hidden", marginBottom: 14 }}>
-
-                  <div style={{ padding: "10px 13px", borderBottom: "0.5px solid #f5f0ea" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: skinTeaDetails.includeWhen ? 6 : 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <span>⏱</span>
-                        <span style={{ fontSize: 10, fontWeight: 500, color: "#A8001C", textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>When to use</span>
-                      </div>
+                <div style={FIELD_LABEL}>When to use</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+                  {["AM", "PM", "AM + PM"].map((opt) => {
+                    const on = details.whenChoice === opt;
+                    return (
                       <button
-                        onClick={() => setSkinTeaDetails(prev => ({ ...prev, includeWhen: !prev.includeWhen }))}
-                        style={{ fontSize: 10, color: skinTeaDetails.includeWhen ? "#A8001C" : "#bbb", background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
+                        type="button"
+                        key={opt}
+                        onClick={() => setDetails((prev) => ({ ...prev, whenChoice: on ? "" : opt }))}
+                        style={{ fontSize: 13, minHeight: 44, padding: "0 14px", borderRadius: 999, cursor: "pointer", fontFamily: SANS, background: on ? ESPRESSO : "#fff", color: on ? WARM_WHITE : ESPRESSO, border: `1px solid ${on ? ESPRESSO : BORDER}` }}
                       >
-                        {skinTeaDetails.includeWhen ? "include" : "add"}
+                        {opt}
                       </button>
-                    </div>
-                    {skinTeaDetails.includeWhen && (
-                      <div style={{ display: "flex", gap: 5, flexWrap: "wrap" as const }}>
-                        {["AM", "PM", "AM + PM"].map(opt => (
-                          <button
-                            key={opt}
-                            onClick={() => setSkinTeaDetails(prev => ({ ...prev, whenChoice: opt }))}
-                            style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, border: "1px solid", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", background: skinTeaDetails.whenChoice === opt ? "#A8001C" : "#fff", color: skinTeaDetails.whenChoice === opt ? "#fff" : "#888", borderColor: skinTeaDetails.whenChoice === opt ? "#A8001C" : "#E8DDD4" }}
-                          >{opt}</button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                    );
+                  })}
+                </div>
 
-                  <div style={{ padding: "10px 13px", borderBottom: "0.5px solid #f5f0ea" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: skinTeaDetails.includeHowMuch ? 6 : 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <span>💧</span>
-                        <span style={{ fontSize: 10, fontWeight: 500, color: "#A8001C", textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>How much</span>
-                      </div>
-                      <button onClick={() => setSkinTeaDetails(prev => ({ ...prev, includeHowMuch: !prev.includeHowMuch }))} style={{ fontSize: 10, color: skinTeaDetails.includeHowMuch ? "#A8001C" : "#bbb", background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
-                        {skinTeaDetails.includeHowMuch ? "include" : "add"}
-                      </button>
-                    </div>
-                    {skinTeaDetails.includeHowMuch && (
-                      <input value={skinTeaDetails.howMuch} placeholder="how much you used" onChange={e => setSkinTeaDetails(prev => ({ ...prev, howMuch: e.target.value }))} style={{ width: "100%", background: "#f5f0ea", border: "none", borderRadius: 8, padding: "7px 10px", fontSize: 12, color: "#333", outline: "none", fontFamily: "'DM Sans', sans-serif", boxSizing: "border-box" as const }} />
-                    )}
-                  </div>
+                <div style={FIELD_LABEL}>How much</div>
+                <input
+                  value={details.howMuch}
+                  placeholder="how much you used"
+                  onChange={(e) => setDetails((prev) => ({ ...prev, howMuch: e.target.value }))}
+                  style={{ ...INPUT_STYLE, marginBottom: 14 }}
+                />
 
-                  <div style={{ padding: "10px 13px", borderBottom: "0.5px solid #f5f0ea" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: skinTeaDetails.includeWatchOut ? 6 : 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <span>⚠️</span>
-                        <span style={{ fontSize: 10, fontWeight: 500, color: "#A8001C", textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>Watch out</span>
-                      </div>
-                      <button onClick={() => setSkinTeaDetails(prev => ({ ...prev, includeWatchOut: !prev.includeWatchOut }))} style={{ fontSize: 10, color: skinTeaDetails.includeWatchOut ? "#A8001C" : "#bbb", background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
-                        {skinTeaDetails.includeWatchOut ? "include" : "add"}
-                      </button>
-                    </div>
-                    {skinTeaDetails.includeWatchOut && (
-                      <input value={skinTeaDetails.watchOut} placeholder="anything you'd warn someone about" onChange={e => setSkinTeaDetails(prev => ({ ...prev, watchOut: e.target.value }))} style={{ width: "100%", background: "#f5f0ea", border: "none", borderRadius: 8, padding: "7px 10px", fontSize: 12, color: "#333", outline: "none", fontFamily: "'DM Sans', sans-serif", boxSizing: "border-box" as const }} />
-                    )}
-                  </div>
+                <div style={{ ...FIELD_LABEL, color: CRIMSON }}>Wish I knew before</div>
+                <input
+                  value={details.watchOut}
+                  placeholder="anything you'd warn someone about"
+                  onChange={(e) => setDetails((prev) => ({ ...prev, watchOut: e.target.value }))}
+                  style={{ ...INPUT_STYLE, marginBottom: 14 }}
+                />
 
-                  <div style={{ padding: "10px 13px" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: skinTeaDetails.includeTimeline ? 6 : 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <span>📅</span>
-                        <span style={{ fontSize: 10, fontWeight: 500, color: "#A8001C", textTransform: "uppercase" as const, letterSpacing: "0.5px" }}>Timeline</span>
-                      </div>
-                      <button onClick={() => setSkinTeaDetails(prev => ({ ...prev, includeTimeline: !prev.includeTimeline }))} style={{ fontSize: 10, color: skinTeaDetails.includeTimeline ? "#A8001C" : "#bbb", background: "none", border: "none", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>
-                        {skinTeaDetails.includeTimeline ? "include" : "add"}
+                <div style={FIELD_LABEL}>How long you used it</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+                  {["1 week", "2 weeks", "1 month", "3 months", "ongoing"].map((opt) => {
+                    const on = details.timelineChoice === opt;
+                    return (
+                      <button
+                        type="button"
+                        key={opt}
+                        onClick={() => setDetails((prev) => ({ ...prev, timelineChoice: on ? "" : opt }))}
+                        style={{ fontSize: 13, minHeight: 44, padding: "0 14px", borderRadius: 999, cursor: "pointer", fontFamily: SANS, background: on ? ESPRESSO : "#fff", color: on ? WARM_WHITE : ESPRESSO, border: `1px solid ${on ? ESPRESSO : BORDER}` }}
+                      >
+                        {opt}
                       </button>
-                    </div>
-                    {skinTeaDetails.includeTimeline && (
-                      <div style={{ display: "flex", gap: 5, flexWrap: "wrap" as const }}>
-                        {["1 week", "2 weeks", "1 month", "3 months", "ongoing"].map(opt => (
-                          <button
-                            key={opt}
-                            onClick={() => setSkinTeaDetails(prev => ({ ...prev, timelineChoice: opt }))}
-                            style={{ fontSize: 11, padding: "4px 10px", borderRadius: 20, border: "1px solid", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", background: skinTeaDetails.timelineChoice === opt ? "#A8001C" : "#fff", color: skinTeaDetails.timelineChoice === opt ? "#fff" : "#888", borderColor: skinTeaDetails.timelineChoice === opt ? "#A8001C" : "#E8DDD4" }}
-                          >{opt}</button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                    );
+                  })}
                 </div>
               </>
             )}
           </>
         ) : (
           <>
-            <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Routine steps — skin only</div>
-            <StepBuilder {...stepBuilderPropsBase} allowMakeup={false} />
-            <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Hot Pick — standout product of this routine</div>
-            <HotPickSelected {...hotPickPropsBase} bgColor="#FFF0F0" borderColor="#f5d0d0" />
+            <div style={FIELD_LABEL}>Routine steps</div>
+            <StepBuilder steps={steps} setSteps={setSteps} showStepPicker={showStepPicker} setShowStepPicker={setShowStepPicker} />
+            <div style={FIELD_LABEL}>Standout product of this routine</div>
+            <HotPickSelected {...hotPickPropsBase} />
           </>
         )}
+        <VerdictPicker verdict={verdict} setVerdict={setVerdict} />
         <TagPicker tag={tag} setTag={setTag} />
       </div>
-      <div style={{ padding: "10px 16px 16px", borderTop: "0.5px solid #E8DDD4", background: "#FFFCF8" }}>
-        <button
-          disabled={!skinTeaReady}
-          onClick={submitSkinTea}
-          style={{ width: "100%", background: skinTeaReady ? "#A8001C" : "#f0ebe3", color: skinTeaReady ? "#fff" : "#bbb", border: "none", borderRadius: 20, padding: "12px", fontSize: 13, fontWeight: 500, cursor: skinTeaReady ? "pointer" : "default", fontFamily: "'DM Sans', sans-serif" }}
-        >
-          {POSTING_ENABLED ? "Post Skin Tea" : "Posting opens soon"}
-        </button>
-      </div>
-    </div>
-  );
-
-  const LookTeaStage = (
-    <div style={{ display: "flex", flexDirection: "column" as const, height: "100%" }}>
-      <SheetHeader title="Look Tea" badge="Look Tea" badgeBg="#F0EDF8" badgeColor="#5B3FA6" backTo="type" />
-      <div style={{ flex: 1, overflowY: "auto" as const, padding: "16px" }}>
-        <PostingClosedNotice />
-        <PhotoMandatory images={images} setImages={setImages} lookFileRef={lookFileRef} />
-        <TextHashtagBlock {...textBlockProps} placeholder="what's the story behind this look?" />
-        <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Hot Pick — hero product of this look</div>
-        <HotPickSelected {...hotPickPropsBase} bgColor="#F0EDF8" borderColor="#e0d8f5" />
-        <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Breakdown steps</div>
-        <StepBuilder {...stepBuilderPropsBase} allowMakeup={true} />
-        <TagPicker tag={tag} setTag={setTag} />
-      </div>
-      <div style={{ padding: "10px 16px 16px", borderTop: "0.5px solid #E8DDD4", background: "#FFFCF8" }}>
-        <button
-          disabled={!lookTeaReady}
-          onClick={submitLookTea}
-          style={{ width: "100%", background: lookTeaReady ? "#5B3FA6" : "#f0ebe3", color: lookTeaReady ? "#fff" : "#bbb", border: "none", borderRadius: 20, padding: "12px", fontSize: 13, fontWeight: 500, cursor: lookTeaReady ? "pointer" : "default", fontFamily: "'DM Sans', sans-serif" }}
-        >
-          {!POSTING_ENABLED
-            ? "Posting opens soon"
-            : images.length === 0 ? "Add a photo to post" : !hotPick ? "Add a hot pick to post" : "Post Look Tea"}
-        </button>
-      </div>
+      {submitBar(hotPick ? "Post Skin Tea" : "Add a product to post", skinTeaReady, () => void submit("skin-tea"))}
     </div>
   );
 
   const SpillStage = (
-    <div style={{ display: "flex", flexDirection: "column" as const, height: "100%" }}>
-      <SheetHeader title="Spill" badge="Spill" badgeBg="#FFF7E6" badgeColor="#B45309" backTo="type" />
-      <div style={{ flex: 1, overflowY: "auto" as const, padding: "16px" }}>
-        <PostingClosedNotice />
-        <div style={{ background: "#FFF7E6", border: "1px solid #f5edda", borderRadius: 10, padding: "9px 12px", marginBottom: 14, fontSize: 12, color: "#B45309", lineHeight: 1.5 }}>
-          raw and honest. no product required. just say what others won't.
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <SheetHead title="Spill" backTo="type" />
+      <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+        <div style={{ background: WARM_WHITE, border: CARD_BORDER, borderRadius: 10, padding: "10px 12px", marginBottom: 14, fontSize: 13, color: ESPRESSO, lineHeight: 1.5 }}>
+          Raw and honest. No product required. Just say what others won't.
         </div>
-        <textarea
-          value={text}
-          onChange={e => setText(e.target.value)}
-          placeholder="nobody warned me... / hot take: ... / don't do this..."
-          autoFocus
-          style={{ width: "100%", minHeight: 120, resize: "none" as const, background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 12, padding: "11px 13px", fontSize: 13, color: "#1C0A00", lineHeight: 1.6, fontFamily: "'DM Sans', sans-serif", outline: "none", boxSizing: "border-box" as const, marginBottom: 8 }}
-        />
-        <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginBottom: 6 }}>
-          {hashtags.map(tag => (
-            <div key={tag} style={{ display: "flex", alignItems: "center", gap: 4, background: "#FFF0F0", border: "1px solid #f5d0d0", borderRadius: 20, padding: "3px 9px" }}>
-              <span style={{ fontSize: 11, color: "#A8001C" }}>{tag}</span>
-              <button onClick={() => setHashtags(prev => prev.filter(t => t !== tag))} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", padding: 0 }}>
-                <X size={10} color="#A8001C" />
-              </button>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
-          <input value={hashtagInput} onChange={e => setHashtagInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); addHashtag(); } }} placeholder="add hashtag..." style={{ flex: 1, background: "#f5f0ea", border: "none", borderRadius: 20, padding: "7px 13px", fontSize: 12, color: "#333", outline: "none", fontFamily: "'DM Sans', sans-serif" }} />
-          <button onClick={addHashtag} style={{ background: "#f5f0ea", border: "none", borderRadius: 20, padding: "7px 13px", fontSize: 12, color: "#888", cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}>Add</button>
-        </div>
-        <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", marginBottom: 8 }}>Photos — optional</div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" as const }}>
-          {images.map((src, i) => (
-            <div key={i} style={{ position: "relative", width: 64, height: 64, borderRadius: 10, overflow: "hidden" }}>
-              <img src={src} style={{ width: "100%", height: "100%", objectFit: "cover" as const }} />
-              <button onClick={() => setImages(prev => prev.filter((_, idx) => idx !== i))} style={{ position: "absolute", top: 3, right: 3, width: 16, height: 16, borderRadius: "50%", background: "rgba(0,0,0,0.6)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <X size={9} color="#fff" />
-              </button>
-            </div>
-          ))}
-          <button onClick={() => fileRef.current?.click()} style={{ width: 64, height: 64, borderRadius: 10, border: "1.5px dashed #ddd", background: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Plus size={16} color="#ccc" />
-          </button>
-        </div>
-        <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={e => onFiles(e.target.files)} />
-
-        {/* A spill can name one product. This is what fills the post page's
-            "Product mentioned" block — without it that block is unreachable. */}
-        <div style={{ fontSize: 10, fontWeight: 500, color: "#aaa", textTransform: "uppercase" as const, letterSpacing: "0.8px", margin: "14px 0 8px" }}>Product mentioned — optional</div>
-        <HotPickSelected {...hotPickPropsBase} bgColor="#FFF7E6" borderColor="#f5edda" />
-
+        <TextHashtagBlock {...textBlockProps} placeholder="nobody warned me… / hot take: … / don't do this…" />
+        <PhotoNotice />
+        <div style={FIELD_LABEL}>Product mentioned — optional</div>
+        <HotPickSelected {...hotPickPropsBase} />
+        <VerdictPicker verdict={verdict} setVerdict={setVerdict} />
         <TagPicker tag={tag} setTag={setTag} />
       </div>
-      <div style={{ padding: "10px 16px 16px", borderTop: "0.5px solid #E8DDD4", background: "#FFFCF8" }}>
-        <button
-          disabled={!spillReady}
-          onClick={submitSpill}
-          style={{ width: "100%", background: spillReady ? "#1C0A00" : "#f0ebe3", color: spillReady ? "#FFFCF8" : "#bbb", border: "none", borderRadius: 20, padding: "12px", fontSize: 13, fontWeight: 500, cursor: spillReady ? "pointer" : "default", fontFamily: "'DM Sans', sans-serif" }}
-        >
-          {POSTING_ENABLED ? "Post Spill" : "Posting opens soon"}
-        </button>
-      </div>
+      {submitBar("Post Spill", spillReady, () => void submit("spill"))}
     </div>
   );
 
@@ -1700,11 +1215,10 @@ function ComposeSheet({
       <SheetContent
         side="bottom"
         className="mx-auto h-[90vh] max-w-[480px] overflow-hidden rounded-t-3xl border-0 p-0"
-        style={{ background: "#FFFCF8" }}
+        style={{ background: WARM_WHITE }}
       >
         {stage === "type" && TypeStage}
         {stage === "skin-tea" && SkinTeaStage}
-        {stage === "look-tea" && LookTeaStage}
         {stage === "spill" && SpillStage}
       </SheetContent>
     </Sheet>

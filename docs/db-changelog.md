@@ -744,3 +744,20 @@ Nothing below was reconstructed from memory without a source.
 - Note: the timestamp is the sender's clock at submission, bounded by the policy to ±15 minutes of the server; `created_at`
   and `permission_granted_at` remain the server times.
 - Deleted session_ids: none.
+
+### 2026-09-17 00:10 UTC — sign-up names off the API, author delete cleanup, saved_posts types, profiles DELETE grant
+- Who: "last blockers before the owner click-through" session.
+- `CREATE FUNCTION public.clinic_public_visitor_names(p_clinic uuid)` (SECURITY DEFINER, search_path public): user_id,
+  name, username, avatar_url only for people with `clinic_who_visited.is_public` for that clinic (the "Show my name on
+  this clinic's page" opt-in). EXECUTE revoked from PUBLIC and anon, granted to authenticated.
+- `CREATE FUNCTION public.saved_posts_cleanup_on_post_delete()` + `AFTER DELETE` trigger on `posts`: removes
+  `saved_posts` rows (post_type 'treatment') for the deleted post. `surgery_saves`, `surgery_likes`, `surgery_comments`
+  already cascade from `surgery_posts`.
+- `saved_posts_post_type_check` replaced: `post_type = 'treatment'` only (was skin_tea, look_tea, spill, treatment; 0 rows).
+- `REVOKE DELETE ON public.profiles FROM anon, authenticated` (RLS already blocked it; no policy used it).
+- Planned after the app deploy that stops selecting it: `REVOKE SELECT (name) ON public.profiles FROM anon, authenticated`
+  (the sign-up name is then readable only by the service role, the owner through auth metadata, and the opt-in function).
+- Tested (rolled back): another user deleting an author's treatment / surgery / product post affects 0 rows; the author
+  deletes each (1 row); the other user's saved treatment copy, surgery save and comment are gone afterwards; saved_posts
+  type 'spill' rejected; deleting a profiles row denied.
+- Deleted session_ids: none. No rows written.

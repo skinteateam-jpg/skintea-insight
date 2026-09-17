@@ -2,9 +2,11 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
-import {
-  Lock, Bell, Home, User as UserIcon, Compass, X, Heart, MessageCircle, Bookmark, Send, Trash2,
-} from "lucide-react";
+import { Lock, X, Send } from "lucide-react";
+import TalkPostCard, {
+  BORDER, CAPTION, CARD_BORDER, CRIMSON, DISPLAY, ESPRESSO, NEUTRAL_FILL, SANS, WARM_WHITE,
+  TalkPhotoCarousel, TalkReceipt, receiptCells,
+} from "@/components/TalkPostCard";
 
 export const Route = createFileRoute("/surgery-talk")({
   head: () => ({
@@ -18,12 +20,14 @@ export const Route = createFileRoute("/surgery-talk")({
   component: SurgeryTalkPage,
 });
 
-const ESPRESSO = "#1C0A00";
-const CRIMSON = "#A8001C";
-const CREAM = "#FFFCF8";
-const WARM_WHITE = "#FFFCF8";
-const BORDER = "#E8DDD4";
-const MUTED = "#999999";
+/* Colour, type and spacing come from the shared card so the three Talks cannot drift apart. */
+const CREAM = WARM_WHITE;
+const MUTED = CAPTION;
+
+const SECTION_LABEL = {
+  fontSize: 11, fontWeight: 500, letterSpacing: "0.08em",
+  textTransform: "uppercase" as const, color: MUTED,
+};
 
 /* The surgery filter is whatever `surgeries` holds. There is no hard-coded list
    standing in for it: a substituted list offers filters that match nothing and
@@ -32,27 +36,20 @@ const MUTED = "#999999";
 type Surgery = { id: string; name: string };
 
 /* Ranking needs a population to rank. Below this many posts, every ranking
-   surface stays hidden — medals, rank numbers, "Top Tea", "Most Controversial"
+   surface stays hidden — rank numbers, "Top Tea", "Most Controversial"
    and the day's pick — because #1 of three posts is not a ranking. Raise or
    lower it in one place; the whole ranking UI follows. */
 const MIN_RANKED_POSTS = 25;
 
+/* Skin types are words, not emoji: no emoji renders anywhere in the UI. */
 const SKIN_TYPES = [
-  { id: "all", label: "All", emoji: "" },
-  { id: "Oily", label: "Oily", emoji: "🍩" },
-  { id: "Dry", label: "Dry", emoji: "🏜️" },
-  { id: "Sensitive", label: "Sensitive", emoji: "🌸" },
-  { id: "Combination", label: "Combo", emoji: "✨" },
-  { id: "Normal", label: "Normal", emoji: "🌿" },
+  { id: "all", label: "All" },
+  { id: "Oily", label: "Oily" },
+  { id: "Dry", label: "Dry" },
+  { id: "Sensitive", label: "Sensitive" },
+  { id: "Combination", label: "Combo" },
+  { id: "Normal", label: "Normal" },
 ];
-
-const SKIN_BG: Record<string, string> = {
-  Oily: "#FCE7B3", Dry: "#DCE9F5", Sensitive: "#F8DCE8",
-  Combination: "#EDE6F8", Normal: "#DDF1DD",
-};
-const SKIN_EMOJI: Record<string, string> = {
-  Oily: "🍩", Dry: "🏜️", Sensitive: "🌸", Combination: "✨", Normal: "🌿",
-};
 
 type Photo = { url: string; label: string };
 type PostRow = {
@@ -80,14 +77,13 @@ type PostRow = {
   created_at: string;
 };
 
+/* "Wouldn't" is the only negative outcome, so it is the only one that stamps in crimson. */
+const NEGATIVE_OUTCOMES = new Set<string>(["Wouldn't"]);
+
 type EnrichedPost = PostRow & {
   surgery_name: string;
   /** Always null: Surgery Talk is anonymous (2026-09-16). No author name is fetched or shown. */
   user_name: string | null;
-  /** Emoji for a known skin type only. "" when the skin type is unknown. */
-  user_emoji: string;
-  /** e.g. "oily skin". "" when the skin type is unknown. No membership claim. */
-  user_skin_line: string;
   user_is_derm: boolean;
 };
 
@@ -171,16 +167,13 @@ function usePosts(surgeries: Surgery[]) {
         }
         const enriched: EnrichedPost[] = (data as unknown as PostRow[]).map((p) => {
           const prof = profileMap.get(p.user_id);
-          const skin = p.skin_type ?? prof?.skin_type ?? "";
           return {
             ...p,
             photos: Array.isArray(p.photos) ? (p.photos as Photo[]) : [],
-            surgery_name: p.surgery_id ? (surgMap.get(p.surgery_id) ?? "—") : "—",
-            // No stand-in name, no stand-in avatar, and no "member": nothing in
-            // the database says any of those.
+            surgery_name: p.surgery_id ? (surgMap.get(p.surgery_id) ?? "") : "",
+            skin_type: p.skin_type ?? prof?.skin_type ?? null,
+            // No stand-in name and no "member": nothing in the database says either.
             user_name: null,
-            user_emoji: SKIN_EMOJI[skin] ?? "",
-            user_skin_line: skin ? `${skin.toLowerCase()} skin` : "",
             // The Derm badge needs a recorded verification: profiles.field_provenance.is_derm {source, recorded_at}, which the
             // profiles_enforce_provenance trigger requires before is_derm can be true (2026-09-16). No verification, no badge.
             user_is_derm: prof?.is_derm === true && !!prof?.field_provenance?.is_derm?.source && !!prof?.field_provenance?.is_derm?.recorded_at,
@@ -233,10 +226,10 @@ function usePosts(surgeries: Surgery[]) {
 function ChipScroll({
   items, active, onChange, renderChip,
 }: {
-  items: { id: string; label: string; emoji?: string }[];
+  items: { id: string; label: string }[];
   active: string;
   onChange: (v: string) => void;
-  renderChip?: (item: { id: string; label: string; emoji?: string }, isActive: boolean) => React.ReactNode;
+  renderChip?: (item: { id: string; label: string }, isActive: boolean) => React.ReactNode;
 }) {
   return (
     <div className="flex gap-2 overflow-x-auto px-4 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -244,7 +237,7 @@ function ChipScroll({
         const isActive = active === it.id;
         if (renderChip) {
           return (
-            <button key={it.id} onClick={() => onChange(it.id)} className="shrink-0">
+            <button key={it.id} onClick={() => onChange(it.id)} className="shrink-0" style={{ minHeight: 44 }}>
               {renderChip(it, isActive)}
             </button>
           );
@@ -253,17 +246,20 @@ function ChipScroll({
           <button
             key={it.id}
             onClick={() => onChange(it.id)}
-            className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors"
+            className="shrink-0 rounded-full"
             style={{
+              minHeight: 44,
+              padding: "0 16px",
+              fontSize: 13,
+              fontWeight: 500,
               backgroundColor: isActive ? ESPRESSO : "#fff",
               color: isActive ? "#fff" : ESPRESSO,
               border: `1px solid ${isActive ? ESPRESSO : BORDER}`,
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: SANS,
               whiteSpace: "nowrap",
               flexShrink: 0,
             }}
           >
-            {it.emoji && <span className="mr-1">{it.emoji}</span>}
             {it.label}
           </button>
         );
@@ -277,21 +273,8 @@ function ChipSkeleton() {
     <div className="flex gap-2 overflow-x-hidden px-4 py-2">
       {Array.from({ length: 7 }).map((_, i) => (
         <div key={i} className="shrink-0 rounded-full animate-pulse"
-          style={{ width: 70 + ((i * 17) % 40), height: 28, background: "#EEE6DC" }} />
+          style={{ width: 70 + ((i * 17) % 40), height: 44, background: "#EEE6DC" }} />
       ))}
-    </div>
-  );
-}
-
-function MetaCell({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg p-2.5" style={{ background: CREAM, minWidth: 0 }}>
-      <div className="text-[7px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>
-        {label}
-      </div>
-      <div className="mt-1 text-[10px] leading-snug" style={{ color: ESPRESSO, wordBreak: "break-word", overflowWrap: "break-word" }}>
-        {value}
-      </div>
     </div>
   );
 }
@@ -307,77 +290,35 @@ function painScaleLabel(level: number): string {
   return "Severe";
 }
 
+/* A flat track with one mark on it — the level the poster picked. The old bar was a
+   four-stop gradient, and gradients are out of the design system. */
 function PainBar({ level }: { level: number }) {
   const pct = (level / 10) * 100;
-  const label = painScaleLabel(level);
   return (
-    <div>
-      <div className="text-[7px] font-bold uppercase tracking-wider mb-2" style={{ color: MUTED }}>
-        Pain level
-      </div>
-      <div className="relative" style={{ height: 22 }}>
+    <div style={{ marginTop: 12, border: CARD_BORDER, borderRadius: 10, padding: "9px 10px" }}>
+      <div style={SECTION_LABEL}>Pain level</div>
+      <div className="relative" style={{ height: 20, marginTop: 6 }}>
         <div
           className="absolute left-0 right-0"
-          style={{
-            top: 7, height: 8, borderRadius: 4,
-            background: "linear-gradient(to right, #F0FBF4, #FFF3CD, #FDECEA, #F7C1C1)",
-            border: `1px solid ${BORDER}`,
-          }}
+          style={{ top: 7, height: 6, borderRadius: 3, background: NEUTRAL_FILL, border: CARD_BORDER }}
         />
-        {/* The only mark on the scale is the level the poster picked. */}
-        <div className="absolute"
+        <div
+          className="absolute"
           style={{
-            left: `${pct}%`, top: 4, transform: "translateX(-50%)",
-            width: 14, height: 14, borderRadius: 7, background: CRIMSON,
-            border: "2px solid #fff", boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
+            left: `${pct}%`, top: 3, transform: "translateX(-50%)",
+            width: 14, height: 14, borderRadius: 7, background: ESPRESSO, border: "2px solid #fff",
           }}
         />
       </div>
-      <div className="mt-2 flex items-baseline gap-2">
-        <span className="text-[11px] font-bold" style={{ color: ESPRESSO }}>{level}/10</span>
-        <span className="text-[10px]" style={{ color: MUTED }}>{label}</span>
-      </div>
-      <div className="mt-1 flex justify-between text-[8px]" style={{ color: MUTED }}>
-        <span>None</span><span>Mild</span><span>Moderate</span><span>Severe</span>
+      <div style={{ marginTop: 4, fontSize: 13, color: ESPRESSO }}>
+        {level}/10 <span style={{ color: MUTED }}>{painScaleLabel(level)}</span>
       </div>
     </div>
-  );
-}
-
-function NarrativeField({ label, value }: { label: string; value: string }) {
-  if (!value) return null;
-  return (
-    <div className="py-3" style={{ borderTop: `1px solid ${BORDER}` }}>
-      <div className="text-[8px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>
-        {label}
-      </div>
-      <div className="mt-1 text-[12px] leading-relaxed" style={{ color: ESPRESSO }}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function OutcomeBadge({ outcome }: { outcome: PostRow["outcome"] }) {
-  if (!outcome) return null;
-  const styles =
-    outcome === "Would do again"
-      ? { bg: "#F0FBF4", fg: "#1A6636", border: "#B8E8C8" }
-      : outcome === "Modified"
-      ? { bg: "#FFF8EC", fg: "#8B5E0A", border: "#FAC775" }
-      : { bg: "#FBF0F0", fg: "#A32D2D", border: "#F7C1C1" };
-  return (
-    <span
-      className="rounded-full px-2.5 py-1 text-[10px] font-semibold"
-      style={{ background: styles.bg, color: styles.fg, border: `1px solid ${styles.border}` }}
-    >
-      {outcome}
-    </span>
   );
 }
 
 // ============= Comments =============
-type CommentRow = { id: string; user_id: string; content: string; created_at: string; user_name?: string | null };
+type CommentRow = { id: string; user_id: string; content: string; created_at: string };
 
 function CommentSection({ postId, userId }: { postId: string; userId: string | null }) {
   const [comments, setComments] = useState<CommentRow[]>([]);
@@ -392,7 +333,7 @@ function CommentSection({ postId, userId }: { postId: string; userId: string | n
       .order("created_at", { ascending: true });
     if (!data) return;
     // Comments are anonymous like the posts: no name is read or shown. The signed-in visitor's own comments say "You".
-    setComments(data.map((c) => ({ ...c, user_name: null })));
+    setComments(data as CommentRow[]);
   }, [postId]);
 
   useEffect(() => { load(); }, [load]);
@@ -406,25 +347,19 @@ function CommentSection({ postId, userId }: { postId: string; userId: string | n
   }
 
   return (
-    <div className="mt-3 rounded-lg p-3" style={{ background: CREAM }}>
+    <div className="mt-3 rounded-lg p-3" style={{ background: CREAM, border: CARD_BORDER }}>
       <div className="space-y-2">
         {comments.length === 0 && (
-          <div className="text-[10px] italic" style={{ color: MUTED }}>No comments yet. Be the first.</div>
+          <div style={{ fontSize: 13, color: MUTED }}>No comments yet. Be the first.</div>
         )}
         {comments.map((c) => (
-          <div key={c.id} className="flex gap-2">
-            <div className="flex shrink-0 items-center justify-center rounded-full"
-              style={{ width: 22, height: 22, background: "#fff", border: `1px solid ${BORDER}`, fontSize: 11 }}>
-              💭
-            </div>
-            <div className="flex-1 rounded-lg px-2 py-1.5" style={{ background: "#fff", border: `1px solid ${BORDER}` }}>
-              {userId && c.user_id === userId && (
-                <div className="text-[9px] font-bold" style={{ color: ESPRESSO }}>You</div>
-              )}
-              <div className="text-[10px]" style={{ color: ESPRESSO }}>{c.content}</div>
-              <div className="text-[8px] mt-0.5" style={{ color: MUTED }}>
-                {new Date(c.created_at).toLocaleString()}
-              </div>
+          <div key={c.id} className="rounded-lg px-3 py-2" style={{ background: "#fff", border: CARD_BORDER }}>
+            {userId && c.user_id === userId && (
+              <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", color: ESPRESSO }}>You</div>
+            )}
+            <div style={{ fontSize: 13, color: ESPRESSO, lineHeight: 1.5 }}>{c.content}</div>
+            <div style={{ fontSize: 13, color: MUTED, marginTop: 2 }}>
+              {new Date(c.created_at).toLocaleString()}
             </div>
           </div>
         ))}
@@ -435,47 +370,51 @@ function CommentSection({ postId, userId }: { postId: string; userId: string | n
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Add a comment…"
-            className="flex-1 rounded-full px-3 py-1.5 text-[11px]"
-            style={{ background: "#fff", border: `1px solid ${BORDER}`, color: ESPRESSO }}
+            className="flex-1 rounded-full px-3"
+            style={{ background: "#fff", border: CARD_BORDER, color: ESPRESSO, minHeight: 44, fontSize: 13, fontFamily: SANS }}
           />
           <button
             onClick={send}
             disabled={loading || !text.trim()}
             className="flex shrink-0 items-center justify-center rounded-full"
-            style={{ width: 30, height: 30, background: CRIMSON, color: "#fff" }}
+            aria-label="Send comment"
+            style={{ width: 44, height: 44, background: CRIMSON, color: "#fff", border: "none", opacity: loading || !text.trim() ? 0.5 : 1 }}
           >
-            <Send size={14} />
+            <Send size={16} />
           </button>
         </div>
       ) : (
-        <div className="mt-2 text-[10px] italic" style={{ color: MUTED }}>Sign in to comment.</div>
+        <div className="mt-2" style={{ fontSize: 13, color: MUTED }}>Sign in to comment.</div>
       )}
     </div>
   );
 }
 
 // ============= Post card =============
-function PostCard({ post, locked, userId, onLikeChange, onDeleted }: { post: EnrichedPost; locked: boolean; userId: string | null; onLikeChange: (delta: number) => void; onDeleted: () => void }) {
+function PostCard({ post, userId, onLikeChange, onDeleted }: {
+  post: EnrichedPost; userId: string | null; onLikeChange: (delta: number) => void; onDeleted: () => void;
+}) {
   const isOwn = !!userId && post.user_id === userId;
   const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [rowError, setRowError] = useState<string | null>(null);
+  const [liked, setLiked] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [likesCount, setLikesCount] = useState(post.likes_count);
+  const [showComments, setShowComments] = useState(false);
+  const [commentsCount, setCommentsCount] = useState<number>(0);
+
   // Only the author can delete (RLS "Users can delete their own surgery posts": auth.uid() = user_id). Likes, saves and
   // comments on the post are removed with it (ON DELETE CASCADE), so it disappears from everyone's saved posts.
   async function deletePost() {
     if (!isOwn || deleting) return;
     if (!window.confirm("Delete this post? It is removed for everyone, with its comments, and cannot be undone.")) return;
     setDeleting(true);
-    setDeleteError(null);
+    setRowError(null);
     const { error, count } = await supabase.from("surgery_posts").delete({ count: "exact" }).eq("id", post.id).eq("user_id", userId!);
     setDeleting(false);
-    if (error || count === 0) { setDeleteError(error ? `Couldn't delete: ${error.message}` : "Couldn't delete this post."); return; }
+    if (error || count === 0) { setRowError(error ? `Couldn't delete: ${error.message}` : "Couldn't delete this post."); return; }
     onDeleted();
   }
-  const [liked, setLiked] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [likesCount, setLikesCount] = useState(post.likes_count);
-  const [showComments, setShowComments] = useState(false);
-  const [commentsCount, setCommentsCount] = useState<number>(0);
 
   useEffect(() => {
     let cancel = false;
@@ -516,183 +455,62 @@ function PostCard({ post, locked, userId, onLikeChange, onDeleted }: { post: Enr
     }
   }
 
-  const avatarBg = SKIN_BG[post.skin_type ?? ""] ?? CREAM;
+  const cells = receiptCells([
+    ["Paid", post.total_cost],
+    ["Downtime", post.recovery_time],
+    ["Clinic", post.clinic_name],
+    // `surgery_posts` has no sessions column, so that cell is never built rather than drawn empty.
+  ]);
+  const place = [post.country, post.city].filter(Boolean).join(" · ");
 
   return (
-    <article className="relative rounded-xl overflow-hidden"
-      style={{ background: "#fff", border: `1px solid ${BORDER}` }}>
-      {/* Always-visible header */}
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex shrink-0 items-center justify-center rounded-full"
-              style={{ width: 30, height: 30, background: avatarBg, fontSize: 15 }}>
-              {post.user_emoji}
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                {isOwn && (
-                  <div className="text-[12px] font-bold truncate" style={{ color: ESPRESSO }}>Your post</div>
-                )}
-                {post.user_is_derm && (
-                  <span className="rounded-full px-1.5 py-0.5 text-[8px] font-bold"
-                    style={{ background: "#F0EDF8", color: "#4A3580" }}>✓ Derm</span>
-                )}
-              </div>
-              {post.user_skin_line && (
-                <div className="text-[10px]" style={{ color: MUTED }}>{post.user_skin_line}</div>
-              )}
-            </div>
-          </div>
-          <span className="rounded-full px-2 py-1 text-[9px] font-bold shrink-0"
-            style={{ background: CREAM, color: ESPRESSO }}>
-            {post.surgery_name}
-          </span>
-        </div>
-
-        {/* Always-visible meta grid */}
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <MetaCell label="Clinic" value={post.clinic_name || "—"} />
-          <MetaCell label="Country / City" value={[post.country, post.city].filter(Boolean).join(" · ") || "—"} />
-          <MetaCell label="Total cost" value={post.total_cost || "—"} />
-          <MetaCell label="Recovery time" value={post.recovery_time || "—"} />
-        </div>
-      </div>
-
-      {/* Gated zone */}
-      <div className="relative">
-        <div style={{
-          filter: locked ? "blur(2.5px)" : "none",
-          opacity: locked ? 0.55 : 1,
-          pointerEvents: locked ? "none" : "auto",
-        }}>
-          <div className="px-4 pb-3">
-            {post.pain_level != null && (
-              <div className="rounded-lg p-3 mb-2" style={{ background: CREAM }}>
-                <PainBar level={post.pain_level} />
-              </div>
-            )}
-
-            {post.photos.length > 0 && (
-              <div className="mb-2">
-                <div className="text-[7px] font-bold uppercase tracking-wider mb-1.5" style={{ color: MUTED }}>
-                  Recovery timeline
-                </div>
-                <div className="flex gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {post.photos.map((p, i) => (
-                    <div key={i} className="shrink-0">
-                      <div style={{
-                        width: 58, height: 66, borderRadius: 6, border: `1px solid ${BORDER}`,
-                        backgroundImage: `url(${p.url})`, backgroundSize: "cover", backgroundPosition: "center", background: p.url ? `url(${p.url}) center/cover` : CREAM,
-                      }} />
-                      <div className="mt-1 text-[8px] text-center" style={{ color: MUTED }}>{p.label}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div>
-              <NarrativeField label="My thoughts vs Reality" value={post.my_thoughts_vs_reality || ""} />
-              <NarrativeField label="Struggle" value={post.struggle || ""} />
-              <NarrativeField label="What happened" value={post.what_happened || ""} />
-              <NarrativeField label="Surprised me" value={post.surprised_me || ""} />
-              <NarrativeField label="Works for" value={post.works_for || ""} />
-              <NarrativeField label="Warn if" value={post.warn_if || ""} />
-            </div>
-
-            {post.hashtags.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-x-2 gap-y-1">
-                {post.hashtags.map((t, i) => (
-                  <span key={i} className="text-[9px] font-medium" style={{ color: CRIMSON }}>{t}</span>
-                ))}
-              </div>
-            )}
-
-            {post.outcome && (
-              <div className="mt-3 flex items-center justify-between">
-                <span className="text-[9px]" style={{ color: MUTED }}>Would you do it again?</span>
-                <OutcomeBadge outcome={post.outcome} />
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Gate overlay */}
-        {locked && (
-          <div className="absolute inset-0 flex items-center justify-center px-4">
-            <div className="rounded-xl p-4 text-center"
-              style={{ background: "#fff", border: `1px solid ${BORDER}`, maxWidth: 210 }}>
-              <div className="mx-auto mb-2 flex items-center justify-center rounded-full"
-                style={{ width: 32, height: 32, background: CREAM }}>
-                <Lock size={14} color={ESPRESSO} />
-              </div>
-              <div className="text-[12px] font-bold mb-1" style={{ color: ESPRESSO, fontFamily: "'Playfair Display', serif" }}>
-                The rest stays between us
-              </div>
-              <div className="text-[10px] mb-3" style={{ color: MUTED }}>
-                Members read the full story — pain, photos, real thoughts vs reality, and the regrets.
-              </div>
-              <Link to="/signup" className="inline-block rounded-full px-3.5 py-1.5 text-[10px] font-bold"
-                style={{ background: CRIMSON, color: "#fff" }}>
-                Become a Member
-              </Link>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Action bar — always visible */}
-      {!locked && (
-        <div className="flex items-center justify-between px-4 py-3" style={{ borderTop: `1px solid ${BORDER}` }}>
-          <div className="flex items-center gap-3">
-            <button onClick={toggleLike} className="flex items-center gap-1 text-[11px]"
-              style={{ color: liked ? CRIMSON : ESPRESSO }}>
-              <Heart size={14} fill={liked ? CRIMSON : "none"} /> {likesCount}
-            </button>
-            <button
-              onClick={() => post.comments_open && setShowComments((v) => !v)}
-              disabled={!post.comments_open}
-              className="flex items-center gap-1 text-[11px]"
-              style={{ color: post.comments_open ? ESPRESSO : MUTED, opacity: post.comments_open ? 1 : 0.5 }}
-            >
-              <MessageCircle size={14} /> {commentsCount}
-            </button>
-            <button onClick={toggleSave} className="flex items-center gap-1 text-[11px]"
-              style={{ color: saved ? CRIMSON : ESPRESSO }}>
-              <Bookmark size={14} fill={saved ? CRIMSON : "none"} /> {saved ? "Saved" : "Save"}
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            {isOwn && (
-              <button onClick={deletePost} disabled={deleting} className="flex items-center gap-1 text-[11px]" style={{ color: CRIMSON }}>
-                <Trash2 size={13} /> {deleting ? "Deleting…" : "Delete"}
-              </button>
-            )}
-            <span className="rounded-full px-2 py-1 text-[9px] font-medium"
-              style={{
-                border: `1px solid ${post.comments_open ? ESPRESSO : BORDER}`,
-                color: post.comments_open ? ESPRESSO : MUTED,
-              }}>
-              {post.comments_open ? "Comments open" : "Comments off"}
-            </span>
-          </div>
-        </div>
-      )}
-      {deleteError && <div className="px-4 pb-3 text-[11px] font-semibold" style={{ color: CRIMSON }}>{deleteError}</div>}
-
-      {!locked && !post.comments_open && (
-        <div className="px-4 pb-3 text-[10px] italic text-center" style={{ color: MUTED }}>
-          Comments closed by poster
-        </div>
-      )}
-
-      {!locked && showComments && post.comments_open && (
-        <div className="px-4 pb-4">
-          <CommentSection postId={post.id} userId={userId} />
-        </div>
-      )}
-    </article>
+    <TalkPostCard
+      /* Surgery Talk is anonymous: the author is never named, not even to themselves beyond "Your post". */
+      authorName={null}
+      isOwn={isOwn}
+      skinType={post.skin_type}
+      createdAt={post.created_at}
+      subject={post.surgery_name || null}
+      typeLabel={post.user_is_derm ? { text: "Verified derm" } : null}
+      verdict={post.outcome ? { label: post.outcome, tone: NEGATIVE_OUTCOMES.has(post.outcome) ? "negative" : "positive" } : null}
+      body={post.what_happened || post.my_thoughts_vs_reality || ""}
+      module={
+        <>
+          <TalkReceipt cells={cells.slice(0, 3)} />
+          {place && <div style={{ marginTop: 8, fontSize: 13, color: CAPTION }}>{place}</div>}
+          {post.pain_level != null && <PainBar level={post.pain_level} />}
+          {/* Recovery photos are of a real person's face. Nobody meets them by scrolling past. */}
+          <TalkPhotoCarousel photos={post.photos} gated />
+          {post.hashtags.length > 0 && (
+            <div style={{ marginTop: 10, fontSize: 13, color: CAPTION }}>{post.hashtags.join("  ")}</div>
+          )}
+        </>
+      }
+      details={[
+        /* The body is what_happened, falling back to my_thoughts_vs_reality. When the fallback was used the
+           text is already the body, so it is not repeated here. */
+        { label: "My thoughts vs reality", value: post.what_happened ? post.my_thoughts_vs_reality ?? "" : "" },
+        { label: "The struggle", value: post.struggle ?? "" },
+        { label: "What surprised me", value: post.surprised_me ?? "" },
+        { label: "Wish I knew before", value: post.warn_if ?? "", warning: true },
+        { label: "Who it's for", value: post.works_for ?? "" },
+      ]}
+      like={{ key: "Like", count: likesCount, active: liked, onClick: () => void toggleLike(), disabled: !userId, title: userId ? undefined : "Sign in to like" }}
+      reply={{
+        key: "Reply",
+        label: "Reply",
+        count: commentsCount,
+        onClick: () => setShowComments((v) => !v),
+        disabled: !post.comments_open,
+        title: post.comments_open ? undefined : "Comments closed by the poster",
+      }}
+      quote={{ key: "Quote", label: "Quote", disabled: true, title: "Quoting is not built yet" }}
+      save={{ key: "Save", active: saved, onClick: () => void toggleSave(), disabled: !userId, title: userId ? (saved ? "Saved" : "Save") : "Sign in to save" }}
+      share={{ key: "Share", disabled: true, title: "Surgery Talk posts are anonymous and have no shareable page" }}
+      onDelete={isOwn ? () => void deletePost() : undefined}
+      error={rowError}
+      footer={showComments && post.comments_open ? <CommentSection postId={post.id} userId={userId} /> : null}
+    />
   );
 }
 
@@ -705,40 +523,30 @@ function TodaysTea({ post }: { post: EnrichedPost | null }) {
   return (
     <section className="mb-5">
       <div className="mb-2 flex items-end justify-between">
-        <h2 className="text-[16px]" style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }}>
-          ☕ Today's Tea
+        <h2 className="text-[16px]" style={{ fontFamily: DISPLAY, color: ESPRESSO }}>
+          Today's Tea
         </h2>
         {/* What this actually is: the most-liked post of the last 24 hours,
             worked out in the browser each time the page loads. Nothing
             "refreshes daily". */}
-        <span className="text-[10px]" style={{ color: MUTED }}>most liked in the last 24 hours</span>
+        <span style={{ fontSize: 13, color: MUTED }}>most liked in the last 24 hours</span>
       </div>
       <div className="rounded-xl p-4" style={{ background: ESPRESSO }}>
-        <div className="text-[10px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.7)" }}>
+        <div style={{ ...SECTION_LABEL, color: "rgba(255,252,248,0.75)" }}>
           {post.surgery_name}{post.city ? ` · ${post.city}` : ""}
         </div>
         {quote ? (
-          <p className="mt-2 text-[14px] leading-snug" style={{ fontFamily: "'Playfair Display', serif", color: "#fff" }}>
-            "{quote.length > 140 ? quote.slice(0, 140) + "…" : quote}"
+          <p className="mt-2" style={{ fontSize: 17, fontWeight: 500, lineHeight: 1.45, color: "#fff" }}>
+            {quote.length > 140 ? quote.slice(0, 140) + "…" : quote}
           </p>
         ) : (
-          <p className="mt-2 text-[12px]" style={{ color: "rgba(255,255,255,0.7)" }}>
+          <p className="mt-2" style={{ fontSize: 13, color: "rgba(255,252,248,0.75)" }}>
             This post has no written story yet.
           </p>
         )}
-        <div className="mt-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center rounded-full"
-              style={{ width: 24, height: 24, background: SKIN_BG[post.skin_type ?? ""] ?? CREAM, fontSize: 12 }}>
-              {post.user_emoji}
-            </div>
-            {post.user_name && <span className="text-[10px]" style={{ color: "#fff" }}>{post.user_name}</span>}
-          </div>
-          {/* Likes are a stored count. The comment count here was a literal 0
-              that nothing counted, so it is gone. */}
-          <div className="flex items-center gap-3 text-[10px]" style={{ color: "rgba(255,255,255,0.85)" }}>
-            <span className="flex items-center gap-1"><Heart size={11} /> {post.likes_count}</span>
-          </div>
+        {/* Likes are a stored count. The comment count here was a literal 0 that nothing counted, so it is gone. */}
+        <div className="mt-3" style={{ fontSize: 13, color: "rgba(255,252,248,0.85)" }}>
+          {post.likes_count} {post.likes_count === 1 ? "like" : "likes"}
         </div>
       </div>
     </section>
@@ -750,37 +558,30 @@ function TopTea({ posts }: { posts: EnrichedPost[] }) {
   return (
     <section className="mb-5">
       <div className="mb-2 flex items-end justify-between">
-        <h2 className="text-[16px]" style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }}>
-          🔥 Top Tea
+        <h2 className="text-[16px]" style={{ fontFamily: DISPLAY, color: ESPRESSO }}>
+          Top Tea
         </h2>
-        <span className="text-[10px]" style={{ color: MUTED }}>this week</span>
+        <span style={{ fontSize: 13, color: MUTED }}>this week</span>
       </div>
       <div className="flex gap-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {posts.slice(0, 5).map((p, i) => (
           <div key={p.id} className="shrink-0 rounded-[10px] overflow-hidden"
-            style={{ width: 138, border: `1px solid ${BORDER}`, background: "#fff" }}>
-            <div style={{ height: 88, background: `linear-gradient(135deg, ${SKIN_BG[p.skin_type ?? ""] ?? CREAM}, ${CREAM})`,
-              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>
-              {p.user_emoji}
-            </div>
-            <div className="p-2">
-              <div className="text-[8px] uppercase tracking-wider" style={{ color: MUTED }}>
-                {p.surgery_name}
-              </div>
-              {/* The ellipsis belongs to text that was actually cut. An empty
-                  post renders no excerpt rather than "—…". */}
+            style={{ width: 160, border: CARD_BORDER, background: "#fff" }}>
+            <div className="p-3">
+              <div style={SECTION_LABEL}>{p.surgery_name}</div>
+              {/* The ellipsis belongs to text that was actually cut. An empty post renders no excerpt rather than "—…". */}
               {(() => {
                 const excerpt = p.my_thoughts_vs_reality || p.what_happened || "";
                 if (!excerpt) return null;
                 return (
-                  <div className="mt-0.5 text-[11px] font-medium leading-snug" style={{ color: ESPRESSO }}>
-                    {excerpt.length > 50 ? `${excerpt.slice(0, 50)}…` : excerpt}
+                  <div className="mt-1" style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.4, color: ESPRESSO }}>
+                    {excerpt.length > 60 ? `${excerpt.slice(0, 60)}…` : excerpt}
                   </div>
                 );
               })()}
-              <div className="mt-2 flex items-center justify-between text-[10px]" style={{ color: MUTED }}>
-                <span>🔥 {p.likes_count}</span>
-                <span style={{ color: CRIMSON, fontWeight: 700 }}>#{i + 1}</span>
+              <div className="mt-2 flex items-center justify-between" style={{ fontSize: 13, color: MUTED }}>
+                <span>{p.likes_count} {p.likes_count === 1 ? "like" : "likes"}</span>
+                <span style={{ color: ESPRESSO, fontWeight: 500 }}>{i + 1}</span>
               </div>
             </div>
           </div>
@@ -796,37 +597,23 @@ function MostControversial({ post }: { post: EnrichedPost | null }) {
   return (
     <section className="mb-5">
       <div className="mb-2">
-        <h2 className="text-[16px]" style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }}>
-          ⚡ Most Controversial
+        <h2 className="text-[16px]" style={{ fontFamily: DISPLAY, color: ESPRESSO }}>
+          Most Controversial
         </h2>
       </div>
-      <div className="rounded-[10px] p-3 flex gap-3 items-start"
-        style={{ border: "1px solid #F7C1C1", background: "#fff" }}>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="rounded-full px-2 py-0.5 text-[9px] font-bold"
-              style={{ background: "#FBF0F0", color: "#A32D2D" }}>
-              Wouldn't · {post.likes_count} likes
-            </span>
-          </div>
-          <div className="mt-1 text-[9px]" style={{ color: MUTED }}>
-            {post.surgery_name}{post.city ? ` · ${post.city}` : ""}
-          </div>
-          {quote && (
-            <p className="mt-1 text-[11px]" style={{ color: ESPRESSO }}>
-              "{quote.length > 100 ? quote.slice(0, 100) + "…" : quote}"
-            </p>
-          )}
+      <div className="rounded-[10px] p-3" style={{ border: CARD_BORDER, background: "#fff" }}>
+        <div className="flex items-center justify-between gap-2">
+          <span style={{ ...SECTION_LABEL, color: CRIMSON }}>Wouldn't</span>
+          <span style={{ fontSize: 13, color: MUTED }}>{post.likes_count} {post.likes_count === 1 ? "like" : "likes"}</span>
         </div>
-        <div className="flex flex-col items-center gap-1">
-          <div className="flex items-center justify-center rounded-full"
-            style={{ width: 28, height: 28, background: SKIN_BG[post.skin_type ?? ""] ?? CREAM, fontSize: 13 }}>
-            {post.user_emoji}
-          </div>
-          <span className="text-[10px] font-bold" style={{ color: CRIMSON }}>
-            <Heart size={10} className="inline" fill={CRIMSON} /> {post.likes_count}
-          </span>
+        <div className="mt-1" style={{ fontSize: 13, color: MUTED }}>
+          {post.surgery_name}{post.city ? ` · ${post.city}` : ""}
         </div>
+        {quote && (
+          <p className="mt-1" style={{ fontSize: 13, color: ESPRESSO, lineHeight: 1.5 }}>
+            {quote.length > 100 ? quote.slice(0, 100) + "…" : quote}
+          </p>
+        )}
       </div>
     </section>
   );
@@ -838,21 +625,21 @@ function DisclaimerModal({ onCancel, onConfirm }: { onCancel: () => void; onConf
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(28,10,0,0.5)" }}>
       <div className="rounded-2xl w-full max-w-sm p-5" style={{ background: "#fff" }}>
-        <div className="text-[15px] font-bold" style={{ color: ESPRESSO, fontFamily: "'Playfair Display', serif" }}>
+        <div style={{ fontSize: 17, fontWeight: 500, color: ESPRESSO, fontFamily: DISPLAY }}>
           Before you spill
         </div>
-        <ul className="mt-3 space-y-2 text-[12px]" style={{ color: ESPRESSO }}>
-          <li>• Everything shared here is your personal experience — not medical advice.</li>
-          <li>• Skintea doesn't verify procedures, clinics, or outcomes.</li>
-          <li>• Your story helps others make informed decisions. Keep it honest.</li>
+        <ul className="mt-3 space-y-2" style={{ fontSize: 13, color: ESPRESSO, lineHeight: 1.5 }}>
+          <li>Everything shared here is your personal experience — not medical advice.</li>
+          <li>Skintea doesn't verify procedures, clinics, or outcomes.</li>
+          <li>Your story helps others make informed decisions. Keep it honest.</li>
         </ul>
         <div className="mt-5 flex flex-col gap-2">
-          <button onClick={onConfirm} className="rounded-full py-2.5 text-[12px] font-bold"
-            style={{ background: CRIMSON, color: "#fff" }}>
+          <button onClick={onConfirm} className="rounded-full"
+            style={{ minHeight: 48, fontSize: 14, fontWeight: 500, background: CRIMSON, color: "#fff", border: "none", fontFamily: SANS }}>
             I understand, continue
           </button>
-          <button onClick={onCancel} className="rounded-full py-2 text-[12px]"
-            style={{ background: "transparent", color: MUTED }}>
+          <button onClick={onCancel} className="rounded-full"
+            style={{ minHeight: 44, fontSize: 13, background: "transparent", color: MUTED, border: "none", fontFamily: SANS }}>
             Cancel
           </button>
         </div>
@@ -923,57 +710,60 @@ function Composer({ onClose, surgeries, userId, onCreated }: {
     };
     const { error } = await supabase.from("surgery_posts").insert(payload);
     setSubmitting(false);
+    // On failure the form stays open with everything the poster typed.
     if (error) { setError(error.message); return; }
     onCreated(); onClose();
   }
 
   const painLabel = form.pain_level != null ? painScaleLabel(form.pain_level) : null;
+  const inputStyle = { border: CARD_BORDER, minHeight: 44, fontSize: 13, color: ESPRESSO, fontFamily: SANS, background: "#fff" };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" style={{ background: "rgba(28,10,0,0.5)" }}>
       <div className="w-full max-w-md rounded-t-2xl md:rounded-2xl max-h-[92vh] overflow-y-auto"
         style={{ background: "#fff" }}>
         <div className="sticky top-0 flex items-center justify-between px-4 py-3"
-          style={{ background: "#fff", borderBottom: `1px solid ${BORDER}` }}>
-          <div className="text-[15px] font-bold" style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }}>
+          style={{ background: "#fff", borderBottom: CARD_BORDER }}>
+          <div style={{ fontSize: 17, fontWeight: 500, fontFamily: DISPLAY, color: ESPRESSO }}>
             Spill it
           </div>
-          <button onClick={onClose}><X size={18} color={ESPRESSO} /></button>
+          <button onClick={onClose} aria-label="Close" style={{ minWidth: 44, minHeight: 44 }}><X size={18} color={ESPRESSO} /></button>
         </div>
-        <div className="p-4 space-y-3 text-[12px]" style={{ color: ESPRESSO }}>
+        <div className="p-4 space-y-3" style={{ color: ESPRESSO, fontSize: 13 }}>
           <Field label="Surgery type">
             <select value={form.surgery_id} onChange={(e) => update("surgery_id", e.target.value)}
-              className="w-full rounded-md px-2 py-2" style={{ border: `1px solid ${BORDER}` }}>
+              className="w-full rounded-md px-2" style={inputStyle}>
               <option value="" disabled>Choose a surgery</option>
               {surgeries.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </Field>
           <Field label="Clinic name">
             <input value={form.clinic_name} onChange={(e) => update("clinic_name", e.target.value)}
-              className="w-full rounded-md px-2 py-2" style={{ border: `1px solid ${BORDER}` }} />
+              className="w-full rounded-md px-2" style={inputStyle} />
           </Field>
           <div className="grid grid-cols-2 gap-2">
-            <Field label="Country"><input value={form.country} onChange={(e) => update("country", e.target.value)} className="w-full rounded-md px-2 py-2" style={{ border: `1px solid ${BORDER}` }} /></Field>
-            <Field label="City"><input value={form.city} onChange={(e) => update("city", e.target.value)} className="w-full rounded-md px-2 py-2" style={{ border: `1px solid ${BORDER}` }} /></Field>
+            <Field label="Country"><input value={form.country} onChange={(e) => update("country", e.target.value)} className="w-full rounded-md px-2" style={inputStyle} /></Field>
+            <Field label="City"><input value={form.city} onChange={(e) => update("city", e.target.value)} className="w-full rounded-md px-2" style={inputStyle} /></Field>
           </div>
-          <Field label="Total cost (e.g. $8,500 incl. travel)">
-            <input value={form.total_cost} onChange={(e) => update("total_cost", e.target.value)} className="w-full rounded-md px-2 py-2" style={{ border: `1px solid ${BORDER}` }} />
+          <Field label="Paid (e.g. $8,500 incl. travel)">
+            <input value={form.total_cost} onChange={(e) => update("total_cost", e.target.value)} className="w-full rounded-md px-2" style={inputStyle} />
           </Field>
-          <Field label="Recovery time">
-            <input value={form.recovery_time} onChange={(e) => update("recovery_time", e.target.value)} className="w-full rounded-md px-2 py-2" style={{ border: `1px solid ${BORDER}` }} />
+          <Field label="Downtime">
+            <input value={form.recovery_time} onChange={(e) => update("recovery_time", e.target.value)} className="w-full rounded-md px-2" style={inputStyle} />
           </Field>
 
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: MUTED }}>
+            <div className="mb-2" style={SECTION_LABEL}>
               {form.pain_level != null ? `Pain level: ${form.pain_level}/10 — ${painLabel}` : "Pain level: choose 1–10"}
             </div>
             {form.pain_level != null && <PainBar level={form.pain_level} />}
-            <div className="grid grid-cols-10 gap-1 mt-2">
+            <div className="grid grid-cols-5 gap-1 mt-2">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
                 <button key={n} type="button" onClick={() => update("pain_level", n)}
                   aria-pressed={form.pain_level === n}
-                  className="rounded-md py-1.5 text-[11px] font-semibold"
+                  className="rounded-md"
                   style={{
+                    minHeight: 44, fontSize: 13, fontWeight: 500,
                     background: form.pain_level === n ? ESPRESSO : "#fff",
                     color: form.pain_level === n ? "#fff" : ESPRESSO,
                     border: `1px solid ${form.pain_level === n ? ESPRESSO : BORDER}`,
@@ -982,33 +772,46 @@ function Composer({ onClose, surgeries, userId, onCreated }: {
             </div>
           </div>
 
-          {(["my_thoughts_vs_reality","struggle","what_happened","surprised_me","works_for","warn_if"] as const).map((k) => (
-            <Field key={k} label={k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}>
+          {([
+            ["my_thoughts_vs_reality", "My thoughts vs reality"],
+            ["struggle", "The struggle"],
+            ["what_happened", "What happened"],
+            ["surprised_me", "What surprised me"],
+            ["warn_if", "Wish I knew before"],
+            ["works_for", "Who it's for"],
+          ] as const).map(([k, lab]) => (
+            <Field key={k} label={lab} warning={k === "warn_if"}>
               <textarea value={form[k] as string} onChange={(e) => update(k, e.target.value as any)}
-                rows={2} className="w-full rounded-md px-2 py-2" style={{ border: `1px solid ${BORDER}` }} />
+                rows={2} className="w-full rounded-md px-2 py-2" style={{ ...inputStyle, minHeight: 60 }} />
             </Field>
           ))}
 
           <Field label="Outcome">
             <div className="grid grid-cols-3 gap-2">
-              {(["Would do again","Modified","Wouldn't"] as const).map((o) => (
-                <button key={o} onClick={() => update("outcome", o)}
-                  className="rounded-md py-1.5 text-[10px] font-semibold"
-                  style={{
-                    background: form.outcome === o ? ESPRESSO : "#fff",
-                    color: form.outcome === o ? "#fff" : ESPRESSO,
-                    border: `1px solid ${form.outcome === o ? ESPRESSO : BORDER}`,
-                  }}>{o}</button>
-              ))}
+              {(["Would do again", "Modified", "Wouldn't"] as const).map((o) => {
+                const on = form.outcome === o;
+                const tone = NEGATIVE_OUTCOMES.has(o) ? CRIMSON : ESPRESSO;
+                return (
+                  <button key={o} onClick={() => update("outcome", o)}
+                    className="rounded-md"
+                    style={{
+                      minHeight: 44, fontSize: 13, fontWeight: 500,
+                      background: on ? tone : "#fff",
+                      color: on ? "#fff" : tone,
+                      border: `1px solid ${on ? tone : BORDER}`,
+                    }}>{o}</button>
+                );
+              })}
             </div>
           </Field>
 
           <Field label="Skin type">
             <div className="flex flex-wrap gap-1.5">
-              {["Oily","Dry","Combination","Sensitive","Normal"].map((s) => (
+              {["Oily", "Dry", "Combination", "Sensitive", "Normal"].map((s) => (
                 <button key={s} onClick={() => update("skin_type", s)}
-                  className="rounded-full px-3 py-1 text-[11px]"
+                  className="rounded-full px-4"
                   style={{
+                    minHeight: 44, fontSize: 13, fontWeight: 500,
                     background: form.skin_type === s ? ESPRESSO : "#fff",
                     color: form.skin_type === s ? "#fff" : ESPRESSO,
                     border: `1px solid ${form.skin_type === s ? ESPRESSO : BORDER}`,
@@ -1020,7 +823,7 @@ function Composer({ onClose, surgeries, userId, onCreated }: {
           <Field label="Hashtags (comma separated)">
             <input value={form.hashtags} onChange={(e) => update("hashtags", e.target.value)}
               placeholder="rhinoplasty, korea, worthit"
-              className="w-full rounded-md px-2 py-2" style={{ border: `1px solid ${BORDER}` }} />
+              className="w-full rounded-md px-2" style={inputStyle} />
           </Field>
 
           <Field label="Photos (URL + label, optional, up to 6)">
@@ -1029,56 +832,82 @@ function Composer({ onClose, surgeries, userId, onCreated }: {
                 <div key={i} className="flex gap-2">
                   <input value={p.url} placeholder="https://…"
                     onChange={(e) => setPhotos((arr) => arr.map((x, j) => j === i ? { ...x, url: e.target.value } : x))}
-                    className="flex-1 rounded-md px-2 py-1.5" style={{ border: `1px solid ${BORDER}` }} />
+                    className="flex-1 rounded-md px-2" style={inputStyle} />
                   <input value={p.label} placeholder="Label"
                     onChange={(e) => setPhotos((arr) => arr.map((x, j) => j === i ? { ...x, label: e.target.value } : x))}
-                    className="w-24 rounded-md px-2 py-1.5" style={{ border: `1px solid ${BORDER}` }} />
+                    className="w-24 rounded-md px-2" style={inputStyle} />
                   <button onClick={() => setPhotos((arr) => arr.filter((_, j) => j !== i))}
-                    className="px-2" style={{ color: MUTED }}><X size={14} /></button>
+                    aria-label="Remove photo"
+                    style={{ minWidth: 44, minHeight: 44, color: MUTED }}><X size={16} /></button>
                 </div>
               ))}
               {photos.length < 6 && (
                 <button onClick={() => setPhotos((arr) => [...arr, { url: "", label: "" }])}
-                  className="w-full rounded-md py-1.5 text-[11px]"
-                  style={{ border: `1px dashed ${BORDER}`, color: MUTED }}>
-                  + Add photo
+                  className="w-full rounded-md"
+                  style={{ minHeight: 44, fontSize: 13, border: `1px dashed ${BORDER}`, color: MUTED, background: "#fff" }}>
+                  Add photo
                 </button>
               )}
             </div>
           </Field>
 
-          <label className="flex items-center justify-between rounded-md px-3 py-2"
-            style={{ background: CREAM }}>
-            <span className="text-[12px]">Let others comment on your post</span>
+          <label className="flex items-center justify-between rounded-md px-3"
+            style={{ background: CREAM, border: CARD_BORDER, minHeight: 44 }}>
+            <span style={{ fontSize: 13 }}>Let others comment on your post</span>
             <input type="checkbox" checked={form.comments_open}
               onChange={(e) => update("comments_open", e.target.checked)} />
           </label>
 
-          {error && <div className="text-[11px]" style={{ color: CRIMSON }}>{error}</div>}
+          {error && <div style={{ fontSize: 13, color: CRIMSON }}>{error}</div>}
 
           {missing.length > 0 && (
-            <div className="text-[11px]" style={{ color: MUTED }}>Still to choose: {missing.join(", ")}</div>
+            <div style={{ fontSize: 13, color: MUTED }}>Still to choose: {missing.join(", ")}</div>
           )}
 
           <button onClick={submit} disabled={submitting || missing.length > 0}
-            className="w-full rounded-full py-3 text-[13px] font-bold"
-            style={{ background: CRIMSON, color: "#fff", opacity: submitting || missing.length > 0 ? 0.6 : 1 }}>
-            {submitting ? "Spilling…" : "Spill it ✦"}
+            className="w-full rounded-full"
+            style={{ minHeight: 48, fontSize: 14, fontWeight: 500, background: CRIMSON, color: "#fff", border: "none", fontFamily: SANS, opacity: submitting || missing.length > 0 ? 0.5 : 1 }}>
+            {submitting ? "Spilling…" : "Spill it"}
           </button>
+          <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.5 }}>
+            Your post is public on Skintea without your name.
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children, warning }: { label: string; children: React.ReactNode; warning?: boolean }) {
   return (
     <label className="block">
-      <div className="text-[9px] font-bold uppercase tracking-wider mb-1" style={{ color: MUTED }}>
+      <div className="mb-1" style={{ ...SECTION_LABEL, color: warning ? CRIMSON : MUTED }}>
         {label}
       </div>
       {children}
     </label>
+  );
+}
+
+/* Members lock: kept for a paid tier. There is no paid tier, so nothing renders it today. */
+export function MembersLock() {
+  return (
+    <div className="rounded-xl p-4 text-center" style={{ background: "#fff", border: CARD_BORDER, maxWidth: 210 }}>
+      <div className="mx-auto mb-2 flex items-center justify-center rounded-full"
+        style={{ width: 32, height: 32, background: CREAM }}>
+        <Lock size={14} color={ESPRESSO} />
+      </div>
+      <div className="mb-1" style={{ fontSize: 13, fontWeight: 500, color: ESPRESSO, fontFamily: DISPLAY }}>
+        The rest stays between us
+      </div>
+      <div className="mb-3" style={{ fontSize: 13, color: MUTED }}>
+        Memberships aren't open yet.
+      </div>
+      <Link to="/signup" className="inline-block rounded-full px-4"
+        style={{ minHeight: 44, lineHeight: "44px", fontSize: 13, fontWeight: 500, background: CRIMSON, color: "#fff" }}>
+        Become a Member
+      </Link>
+    </div>
   );
 }
 
@@ -1114,8 +943,8 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
 
   // Build ranked surgery chips
   const surgeryChips = useMemo(() => {
-    // Ordering chips by today's post counts is a ranking, so it waits for MIN_RANKED_POSTS like the medals; under the
-    // floor the chips keep the table's own sort order.
+    // Ordering chips by today's post counts is a ranking, so it waits for MIN_RANKED_POSTS like the rank numbers; under
+    // the floor the chips keep the table's own sort order.
     const sorted = posts.length >= MIN_RANKED_POSTS
       ? [...surgeries].sort((a, b) => (rankCounts.get(b.id) ?? 0) - (rankCounts.get(a.id) ?? 0))
       : [...surgeries];
@@ -1166,35 +995,29 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
   function handleDisclaimerConfirm() {
     setDisclaimerOpen(false);
     if (!userId) {
-      navigate({ to: "/signup" });
+      navigate({ to: "/login" });
     } else {
       setComposerOpen(true);
     }
   }
 
-  /* Medals are a ranking too, so they wait for MIN_RANKED_POSTS with the rest.
-     Under the floor the chips are plain filters. */
+  /* Rank numbers are a ranking too, so they wait for MIN_RANKED_POSTS with the rest.
+     Under the floor the chips are plain filters. The medal emoji are gone. */
   function renderSurgeryChip(item: { id: string; label: string }, isActive: boolean) {
     const count = surgeryChips.find((c) => c.id === item.id)?.count ?? 0;
     const idx = surgeryChips.findIndex((c) => c.id === item.id);
-    let prefix = "";
-    let style: React.CSSProperties = {
-      backgroundColor: isActive ? ESPRESSO : "#fff",
-      color: isActive ? "#fff" : ESPRESSO,
-      border: `1px solid ${isActive ? ESPRESSO : BORDER}`,
-    };
-    let suffix = "";
-    if (rankingReady && item.id !== "All" && count > 0) {
-      if (idx === 1) {
-        prefix = "🥇 "; suffix = " 🔥";
-        if (!isActive) style = { backgroundColor: "#FFFBEE", color: ESPRESSO, border: "1px solid #D4A800" };
-      } else if (idx === 2) prefix = "🥈 ";
-      else if (idx === 3) prefix = "🥉 ";
-    }
+    const ranked = rankingReady && item.id !== "All" && count > 0 && idx >= 1 && idx <= 3;
     return (
-      <span className="rounded-full px-3 py-1.5 text-[11px] font-medium"
-        style={{ ...style, fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap", display: "inline-block" }}>
-        {prefix}{item.label}{suffix}
+      <span className="rounded-full px-4"
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44,
+          backgroundColor: isActive ? ESPRESSO : "#fff",
+          color: isActive ? "#fff" : ESPRESSO,
+          border: `1px solid ${isActive ? ESPRESSO : BORDER}`,
+          fontSize: 13, fontWeight: 500, fontFamily: SANS, whiteSpace: "nowrap",
+        }}>
+        {ranked && <span style={{ fontSize: 11, fontWeight: 500, opacity: 0.7 }}>{idx}</span>}
+        {item.label}
       </span>
     );
   }
@@ -1202,28 +1025,28 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
   return (
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
 
-      {/* pb clears the floating button: 72px offset + ~40px button on mobile,
+      {/* pb clears the floating button: 72px offset + ~44px button on mobile,
           less on desktop where BottomNav (md:hidden) is not there. */}
       <div className="min-h-screen overflow-x-hidden pb-[132px] md:pb-24"
-        style={{ background: CREAM, fontFamily: "'DM Sans', sans-serif", maxWidth: "100vw" }}>
+        style={{ background: CREAM, fontFamily: SANS, maxWidth: "100vw" }}>
 
         {/* Header. Sits under the /tea header when embedded there — that header
             publishes its height as --tea-header-h and takes the higher z-index;
             standalone, the fallback of 0px keeps it at the top. */}
         <header className="sticky z-30"
-          style={{ background: WARM_WHITE, borderBottom: `1px solid ${BORDER}`, top: "var(--tea-header-h, 0px)" }}>
+          style={{ background: WARM_WHITE, borderBottom: CARD_BORDER, top: "var(--tea-header-h, 0px)" }}>
           {/* Surgery filter. Only called "ranked" while there is enough to rank. */}
           <div className="px-4 pt-2">
-            <div className="text-[8px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>
+            <div style={SECTION_LABEL}>
               {rankingReady ? "Surgery · ranked by today's posts" : "Surgery"}
             </div>
           </div>
           {surgeriesLoading ? (
             <ChipSkeleton />
           ) : surgeriesFailed ? (
-            <div className="px-4 py-2 text-[10px]" style={{ color: CRIMSON }}>
+            <div className="px-4 py-2" style={{ fontSize: 13, color: CRIMSON }}>
               Couldn't load the surgery filter. Reload to try again.
             </div>
           ) : surgeries.length > 0 ? (
@@ -1248,10 +1071,10 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
               of posts on screen. */}
           {!postsLoading && filtered.length > 0 && (
             <div className="mb-3 flex items-end justify-between">
-              <h1 className="text-[18px]" style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }}>
+              <h1 className="text-[18px]" style={{ fontFamily: DISPLAY, color: ESPRESSO }}>
                 All Spills
               </h1>
-              <span className="text-[11px]" style={{ color: MUTED }}>
+              <span style={{ fontSize: 13, color: MUTED }}>
                 {filtered.length} {filtered.length === 1 ? "tea" : "teas"}
               </span>
             </div>
@@ -1262,7 +1085,7 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
               <>
                 {Array.from({ length: 3 }).map((_, i) => (
                   <div key={i} className="rounded-xl p-4 animate-pulse"
-                    style={{ background: "#fff", border: `1px solid ${BORDER}`, height: 220 }}>
+                    style={{ background: "#fff", border: CARD_BORDER, height: 220 }}>
                     <div style={{ width: "40%", height: 12, background: "#EEE6DC", borderRadius: 4 }} />
                     <div className="mt-3" style={{ width: "100%", height: 80, background: "#F5EFE7", borderRadius: 8 }} />
                     <div className="mt-3" style={{ width: "80%", height: 10, background: "#EEE6DC", borderRadius: 4 }} />
@@ -1270,22 +1093,19 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
                 ))}
               </>
             ) : filtered.length === 0 ? (
-              <div className="rounded-xl p-6 text-center text-[12px]"
-                style={{ background: "#fff", border: `1px solid ${BORDER}`, color: MUTED }}>
+              <div className="rounded-xl p-6 text-center"
+                style={{ background: "#fff", border: CARD_BORDER, color: MUTED, fontSize: 13 }}>
                 {posts.length === 0
                   ? "No surgery stories yet — be the first to share."
                   : "No stories match these filters."}
               </div>
             ) : (
-              /* No paywall: there is no paid tier, and the old rule locked every
-                 post after the first for everyone, signed in or not. PostCard
-                 keeps its `locked` prop and gate overlay for a membership tier
-                 that may exist later; nothing sets it today. */
+              /* No paywall: there is no paid tier, and the old rule locked every post after the first for
+                 everyone, signed in or not. MembersLock is kept for a membership tier that may exist later. */
               filtered.map((p) => (
                 <PostCard
                   key={p.id}
                   post={p}
-                  locked={false}
                   userId={userId}
                   onLikeChange={(delta) => updatePost(p.id, { likes_count: Math.max(0, p.likes_count + delta) })}
                   onDeleted={() => removePost(p.id)}
@@ -1310,19 +1130,20 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
           style={{
             left: "50%",
             transform: "translateX(-50%)",
-            background: "#A8001C",
+            background: CRIMSON,
             color: "#fff",
-            fontSize: 13,
-            fontWeight: 700,
-            borderRadius: 99,
-            padding: "12px 28px",
+            fontSize: 14,
+            fontWeight: 500,
+            borderRadius: 999,
+            minHeight: 44,
+            padding: "0 28px",
             border: "none",
             zIndex: 40,
             cursor: "pointer",
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: SANS,
           }}
         >
-          Spill the tea ☕
+          Spill the tea
         </button>
       </div>
     </>

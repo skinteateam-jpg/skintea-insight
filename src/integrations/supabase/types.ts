@@ -1348,48 +1348,69 @@ export type Database = {
           avatar_url: string | null
           body: string
           created_at: string
+          hashtags: string[]
           headline: string | null
+          how_much: string | null
           id: string
           photo_urls: string[] | null
-          product_id: string
+          post_type: string | null
+          product_id: string | null
           skin_type: string | null
+          steps: Json | null
+          tag: string | null
           updated_at: string
           usage_duration: string | null
           user_id: string
           username: string | null
           verdict: string | null
+          watch_out: string | null
+          when_to_use: string | null
         }
         Insert: {
           agree_count?: number | null
           avatar_url?: string | null
           body: string
           created_at?: string
+          hashtags?: string[]
           headline?: string | null
+          how_much?: string | null
           id?: string
           photo_urls?: string[] | null
-          product_id: string
+          post_type?: string | null
+          product_id?: string | null
           skin_type?: string | null
+          steps?: Json | null
+          tag?: string | null
           updated_at?: string
           usage_duration?: string | null
           user_id: string
           username?: string | null
           verdict?: string | null
+          watch_out?: string | null
+          when_to_use?: string | null
         }
         Update: {
           agree_count?: number | null
           avatar_url?: string | null
           body?: string
           created_at?: string
+          hashtags?: string[]
           headline?: string | null
+          how_much?: string | null
           id?: string
           photo_urls?: string[] | null
-          product_id?: string
+          post_type?: string | null
+          product_id?: string | null
           skin_type?: string | null
+          steps?: Json | null
+          tag?: string | null
           updated_at?: string
           usage_duration?: string | null
           user_id?: string
           username?: string | null
           verdict?: string | null
+          watch_out?: string | null
+          when_to_use?: string | null
         }
         Relationships: [
           {

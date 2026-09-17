@@ -2,7 +2,11 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
-import { Lock, X, ChevronDown, Bookmark, Trash2 } from "lucide-react";
+import { Lock, X, ChevronDown } from "lucide-react";
+import TalkPostCard, {
+  BORDER, CAPTION, CARD_BORDER, CRIMSON, DISPLAY, ESPRESSO, SANS, WARM_WHITE,
+  TalkReceipt, receiptCells,
+} from "@/components/TalkPostCard";
 
 export const Route = createFileRoute("/treatment-talk")({
   head: () => ({
@@ -22,12 +26,10 @@ export const Route = createFileRoute("/treatment-talk")({
   component: TreatmentTalkPage,
 });
 
-const ESPRESSO = "#1C0A00";
-const CRIMSON = "#A8001C";
-const CREAM = "#FFFCF8";
-const WARM_WHITE = "#FFFCF8";
-const BORDER = "#E8DDD4";
-const MUTED = "#999999";
+/* Colour, type and spacing come from the shared card (src/components/TalkPostCard.tsx) so the three
+   Talks cannot drift apart. CREAM and MUTED are kept as local names for the page chrome. */
+const CREAM = WARM_WHITE;
+const MUTED = CAPTION;
 
 // Posts are written to and read from public.posts (2026-09-16). The table's own guards apply: RLS lets a signed-in user
 // insert only their own row (auth.uid() = user_id), and enforce_signed_in_author rejects any row not written by its
@@ -80,7 +82,7 @@ function ChipSkeletonRow() {
           className="shrink-0 rounded-full animate-pulse"
           style={{
             width: 56 + ((i * 13) % 40),
-            height: 24,
+            height: 44,
             background: "#EEE6DC",
           }}
         />
@@ -89,15 +91,15 @@ function ChipSkeletonRow() {
   );
 }
 
+/* Skin types are words, not emoji: no emoji renders anywhere in the UI. */
 const SKIN_TYPES = [
-  { id: "all", label: "All", emoji: "" },
-  { id: "oily", label: "Oily", emoji: "🍩" },
-  { id: "dry", label: "Dry", emoji: "🏜️" },
-  { id: "sensitive", label: "Sensitive", emoji: "🌸" },
-  { id: "combo", label: "Combo", emoji: "✨" },
-  { id: "normal", label: "Normal", emoji: "🌿" },
+  { id: "all", label: "All" },
+  { id: "oily", label: "Oily" },
+  { id: "dry", label: "Dry" },
+  { id: "sensitive", label: "Sensitive" },
+  { id: "combo", label: "Combo" },
+  { id: "normal", label: "Normal" },
 ];
-const SKIN_LABEL: Record<string, string> = Object.fromEntries(SKIN_TYPES.filter((s) => s.id !== "all").map((s) => [s.id, `${s.emoji} ${s.label}`]));
 
 // Only "Most recent" can order the feed. "Most helpful" needs helpful votes and "Most detailed" a detail measure; neither
 // is collected, so both stay visible and disabled.
@@ -107,20 +109,16 @@ const SORTS: { label: string; enabled: boolean }[] = [
   { label: "Most detailed", enabled: false },
 ];
 
-const SKIN_BG: Record<string, string> = {
-  oily: "#FCE7B3",
-  dry: "#DCE9F5",
-  sensitive: "#F8DCE8",
-  combo: "#EDE6F8",
-  normal: "#E4F0E4",
-};
-
 type Outcome = "would_again" | "modified" | "wouldnt";
-const OUTCOMES: { key: Outcome; label: string; bg: string; fg: string; border: string }[] = [
-  { key: "would_again", label: "Would do again", bg: "#DDF1DD", fg: "#1F5E2E", border: "#C5E4C5" },
-  { key: "modified", label: "Modified", bg: "#FCE7B3", fg: "#7A4E00", border: "#E8C97A" },
-  { key: "wouldnt", label: "Wouldn't", bg: "#FBD9DD", fg: "#8B0E20", border: "#F1B8C0" },
+const OUTCOMES: { key: Outcome; label: string }[] = [
+  { key: "would_again", label: "Would do again" },
+  { key: "modified", label: "Modified" },
+  { key: "wouldnt", label: "Wouldn't" },
 ];
+const OUTCOME_LABEL: Record<Outcome, string> = Object.fromEntries(OUTCOMES.map((o) => [o.key, o.label])) as Record<Outcome, string>;
+/* "Wouldn't" is the only negative outcome, so it is the only one that stamps in crimson.
+   "Modified" is not a warning and does not. */
+const NEGATIVE_OUTCOMES = new Set<Outcome>(["wouldnt"]);
 
 type PostRow = {
   id: string;
@@ -155,12 +153,17 @@ function ChipScroll({
           <button
             key={it}
             onClick={() => onChange(it)}
-            className="shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors"
+            className="shrink-0 rounded-full"
             style={{
+              minHeight: 44,
+              padding: "0 16px",
+              fontSize: 13,
+              fontWeight: 500,
               backgroundColor: isActive ? ESPRESSO : "#fff",
               color: isActive ? "#fff" : ESPRESSO,
               border: `1px solid ${isActive ? ESPRESSO : BORDER}`,
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: SANS,
+              whiteSpace: "nowrap",
             }}
           >
             {it}
@@ -171,53 +174,13 @@ function ChipScroll({
   );
 }
 
-function Field({ label, value }: { label: string; value: string | null }) {
-  return (
-    <div className="tt-field rounded-lg p-2.5" style={{ background: CREAM }}>
-      <div
-        className="text-[8px] font-bold uppercase tracking-wider"
-        style={{ color: MUTED, fontFamily: "'DM Sans', sans-serif" }}
-      >
-        {label}
-      </div>
-      <div
-        className="tt-field-value mt-1 text-[12px] leading-snug"
-        style={{ color: value ? ESPRESSO : MUTED, fontFamily: "'DM Sans', sans-serif", whiteSpace: "pre-line" }}
-      >
-        {value || "—"}
-      </div>
-    </div>
-  );
-}
-
-function OutcomeRow({ outcome }: { outcome: Outcome | null }) {
-  return (
-    <div className="grid grid-cols-3 gap-2">
-      {OUTCOMES.map((it) => {
-        const selected = it.key === outcome;
-        return (
-          <div
-            key={it.key}
-            className="rounded-lg px-2 py-2 text-center text-[11px] font-semibold"
-            style={{
-              background: selected ? it.bg : "#fff",
-              color: selected ? it.fg : MUTED,
-              border: `1px solid ${selected ? it.border : BORDER}`,
-              fontFamily: "'DM Sans', sans-serif",
-            }}
-          >
-            {it.label}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
+/* The card is the shared TalkPostCard. The six-cell Field grid and the three-across OutcomeRow are
+   gone (2026-09-17): the grid printed an em dash for every field the poster left blank, and the row
+   drew all three outcomes with the two they did not pick greyed out, which reads as three verdicts
+   rather than one. Now the outcome is a single stamp and an empty field is simply not drawn. */
 function PostCard({
   post,
   treatmentName,
-  locked,
   saved,
   onToggleSave,
   isOwn,
@@ -225,117 +188,69 @@ function PostCard({
 }: {
   post: PostRow;
   treatmentName: string | null;
-  locked?: boolean;
   saved: boolean;
   onToggleSave: () => void;
   isOwn: boolean;
   onDelete: () => void;
 }) {
-  const skin = post.skin_type ?? "";
-  const avatarBg = SKIN_BG[skin] ?? CREAM;
+  const cells = receiptCells([
+    ["Paid", post.cost],
+    ["Sessions", post.sessions],
+    // `posts` has no downtime column, so that cell is never built rather than drawn empty.
+  ]);
+
   return (
-    <div className="tt-post-card relative">
-      <article
-        className="rounded-2xl p-4"
-        style={{
-          background: locked ? "#F5F0EB" : "#fff",
-          border: `1px solid ${BORDER}`,
-          boxShadow: "0 1px 2px rgba(28,10,0,0.04)",
-        }}
-      >
-        <div
-          style={{
-            filter: locked ? "blur(3px)" : "none",
-            opacity: locked ? 0.55 : 1,
-            pointerEvents: locked ? "none" : "auto",
-          }}
-        >
-          {/* Header: no author name, only the poster's own skin type and the date */}
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div
-                className="flex items-center justify-center rounded-full"
-                style={{ width: 38, height: 38, background: avatarBg, fontSize: 18 }}
-              >
-                {SKIN_LABEL[skin]?.split(" ")[0] ?? "☕"}
-              </div>
-              <div>
-                <div className="text-[13px] font-bold" style={{ color: ESPRESSO, fontFamily: "'DM Sans', sans-serif" }}>
-                  {SKIN_LABEL[skin] ? `${SKIN_LABEL[skin].split(" ").slice(1).join(" ")} skin` : "Skin type not given"}
-                </div>
-                <div className="text-[11px]" style={{ color: MUTED, fontFamily: "'DM Sans', sans-serif" }}>
-                  {isOwn ? "Your post · " : ""}{new Date(post.created_at).toLocaleDateString()}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {treatmentName && (
-                <span
-                  className="rounded-full px-2.5 py-1 text-[10px] font-bold"
-                  style={{ background: "rgba(28,10,0,0.08)", color: ESPRESSO, fontFamily: "'DM Sans', sans-serif" }}
-                >
-                  {treatmentName}
-                </span>
-              )}
-              <button onClick={onToggleSave} aria-label={saved ? "Remove from saved" : "Save"} title={saved ? "Saved" : "Save"}>
-                <Bookmark size={16} color={saved ? CRIMSON : MUTED} fill={saved ? CRIMSON : "none"} />
-              </button>
-              {isOwn && (
-                <button onClick={onDelete} aria-label="Delete your post" title="Delete your post">
-                  <Trash2 size={16} color={CRIMSON} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="tt-fields mt-3 grid grid-cols-2 gap-2">
-            <Field label="Cost" value={post.cost} />
-            <Field label="Sessions / Area" value={post.sessions} />
-            <Field label="What happened" value={post.what_happened} />
-            <Field label="What surprised me" value={post.surprised_me} />
-            <Field label="Works for" value={post.works_for} />
-            <Field label="Warn if" value={post.warn_if} />
-          </div>
-
-          <div className="mt-3">
-            <OutcomeRow outcome={post.outcome} />
-          </div>
-
+    <TalkPostCard
+      /* Treatment Talk posts are nameless (2026-09-17): no author name is fetched or shown. */
+      authorName={null}
+      isOwn={isOwn}
+      skinType={post.skin_type}
+      createdAt={post.created_at}
+      subject={treatmentName}
+      verdict={
+        post.outcome
+          ? { label: OUTCOME_LABEL[post.outcome], tone: NEGATIVE_OUTCOMES.has(post.outcome) ? "negative" : "positive" }
+          : null
+      }
+      body={post.what_happened ?? ""}
+      module={
+        <>
+          <TalkReceipt cells={cells} />
           {post.tags.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {post.tags.map((t) => (
-                <span
-                  key={t}
-                  className="rounded-full px-2 py-0.5 text-[10px]"
-                  style={{ background: CREAM, border: `1px solid ${BORDER}`, color: MUTED, fontFamily: "'DM Sans', sans-serif" }}
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
+            <div style={{ marginTop: 10, fontSize: 13, color: CAPTION }}>{post.tags.join("  ")}</div>
           )}
-        </div>
-      </article>
+        </>
+      }
+      details={[
+        { label: "What surprised me", value: post.surprised_me ?? "" },
+        { label: "Wish I knew before", value: post.warn_if ?? "", warning: true },
+        { label: "Who it's for", value: post.works_for ?? "" },
+      ]}
+      reply={{ key: "Reply", label: "Reply", disabled: true, title: "Replies open when commenting does" }}
+      quote={{ key: "Quote", label: "Quote", disabled: true, title: "Quoting is not built yet" }}
+      save={{ key: "Save", active: saved, onClick: onToggleSave, title: saved ? "Saved" : "Save" }}
+      share={{ key: "Share", disabled: true, title: "Treatment Talk posts are nameless and have no shareable page" }}
+      onDelete={isOwn ? onDelete : undefined}
+    />
+  );
+}
 
-      {/* Members lock: kept for a paid tier. There is no paid tier, so no caller passes locked (no post is ever locked). */}
-      {locked && (
-        <div className="absolute inset-0 flex items-center justify-center p-4">
-          <div
-            className="w-full max-w-sm rounded-2xl p-5 text-center"
-            style={{ background: "#fff", border: `1px solid ${BORDER}`, boxShadow: "0 8px 24px rgba(28,10,0,0.12)" }}
-          >
-            <div className="mx-auto flex items-center justify-center rounded-full" style={{ width: 44, height: 44, background: CREAM }}>
-              <Lock size={20} color={ESPRESSO} />
-            </div>
-            <h3 className="mt-3 text-lg leading-tight" style={{ color: ESPRESSO, fontFamily: "'Playfair Display', serif" }}>
-              Members only
-            </h3>
-            <p className="mt-1.5 text-[12px]" style={{ color: MUTED, fontFamily: "'DM Sans', sans-serif" }}>
-              Memberships aren't open yet.
-            </p>
-          </div>
-        </div>
-      )}
+/* Members lock: kept for a paid tier. There is no paid tier, so nothing renders it today. */
+export function MembersLock() {
+  return (
+    <div
+      className="w-full max-w-sm rounded-2xl p-5 text-center"
+      style={{ background: "#fff", border: CARD_BORDER }}
+    >
+      <div className="mx-auto flex items-center justify-center rounded-full" style={{ width: 44, height: 44, background: CREAM }}>
+        <Lock size={20} color={ESPRESSO} />
+      </div>
+      <h3 className="mt-3 text-lg leading-tight" style={{ color: ESPRESSO, fontFamily: DISPLAY }}>
+        Members only
+      </h3>
+      <p className="mt-1.5" style={{ fontSize: 13, color: MUTED, fontFamily: SANS }}>
+        Memberships aren't open yet.
+      </p>
     </div>
   );
 }
@@ -401,23 +316,26 @@ function Composer({
     onClose();
   }
 
-  const inputStyle = { border: `1px solid ${BORDER}`, background: "#fff", color: ESPRESSO, fontFamily: "'DM Sans', sans-serif" };
-  const label = "mb-1 block text-[11px] font-bold uppercase tracking-wider";
+  const inputStyle = {
+    border: CARD_BORDER, background: "#fff", color: ESPRESSO, fontFamily: SANS,
+    minHeight: 44, fontSize: 13,
+  };
+  const label = "mb-1 block text-[11px] font-medium uppercase tracking-wider";
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center md:items-center" style={{ background: "rgba(28,10,0,0.5)" }}>
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-3xl md:rounded-3xl" style={{ background: WARM_WHITE }}>
-        <div className="sticky top-0 flex items-center justify-between px-5 py-4" style={{ background: WARM_WHITE, borderBottom: `1px solid ${BORDER}` }}>
-          <h2 style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }} className="text-xl">
+        <div className="sticky top-0 flex items-center justify-between px-5 py-3" style={{ background: WARM_WHITE, borderBottom: CARD_BORDER }}>
+          <h2 style={{ fontFamily: DISPLAY, color: ESPRESSO }} className="text-xl">
             Spill the needle
           </h2>
-          <button onClick={onClose} aria-label="Close"><X size={20} color={ESPRESSO} /></button>
+          <button onClick={onClose} aria-label="Close" style={{ minWidth: 44, minHeight: 44 }}><X size={20} color={ESPRESSO} /></button>
         </div>
         <div className="space-y-4 px-5 py-4">
           <div>
             <label className={label} style={{ color: MUTED }}>Treatment</label>
             <div className="relative">
-              <select value={treatmentId} onChange={(e) => setTreatmentId(e.target.value)} className="w-full appearance-none rounded-lg px-3 py-2.5 text-[13px]" style={inputStyle}>
+              <select value={treatmentId} onChange={(e) => setTreatmentId(e.target.value)} className="w-full appearance-none rounded-lg px-3" style={inputStyle}>
                 <option value="" disabled>Choose a treatment</option>
                 {treatments.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
@@ -426,70 +344,74 @@ function Composer({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={label} style={{ color: MUTED }}>Cost</label>
-              <input value={cost} onChange={(e) => setCost(e.target.value)} className="w-full rounded-lg px-3 py-2.5 text-[13px]" style={inputStyle} placeholder="What you paid" />
+              <label className={label} style={{ color: MUTED }}>Paid</label>
+              <input value={cost} onChange={(e) => setCost(e.target.value)} className="w-full rounded-lg px-3" style={inputStyle} placeholder="What you paid" />
             </div>
             <div>
               <label className={label} style={{ color: MUTED }}>Sessions / Area</label>
-              <input value={sessions} onChange={(e) => setSessions(e.target.value)} className="w-full rounded-lg px-3 py-2.5 text-[13px]" style={inputStyle} placeholder="e.g. 1 · forehead" />
+              <input value={sessions} onChange={(e) => setSessions(e.target.value)} className="w-full rounded-lg px-3" style={inputStyle} placeholder="e.g. 1 · forehead" />
             </div>
           </div>
           {([
             ["what_happened", "What happened", "Walk us through it..."],
             ["surprised_me", "What surprised me", "The thing nobody told you..."],
-            ["works_for", "Works for", "Who is this actually good for?"],
-            ["warn_if", "Warn if", "Red flags or who should skip..."],
+            ["warn_if", "Wish I knew before", "Red flags or who should skip..."],
+            ["works_for", "Who it's for", "Who is this actually good for?"],
           ] as const).map(([key, lab, ph]) => (
             <div key={key}>
-              <label className={label} style={{ color: MUTED }}>{lab}</label>
-              <textarea rows={2} value={text[key]} onChange={(e) => setText((t) => ({ ...t, [key]: e.target.value }))} className="w-full rounded-lg px-3 py-2 text-[13px]" style={inputStyle} placeholder={ph} />
+              <label className={label} style={{ color: key === "warn_if" ? CRIMSON : MUTED }}>{lab}</label>
+              <textarea rows={2} value={text[key]} onChange={(e) => setText((t) => ({ ...t, [key]: e.target.value }))} className="w-full rounded-lg px-3 py-2" style={{ ...inputStyle, minHeight: 60 }} placeholder={ph} />
             </div>
           ))}
           <div>
-            <label className="mb-2 block text-[11px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Timeline photos</label>
-            <div className="rounded-lg px-3 py-2.5 text-[12px]" style={{ border: `1px dashed ${BORDER}`, background: CREAM, color: MUTED }}>
+            <label className={label} style={{ color: MUTED }}>Timeline photos</label>
+            <div className="rounded-lg px-3 py-2.5" style={{ border: `1px dashed ${BORDER}`, background: CREAM, color: MUTED, fontSize: 13 }}>
               Photo uploads aren't open yet. Your written post can go up now.
             </div>
           </div>
           <div>
-            <label className="mb-2 block text-[11px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Outcome</label>
+            <label className={label} style={{ color: MUTED }}>Outcome</label>
             <div className="grid grid-cols-3 gap-2">
-              {OUTCOMES.map((o) => (
-                <button key={o.key} type="button" onClick={() => setOutcome(o.key)} className="rounded-lg py-2 text-[11px] font-semibold"
-                  style={{ border: `1px solid ${outcome === o.key ? o.border : BORDER}`, background: outcome === o.key ? o.bg : "#fff", color: outcome === o.key ? o.fg : ESPRESSO }}>
-                  {o.label}
-                </button>
-              ))}
+              {OUTCOMES.map((o) => {
+                const on = outcome === o.key;
+                const tone = NEGATIVE_OUTCOMES.has(o.key) ? CRIMSON : ESPRESSO;
+                return (
+                  <button key={o.key} type="button" onClick={() => setOutcome(o.key)} className="rounded-lg"
+                    style={{ minHeight: 44, fontSize: 13, fontWeight: 500, border: `1px solid ${on ? tone : BORDER}`, background: on ? tone : "#fff", color: on ? "#fff" : tone, fontFamily: SANS }}>
+                    {o.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
           <div>
-            <label className="mb-2 block text-[11px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Your skin type</label>
+            <label className={label} style={{ color: MUTED }}>Your skin type</label>
             <div className="flex flex-wrap gap-2">
               {SKIN_TYPES.filter((s) => s.id !== "all").map((s) => (
-                <button key={s.id} type="button" onClick={() => setSkinType(s.id)} className="rounded-full px-3 py-1.5 text-[11px] font-medium"
-                  style={{ background: skinType === s.id ? ESPRESSO : "#fff", color: skinType === s.id ? "#fff" : ESPRESSO, border: `1px solid ${skinType === s.id ? ESPRESSO : BORDER}` }}>
-                  {s.emoji} {s.label}
+                <button key={s.id} type="button" onClick={() => setSkinType(s.id)} className="rounded-full px-4"
+                  style={{ minHeight: 44, fontSize: 13, fontWeight: 500, background: skinType === s.id ? ESPRESSO : "#fff", color: skinType === s.id ? "#fff" : ESPRESSO, border: `1px solid ${skinType === s.id ? ESPRESSO : BORDER}`, fontFamily: SANS }}>
+                  {s.label}
                 </button>
               ))}
             </div>
           </div>
           <div>
             <label className={label} style={{ color: MUTED }}>Tags</label>
-            <input value={tags} onChange={(e) => setTags(e.target.value)} className="w-full rounded-lg px-3 py-2.5 text-[13px]" style={inputStyle} placeholder="#firsttimer #forehead" />
+            <input value={tags} onChange={(e) => setTags(e.target.value)} className="w-full rounded-lg px-3" style={inputStyle} placeholder="#firsttimer #forehead" />
           </div>
           {missing.length > 0 && (
-            <div className="text-[11px]" style={{ color: MUTED }}>Still to fill in: {missing.join(", ")}.</div>
+            <div style={{ fontSize: 13, color: MUTED }}>Still to fill in: {missing.join(", ")}.</div>
           )}
-          {error && <div className="text-[12px] font-semibold" style={{ color: CRIMSON }}>{error}</div>}
+          {error && <div style={{ fontSize: 13, fontWeight: 500, color: CRIMSON }}>{error}</div>}
           <button
             onClick={submit}
             disabled={submitting || missing.length > 0}
-            className="w-full rounded-full py-3 text-[14px] font-bold"
-            style={{ background: CRIMSON, color: "#fff", fontFamily: "'DM Sans', sans-serif", opacity: submitting || missing.length > 0 ? 0.4 : 1, cursor: submitting || missing.length > 0 ? "not-allowed" : "pointer" }}
+            className="w-full rounded-full"
+            style={{ minHeight: 48, fontSize: 14, fontWeight: 500, background: CRIMSON, color: "#fff", fontFamily: SANS, opacity: submitting || missing.length > 0 ? 0.4 : 1, cursor: submitting || missing.length > 0 ? "not-allowed" : "pointer" }}
           >
-            {submitting ? "Posting…" : "Spill the needle ✦"}
+            {submitting ? "Posting…" : "Spill the needle"}
           </button>
-          <div className="text-[10px] leading-snug" style={{ color: MUTED }}>
+          <div style={{ fontSize: 13, lineHeight: 1.5, color: MUTED }}>
             Your post is public on Skintea without your name: it shows your skin type, the treatment and the date.
           </div>
         </div>
@@ -580,40 +502,37 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
   const treatmentChips = treatmentsLoading ? (
     <ChipSkeletonRow />
   ) : treatmentsFailed ? (
-    <div className="px-4 pt-1.5 pb-3 text-[11px]" style={{ color: MUTED }}>Couldn't load treatments. Reload to try again.</div>
+    <div className="px-4 pt-1.5 pb-3" style={{ fontSize: 13, color: MUTED }}>Couldn't load treatments. Reload to try again.</div>
   ) : (
     <ChipScroll items={chipItems} active={chip} onChange={setChip} />
   );
+
+  const sectionLabel = { fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase" as const, color: MUTED };
 
   return (
     <>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link
-        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700&family=DM+Sans:wght@400;500;600&display=swap"
         rel="stylesheet"
       />
 
-      <div className="min-h-screen overflow-x-hidden pb-24 md:pb-8" style={{ background: CREAM, fontFamily: "'DM Sans', sans-serif", maxWidth: "100vw" }}>
+      <div className="min-h-screen overflow-x-hidden pb-24 md:pb-8" style={{ background: CREAM, fontFamily: SANS, maxWidth: "100vw" }}>
         <style>{`
           @media (max-width: 767px) {
             .tt-feed { padding: 0; box-sizing: border-box; max-width: 100vw; }
-            .tt-post-card { width: 100%; max-width: 100%; overflow: hidden; box-sizing: border-box; }
-            .tt-post-card > article { width: 100%; max-width: 100%; box-sizing: border-box; padding: 11px; }
-            .tt-fields { display: grid; grid-template-columns: 1fr 1fr; width: 100%; box-sizing: border-box; }
-            .tt-field { min-width: 0; box-sizing: border-box; }
-            .tt-field, .tt-field-value { word-break: break-word; overflow-wrap: break-word; }
             .tt-main { padding-left: 12px; padding-right: 12px; }
             .tt-section { min-width: 0; }
           }
         `}</style>
-        <header className="sticky top-0 z-30" style={{ background: WARM_WHITE, borderBottom: `1px solid ${BORDER}` }}>
+        <header className="sticky top-0 z-30" style={{ background: WARM_WHITE, borderBottom: CARD_BORDER }}>
           <div style={{ background: WARM_WHITE }}>
             <div className="px-4 pt-2">
-              <div className="text-[8px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Treatment</div>
+              <div style={sectionLabel}>Treatment</div>
             </div>
             {treatmentChips}
             <div className="px-4">
-              <div className="text-[8px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Skin type</div>
+              <div style={sectionLabel}>Skin type</div>
             </div>
             <div className="flex gap-2 overflow-x-auto px-4 pt-1.5 pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {SKIN_TYPES.map((s) => {
@@ -624,15 +543,17 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
                     onClick={() => setSkin(s.id)}
                     className="shrink-0 rounded-full"
                     style={{
-                      padding: "5px 12px",
-                      fontSize: 10,
+                      minHeight: 44,
+                      padding: "0 16px",
+                      fontSize: 13,
+                      fontWeight: 500,
                       backgroundColor: isActive ? ESPRESSO : "#fff",
                       color: isActive ? "#fff" : ESPRESSO,
                       border: `1px solid ${isActive ? ESPRESSO : BORDER}`,
-                      fontFamily: "'DM Sans', sans-serif",
+                      fontFamily: SANS,
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    {s.emoji && <span className="mr-1">{s.emoji}</span>}
                     {s.label}
                   </button>
                 );
@@ -645,12 +566,12 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
           <div className="grid gap-6 md:grid-cols-[220px_1fr] lg:grid-cols-[220px_1fr_220px]">
             <aside className="hidden md:block">
               <div className="sticky top-[140px] space-y-4">
-                <div className="rounded-2xl p-4" style={{ background: "#fff", border: `1px solid ${BORDER}` }}>
-                  <div className="mb-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Treatment</div>
+                <div className="rounded-2xl p-4" style={{ background: "#fff", border: CARD_BORDER }}>
+                  <div className="mb-2" style={sectionLabel}>Treatment</div>
                   {treatmentsLoading ? (
-                    <div className="text-[12px]" style={{ color: MUTED }}>Loading…</div>
+                    <div style={{ fontSize: 13, color: MUTED }}>Loading…</div>
                   ) : treatmentsFailed ? (
-                    <div className="text-[12px]" style={{ color: MUTED }}>Couldn't load treatments.</div>
+                    <div style={{ fontSize: 13, color: MUTED }}>Couldn't load treatments.</div>
                   ) : (
                     <div className="space-y-1">
                       {chipItems.map((t) => {
@@ -659,8 +580,8 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
                           <button
                             key={t}
                             onClick={() => setChip(t)}
-                            className="block w-full rounded-md px-2 py-1.5 text-left text-[12px]"
-                            style={{ background: active ? CREAM : "transparent", color: active ? ESPRESSO : MUTED, fontWeight: active ? 700 : 500 }}
+                            className="block w-full rounded-md px-2 text-left"
+                            style={{ minHeight: 44, fontSize: 13, background: active ? CREAM : "transparent", color: active ? ESPRESSO : MUTED, fontWeight: active ? 600 : 500 }}
                           >
                             {t}
                           </button>
@@ -670,8 +591,8 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
                   )}
                 </div>
 
-                <div className="rounded-2xl p-4" style={{ background: "#fff", border: `1px solid ${BORDER}` }}>
-                  <div className="mb-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Skin type</div>
+                <div className="rounded-2xl p-4" style={{ background: "#fff", border: CARD_BORDER }}>
+                  <div className="mb-2" style={sectionLabel}>Skin type</div>
                   <div className="flex flex-wrap gap-1.5">
                     {SKIN_TYPES.map((s) => {
                       const active = skin === s.id;
@@ -679,10 +600,9 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
                         <button
                           key={s.id}
                           onClick={() => setSkin(s.id)}
-                          className="rounded-full px-2.5 py-1 text-[11px] font-medium"
-                          style={{ background: active ? ESPRESSO : "#fff", color: active ? "#fff" : ESPRESSO, border: `1px solid ${active ? ESPRESSO : BORDER}` }}
+                          className="rounded-full px-3"
+                          style={{ minHeight: 44, fontSize: 13, fontWeight: 500, background: active ? ESPRESSO : "#fff", color: active ? "#fff" : ESPRESSO, border: `1px solid ${active ? ESPRESSO : BORDER}` }}
                         >
-                          {s.emoji && <span className="mr-1">{s.emoji}</span>}
                           {s.label}
                         </button>
                       );
@@ -690,14 +610,14 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
                   </div>
                 </div>
 
-                <div className="rounded-2xl p-4" style={{ background: "#fff", border: `1px solid ${BORDER}` }}>
-                  <div className="mb-2 text-[10px] font-bold uppercase tracking-wider" style={{ color: MUTED }}>Sort by</div>
+                <div className="rounded-2xl p-4" style={{ background: "#fff", border: CARD_BORDER }}>
+                  <div className="mb-2" style={sectionLabel}>Sort by</div>
                   <div className="relative">
                     <select
                       value={sort}
                       onChange={(e) => setSort(e.target.value)}
-                      className="w-full appearance-none rounded-md px-2.5 py-1.5 text-[12px]"
-                      style={{ border: `1px solid ${BORDER}`, background: "#fff", color: ESPRESSO }}
+                      className="w-full appearance-none rounded-md px-2.5"
+                      style={{ border: CARD_BORDER, background: "#fff", color: ESPRESSO, minHeight: 44, fontSize: 13 }}
                     >
                       {SORTS.map((s) => (
                         <option key={s.label} value={s.label} disabled={!s.enabled}>
@@ -713,24 +633,24 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
 
             <section className="tt-section min-w-0">
               <div className="mb-4">
-                <h1 className="text-2xl md:text-3xl" style={{ fontFamily: "'Playfair Display', serif", color: ESPRESSO }}>
+                <h1 className="text-2xl md:text-3xl" style={{ fontFamily: DISPLAY, color: ESPRESSO }}>
                   Treatment Talk
                 </h1>
               </div>
 
-              {saveError && <div className="mb-3 text-[12px] font-semibold" style={{ color: CRIMSON }}>{saveError}</div>}
+              {saveError && <div className="mb-3" style={{ fontSize: 13, fontWeight: 500, color: CRIMSON }}>{saveError}</div>}
 
               <div className="tt-feed space-y-4">
                 {postsLoading ? (
-                  <div className="rounded-xl p-6 text-center text-[12px]" style={{ background: "#fff", border: `1px solid ${BORDER}`, color: MUTED }}>
+                  <div className="rounded-xl p-6 text-center" style={{ background: "#fff", border: CARD_BORDER, color: MUTED, fontSize: 13 }}>
                     Loading…
                   </div>
                 ) : postsError ? (
-                  <div className="rounded-xl p-6 text-center text-[12px]" style={{ background: "#fff", border: `1px solid ${BORDER}`, color: MUTED }}>
+                  <div className="rounded-xl p-6 text-center" style={{ background: "#fff", border: CARD_BORDER, color: MUTED, fontSize: 13 }}>
                     Couldn't load treatment talk. Reload to try again.
                   </div>
                 ) : filtered.length === 0 ? (
-                  <div className="rounded-xl p-6 text-center text-[12px]" style={{ background: "#fff", border: `1px solid ${BORDER}`, color: MUTED }}>
+                  <div className="rounded-xl p-6 text-center" style={{ background: "#fff", border: CARD_BORDER, color: MUTED, fontSize: 13 }}>
                     {posts.length === 0 ? "No treatment talk yet — be the first to share." : "No posts match these filters."}
                   </div>
                 ) : (
@@ -764,19 +684,20 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
             bottom: 72,
             left: "50%",
             transform: "translateX(-50%)",
-            background: "#A8001C",
+            background: CRIMSON,
             color: "#fff",
-            fontSize: 13,
-            fontWeight: 700,
-            borderRadius: 99,
-            padding: "12px 28px",
+            fontSize: 14,
+            fontWeight: 500,
+            borderRadius: 999,
+            minHeight: 44,
+            padding: "0 28px",
             border: "none",
             zIndex: 40,
             cursor: "pointer",
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: SANS,
           }}
         >
-          Spill the needle ✦
+          Spill the needle
         </button>
       </div>
     </>

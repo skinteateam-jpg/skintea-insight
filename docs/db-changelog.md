@@ -755,8 +755,11 @@ Nothing below was reconstructed from memory without a source.
   already cascade from `surgery_posts`.
 - `saved_posts_post_type_check` replaced: `post_type = 'treatment'` only (was skin_tea, look_tea, spill, treatment; 0 rows).
 - `REVOKE DELETE ON public.profiles FROM anon, authenticated` (RLS already blocked it; no policy used it).
-- Planned after the app deploy that stops selecting it: `REVOKE SELECT (name) ON public.profiles FROM anon, authenticated`
-  (the sign-up name is then readable only by the service role, the owner through auth metadata, and the opt-in function).
+- Applied 00:20 UTC, before the app deploy (which is held behind another session's unreleased clinic-page work):
+  `REVOKE SELECT (name) ON public.profiles FROM anon, authenticated`. The sign-up name is now readable only by the service
+  role, by the user through their own auth record, and through `clinic_public_visitor_names` for the opt-in. The code still
+  live selected `name` in four places; each degrades to no name (checked on production: Surgery Talk, a clinic page,
+  Treatment Talk, a product page all load with no console error). INSERT/UPDATE (name) for authenticated are unchanged.
 - Tested (rolled back): another user deleting an author's treatment / surgery / product post affects 0 rows; the author
   deletes each (1 row); the other user's saved treatment copy, surgery save and comment are gone afterwards; saved_posts
   type 'spill' rejected; deleting a profiles row denied.

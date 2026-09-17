@@ -81,7 +81,8 @@ function PublicProfilePage() {
     (async () => {
       const { data: prof } = await supabase
         .from("profiles")
-        .select("user_id,name,username")
+        // Never the sign-up name: a public profile shows only the username the person chose (2026-09-16).
+        .select("user_id,username")
         .eq("username", username)
         .maybeSingle();
       if (!alive) return;
@@ -181,7 +182,6 @@ function PublicProfilePage() {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 16 }}>@{profile.username}</div>
-              {profile.name && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{profile.name}</div>}
             </div>
           </div>
 

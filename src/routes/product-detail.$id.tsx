@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode, ComponentType } from "react";
-import { Play, ExternalLink, ArrowLeft, Gift, Bookmark, Layers, ChevronDown, ChevronUp } from "lucide-react";
+import { Play, ExternalLink, ArrowLeft, Gift, Bookmark, Layers, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import AppFrame from "@/components/AppFrame";
 import { supabase } from "@/integrations/supabase/client";
 import { getFlags, isFungalAcneSafe, hasIngredientData, readSkinType } from "@/lib/ingredientFlags";
@@ -962,23 +962,9 @@ function ProductPage() {
           )}
         </Section>
 
-        {/* 7. Is it for you? */}
-        <Section title="Is it for you?">
-          <div className="grid grid-cols-2 gap-2.5">
-            {([
-              { variant: "yes" as const, header: "Yes — works well", body: "Who this works for — pending enough tagged reviews." },
-              { variant: "skip" as const, header: "Skip — may not work", body: "Who should skip it — pending enough tagged reviews." },
-            ]).map((card) => (
-              <div key={card.variant} className="bg-card border border-brand-border rounded-xl p-3.5">
-                <div className={`text-[11px] font-semibold mb-2.5 ${card.variant === "yes" ? "text-emerald-700" : "text-brand-crimson"}`}>{card.header}</div>
-                <div className="text-[11.5px] text-brand-muted leading-[1.55]">{card.body}</div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-2.5">
-            <DataPending>This will summarize who this product works for and who should skip it, generated from tagged skin-type sentiment.</DataPending>
-          </div>
-        </Section>
+        {/* "Is it for you?" was removed on 2026-09-16 (owner brief): it was fixed text with no data model, and driving it from
+            the skin-type recommend shares would only restate the "Works for you" rows above as a yes/skip verdict at a
+            cut-off, which those samples cannot carry. The rows show the same data with their counts. */}
 
         {/* 7b. For your skin type — ingredient flags */}
         {hasIngredientData(activeProduct?.ingredients) && (() => {
@@ -1346,6 +1332,16 @@ function TeaTab({
   navigate: any;
 }) {
   const [showForm, setShowForm] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  // Only the author can delete (RLS "Users can delete their own posts": auth.uid() = user_id).
+  async function deletePost(postId: string) {
+    if (!userId) return;
+    if (!window.confirm("Delete this post? It is removed for everyone and cannot be undone.")) return;
+    setDeleteError(null);
+    const { error, count } = await (supabase as any).from("product_posts").delete({ count: "exact" }).eq("id", postId).eq("user_id", userId);
+    if (error || count === 0) { setDeleteError(error ? `Couldn't delete: ${error.message}` : "Couldn't delete this post."); return; }
+    onPostAdded();
+  }
   const [formHeadline, setFormHeadline] = useState("");
   const [formBody, setFormBody] = useState("");
   const [formVerdict, setFormVerdict] = useState("");
@@ -1483,6 +1479,7 @@ function TeaTab({
         </div>
       ) : (
         <div className="flex flex-col">
+          {deleteError && <div className="px-4 pt-3 text-[12px] font-semibold text-brand-crimson">{deleteError}</div>}
           {filtered.map((post) => {
             const ch = post.skin_type ? CHARS[post.skin_type] : null;
             const isUserType = userSkinType && post.skin_type === userSkinType;
@@ -1520,6 +1517,11 @@ function TeaTab({
                   <div className={`flex items-center gap-[3px] text-[11px] shrink-0 ${post.agree_count > 10 ? "text-brand-crimson font-medium" : "text-brand-muted"}`}>
                     {post.agree_count} agree
                   </div>
+                  {userId && post.user_id === userId && (
+                    <button onClick={() => void deletePost(post.id)} className="flex items-center gap-1 text-[11px] text-brand-crimson bg-transparent border-none cursor-pointer shrink-0" aria-label="Delete your post">
+                      <Trash2 size={13} /> Delete
+                    </button>
+                  )}
                 </div>
                 {post.photo_urls && post.photo_urls.length > 0 && (
                   <div

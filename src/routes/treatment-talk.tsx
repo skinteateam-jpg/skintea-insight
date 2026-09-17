@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
-import { Lock, X, ChevronDown, Bookmark } from "lucide-react";
+import { Lock, X, ChevronDown, Bookmark, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/treatment-talk")({
   head: () => ({
@@ -220,12 +220,16 @@ function PostCard({
   locked,
   saved,
   onToggleSave,
+  isOwn,
+  onDelete,
 }: {
   post: PostRow;
   treatmentName: string | null;
   locked?: boolean;
   saved: boolean;
   onToggleSave: () => void;
+  isOwn: boolean;
+  onDelete: () => void;
 }) {
   const skin = post.skin_type ?? "";
   const avatarBg = SKIN_BG[skin] ?? CREAM;
@@ -260,7 +264,7 @@ function PostCard({
                   {SKIN_LABEL[skin] ? `${SKIN_LABEL[skin].split(" ").slice(1).join(" ")} skin` : "Skin type not given"}
                 </div>
                 <div className="text-[11px]" style={{ color: MUTED, fontFamily: "'DM Sans', sans-serif" }}>
-                  {new Date(post.created_at).toLocaleDateString()}
+                  {isOwn ? "Your post · " : ""}{new Date(post.created_at).toLocaleDateString()}
                 </div>
               </div>
             </div>
@@ -276,6 +280,11 @@ function PostCard({
               <button onClick={onToggleSave} aria-label={saved ? "Remove from saved" : "Save"} title={saved ? "Saved" : "Save"}>
                 <Bookmark size={16} color={saved ? CRIMSON : MUTED} fill={saved ? CRIMSON : "none"} />
               </button>
+              {isOwn && (
+                <button onClick={onDelete} aria-label="Delete your post" title="Delete your post">
+                  <Trash2 size={16} color={CRIMSON} />
+                </button>
+              )}
             </div>
           </div>
 
@@ -551,6 +560,18 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
       .filter((p) => (skin === "all" ? true : p.skin_type === skin));
   }, [posts, chip, skin, nameById]);
 
+  // Only the author can delete (RLS "Users can delete their own posts": auth.uid() = user_id). Saved copies are removed
+  // by the database (trigger saved_posts_cleanup_on_post_delete), so the post disappears from everyone's Saved Posts.
+  async function deletePost(postId: string) {
+    if (!userId) return;
+    if (!window.confirm("Delete this post? It is removed for everyone and cannot be undone.")) return;
+    setSaveError(null);
+    const { error, count } = await supabase.from("posts").delete({ count: "exact" }).eq("id", postId).eq("user_id", userId);
+    if (error || count === 0) { setSaveError(error ? `Couldn't delete: ${error.message}` : "Couldn't delete this post."); return; }
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+    setSavedIds((prev) => { const next = new Set(prev); next.delete(postId); return next; });
+  }
+
   function openComposer() {
     if (!userId) { navigate({ to: "/login" }).catch(() => {}); return; }
     setComposerOpen(true);
@@ -720,6 +741,8 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
                       treatmentName={p.treatment_id ? nameById.get(p.treatment_id) ?? null : null}
                       saved={savedIds.has(p.id)}
                       onToggleSave={() => void toggleSave(p.id)}
+                      isOwn={!!userId && p.user_id === userId}
+                      onDelete={() => void deletePost(p.id)}
                     />
                   ))
                 )}

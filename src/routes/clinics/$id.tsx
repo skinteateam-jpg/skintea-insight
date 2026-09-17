@@ -621,7 +621,9 @@ function ClinicDetailPage() {
       setVisitorProfile((vp.data as any) ?? null);
       const pvRows = ((pv.data as any) || []) as { user_id: string; visited_at: string }[];
       if (pvRows.length > 0) {
-        const { data: profs } = await supabase.from("profiles").select("user_id, name, username, avatar_url").in("user_id", pvRows.map((r) => r.user_id));
+        // profiles.name is not readable through the API (2026-09-16). clinic_public_visitor_names returns name, username and
+        // avatar only for people who ticked "Show my name on this clinic's page" for this clinic.
+        const { data: profs } = await (supabase as any).rpc("clinic_public_visitor_names", { p_clinic: id });
         if (!alive) return;
         const byUser = new Map(((profs as any[]) || []).map((p) => [p.user_id, p]));
         setPublicVisitors(pvRows.map((r) => ({

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import {
-  Lock, Bell, Home, User as UserIcon, Compass, X, Heart, MessageCircle, Bookmark, Send,
+  Lock, Bell, Home, User as UserIcon, Compass, X, Heart, MessageCircle, Bookmark, Send, Trash2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/surgery-talk")({
@@ -82,7 +82,7 @@ type PostRow = {
 
 type EnrichedPost = PostRow & {
   surgery_name: string;
-  /** profiles.name. null when the author has none — then no name renders. */
+  /** Always null: Surgery Talk is anonymous (2026-09-16). No author name is fetched or shown. */
   user_name: string | null;
   /** Emoji for a known skin type only. "" when the skin type is unknown. */
   user_emoji: string;
@@ -160,11 +160,12 @@ function usePosts(surgeries: Surgery[]) {
       } else {
         const surgMap = new Map(surgeriesRef.current.map((s) => [s.id, s.name]));
         const userIds = Array.from(new Set(data.map((p) => p.user_id)));
-        let profileMap = new Map<string, { name: string | null; skin_type: string | null; is_derm: boolean; field_provenance: any }>();
+        // Anonymous: the author's name is never read. Only the skin type and a recorded Derm verification are.
+        let profileMap = new Map<string, { skin_type: string | null; is_derm: boolean; field_provenance: any }>();
         if (userIds.length > 0) {
           const { data: profs } = await supabase
             .from("profiles")
-            .select("user_id, name, skin_type, is_derm, field_provenance")
+            .select("user_id, skin_type, is_derm, field_provenance")
             .in("user_id", userIds);
           if (profs) profileMap = new Map(profs.map((p) => [p.user_id, p as any]));
         }
@@ -177,7 +178,7 @@ function usePosts(surgeries: Surgery[]) {
             surgery_name: p.surgery_id ? (surgMap.get(p.surgery_id) ?? "—") : "—",
             // No stand-in name, no stand-in avatar, and no "member": nothing in
             // the database says any of those.
-            user_name: prof?.name ?? null,
+            user_name: null,
             user_emoji: SKIN_EMOJI[skin] ?? "",
             user_skin_line: skin ? `${skin.toLowerCase()} skin` : "",
             // The Derm badge needs a recorded verification: profiles.field_provenance.is_derm {source, recorded_at}, which the
@@ -221,8 +222,11 @@ function usePosts(surgeries: Surgery[]) {
   const updatePost = useCallback((id: string, patch: Partial<EnrichedPost>) => {
     setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
   }, []);
+  const removePost = useCallback((id: string) => {
+    setPosts((prev) => prev.filter((p) => p.id !== id));
+  }, []);
 
-  return { posts, loading, reload, updatePost };
+  return { posts, loading, reload, updatePost, removePost };
 }
 
 // ============= UI primitives =============
@@ -387,11 +391,8 @@ function CommentSection({ postId, userId }: { postId: string; userId: string | n
       .eq("post_id", postId)
       .order("created_at", { ascending: true });
     if (!data) return;
-    const ids = Array.from(new Set(data.map((c) => c.user_id)));
-    const { data: profs } = await supabase.from("profiles").select("user_id, name").in("user_id", ids);
-    const map = new Map(profs?.map((p) => [p.user_id, p.name]) ?? []);
-    // No stand-in name: an unnamed commenter shows no name.
-    setComments(data.map((c) => ({ ...c, user_name: map.get(c.user_id) ?? null })));
+    // Comments are anonymous like the posts: no name is read or shown. The signed-in visitor's own comments say "You".
+    setComments(data.map((c) => ({ ...c, user_name: null })));
   }, [postId]);
 
   useEffect(() => { load(); }, [load]);
@@ -417,8 +418,8 @@ function CommentSection({ postId, userId }: { postId: string; userId: string | n
               💭
             </div>
             <div className="flex-1 rounded-lg px-2 py-1.5" style={{ background: "#fff", border: `1px solid ${BORDER}` }}>
-              {c.user_name && (
-                <div className="text-[9px] font-bold" style={{ color: ESPRESSO }}>{c.user_name}</div>
+              {userId && c.user_id === userId && (
+                <div className="text-[9px] font-bold" style={{ color: ESPRESSO }}>You</div>
               )}
               <div className="text-[10px]" style={{ color: ESPRESSO }}>{c.content}</div>
               <div className="text-[8px] mt-0.5" style={{ color: MUTED }}>
@@ -454,7 +455,22 @@ function CommentSection({ postId, userId }: { postId: string; userId: string | n
 }
 
 // ============= Post card =============
-function PostCard({ post, locked, userId, onLikeChange }: { post: EnrichedPost; locked: boolean; userId: string | null; onLikeChange: (delta: number) => void }) {
+function PostCard({ post, locked, userId, onLikeChange, onDeleted }: { post: EnrichedPost; locked: boolean; userId: string | null; onLikeChange: (delta: number) => void; onDeleted: () => void }) {
+  const isOwn = !!userId && post.user_id === userId;
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  // Only the author can delete (RLS "Users can delete their own surgery posts": auth.uid() = user_id). Likes, saves and
+  // comments on the post are removed with it (ON DELETE CASCADE), so it disappears from everyone's saved posts.
+  async function deletePost() {
+    if (!isOwn || deleting) return;
+    if (!window.confirm("Delete this post? It is removed for everyone, with its comments, and cannot be undone.")) return;
+    setDeleting(true);
+    setDeleteError(null);
+    const { error, count } = await supabase.from("surgery_posts").delete({ count: "exact" }).eq("id", post.id).eq("user_id", userId!);
+    setDeleting(false);
+    if (error || count === 0) { setDeleteError(error ? `Couldn't delete: ${error.message}` : "Couldn't delete this post."); return; }
+    onDeleted();
+  }
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likes_count);
@@ -515,8 +531,8 @@ function PostCard({ post, locked, userId, onLikeChange }: { post: EnrichedPost; 
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                {post.user_name && (
-                  <div className="text-[12px] font-bold truncate" style={{ color: ESPRESSO }}>{post.user_name}</div>
+                {isOwn && (
+                  <div className="text-[12px] font-bold truncate" style={{ color: ESPRESSO }}>Your post</div>
                 )}
                 {post.user_is_derm && (
                   <span className="rounded-full px-1.5 py-0.5 text-[8px] font-bold"
@@ -647,15 +663,23 @@ function PostCard({ post, locked, userId, onLikeChange }: { post: EnrichedPost; 
               <Bookmark size={14} fill={saved ? CRIMSON : "none"} /> {saved ? "Saved" : "Save"}
             </button>
           </div>
-          <span className="rounded-full px-2 py-1 text-[9px] font-medium"
-            style={{
-              border: `1px solid ${post.comments_open ? ESPRESSO : BORDER}`,
-              color: post.comments_open ? ESPRESSO : MUTED,
-            }}>
-            {post.comments_open ? "Comments open" : "Comments off"}
-          </span>
+          <div className="flex items-center gap-2">
+            {isOwn && (
+              <button onClick={deletePost} disabled={deleting} className="flex items-center gap-1 text-[11px]" style={{ color: CRIMSON }}>
+                <Trash2 size={13} /> {deleting ? "Deleting…" : "Delete"}
+              </button>
+            )}
+            <span className="rounded-full px-2 py-1 text-[9px] font-medium"
+              style={{
+                border: `1px solid ${post.comments_open ? ESPRESSO : BORDER}`,
+                color: post.comments_open ? ESPRESSO : MUTED,
+              }}>
+              {post.comments_open ? "Comments open" : "Comments off"}
+            </span>
+          </div>
         </div>
       )}
+      {deleteError && <div className="px-4 pb-3 text-[11px] font-semibold" style={{ color: CRIMSON }}>{deleteError}</div>}
 
       {!locked && !post.comments_open && (
         <div className="px-4 pb-3 text-[10px] italic text-center" style={{ color: MUTED }}>
@@ -1063,7 +1087,7 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
   const navigate = useNavigate();
   const userId = useSession();
   const { surgeries, loading: surgeriesLoading, failed: surgeriesFailed } = useSurgeries();
-  const { posts, loading: postsLoading, reload, updatePost } = usePosts(surgeries);
+  const { posts, loading: postsLoading, reload, updatePost, removePost } = usePosts(surgeries);
   const [chip, setChip] = useState<string>("All");
   const [skin, setSkin] = useState<string>("all");
   const [composerOpen, setComposerOpen] = useState(false);
@@ -1090,11 +1114,15 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
 
   // Build ranked surgery chips
   const surgeryChips = useMemo(() => {
-    const sorted = [...surgeries].sort((a, b) => (rankCounts.get(b.id) ?? 0) - (rankCounts.get(a.id) ?? 0));
+    // Ordering chips by today's post counts is a ranking, so it waits for MIN_RANKED_POSTS like the medals; under the
+    // floor the chips keep the table's own sort order.
+    const sorted = posts.length >= MIN_RANKED_POSTS
+      ? [...surgeries].sort((a, b) => (rankCounts.get(b.id) ?? 0) - (rankCounts.get(a.id) ?? 0))
+      : [...surgeries];
     return [{ id: "All", label: "All", count: 0 }, ...sorted.map((s) => ({
       id: s.name, label: s.name, count: rankCounts.get(s.id) ?? 0,
     }))];
-  }, [surgeries, rankCounts]);
+  }, [surgeries, rankCounts, posts.length]);
 
   const filtered = useMemo(() => {
     return posts
@@ -1260,6 +1288,7 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
                   locked={false}
                   userId={userId}
                   onLikeChange={(delta) => updatePost(p.id, { likes_count: Math.max(0, p.likes_count + delta) })}
+                  onDeleted={() => removePost(p.id)}
                 />
               ))
             )}

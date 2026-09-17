@@ -210,11 +210,15 @@ function SkinProfilePage() {
       try {
         const { data } = await supabase
           .from("profiles" as any)
-          .select("name,username,avatar_url")
+          .select("username,avatar_url")
           // profiles is keyed by user_id (profiles.id is its own primary key and never equals the auth uid)
           .eq("user_id", userId)
           .maybeSingle();
-        if (alive) setProfile(((data as any) ?? null) as UserProfile | null);
+        // profiles.name is not readable through the API (2026-09-16); the signed-in user's own name comes from their own
+        // auth record, which only they can read.
+        const { data: auth } = await supabase.auth.getUser();
+        const ownName = (auth.user?.user_metadata?.name ?? auth.user?.user_metadata?.full_name ?? null) as string | null;
+        if (alive) setProfile((data ? { ...(data as any), name: ownName } : { username: null, avatar_url: null, name: ownName }) as UserProfile);
       } catch { if (alive) setProfile(null); }
     })();
     (async () => {

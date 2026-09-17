@@ -873,3 +873,31 @@ Nothing below was reconstructed from memory without a source.
   pairs: 0. 9 rows inserted and 17 updated; `clinic_treatments` now 604 rows, 82 of them priced (was 64).
   Passed clinics with at least one price 22 → 29; with at least one mapping 98 → 100.
 - Deleted session_ids: none. No rows deleted, no schema change.
+
+### 2026-09-17 23:35 UTC — product_posts: three columns so Product Talk's composer stores what it asks for
+
+- Who: pipeline session (Product Talk posting / one shared Talk card).
+- What: `alter table public.product_posts add column if not exists when_to_use text, how_much text, watch_out text;`
+  Three nullable text columns, no default, no constraint, no trigger change.
+- Why: Product Talk posting was switched on in this session (`POSTING_ENABLED` and the localStorage store are gone;
+  `src/routes/tea-products.tsx` now inserts into `product_posts` as the signed-in author). The Skin Tea composer already
+  asked for "When to use" (AM / PM / AM + PM), "How much" and a warning line, and had nowhere to put them. The rule is
+  that a form which can be filled in and saves nothing is never shown, so the choice was to delete the three fields or
+  give them columns; the owner chose the columns (2026-09-17). Everything else the composer collects already had a home:
+  `usage_duration` (the timeline choice), `post_type`, `tag`, `hashtags`, `steps`, `verdict`, `product_id`.
+- Not changed, deliberately: no provenance trigger. These are the poster's own words about their own use, guarded by
+  `enforce_signed_in_author` like the rest of the row, not a sourced claim about a product.
+- Photos: nothing was added for them. `product_posts.photo_urls` stays `{}` on every insert — there is no storage bucket
+  for post photos (only `clinic-submissions` and `social-thumbnails`), and the composer's old picker produced `blob:`
+  URLs, which mean nothing once stored. Look Tea, whose whole point is the photo, stays closed with a notice; Skin Tea
+  and Spill post the writing with the same "Photo uploads aren't open yet" line Treatment Talk uses.
+- Grants: `information_schema.column_privileges` shows anon, authenticated, sandbox_exec and service_role each covering
+  all 21 columns, so the three new ones inherited the table-wide grants; no grant statement was run. The RLS policies
+  (`auth.uid() = user_id` on INSERT, own-row DELETE, public SELECT) are unchanged, and there is still no UPDATE policy.
+- Verified by query, not by a tool's self-report:
+  - `information_schema.columns` returns `when_to_use`, `how_much`, `watch_out`, all `text`, all nullable.
+  - Guard still holds with the new columns in the insert list: an insert naming all three, run as `postgres` through
+    `query_database` (so `auth.uid()` is null), was rejected by `enforce_signed_in_author` with
+    "a review/post must be written by its signed-in author". Nothing was written, so there was nothing to clean up.
+  - `product_posts` row count after the change: 0.
+- Deleted session_ids: none. No rows deleted, no rows inserted.

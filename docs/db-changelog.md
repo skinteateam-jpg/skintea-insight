@@ -761,3 +761,28 @@ Nothing below was reconstructed from memory without a source.
   deletes each (1 row); the other user's saved treatment copy, surgery save and comment are gone afterwards; saved_posts
   type 'spill' rejected; deleting a profiles row denied.
 - Deleted session_ids: none. No rows written.
+
+### 2026-09-16 23:40 UTC (rows to 2026-09-17 00:05) — `treatment_videos` table (TikTok videos for treatment pages)
+- Who: treatment-page video session (owner-approved schema, 2026-09-16).
+- What: `CREATE TABLE public.treatment_videos` — videos showing what a treatment looks like, display material only.
+  Columns: id, treatment_id (FK treatments), platform (`tiktok` only), platform_video_id (digits, unique per platform),
+  source_url (GENERATED from the video id, so no handle can be stored), posted_at (platform's own time, nullable),
+  disclosure text[] (allowlist ad, sponsored, gifted, pr_sample, brand_program, brand_owned, states_no_ad, invited,
+  discount_code — this table only; social_review_tags unchanged), evidence (not null, rejects `@`, max 500), source
+  (`scrape` | `owner_link`; scrape_run_id required for scrape, null for owner_link), display_approved (default false),
+  display_slot (1–6), display_approved_at, created_at. Checks: approval, slot and approval time set together; unique
+  (treatment_id, display_slot) where approved, so at most 6 displayed per treatment.
+- No handle, username, display name, caption, follower, view or profile column. Clinic, injector and provider accounts
+  are excluded before insert; their videos stay on clinic pages (`clinic_videos`, untouched).
+- RLS enabled. `REVOKE ALL` from anon, authenticated; column SELECT (id, treatment_id, platform, platform_video_id,
+  source_url, posted_at, disclosure, display_slot) to anon, authenticated; policy "Public reads approved treatment
+  videos" (SELECT, using display_approved). No app-side write path. `sandbox_exec` keeps its default SELECT+INSERT.
+- Not read by `treatmentReviews.ts`, `opinionAggregate.ts` or any count; never enters Worth it, floors or medians.
+- Verified in pg_catalog (columns, 11 constraints, 3 indexes, policy, relacl, column ACLs). Tested in a block that
+  raised at the end: duplicate slot, slot 7, `@` in evidence, scrape without run id, owner_link with run id, unknown
+  disclosure and half approval rejected; invited/discount_code accepted; anon saw only the approved test row, was denied
+  `evidence` and INSERT. 0 rows persisted (checked).
+- Rows: 81 inserted, all display_approved = false (51 from the pilot on botox/morpheus8/hydrafacial, 30 from fillers,
+  rejuran, skin-boosters), verified by md5 over every stored field. Video ids are kept out of this public file; the
+  classification record is in the private pipeline repo.
+- Deleted session_ids: none.

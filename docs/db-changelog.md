@@ -1001,3 +1001,31 @@ Nothing below was reconstructed from memory without a source.
   the function returns. A comment at the top of `postVotes.ts` says so, because a future "optimisation"
   that counts rows locally would quietly undo both halves of this.
 - Deleted session_ids: none. No rows deleted, no rows inserted. `social_review_tags` untouched.
+
+### 2026-09-18 01:30 UTC — posts.is_named (named or anonymous, the member's choice) and its username guard
+
+- Who: treatment-video / treatment-page rework session, on Chi's explicit go (2026-09-18).
+- Why: on Treatment Tea a member chooses whether a post shows their username or is anonymous. Anonymous is the
+  default. The choice decides whether a real person's name sits next to a post about injectables, so it is a column the
+  database enforces, not a string convention in `tags`. This overrules the earlier "Treatment Talk posts are
+  nameless" rule (Chi, 2026-09-17). `profiles.name` stays revoked; only the username the member chose can show.
+- What, each statement run as its own `query_database` call:
+  1. `ALTER TABLE public.posts ADD COLUMN is_named boolean NOT NULL DEFAULT false`. `posts` had 0 rows. The column
+     inherits the table grants (anon and authenticated SELECT/INSERT/UPDATE); the existing own-row RLS policies apply.
+  2. `public.posts_enforce_named_username()`: plpgsql, SECURITY DEFINER, `search_path = public`. When a row has
+     `is_named = true` on INSERT, or on an UPDATE that sets it or changes `user_id`, it raises `check_violation`
+     unless `profiles.username` for that `user_id` is non-empty.
+  3. `CREATE TRIGGER posts_named_requires_username BEFORE INSERT OR UPDATE ON public.posts FOR EACH ROW`.
+  4. `REVOKE EXECUTE ON FUNCTION public.posts_enforce_named_username() FROM PUBLIC, anon, authenticated` (trigger
+     functions do not need it; the trigger still fires for those roles, tested below).
+- Verified by query, not by a tool's self-report: `pg_attribute`/`pg_attrdef` show `is_named boolean`, `attnotnull =
+  true`, default `false`; `pg_trigger` shows the trigger enabled (`O`), the function `prosecdef = true` with
+  `search_path=public`, and no EXECUTE for anon or authenticated.
+- Test: one DO block run as `authenticated` with `request.jwt.claims` set to a real profile's id, ending in a RAISE so
+  the whole transaction rolled back. Named insert with no username: rejected. Anonymous insert: accepted,
+  `is_named = false`. Update of that post to named with no username: rejected. Username set inside the block, named
+  insert: accepted, `is_named = true`. Afterwards `posts` 0 rows, profiles with a username 0.
+- App side: the treatment page change that reads and writes the column is on branch
+  `hold/2026-09-17-treatment-videos`, not on `main`. Until that merges, nothing writes `is_named`, so every post
+  stays anonymous by the default.
+- Deleted session_ids: none. No rows inserted or deleted.

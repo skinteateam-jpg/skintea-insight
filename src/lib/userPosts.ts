@@ -14,6 +14,8 @@ export type UserPost = {
   snippet: string | null;
   created_at: string;
   href: string;
+  /** Saved posts only: updates the author added since this reader saved or last opened the post (block 7). */
+  newUpdates?: number;
 };
 
 export const USER_POST_LABEL: Record<UserPostKind, { label: string; bg: string }> = {
@@ -39,7 +41,7 @@ function fromTreatment(r: any): UserPost {
     key: `treatment:${r.id}`, kind: "treatment", id: r.id,
     title: r.treatments?.name ?? "Treatment post",
     snippet: firstText(r.what_happened, r.surprised_me, r.works_for, r.warn_if), created_at: r.created_at,
-    href: "/treatment-talk",
+    href: `/treatment-talk/${r.id}`,
   };
 }
 
@@ -48,7 +50,7 @@ function fromSurgery(r: any): UserPost {
     key: `surgery:${r.id}`, kind: "surgery", id: r.id,
     title: r.surgeries?.name ?? "Surgery post",
     snippet: firstText(r.my_thoughts_vs_reality, r.what_happened, r.surprised_me), created_at: r.created_at,
-    href: "/surgery-talk",
+    href: `/surgery-talk/${r.id}`,
   };
 }
 
@@ -90,18 +92,30 @@ export async function fetchUserPosts(userId: string): Promise<{ posts: UserPost[
 export async function fetchSavedPosts(userId: string): Promise<{ posts: UserPost[]; error: boolean }> {
   const db = supabase as any;
   const [sp, ss] = await Promise.all([
-    db.from("saved_posts").select("post_id, created_at").eq("user_id", userId).eq("post_type", "treatment"),
-    db.from("surgery_saves").select("post_id, created_at").eq("user_id", userId),
+    db.from("saved_posts").select("post_id, created_at, updates_seen_at").eq("user_id", userId).eq("post_type", "treatment"),
+    db.from("surgery_saves").select("post_id, created_at, updates_seen_at").eq("user_id", userId),
   ]);
   const treatmentIds = ((sp.data ?? []) as { post_id: string }[]).map((r) => r.post_id);
   const surgeryIds = ((ss.data ?? []) as { post_id: string }[]).map((r) => r.post_id);
-  const [t, s] = await Promise.all([
+  const allIds = [...treatmentIds, ...surgeryIds];
+  const [t, s, u] = await Promise.all([
     treatmentIds.length ? db.from("posts").select(TREATMENT_COLS).in("id", treatmentIds) : Promise.resolve({ data: [], error: null }),
     surgeryIds.length ? db.from("surgery_posts").select(SURGERY_COLS).in("id", surgeryIds) : Promise.resolve({ data: [], error: null }),
+    allIds.length ? db.from("post_updates").select("post_id, post_type, created_at").in("post_id", allIds) : Promise.resolve({ data: [], error: null }),
   ]);
+  // Block 7: an update newer than the save's updates_seen_at is new to this reader. Opening the post page resets it.
+  const seenAt = new Map<string, number>();
+  for (const r of (sp.data ?? []) as { post_id: string; updates_seen_at: string }[]) seenAt.set(`treatment:${r.post_id}`, Date.parse(r.updates_seen_at));
+  for (const r of (ss.data ?? []) as { post_id: string; updates_seen_at: string }[]) seenAt.set(`surgery:${r.post_id}`, Date.parse(r.updates_seen_at));
+  const unseen = new Map<string, number>();
+  for (const r of (u.data ?? []) as { post_id: string; post_type: string; created_at: string }[]) {
+    const key = `${r.post_type}:${r.post_id}`;
+    const seen = seenAt.get(key);
+    if (seen != null && Date.parse(r.created_at) > seen) unseen.set(key, (unseen.get(key) ?? 0) + 1);
+  }
   const posts = [
     ...((t.data ?? []) as any[]).map(fromTreatment),
     ...((s.data ?? []) as any[]).map(fromSurgery),
-  ].sort(newestFirst);
-  return { posts, error: !!(sp.error || ss.error || t.error || s.error) };
+  ].map((p) => ({ ...p, newUpdates: unseen.get(p.key) ?? 0 })).sort(newestFirst);
+  return { posts, error: !!(sp.error || ss.error || t.error || s.error || u.error) };
 }

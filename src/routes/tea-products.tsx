@@ -10,6 +10,8 @@ import TalkPostCard, {
 } from "@/components/TalkPostCard";
 import TalkVoteBlock from "@/components/TalkVoteBlock";
 import { profileHref } from "@/lib/talkAuthors";
+import TalkQuoteBox from "@/components/TalkQuoteBox";
+import { useQuotedPosts } from "@/lib/talkQuotes";
 import { emptySplit, usePostVotes } from "@/lib/postVotes";
 
 export const Route = createFileRoute("/tea-products")({
@@ -101,6 +103,8 @@ export type ProductPost = {
   authorUsername: string | null;
   /** profiles.avatar_url of the author at post time. */
   authorAvatarUrl: string | null;
+  /** Quote tea: the Product Talk post this one quotes, or null. */
+  quotedPostId: string | null;
   /** The author's own skin type, read from their profile at post time. null when unknown. */
   skinType: string | null;
   headline: string | null;
@@ -119,7 +123,7 @@ export type ProductPost = {
 };
 
 export const PRODUCT_POST_COLS =
-  "id, product_id, user_id, username, avatar_url, skin_type, headline, body, verdict, usage_duration, when_to_use, how_much, watch_out, post_type, tag, hashtags, steps, created_at, products(id, name, brand, image_url)";
+  "id, product_id, user_id, username, avatar_url, skin_type, headline, body, verdict, usage_duration, when_to_use, how_much, watch_out, post_type, tag, hashtags, steps, created_at, quoted_post_id, products(id, name, brand, image_url)";
 
 export function mapProductPost(row: any): ProductPost {
   const p = row?.products ?? null;
@@ -130,6 +134,7 @@ export function mapProductPost(row: any): ProductPost {
     userId: row.user_id,
     authorUsername: row.username ?? null,
     authorAvatarUrl: row.avatar_url ?? null,
+    quotedPostId: row.quoted_post_id ?? null,
     skinType: row.skin_type ?? null,
     headline: row.headline ?? null,
     body: row.body ?? "",
@@ -323,12 +328,16 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
   const navigate = useNavigate();
   const [composeOpen, setComposeOpen] = React.useState(false);
   const [composePrompt, setComposePrompt] = React.useState<string | undefined>();
+  // Quote tea: the post the composer is quoting, or null for an ordinary post.
+  const [quoteTarget, setQuoteTarget] = React.useState<string | null>(null);
   const [rowError, setRowError] = React.useState<string | null>(null);
 
   // One RPC for every post on screen. The 20-vote floor is applied inside post_vote_split, so a
   // closed split arrives with its percentages already absent rather than hidden here.
   const postIds = React.useMemo(() => posts.map((p) => p.id), [posts]);
   const { splits, myVotes, vote, error: voteError } = usePostVotes("product", postIds, viewer?.userId ?? null);
+  const quotedIds = React.useMemo(() => posts.map((p) => p.quotedPostId).filter((v): v is string => !!v), [posts]);
+  const { quoted, loaded: quotedLoaded } = useQuotedPosts("product", quotedIds, viewer?.userId ?? null);
 
   // One editorial prompt, shown only alongside a real feed. Not framed as daily:
   // it does not rotate, and nothing here measures a day.
@@ -340,6 +349,15 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
   const openCompose = (prompt?: string) => {
     if (!viewer) { void navigate({ to: "/login" }); return; }
     setComposePrompt(prompt);
+    setQuoteTarget(null);
+    setComposeOpen(true);
+  };
+
+  // Quote tea: a new post of your own, carrying the quoted post's id.
+  const openQuote = (postId: string) => {
+    if (!viewer) { void navigate({ to: "/login" }); return; }
+    setComposePrompt(undefined);
+    setQuoteTarget(postId);
     setComposeOpen(true);
   };
 
@@ -470,6 +488,10 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
                 isOwn={!!viewer && viewer.userId === post.userId}
                 onOpen={() => navigate({ to: "/tea-products/$postId", params: { postId: post.id } })}
                 onDelete={() => void deletePost(post.id)}
+                onQuote={() => openQuote(post.id)}
+                quotedBox={post.quotedPostId
+                  ? <TalkQuoteBox quoted={quoted.get(post.quotedPostId) ?? null} loaded={quotedLoaded} />
+                  : null}
                 voteBlock={
                   <TalkVoteBlock
                     split={splits.get(post.id) ?? emptySplit(post.id)}
@@ -519,6 +541,7 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
           open={composeOpen}
           onOpenChange={setComposeOpen}
           promptContext={composePrompt}
+          quotedPostId={quoteTarget}
           viewer={viewer}
           onPosted={() => { setComposeOpen(false); void reload(); setActiveTag("all"); }}
         />
@@ -538,13 +561,17 @@ function TeaProductsPage() {
 /* ---------- Post card ---------- */
 
 export function ProductPostCard({
-  post, isOwn, onOpen, onDelete, voteBlock = null,
+  post, isOwn, onOpen, onDelete, voteBlock = null, quotedBox = null, onQuote,
 }: {
   post: ProductPost;
   isOwn: boolean;
   onOpen?: () => void;
   onDelete?: () => void;
   voteBlock?: React.ReactNode;
+  /** The post this one quotes, already rendered as a TalkQuoteBox. */
+  quotedBox?: React.ReactNode;
+  /** Opens the composer quoting this post. Without it the action is disabled and says where quoting works. */
+  onQuote?: () => void;
 }) {
   const tagLabel = post.tag ? TAG_LABEL[post.tag] : null;
   const hasRoutine = post.steps.length > 0;
@@ -565,6 +592,7 @@ export function ProductPostCard({
       verdict={verdictStamp(post.verdict)}
       hook={post.headline}
       body={post.body}
+      quoted={quotedBox}
       onOpen={onOpen}
       module={
         <>
@@ -589,7 +617,9 @@ export function ProductPostCard({
       ]}
       voteBlock={voteBlock}
       reply={{ key: "Reply", label: "Reply", disabled: true, title: "Replies open when commenting does" }}
-      quote={{ key: "Quote", label: "Quote", disabled: true, title: "Quoting is not built yet" }}
+      quote={onQuote
+        ? { key: "Quote", label: "Quote", onClick: onQuote, title: "Quote this post in a post of your own" }
+        : { key: "Quote", label: "Quote", disabled: true, title: "Open Product Talk to quote this post" }}
       save={{ key: "Save", disabled: true, title: "Saving product posts isn't built yet" }}
       share={{
         key: "Share",
@@ -922,14 +952,23 @@ function StepBuilder({
 }
 
 function ComposeSheet({
-  open, onOpenChange, promptContext, viewer, onPosted,
+  open, onOpenChange, promptContext, quotedPostId = null, viewer, onPosted,
 }: {
   open: boolean;
   onOpenChange: (b: boolean) => void;
   promptContext?: string;
+  /** Quote tea: the post this new post quotes. Written to quoted_post_id; the database checks it exists. */
+  quotedPostId?: string | null;
   viewer: ViewerProfile;
   onPosted: () => void;
 }) {
+  const { quoted: quotedMap, loaded: quotedLoaded } = useQuotedPosts("product", quotedPostId ? [quotedPostId] : [], viewer.userId);
+  const quotePreview = quotedPostId ? (
+    <div style={{ marginBottom: 14 }}>
+      <div style={FIELD_LABEL}>Quoting</div>
+      <TalkQuoteBox quoted={quotedMap.get(quotedPostId) ?? null} loaded={quotedLoaded} />
+    </div>
+  ) : null;
   const [stage, setStage] = React.useState<ComposeStage>("type");
   const [skinTeaMode, setSkinTeaMode] = React.useState<SkinTeaMode>("single");
   const [tag, setTag] = React.useState<TagKey | null>(null);
@@ -1013,6 +1052,7 @@ function ComposeSheet({
       steps: routineSteps,
       // No photo is written: there is no bucket, and a blob: URL is meaningless to anyone else.
       photo_urls: [],
+      quoted_post_id: quotedPostId ?? null,
     });
 
     setSubmitting(false);
@@ -1085,6 +1125,7 @@ function ComposeSheet({
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <SheetHead title="What are you spilling?" />
       <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+        {quotePreview}
         {promptContext && (
           <div style={{ background: WARM_WHITE, border: CARD_BORDER, borderRadius: 10, padding: "10px 12px", marginBottom: 14 }}>
             <div style={{ ...FIELD_LABEL, marginBottom: 3 }}>Replying to</div>
@@ -1123,6 +1164,7 @@ function ComposeSheet({
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <SheetHead title="Skin Tea" backTo="type" />
       <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+        {quotePreview}
         <div style={{ display: "flex", background: NEUTRAL_FILL, borderRadius: 10, padding: 3, marginBottom: 16 }}>
           {(["single", "routine"] as SkinTeaMode[]).map((mode) => (
             <button
@@ -1222,6 +1264,7 @@ function ComposeSheet({
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <SheetHead title="Spill" backTo="type" />
       <div style={{ flex: 1, overflowY: "auto", padding: 16 }}>
+        {quotePreview}
         <div style={{ background: WARM_WHITE, border: CARD_BORDER, borderRadius: 10, padding: "10px 12px", marginBottom: 14, fontSize: 13, color: ESPRESSO, lineHeight: 1.5 }}>
           Raw and honest. No product required. Just say what others won't.
         </div>

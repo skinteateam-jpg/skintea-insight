@@ -10,7 +10,8 @@ const BORDER = "#E8DDD4";
  *
  * Display material only. These rows never enter Worth it, a count, a floor or a median: nothing in
  * treatmentReviews.ts or opinionAggregate.ts reads public.treatment_videos, and this component reads
- * nothing else. It is separate from "Who has talked about it" (TreatmentVoices): no shared query, no shared rows.
+ * nothing else. It is separate from "Who has talked about it" (TreatmentMembers, the Skintea members who posted
+ * Tea about the treatment) and from the "Talked about by" line (TreatmentCelebrityLine): no shared query, no shared rows.
  *
  * Rows are chosen by the owner (display_approved, display_slot 1–6). Anonymous visitors can read only
  * approved rows, and only the columns selected below. Clinic, injector and provider accounts are never

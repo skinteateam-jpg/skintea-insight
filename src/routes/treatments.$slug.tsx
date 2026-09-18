@@ -678,9 +678,10 @@ function TreatmentPage() {
         })()}
 
         {/*
-          Who has talked about it — celebrity / influencer evidence, between "About this
-          treatment" and "What people say". Treatment-scoped only: these rows are never
-          joined to a clinic and never link to one.
+          Who has talked about it — celebrity / influencer evidence, kept exactly as it was and left in place
+          next to "About this treatment" (owner, 2026-09-17: it is replaced in a separate task). Treatment-scoped
+          only: these rows are never joined to a clinic and never link to one, and they are not the member
+          section below ("Who has done it").
         */}
         <TreatmentVoices treatmentId={treatment.id} />
 

@@ -9,6 +9,8 @@ import TalkPostCard, {
 } from "@/components/TalkPostCard";
 import TalkVoteBlock from "@/components/TalkVoteBlock";
 import { emptySplit, usePostVotes, type VoteSplit, type VoteValue } from "@/lib/postVotes";
+import TalkVisibilityPicker from "@/components/TalkVisibilityPicker";
+import { ANONYMOUS_AUTHOR, profileHref, useMyUsername, useTalkAuthors, type TalkAuthor } from "@/lib/talkAuthors";
 
 export const Route = createFileRoute("/surgery-talk")({
   head: () => ({
@@ -56,7 +58,8 @@ const SKIN_TYPES = [
 type Photo = { url: string; label: string };
 type PostRow = {
   id: string;
-  user_id: string;
+  // No user_id: who wrote a post comes from talk_post_authors(), which returns an author only for a named post.
+  is_named: boolean;
   surgery_id: string | null;
   clinic_name: string | null;
   country: string | null;
@@ -84,10 +87,14 @@ const NEGATIVE_OUTCOMES = new Set<string>(["Wouldn't"]);
 
 type EnrichedPost = PostRow & {
   surgery_name: string;
-  /** Always null: Surgery Talk is anonymous (2026-09-16). No author name is fetched or shown. */
-  user_name: string | null;
-  user_is_derm: boolean;
 };
+
+/* Every column the feed reads, and deliberately not user_id: an anonymous post must not carry its author to
+   the browser. select("*") is not used, because it would include user_id. */
+const SURGERY_FEED_COLS =
+  "id, is_named, surgery_id, clinic_name, country, city, total_cost, recovery_time, pain_level, " +
+  "my_thoughts_vs_reality, struggle, what_happened, surprised_me, works_for, warn_if, outcome, hashtags, " +
+  "skin_type, photos, comments_open, likes_count, created_at";
 
 
 // ============= Hooks =============
@@ -149,7 +156,7 @@ function usePosts(surgeries: Surgery[]) {
     try {
       const { data, error } = await supabase
         .from("surgery_posts")
-        .select("*")
+        .select(SURGERY_FEED_COLS)
         .order("created_at", { ascending: false })
         .limit(100);
       if (error || !data || data.length === 0) {
@@ -157,30 +164,13 @@ function usePosts(surgeries: Surgery[]) {
         if (!hasLoadedRef.current) setPosts([]);
       } else {
         const surgMap = new Map(surgeriesRef.current.map((s) => [s.id, s.name]));
-        const userIds = Array.from(new Set(data.map((p) => p.user_id)));
-        // Anonymous: the author's name is never read. Only the skin type and a recorded Derm verification are.
-        let profileMap = new Map<string, { skin_type: string | null; is_derm: boolean; field_provenance: any }>();
-        if (userIds.length > 0) {
-          const { data: profs } = await supabase
-            .from("profiles")
-            .select("user_id, skin_type, is_derm, field_provenance")
-            .in("user_id", userIds);
-          if (profs) profileMap = new Map(profs.map((p) => [p.user_id, p as any]));
-        }
-        const enriched: EnrichedPost[] = (data as unknown as PostRow[]).map((p) => {
-          const prof = profileMap.get(p.user_id);
-          return {
-            ...p,
-            photos: Array.isArray(p.photos) ? (p.photos as Photo[]) : [],
-            surgery_name: p.surgery_id ? (surgMap.get(p.surgery_id) ?? "") : "",
-            skin_type: p.skin_type ?? prof?.skin_type ?? null,
-            // No stand-in name and no "member": nothing in the database says either.
-            user_name: null,
-            // The Derm badge needs a recorded verification: profiles.field_provenance.is_derm {source, recorded_at}, which the
-            // profiles_enforce_provenance trigger requires before is_derm can be true (2026-09-16). No verification, no badge.
-            user_is_derm: prof?.is_derm === true && !!prof?.field_provenance?.is_derm?.source && !!prof?.field_provenance?.is_derm?.recorded_at,
-          };
-        });
+        // No profile is looked up here. The skin type is the one the poster stated on the post; the author's
+        // username and a recorded Derm verification come from talk_post_authors(), for named posts only.
+        const enriched: EnrichedPost[] = (data as unknown as PostRow[]).map((p) => ({
+          ...p,
+          photos: Array.isArray(p.photos) ? (p.photos as Photo[]) : [],
+          surgery_name: p.surgery_id ? (surgMap.get(p.surgery_id) ?? "") : "",
+        }));
         setPosts(enriched);
       }
     } catch {
@@ -393,12 +383,13 @@ function CommentSection({ postId, userId }: { postId: string; userId: string | n
 }
 
 // ============= Post card =============
-function PostCard({ post, userId, onLikeChange, onDeleted, split, myVote, canVote, onVote, onSignIn, voteError }: {
+function PostCard({ post, userId, onLikeChange, onDeleted, split, myVote, canVote, onVote, onSignIn, voteError, author }: {
   post: EnrichedPost; userId: string | null; onLikeChange: (delta: number) => void; onDeleted: () => void;
   split: VoteSplit; myVote: VoteValue | null; canVote: boolean;
   onVote: (v: VoteValue) => void; onSignIn?: () => void; voteError: string | null;
+  author: TalkAuthor;
 }) {
-  const isOwn = !!userId && post.user_id === userId;
+  const isOwn = author.isOwn;
   const [deleting, setDeleting] = useState(false);
   const [rowError, setRowError] = useState<string | null>(null);
   const [liked, setLiked] = useState(false);
@@ -414,7 +405,8 @@ function PostCard({ post, userId, onLikeChange, onDeleted, split, myVote, canVot
     if (!window.confirm("Delete this post? It is removed for everyone, with its comments, and cannot be undone.")) return;
     setDeleting(true);
     setRowError(null);
-    const { error, count } = await supabase.from("surgery_posts").delete({ count: "exact" }).eq("id", post.id).eq("user_id", userId!);
+    // By id alone: the RLS policy (auth.uid() = user_id) is what restricts this to the author's own row.
+    const { error, count } = await supabase.from("surgery_posts").delete({ count: "exact" }).eq("id", post.id);
     setDeleting(false);
     if (error || count === 0) { setRowError(error ? `Couldn't delete: ${error.message}` : "Couldn't delete this post."); return; }
     onDeleted();
@@ -469,13 +461,18 @@ function PostCard({ post, userId, onLikeChange, onDeleted, split, myVote, canVot
 
   return (
     <TalkPostCard
-      /* Surgery Talk is anonymous: the author is never named, not even to themselves beyond "Your post". */
-      authorName={null}
+      /* Named only when the author chose to be (surgery_posts.is_named). The author comes from
+         talk_post_authors(), which returns nothing for an anonymous post. */
+      authorName={author.username}
+      authorAvatarUrl={author.avatarUrl}
+      authorHref={author.username ? profileHref(author.username) : null}
       isOwn={isOwn}
       skinType={post.skin_type}
       createdAt={post.created_at}
       subject={post.surgery_name || null}
-      typeLabel={post.user_is_derm ? { text: "Verified derm" } : null}
+      /* A recorded Derm verification, and only on a named post: on an anonymous post, with so few verified
+         derms, the badge alone could point to the person. */
+      typeLabel={author.isDerm ? { text: "Verified derm" } : null}
       verdict={post.outcome ? { label: post.outcome, tone: NEGATIVE_OUTCOMES.has(post.outcome) ? "negative" : "positive" } : null}
       body={post.what_happened || post.my_thoughts_vs_reality || ""}
       module={
@@ -680,6 +677,11 @@ function Composer({ onClose, surgeries, userId, onCreated }: {
     hashtags: "",
     comments_open: true,
   });
+  // Starts on "Post as @username"; null means the author has not touched it. Without a username the post
+  // cannot be named, and is_named is sent as false — explicitly, never left to the column default.
+  const { username, loaded: usernameLoaded } = useMyUsername(userId);
+  const [namedChoice, setNamedChoice] = useState<boolean | null>(null);
+  const named = !!username && (namedChoice ?? true);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -722,6 +724,7 @@ function Composer({ onClose, surgeries, userId, onCreated }: {
       hashtags: tags,
       photos: validPhotos as any,
       comments_open: form.comments_open,
+      is_named: named,
     };
     const { error } = await supabase.from("surgery_posts").insert(payload);
     setSubmitting(false);
@@ -873,6 +876,8 @@ function Composer({ onClose, surgeries, userId, onCreated }: {
               onChange={(e) => update("comments_open", e.target.checked)} />
           </label>
 
+          <TalkVisibilityPicker username={username} named={named} loaded={usernameLoaded} onChange={setNamedChoice} />
+
           {error && <div style={{ fontSize: 13, color: CRIMSON }}>{error}</div>}
 
           {missing.length > 0 && (
@@ -885,7 +890,7 @@ function Composer({ onClose, surgeries, userId, onCreated }: {
             {submitting ? "Spilling…" : "Spill it"}
           </button>
           <div style={{ fontSize: 13, color: MUTED, lineHeight: 1.5 }}>
-            Your post is public on Skintea without your name.
+            {named ? `Your post is public on Skintea as @${username}.` : "Your post is public on Skintea without your name."}
           </div>
         </div>
       </div>
@@ -971,6 +976,7 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
   // One RPC for every post on screen; the floors are applied inside post_vote_split.
   const postIds = useMemo(() => posts.map((p) => p.id), [posts]);
   const { splits, myVotes, vote, error: voteError } = usePostVotes("surgery", postIds, userId);
+  const { authors } = useTalkAuthors("surgery", postIds, userId);
 
   const filtered = useMemo(() => {
     return posts
@@ -1130,7 +1136,8 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
                   onDeleted={() => removePost(p.id)}
                   split={splits.get(p.id) ?? emptySplit(p.id)}
                   myVote={myVotes.get(p.id) ?? null}
-                  canVote={!!userId && p.user_id !== userId}
+                  canVote={!!userId && !(authors.get(p.id) ?? ANONYMOUS_AUTHOR).isOwn}
+                  author={authors.get(p.id) ?? ANONYMOUS_AUTHOR}
                   onVote={(v) => void vote(p.id, v)}
                   onSignIn={userId ? undefined : () => navigate({ to: "/login" })}
                   voteError={voteError?.postId === p.id ? voteError.message : null}

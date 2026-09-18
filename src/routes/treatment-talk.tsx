@@ -13,6 +13,8 @@ import TalkVisibilityPicker from "@/components/TalkVisibilityPicker";
 import { ANONYMOUS_AUTHOR, profileHref, useMyUsername, useTalkAuthors, type TalkAuthor } from "@/lib/talkAuthors";
 import TalkQuoteBox from "@/components/TalkQuoteBox";
 import { useQuotedPosts } from "@/lib/talkQuotes";
+import { TalkUpdatesLink } from "@/components/TalkUpdateTimeline";
+import { useUpdateSummaries } from "@/lib/postUpdates";
 
 export const Route = createFileRoute("/treatment-talk")({
   head: () => ({
@@ -45,7 +47,7 @@ type TreatmentOption = { id: string; name: string };
 
 // Active treatments from the table only. There is no hard-coded fallback list: while loading the chips show a skeleton,
 // and a failed load says so (a stale list once included the inactive "Laser").
-function useTreatments() {
+export function useTreatments() {
   const [treatments, setTreatments] = useState<TreatmentOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -69,7 +71,7 @@ function useTreatments() {
   return { treatments, loading, failed };
 }
 
-function useUserId() {
+export function useUserId() {
   const [userId, setUserId] = useState<string | null>(null);
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user?.id ?? null));
@@ -115,7 +117,7 @@ const SORTS: { label: string; enabled: boolean }[] = [
   { label: "Most detailed", enabled: false },
 ];
 
-type Outcome = "would_again" | "modified" | "wouldnt";
+export type Outcome = "would_again" | "modified" | "wouldnt";
 const OUTCOMES: { key: Outcome; label: string }[] = [
   { key: "would_again", label: "Would do again" },
   { key: "modified", label: "Modified" },
@@ -126,7 +128,12 @@ const OUTCOME_LABEL: Record<Outcome, string> = Object.fromEntries(OUTCOMES.map((
    "Modified" is not a warning and does not. */
 const NEGATIVE_OUTCOMES = new Set<Outcome>(["wouldnt"]);
 
-type PostRow = {
+/* Every column the feed and the post page read, and deliberately not user_id: an anonymous post must not carry
+   its author to the browser. */
+export const TREATMENT_POST_COLS =
+  "id, is_named, quoted_post_id, treatment_id, cost, sessions, what_happened, surprised_me, works_for, warn_if, outcome, tags, skin_type, created_at";
+
+export type PostRow = {
   id: string;
   // No user_id: who wrote a post comes from talk_post_authors(), which returns an author only for a named post.
   is_named: boolean;
@@ -187,7 +194,7 @@ function ChipScroll({
    gone (2026-09-17): the grid printed an em dash for every field the poster left blank, and the row
    drew all three outcomes with the two they did not pick greyed out, which reads as three verdicts
    rather than one. Now the outcome is a single stamp and an empty field is simply not drawn. */
-function PostCard({
+export function PostCard({
   post,
   treatmentName,
   saved,
@@ -203,6 +210,7 @@ function PostCard({
   author,
   quotedBox,
   onQuote,
+  footer,
 }: {
   post: PostRow;
   treatmentName: string | null;
@@ -219,6 +227,8 @@ function PostCard({
   author: TalkAuthor;
   quotedBox?: React.ReactNode;
   onQuote?: () => void;
+  /** Under the actions: in the feed, the way into the post's own page (TalkUpdatesLink). */
+  footer?: React.ReactNode;
 }) {
   const cells = receiptCells([
     ["Paid", post.cost],
@@ -275,6 +285,7 @@ function PostCard({
       save={{ key: "Save", active: saved, onClick: onToggleSave, title: saved ? "Saved" : "Save" }}
       share={{ key: "Share", disabled: true, title: "Treatment Talk posts are nameless and have no shareable page" }}
       onDelete={isOwn ? onDelete : undefined}
+      footer={footer}
     />
   );
 }
@@ -299,7 +310,7 @@ export function MembersLock() {
   );
 }
 
-function Composer({
+export function Composer({
   onClose,
   treatments,
   userId,
@@ -505,7 +516,7 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
     const { data, error } = await supabase
       .from("posts")
       // user_id is never selected: an anonymous post must not carry its author to the browser.
-      .select("id, is_named, quoted_post_id, treatment_id, cost, sessions, what_happened, surprised_me, works_for, warn_if, outcome, tags, skin_type, created_at")
+      .select(TREATMENT_POST_COLS)
       .order("created_at", { ascending: false })
       .limit(100);
     setPostsError(!!error);
@@ -546,6 +557,8 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
   const { authors } = useTalkAuthors("treatment", postIds, userId);
   const quotedIds = useMemo(() => posts.map((p) => p.quoted_post_id).filter((v): v is string => !!v), [posts]);
   const { quoted, loaded: quotedLoaded } = useQuotedPosts("treatment", quotedIds, userId);
+  // Block 7: each card leads to the post's own page, with its update count and "New" for a saver.
+  const updateSummaries = useUpdateSummaries("treatment", postIds, userId);
 
   const nameById = useMemo(() => new Map(treatments.map((t) => [t.id, t.name])), [treatments]);
   const chipItems = useMemo(() => ["All", ...treatments.map((t) => t.name)], [treatments]);
@@ -757,6 +770,7 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
                       quotedBox={p.quoted_post_id
                         ? <TalkQuoteBox quoted={quoted.get(p.quoted_post_id) ?? null} loaded={quotedLoaded} />
                         : null}
+                      footer={<TalkUpdatesLink kind="treatment" postId={p.id} summary={updateSummaries.get(p.id)} />}
                     />
                   ))
                 )}

@@ -630,6 +630,12 @@ function UserPostList({ posts }: { posts: UserPost[] }) {
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ background: s.bg, color: "#FFFCF8", fontSize: 10, fontWeight: 800, padding: "3px 6px", borderRadius: 3, letterSpacing: "0.08em", flexShrink: 0 }}>{s.label}</span>
               <span style={{ fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</span>
+              {/* Saved posts: the author added updates since this reader last opened the post (block 7). */}
+              {!!p.newUpdates && (
+                <span style={{ background: "#A8001C", color: "#FFFCF8", fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 999, flexShrink: 0 }}>
+                  {p.newUpdates} new {p.newUpdates === 1 ? "update" : "updates"}
+                </span>
+              )}
               <span style={{ marginLeft: "auto", fontSize: 11, color: C.textLight, flexShrink: 0 }}>{new Date(p.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
             </div>
             {p.snippet && (

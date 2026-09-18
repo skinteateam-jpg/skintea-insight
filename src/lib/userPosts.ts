@@ -58,20 +58,31 @@ const SURGERY_COLS = "id, surgery_id, my_thoughts_vs_reality, what_happened, sur
 
 const newestFirst = (a: UserPost, b: UserPost) => b.created_at.localeCompare(a.created_at);
 
-// The user's own posts across the three tables, newest first. `error` is true if any of the three reads failed.
+// The user's own posts across the three tables, newest first. `error` is true if any of the reads failed.
+//
+// Treatment and Surgery posts are found through my_talk_post_ids() (SECURITY DEFINER), not by filtering on
+// user_id: the client may not read user_id on posts / surgery_posts at all (2026-09-18), because on an anonymous
+// post it would name the author. The function returns the signed-in member's own ids and nothing else, so it
+// answers for whoever is signed in, not for `userId` (on /skin-profile they are the same person).
 export async function fetchUserPosts(userId: string): Promise<{ posts: UserPost[]; error: boolean }> {
   const db = supabase as any;
-  const [p, t, s] = await Promise.all([
+  const [p, tIds, sIds] = await Promise.all([
     db.from("product_posts").select(PRODUCT_COLS).eq("user_id", userId).order("created_at", { ascending: false }).limit(50),
-    db.from("posts").select(TREATMENT_COLS).eq("user_id", userId).order("created_at", { ascending: false }).limit(50),
-    db.from("surgery_posts").select(SURGERY_COLS).eq("user_id", userId).order("created_at", { ascending: false }).limit(50),
+    db.rpc("my_talk_post_ids", { p_post_type: "treatment" }),
+    db.rpc("my_talk_post_ids", { p_post_type: "surgery" }),
+  ]);
+  const treatmentIds = ((tIds.data ?? []) as string[]).filter(Boolean);
+  const surgeryIds = ((sIds.data ?? []) as string[]).filter(Boolean);
+  const [t, s] = await Promise.all([
+    treatmentIds.length ? db.from("posts").select(TREATMENT_COLS).in("id", treatmentIds) : Promise.resolve({ data: [], error: null }),
+    surgeryIds.length ? db.from("surgery_posts").select(SURGERY_COLS).in("id", surgeryIds) : Promise.resolve({ data: [], error: null }),
   ]);
   const posts = [
     ...((p.data ?? []) as any[]).map(fromProduct),
     ...((t.data ?? []) as any[]).map(fromTreatment),
     ...((s.data ?? []) as any[]).map(fromSurgery),
   ].sort(newestFirst);
-  return { posts, error: !!(p.error || t.error || s.error) };
+  return { posts, error: !!(p.error || tIds.error || sIds.error || t.error || s.error) };
 }
 
 // The user's saved posts: Treatment Talk saves (saved_posts, post_type 'treatment') and Surgery Talk saves (surgery_saves).

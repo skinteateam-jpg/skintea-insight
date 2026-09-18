@@ -3006,6 +3006,7 @@ export type Database = {
         }
         Returns: string
       }
+      my_talk_post_ids: { Args: { p_post_type: string }; Returns: string[] }
       post_vote_split: {
         Args: { p_post_ids: string[]; p_post_type: string }
         Returns: {

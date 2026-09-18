@@ -1,7 +1,8 @@
 /* One card for all three Talks (Product, Treatment, Surgery), 2026-09-17.
  *
  * Structure, top to bottom, and it is the same everywhere:
- *   1. Identity row   — 40px avatar, username or Anonymous, skin character name, plain skin type and age, time
+ *   1. Identity row   — named: 40px avatar + @username linking to the profile; anonymous: "Anonymous", no avatar,
+ *                        no link. Both: skin character name, plain skin type and age, time
  *   2. Context row    — subject pill left, verdict stamp right (one stamp, never the unselected options)
  *   3. Body           — 17px / 500, the hook on the first line
  *   4. Module         — supplied by the caller: product card, routine steps, photo carousel, receipt strip
@@ -10,12 +11,13 @@
  *
  * Rules this file enforces so the three routes cannot drift:
  *   - An empty field is omitted. Nothing ever renders an em dash placeholder.
- *   - No author name is invented. `authorName` null renders "Anonymous"; the author sees "Your post".
+ *   - No author name is invented. `authorName` null renders "Anonymous" with no avatar and no link, so an
+ *     anonymous post carries nothing that leads back to a person. The author also sees "Your post".
  *   - No emoji, no gradients, no shadows, no pastel skin-type colours. Icons are inline stroke SVG.
  *   - Body text is never below 13px; the post body is 17px; every tap target is at least 44px.
  */
 import * as React from "react";
-import { Bookmark, ChevronDown, Heart, MessageCircle, Share2, Trash2, User } from "lucide-react";
+import { Bookmark, ChevronDown, Heart, MessageCircle, Share2, Trash2 } from "lucide-react";
 
 /* ---------- Design tokens ---------- */
 
@@ -385,9 +387,16 @@ function ActionButton({ action, icon, iconOnly = false }: { action: TalkAction; 
 /* ---------- The card ---------- */
 
 export type TalkPostCardProps = {
-  /** The author's public username, or null. Null renders "Anonymous" — never an invented name. */
+  /**
+   * The author's public username — present only for a named post. Null renders "Anonymous" with no avatar
+   * and no link: never an invented name, and nothing that leads to a person.
+   */
   authorName?: string | null;
-  /** The signed-in reader is the author: the identity line reads "Your post" and Delete appears. */
+  /** The named author's avatar. Ignored without authorName. */
+  authorAvatarUrl?: string | null;
+  /** The named author's profile. Ignored without authorName; an anonymous post never links anywhere. */
+  authorHref?: string | null;
+  /** The signed-in reader is the author: "Your post" is added to the caption and Delete appears. */
   isOwn?: boolean;
   skinType?: string | null;
   /** The poster's stated age or age bracket. Omitted when unknown. */
@@ -423,18 +432,25 @@ export type TalkPostCardProps = {
 };
 
 export default function TalkPostCard({
-  authorName = null, isOwn = false, skinType = null, age = null, createdAt = null,
+  authorName = null, authorAvatarUrl = null, authorHref = null, isOwn = false, skinType = null, age = null, createdAt = null,
   subject = null, subjectIcon = null, typeLabel = null, verdict = null, hook = null, body = null,
   module = null, details = [], voteBlock = null, onOpen,
   reply, quote, save, share, like, onDelete, error = null, footer = null,
 }: TalkPostCardProps) {
   const skin = normalizeSkin(skinType);
   const time = shortAgo(createdAt);
-  const name = isOwn ? "Your post" : authorName && authorName.trim() ? authorName.trim() : "Anonymous";
-  const initial = !isOwn && authorName && authorName.trim() ? authorName.trim().charAt(0).toLowerCase() : null;
+  // Named if and only if there is a public username to show. An anonymous post has none, so it shows none.
+  const handle = authorName && authorName.trim() ? authorName.trim() : null;
+  const href = handle && authorHref ? authorHref : null;
+  const initial = handle ? handle.charAt(0).toLowerCase() : null;
   const shownDetails = details.filter((d) => d.value && d.value.trim());
   const stampColor = verdict?.tone === "negative" ? CRIMSON : ESPRESSO;
-  const plain = [skin ? SKIN_PLAIN[skin] : null, age && age.trim() ? age.trim() : null].filter(Boolean).join(" · ");
+  const plain = [
+    skin ? SKIN_PLAIN[skin] : null,
+    age && age.trim() ? age.trim() : null,
+    isOwn ? "Your post" : null,
+  ].filter(Boolean).join(" · ");
+  const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   return (
     <article
@@ -444,20 +460,44 @@ export default function TalkPostCard({
         fontFamily: SANS, cursor: onOpen ? "pointer" : "default",
       }}
     >
-      {/* 1. Identity */}
+      {/* 1. Identity. A named post: avatar and @username, both linking to the profile. An anonymous post:
+          "Anonymous" and the character only — no avatar, no link, nothing that resolves to a person. */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div
-          style={{
-            width: 40, height: 40, borderRadius: "50%", background: NEUTRAL_FILL, border: CARD_BORDER,
-            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-            color: initial ? ESPRESSO : CAPTION, fontSize: 15, fontWeight: 500,
-          }}
-        >
-          {initial ?? <User size={19} aria-hidden="true" />}
-        </div>
+        {handle && (() => {
+          const avatar = (
+            <span
+              style={{
+                width: 40, height: 40, borderRadius: "50%", background: NEUTRAL_FILL, border: CARD_BORDER,
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden",
+                color: ESPRESSO, fontSize: 15, fontWeight: 500,
+              }}
+            >
+              {authorAvatarUrl
+                ? <img src={authorAvatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                : initial}
+            </span>
+          );
+          // The 2px padding and matching negative margin widen the tap target to 44px without moving anything.
+          return href
+            ? <a href={href} onClick={stop} aria-label={`@${handle}'s profile`} style={{ padding: 2, margin: -2, flexShrink: 0, textDecoration: "none" }}>{avatar}</a>
+            : avatar;
+        })()}
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 7, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 14, fontWeight: 500, color: ESPRESSO }}>{name}</span>
+            {href ? (
+              <a
+                href={href}
+                onClick={stop}
+                style={{
+                  fontSize: 14, fontWeight: 500, color: ESPRESSO, textDecoration: "none",
+                  display: "inline-block", padding: "12px 0", margin: "-12px 0",
+                }}
+              >
+                @{handle}
+              </a>
+            ) : (
+              <span style={{ fontSize: 14, fontWeight: 500, color: ESPRESSO }}>{handle ? `@${handle}` : "Anonymous"}</span>
+            )}
             {skin && (
               <span style={{ fontFamily: DISPLAY, fontStyle: "italic", fontWeight: 700, fontSize: 14, color: ESPRESSO }}>
                 {SKIN_CHARACTER[skin]}

@@ -1292,6 +1292,7 @@ export type Database = {
           is_named: boolean
           outcome: Database["public"]["Enums"]["post_outcome"] | null
           prompt_id: string | null
+          quoted_post_id: string | null
           sessions: string | null
           skin_type: string | null
           surprised_me: string | null
@@ -1310,6 +1311,7 @@ export type Database = {
           is_named?: boolean
           outcome?: Database["public"]["Enums"]["post_outcome"] | null
           prompt_id?: string | null
+          quoted_post_id?: string | null
           sessions?: string | null
           skin_type?: string | null
           surprised_me?: string | null
@@ -1328,6 +1330,7 @@ export type Database = {
           is_named?: boolean
           outcome?: Database["public"]["Enums"]["post_outcome"] | null
           prompt_id?: string | null
+          quoted_post_id?: string | null
           sessions?: string | null
           skin_type?: string | null
           surprised_me?: string | null
@@ -1432,6 +1435,7 @@ export type Database = {
           post_type: string | null
           product_id: string | null
           prompt_id: string | null
+          quoted_post_id: string | null
           skin_type: string | null
           steps: Json | null
           tag: string | null
@@ -1456,6 +1460,7 @@ export type Database = {
           post_type?: string | null
           product_id?: string | null
           prompt_id?: string | null
+          quoted_post_id?: string | null
           skin_type?: string | null
           steps?: Json | null
           tag?: string | null
@@ -1480,6 +1485,7 @@ export type Database = {
           post_type?: string | null
           product_id?: string | null
           prompt_id?: string | null
+          quoted_post_id?: string | null
           skin_type?: string | null
           steps?: Json | null
           tag?: string | null
@@ -2172,6 +2178,7 @@ export type Database = {
           pain_level: number | null
           photos: Json
           prompt_id: string | null
+          quoted_post_id: string | null
           recovery_time: string | null
           skin_type: Database["public"]["Enums"]["surgery_skin_type"] | null
           struggle: string | null
@@ -2199,6 +2206,7 @@ export type Database = {
           pain_level?: number | null
           photos?: Json
           prompt_id?: string | null
+          quoted_post_id?: string | null
           recovery_time?: string | null
           skin_type?: Database["public"]["Enums"]["surgery_skin_type"] | null
           struggle?: string | null
@@ -2226,6 +2234,7 @@ export type Database = {
           pain_level?: number | null
           photos?: Json
           prompt_id?: string | null
+          quoted_post_id?: string | null
           recovery_time?: string | null
           skin_type?: Database["public"]["Enums"]["surgery_skin_type"] | null
           struggle?: string | null

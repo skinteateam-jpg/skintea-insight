@@ -1078,3 +1078,35 @@ Nothing below was reconstructed from memory without a source.
   feeds no longer select `user_id`, delete by id, read authors through the function, and the Treatment and Surgery
   composers send `is_named` explicitly (starting on "Post as @username").
 - Deleted session_ids: none. No rows inserted or deleted.
+
+### 2026-09-18 07:05 UTC — user_id revoked from the client on posts, surgery_posts, post_updates (APPLIED); my_talk_post_ids()
+
+- Who: pipeline session (Talk blocks), on Chi's go (2026-09-18): "An author leak on anonymous posts does not stay open
+  because another session's file depends on it."
+- Order, as instructed:
+  1. **`public.my_talk_post_ids(p_post_type text) returns setof uuid`** — SECURITY DEFINER, STABLE,
+     `search_path = public`; EXECUTE for authenticated only (revoked from PUBLIC and anon). Returns the signed-in
+     member's own Treatment or Surgery post ids, newest first, limit 50; nothing when signed out. It answers only
+     "which posts are mine", so it reveals nothing about anyone else.
+  2. `src/lib/userPosts.ts` (`fetchUserPosts`, `/skin-profile` "My posts") reads through it and then by id, instead of
+     `.eq("user_id", userId)`. Lovable `2e4a04d`, `cp` md5-guarded `d7effdc8…` → `22eef42e…`, `tsgo` clean.
+  3. The revoke, one statement per call, table-level first because a table-level REVOKE also strips column grants:
+     `REVOKE SELECT ON public.posts FROM anon, authenticated` then `GRANT SELECT (<the 15 other columns>)`;
+     the same for `surgery_posts` (24 other columns) and `post_updates` (6).
+- Verified: `has_column_privilege` shows `user_id` not readable by anon or authenticated on all three tables, table-level
+  SELECT gone, every other column readable (15/15, 24/24, 6/6), and INSERT on `user_id` intact.
+- Proof, one block that seeded and then aborted, **with inserts run as the `authenticated` role**, not postgres: the author's
+  anonymous treatment post, surgery post and update all inserted; `my_talk_post_ids` returned the author's post. As `anon`:
+  `posts.user_id`, `posts` `select *`, a filter on `posts.user_id`, `surgery_posts.user_id`, `surgery_posts` `select *` and
+  `post_updates.user_id` all DENIED; `talk_post_authors` returned own=f, named=f and null username / avatar / derm;
+  `my_talk_post_ids` DENIED; the post body still readable. As another member: filtering `posts` by `user_id` DENIED,
+  `my_talk_post_ids` did not include the post, `talk_post_authors` returned no author. The author deleted the post by id
+  alone (1 row). Afterwards 0 posts, 0 surgery_posts, 0 post_updates; the revoke stays.
+- **Known breakage, accepted by Chi:** `src/routes/treatments.$slug.tsx` line 374 (Treatment Tea feed, the
+  treatment-page session's file) selects `user_id` from `posts` and now fails until that session reads authors through
+  `talk_post_authors('treatment', ids)`. Its insert in `TreatmentTea.tsx` has no `.select()` and still works.
+- **Trap for every future session:** these three tables no longer have table-level SELECT for anon/authenticated. A
+  column added to any of them is **invisible to the app until it is granted explicitly**: `GRANT SELECT (<new_col>) ON
+  public.<table> TO anon, authenticated`. Never re-grant table-level SELECT: that brings `user_id` back.
+- Left unchanged, recorded (Chi, 2026-09-18): `surgery_comments.user_id` and `surgery_likes` stay publicly readable.
+- Deleted session_ids: none. No rows inserted or deleted.

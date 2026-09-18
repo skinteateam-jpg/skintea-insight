@@ -90,17 +90,6 @@ export const Route = createFileRoute("/product-detail/$id")({
   }),
 });
 
-// Retailer chips render from real per-product URLs only. The four fixed chips that used to sit here
-// (Amazon, Sephora, Ulta, YesStyle) pointed at those retailers' home pages on every product, which is
-// not a link to this product — removed 2026-09-15. The brand's own page still ships as the "Shop"
-// chip from products.product_url. No per-retailer URL column exists on `products` yet, so this list is
-// empty and no retailer chip renders; when one is added (e.g. products.retailer_urls jsonb holding
-// [{ name, url }] per product), read it here and the chips come back automatically.
-function retailerLinks(product: any): { name: string; url: string }[] {
-  void product;
-  return [];
-}
-
 const CONFIDENCE_RANK: Record<string, number> = { high: 3, medium: 2, low: 1 };
 
 // Carousels show display rows only. Rows with any other source_query_type are tagged
@@ -768,8 +757,9 @@ function ProductPage() {
           ))}
         </div>
 
-        {/* 4. Price + the "Shop at" row: the product's own Shop link, then each retailer that has a
-            per-product URL, in fixed order. A retailer with no URL renders nothing (no search links). */}
+        {/* 4. Price + the "Shop at" row: the product's own Shop link, then each retailer, in fixed
+            order. A retailer with no per-product URL renders a search chip on that retailer,
+            labelled "Search" (owner decision 2026-09-17). */}
         <div className="px-3.5 py-2.5 border-b border-brand-border">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-brand-espresso flex-none">
@@ -800,6 +790,9 @@ function ProductPage() {
                 }`}
               >
                 {b.name}
+                {b.linkType === "search" && (
+                  <span className="font-normal text-[9px] opacity-60">Search</span>
+                )}
                 {b.price !== null && <span className="font-normal">${b.price}</span>}
                 <ExternalLink width={10} height={10} />
               </a>

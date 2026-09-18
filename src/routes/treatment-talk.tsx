@@ -7,6 +7,8 @@ import TalkPostCard, {
   BORDER, CAPTION, CARD_BORDER, CRIMSON, DISPLAY, ESPRESSO, SANS, WARM_WHITE,
   TalkReceipt, receiptCells,
 } from "@/components/TalkPostCard";
+import TalkVoteBlock from "@/components/TalkVoteBlock";
+import { emptySplit, usePostVotes, type VoteSplit, type VoteValue } from "@/lib/postVotes";
 
 export const Route = createFileRoute("/treatment-talk")({
   head: () => ({
@@ -185,6 +187,12 @@ function PostCard({
   onToggleSave,
   isOwn,
   onDelete,
+  split,
+  myVote,
+  canVote,
+  onVote,
+  onSignIn,
+  voteError,
 }: {
   post: PostRow;
   treatmentName: string | null;
@@ -192,6 +200,12 @@ function PostCard({
   onToggleSave: () => void;
   isOwn: boolean;
   onDelete: () => void;
+  split: VoteSplit;
+  myVote: VoteValue | null;
+  canVote: boolean;
+  onVote: (v: VoteValue) => void;
+  onSignIn?: () => void;
+  voteError: string | null;
 }) {
   const cells = receiptCells([
     ["Paid", post.cost],
@@ -226,6 +240,17 @@ function PostCard({
         { label: "Wish I knew before", value: post.warn_if ?? "", warning: true },
         { label: "Who it's for", value: post.works_for ?? "" },
       ]}
+      voteBlock={
+        <TalkVoteBlock
+          split={split}
+          myVote={myVote}
+          canVote={canVote}
+          disabledReason={onSignIn ? "Sign in to vote" : "You can't vote on your own post"}
+          onVote={onVote}
+          onSignIn={onSignIn}
+          error={voteError}
+        />
+      }
       reply={{ key: "Reply", label: "Reply", disabled: true, title: "Replies open when commenting does" }}
       quote={{ key: "Quote", label: "Quote", disabled: true, title: "Quoting is not built yet" }}
       save={{ key: "Save", active: saved, onClick: onToggleSave, title: saved ? "Saved" : "Save" }}
@@ -473,6 +498,10 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
     });
   }
 
+  // One RPC for every post on screen; the floors are applied inside post_vote_split.
+  const postIds = useMemo(() => posts.map((p) => p.id), [posts]);
+  const { splits, myVotes, vote, error: voteError } = usePostVotes("treatment", postIds, userId);
+
   const nameById = useMemo(() => new Map(treatments.map((t) => [t.id, t.name])), [treatments]);
   const chipItems = useMemo(() => ["All", ...treatments.map((t) => t.name)], [treatments]);
 
@@ -663,6 +692,12 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
                       onToggleSave={() => void toggleSave(p.id)}
                       isOwn={!!userId && p.user_id === userId}
                       onDelete={() => void deletePost(p.id)}
+                      split={splits.get(p.id) ?? emptySplit(p.id)}
+                      myVote={myVotes.get(p.id) ?? null}
+                      canVote={!!userId && p.user_id !== userId}
+                      onVote={(v) => void vote(p.id, v)}
+                      onSignIn={userId ? undefined : () => { navigate({ to: "/login" }).catch(() => {}); }}
+                      voteError={voteError?.postId === p.id ? voteError.message : null}
                     />
                   ))
                 )}

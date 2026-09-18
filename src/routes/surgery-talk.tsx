@@ -11,6 +11,8 @@ import TalkVoteBlock from "@/components/TalkVoteBlock";
 import { emptySplit, usePostVotes, type VoteSplit, type VoteValue } from "@/lib/postVotes";
 import TalkVisibilityPicker from "@/components/TalkVisibilityPicker";
 import { ANONYMOUS_AUTHOR, profileHref, useMyUsername, useTalkAuthors, type TalkAuthor } from "@/lib/talkAuthors";
+import TalkQuoteBox from "@/components/TalkQuoteBox";
+import { useQuotedPosts } from "@/lib/talkQuotes";
 
 export const Route = createFileRoute("/surgery-talk")({
   head: () => ({
@@ -60,6 +62,8 @@ type PostRow = {
   id: string;
   // No user_id: who wrote a post comes from talk_post_authors(), which returns an author only for a named post.
   is_named: boolean;
+  /** Quote tea: the Surgery Talk post this one quotes, or null. */
+  quoted_post_id: string | null;
   surgery_id: string | null;
   clinic_name: string | null;
   country: string | null;
@@ -92,7 +96,7 @@ type EnrichedPost = PostRow & {
 /* Every column the feed reads, and deliberately not user_id: an anonymous post must not carry its author to
    the browser. select("*") is not used, because it would include user_id. */
 const SURGERY_FEED_COLS =
-  "id, is_named, surgery_id, clinic_name, country, city, total_cost, recovery_time, pain_level, " +
+  "id, is_named, quoted_post_id, surgery_id, clinic_name, country, city, total_cost, recovery_time, pain_level, " +
   "my_thoughts_vs_reality, struggle, what_happened, surprised_me, works_for, warn_if, outcome, hashtags, " +
   "skin_type, photos, comments_open, likes_count, created_at";
 
@@ -383,11 +387,13 @@ function CommentSection({ postId, userId }: { postId: string; userId: string | n
 }
 
 // ============= Post card =============
-function PostCard({ post, userId, onLikeChange, onDeleted, split, myVote, canVote, onVote, onSignIn, voteError, author }: {
+function PostCard({ post, userId, onLikeChange, onDeleted, split, myVote, canVote, onVote, onSignIn, voteError, author, quotedBox, onQuote }: {
   post: EnrichedPost; userId: string | null; onLikeChange: (delta: number) => void; onDeleted: () => void;
   split: VoteSplit; myVote: VoteValue | null; canVote: boolean;
   onVote: (v: VoteValue) => void; onSignIn?: () => void; voteError: string | null;
   author: TalkAuthor;
+  quotedBox?: React.ReactNode;
+  onQuote?: () => void;
 }) {
   const isOwn = author.isOwn;
   const [deleting, setDeleting] = useState(false);
@@ -475,6 +481,7 @@ function PostCard({ post, userId, onLikeChange, onDeleted, split, myVote, canVot
       typeLabel={author.isDerm ? { text: "Verified derm" } : null}
       verdict={post.outcome ? { label: post.outcome, tone: NEGATIVE_OUTCOMES.has(post.outcome) ? "negative" : "positive" } : null}
       body={post.what_happened || post.my_thoughts_vs_reality || ""}
+      quoted={quotedBox}
       module={
         <>
           <TalkReceipt cells={cells.slice(0, 3)} />
@@ -516,7 +523,9 @@ function PostCard({ post, userId, onLikeChange, onDeleted, split, myVote, canVot
         disabled: !post.comments_open,
         title: post.comments_open ? undefined : "Comments closed by the poster",
       }}
-      quote={{ key: "Quote", label: "Quote", disabled: true, title: "Quoting is not built yet" }}
+      quote={onQuote
+        ? { key: "Quote", label: "Quote", onClick: onQuote, title: "Quote this post in a post of your own" }
+        : { key: "Quote", label: "Quote", disabled: true, title: "Quoting is not available here" }}
       save={{ key: "Save", active: saved, onClick: () => void toggleSave(), disabled: !userId, title: userId ? (saved ? "Saved" : "Save") : "Sign in to save" }}
       share={{ key: "Share", disabled: true, title: "Surgery Talk posts are anonymous and have no shareable page" }}
       onDelete={isOwn ? () => void deletePost() : undefined}
@@ -661,9 +670,12 @@ function DisclaimerModal({ onCancel, onConfirm }: { onCancel: () => void; onConf
 }
 
 // ============= Composer (post form) =============
-function Composer({ onClose, surgeries, userId, onCreated }: {
+function Composer({ onClose, surgeries, userId, onCreated, quotedPostId = null }: {
   onClose: () => void; surgeries: Surgery[]; userId: string; onCreated: () => void;
+  /** Quote tea: the post this new post quotes. Written to quoted_post_id; the database checks it exists. */
+  quotedPostId?: string | null;
 }) {
+  const { quoted: quotedMap, loaded: quotedLoaded } = useQuotedPosts("surgery", quotedPostId ? [quotedPostId] : [], userId);
   const [form, setForm] = useState({
     // The surgery is the poster's own claim too: nothing pre-chosen.
     surgery_id: "",
@@ -725,6 +737,7 @@ function Composer({ onClose, surgeries, userId, onCreated }: {
       photos: validPhotos as any,
       comments_open: form.comments_open,
       is_named: named,
+      quoted_post_id: quotedPostId ?? null,
     };
     const { error } = await supabase.from("surgery_posts").insert(payload);
     setSubmitting(false);
@@ -748,6 +761,12 @@ function Composer({ onClose, surgeries, userId, onCreated }: {
           <button onClick={onClose} aria-label="Close" style={{ minWidth: 44, minHeight: 44 }}><X size={18} color={ESPRESSO} /></button>
         </div>
         <div className="p-4 space-y-3" style={{ color: ESPRESSO, fontSize: 13 }}>
+          {quotedPostId && (
+            <div>
+              <div className="mb-1" style={SECTION_LABEL}>Quoting</div>
+              <TalkQuoteBox quoted={quotedMap.get(quotedPostId) ?? null} loaded={quotedLoaded} />
+            </div>
+          )}
           <Field label="Surgery type">
             <select value={form.surgery_id} onChange={(e) => update("surgery_id", e.target.value)}
               className="w-full rounded-md px-2" style={inputStyle}>
@@ -941,6 +960,8 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
   const [skin, setSkin] = useState<string>("all");
   const [composerOpen, setComposerOpen] = useState(false);
   const [disclaimerOpen, setDisclaimerOpen] = useState(false);
+  // Quote tea: the post the composer is quoting, or null for an ordinary post.
+  const [quoteTarget, setQuoteTarget] = useState<string | null>(null);
   const [rankCounts, setRankCounts] = useState<Map<string, number>>(new Map());
 
   // load 24h ranking
@@ -977,6 +998,8 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
   const postIds = useMemo(() => posts.map((p) => p.id), [posts]);
   const { splits, myVotes, vote, error: voteError } = usePostVotes("surgery", postIds, userId);
   const { authors } = useTalkAuthors("surgery", postIds, userId);
+  const quotedIds = useMemo(() => posts.map((p) => p.quoted_post_id).filter((v): v is string => !!v), [posts]);
+  const { quoted, loaded: quotedLoaded } = useQuotedPosts("surgery", quotedIds, userId);
 
   const filtered = useMemo(() => {
     return posts
@@ -1015,6 +1038,12 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
 
 
   function handleSpillClick() {
+    setQuoteTarget(null);
+    setDisclaimerOpen(true);
+  }
+  // Quote tea goes through the same disclaimer as any other surgery post.
+  function handleQuote(postId: string) {
+    setQuoteTarget(postId);
     setDisclaimerOpen(true);
   }
   function handleDisclaimerConfirm() {
@@ -1141,6 +1170,10 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
                   onVote={(v) => void vote(p.id, v)}
                   onSignIn={userId ? undefined : () => navigate({ to: "/login" })}
                   voteError={voteError?.postId === p.id ? voteError.message : null}
+                  onQuote={() => handleQuote(p.id)}
+                  quotedBox={p.quoted_post_id
+                    ? <TalkQuoteBox quoted={quoted.get(p.quoted_post_id) ?? null} loaded={quotedLoaded} />
+                    : null}
                 />
               ))
             )}
@@ -1153,7 +1186,7 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
           <DisclaimerModal onCancel={() => setDisclaimerOpen(false)} onConfirm={handleDisclaimerConfirm} />
         )}
         {composerOpen && userId && (
-          <Composer onClose={() => setComposerOpen(false)} surgeries={surgeries} userId={userId} onCreated={reload} />
+          <Composer onClose={() => setComposerOpen(false)} surgeries={surgeries} userId={userId} onCreated={reload} quotedPostId={quoteTarget} />
         )}
 
         <button

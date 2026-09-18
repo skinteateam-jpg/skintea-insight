@@ -901,3 +901,62 @@ Nothing below was reconstructed from memory without a source.
     "a review/post must be written by its signed-in author". Nothing was written, so there was nothing to clean up.
   - `product_posts` row count after the change: 0.
 - Deleted session_ids: none. No rows deleted, no rows inserted.
+
+### 2026-09-18 00:20 UTC — Talk schema: post_votes, post_updates, weekly_prompts, shelf_items columns, prompt_id
+
+- Who: pipeline session (Talk blocks 4–10).
+- What, each as its own statement, each verified against `pg_catalog` afterwards:
+  - **`public.post_votes`** — `id`, `post_id`, `post_type` (check: product | treatment | surgery), `user_id`,
+    `vote` (check: same | not), `skin_type`, `created_at`, `updated_at`; `unique (post_id, user_id)`
+    (`post_votes_one_per_user`). RLS on, four policies: public SELECT; INSERT / UPDATE / DELETE only where
+    `auth.uid() = user_id` — signed in only, one vote each, changeable, withdrawable.
+  - **Trigger `post_votes_guard`** → `enforce_post_vote()` (SECURITY DEFINER, `search_path = public`), BEFORE
+    INSERT OR UPDATE. It (a) rejects any row whose `user_id` is not the signed-in voter, (b) rejects a vote on a
+    post that does not exist — `post_id` points at one of three tables so it cannot carry a foreign key, and this
+    check stands in for one, (c) rejects an author voting on their own post, and (d) **overwrites `skin_type`
+    with the voter's own `profiles.skin_type`, ignoring whatever the client sent**, so the per-skin-type
+    breakdown cannot be steered by whoever sends the request. A voter with no skin type on their profile stores
+    null and counts in the overall split only.
+  - **`public.post_updates`** — `id`, `post_id`, `post_type` (same check), `user_id`, `label` (nullable: an entry
+    with no label renders with its date alone, never a label the app invented), `body` NOT NULL, `created_at`.
+    RLS on: public SELECT; INSERT and DELETE where `auth.uid() = user_id`. No UPDATE policy, matching the house
+    state that there is no edit UI.
+  - **Trigger `post_updates_author_guard`** → `enforce_post_update_author()` (SECURITY DEFINER), BEFORE INSERT:
+    signed in as yourself, the post must exist, and **the post's author must be the writer** — an update by
+    anyone else would read as the author's own words.
+  - **`public.weekly_prompts`** — `id`, `question`, `opens_at`, `closes_at`, `active` (default false),
+    `created_at`; check `closes_at > opens_at`; partial unique index `weekly_prompts_one_active` on `(active)
+    where active`, so two banners cannot compete for the top of the feed. RLS on: public SELECT; ALL for admins
+    (`profiles.is_admin`), the same shape as the `clinic_intent_events` admin read.
+  - **`public.shelf_items`** — added `status text` and `sort_order integer`, plus check
+    `shelf_items_status_check` (`status is null or status in ('repurchasing','testing','tossed')`).
+    **Both nullable on purpose.** The table already held **10 rows** written before either column existed, and
+    nobody ever said whether those products are being repurchased, tested or tossed. They keep null and the
+    shelf renders them with no pill; backfilling a default would have invented a status for ten real rows.
+    Nothing was deleted and no existing column was touched — the table also carries `product_name`, `brand`,
+    `category`, `emoji`, `match`, `image_url`, `is_top_pick`, `is_public`, which this session did not change.
+    Its existing policies already give the asked-for behaviour: public read gated on `is_public = true`, owner
+    write on `auth.uid() = user_id`.
+  - **`prompt_id uuid references weekly_prompts(id) on delete set null`** added to `product_posts`, `posts` and
+    `surgery_posts` (one ALTER per table; all three foreign keys confirmed in `pg_constraint`).
+- Not done, deliberately: **no `weekly_prompts` row was inserted.** The table is editorial copy, so seeding one
+  to make the banner appear would be fabricated content. It stays empty and the banner renders nothing.
+  `social_review_tags` was not touched in any way.
+- Verified by query, not by a tool's self-report:
+  - Columns, checks, the unique constraint, the partial index, all three foreign keys and every policy read back
+    from `pg_class` / `pg_policy` / `pg_constraint` / `pg_attribute`.
+  - Grants: anon, authenticated, sandbox_exec and service_role as expected on all three new tables; anon holds
+    INSERT/UPDATE/DELETE grants but every write policy requires `auth.uid() = user_id`, which is null for anon.
+  - Two inserts run as `postgres` (so `auth.uid()` is null) were rejected by the two guards. Nothing written.
+  - **One rolled-back end-to-end block** using two real profile ids and `request.jwt.claims`, which raised at the
+    end so the whole transaction aborted: post created by its author OK · author self-vote rejected · reader's
+    vote stored with `skin_type = 'dry'` taken from their profile although the client sent
+    `'LIED-ABOUT-SKIN'` · second vote by the same reader rejected (unique) · vote changed to 'not' OK ·
+    non-author `post_updates` insert rejected · author's own update accepted · vote on a non-existent post
+    rejected. Row counts after: `post_votes` 0, `post_updates` 0, `weekly_prompts` 0, all three post tables 0,
+    `shelf_items` 10 with 0 having a status — the rollback left nothing behind.
+- Note for the next session: `query_database` returned `499 request_cancelled` seven times during this work, and
+  in six of those the statement had in fact been applied. A verification read taken immediately afterwards can
+  also come back stale (an empty `pg_policy` result for policies that existed). Re-read before retrying, and
+  prefer `if not exists` / `or replace` so a retry is harmless.
+- Deleted session_ids: none. No rows deleted, no rows inserted.

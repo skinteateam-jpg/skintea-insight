@@ -32,6 +32,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TreatmentsSlugRouteImport } from './routes/treatments.$slug'
 import { Route as TreatmentTalkPostIdRouteImport } from './routes/treatment-talk_.$postId'
 import { Route as TeaProductsPostIdRouteImport } from './routes/tea-products.$postId'
+import { Route as SurgeryTalkPostIdRouteImport } from './routes/surgery-talk_.$postId'
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
 import { Route as ProductDetailIdRouteImport } from './routes/product-detail.$id'
 import { Route as ClinicsIdRouteImport } from './routes/clinics/$id'
@@ -158,6 +159,11 @@ const TeaProductsPostIdRoute = TeaProductsPostIdRouteImport.update({
   path: '/$postId',
   getParentRoute: () => TeaProductsRoute,
 } as any)
+const SurgeryTalkPostIdRoute = SurgeryTalkPostIdRouteImport.update({
+  id: '/surgery-talk_/$postId',
+  path: '/surgery-talk/$postId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileUsernameRoute = ProfileUsernameRouteImport.update({
   id: '/profile/$username',
   path: '/profile/$username',
@@ -237,6 +243,7 @@ export interface FileRoutesByFullPath {
   '/clinics/$id': typeof ClinicsIdRoute
   '/product-detail/$id': typeof ProductDetailIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
+  '/surgery-talk/$postId': typeof SurgeryTalkPostIdRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment-talk/$postId': typeof TreatmentTalkPostIdRoute
   '/treatments/$slug': typeof TreatmentsSlugRoute
@@ -272,6 +279,7 @@ export interface FileRoutesByTo {
   '/clinics/$id': typeof ClinicsIdRoute
   '/product-detail/$id': typeof ProductDetailIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
+  '/surgery-talk/$postId': typeof SurgeryTalkPostIdRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment-talk/$postId': typeof TreatmentTalkPostIdRoute
   '/treatments/$slug': typeof TreatmentsSlugRoute
@@ -308,6 +316,7 @@ export interface FileRoutesById {
   '/clinics/$id': typeof ClinicsIdRoute
   '/product-detail/$id': typeof ProductDetailIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
+  '/surgery-talk_/$postId': typeof SurgeryTalkPostIdRoute
   '/tea-products/$postId': typeof TeaProductsPostIdRoute
   '/treatment-talk_/$postId': typeof TreatmentTalkPostIdRoute
   '/treatments/$slug': typeof TreatmentsSlugRoute
@@ -345,6 +354,7 @@ export interface FileRouteTypes {
     | '/clinics/$id'
     | '/product-detail/$id'
     | '/profile/$username'
+    | '/surgery-talk/$postId'
     | '/tea-products/$postId'
     | '/treatment-talk/$postId'
     | '/treatments/$slug'
@@ -380,6 +390,7 @@ export interface FileRouteTypes {
     | '/clinics/$id'
     | '/product-detail/$id'
     | '/profile/$username'
+    | '/surgery-talk/$postId'
     | '/tea-products/$postId'
     | '/treatment-talk/$postId'
     | '/treatments/$slug'
@@ -415,6 +426,7 @@ export interface FileRouteTypes {
     | '/clinics/$id'
     | '/product-detail/$id'
     | '/profile/$username'
+    | '/surgery-talk_/$postId'
     | '/tea-products/$postId'
     | '/treatment-talk_/$postId'
     | '/treatments/$slug'
@@ -451,6 +463,7 @@ export interface RootRouteChildren {
   ClinicsIdRoute: typeof ClinicsIdRoute
   ProductDetailIdRoute: typeof ProductDetailIdRoute
   ProfileUsernameRoute: typeof ProfileUsernameRoute
+  SurgeryTalkPostIdRoute: typeof SurgeryTalkPostIdRoute
   TreatmentTalkPostIdRoute: typeof TreatmentTalkPostIdRoute
   TreatmentsSlugRoute: typeof TreatmentsSlugRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -624,6 +637,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TeaProductsPostIdRouteImport
       parentRoute: typeof TeaProductsRoute
     }
+    '/surgery-talk_/$postId': {
+      id: '/surgery-talk_/$postId'
+      path: '/surgery-talk/$postId'
+      fullPath: '/surgery-talk/$postId'
+      preLoaderRoute: typeof SurgeryTalkPostIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile/$username': {
       id: '/profile/$username'
       path: '/profile/$username'
@@ -734,6 +754,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClinicsIdRoute: ClinicsIdRoute,
   ProductDetailIdRoute: ProductDetailIdRoute,
   ProfileUsernameRoute: ProfileUsernameRoute,
+  SurgeryTalkPostIdRoute: SurgeryTalkPostIdRoute,
   TreatmentTalkPostIdRoute: TreatmentTalkPostIdRoute,
   TreatmentsSlugRoute: TreatmentsSlugRoute,
   AdminIndexRoute: AdminIndexRoute,

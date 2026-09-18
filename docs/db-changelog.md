@@ -960,3 +960,44 @@ Nothing below was reconstructed from memory without a source.
   also come back stale (an empty `pg_policy` result for policies that existed). Re-read before retrying, and
   prefer `if not exists` / `or replace` so a retry is harmless.
 - Deleted session_ids: none. No rows deleted, no rows inserted.
+
+### 2026-09-18 00:45 UTC — post_vote_split(), and post_votes SELECT narrowed to the voter's own row
+
+- Who: pipeline session (Talk block 5, agreement voting).
+- Why the SELECT policy changed: the owner's rule is that under 20 votes the percentages must never be
+  **computed**, not merely hidden — "a 3-vote 67% cannot be read out of DevTools or a network response".
+  The block-4 policy `"Anyone can read post votes"` defeated that on its own: any client could fetch the raw
+  rows and divide them itself, whatever the app code did. So:
+  - **Dropped** `"Anyone can read post votes"` (public SELECT).
+  - **Added** `"Users read their own vote"` — `select using (auth.uid() = user_id)`. A voter reads their own
+    row so the card can show which button is theirs; nobody reads anyone else's.
+- **`public.post_vote_split(p_post_type text, p_post_ids uuid[])`** — SECURITY DEFINER, STABLE,
+  `search_path = public`, `returns table (post_id uuid, total integer, is_open boolean, same_pct integer,
+  not_pct integer, breakdown jsonb)`. EXECUTE granted to anon and authenticated. It is the only thing in the
+  system that divides votes, and the two floors live inside it and nowhere else:
+  - `min_split = 20`. Below it the function returns the count and **returns early** — `is_open = false` and
+    `same_pct`, `not_pct`, `breakdown` are null because the division is never performed.
+  - `min_skin = 5`. At or above the split floor, every one of the five skin types is listed so a reader can
+    see which have nothing to say; a type under 5 votes carries `enough: false` with **both `n` and
+    `same_pct` null** — not even the raw per-type count is returned.
+  - Skin types are matched case-insensitively and `combo` is folded into `combination`, because
+    `profiles.skin_type` is stored inconsistently across the three post tables.
+- Verified by query, not by a tool's self-report. Three rolled-back blocks, each ending in a RAISE so the
+  transaction aborted:
+  1. **Floors.** 19 votes → `total=19, is_open=false, same_pct=null, breakdown=null`. The 20th vote → opens,
+     45% / 55%. Then a controlled spread (oily 12 with 9 same, dry 5 with 1 same, sensitive 3) →
+     `total=20, same=60%`; breakdown gave oily `n=12, 75%`, dry `n=5, 20%` (the capitalised `'Dry'` matched),
+     and combination / sensitive / normal all `enough:false` with null count and null share — sensitive's
+     three votes produced no figure of any kind.
+  2. **Leak test, as the `anon` role.** With 3 votes on a post: `select count(*) from post_votes` returned
+     **0 of 3** (RLS), and the RPC returned `total=3, is_open=false` with `same_pct`, `not_pct` and
+     `breakdown` all null. A 3-vote "67%" is not obtainable by either route.
+  3. Guards (from the block-4 entry) re-confirmed: self-vote, second vote, non-author update and vote on a
+     missing post all rejected.
+  Row counts after all three: `post_votes` 0, `posts` 0, trigger `post_votes_guard` still enabled.
+- App side (Lovable `94ffe73`…`d370f2a`, six files, each `cp` md5-guarded before and after, `bunx tsgo
+  --noEmit` and `bun run build` clean): `src/lib/postVotes.ts`, `src/components/TalkVoteBlock.tsx`, a
+  `voteBlock` slot on `TalkPostCard`, and the three Talk routes. The client never divides; it renders what
+  the function returns. A comment at the top of `postVotes.ts` says so, because a future "optimisation"
+  that counts rows locally would quietly undo both halves of this.
+- Deleted session_ids: none. No rows deleted, no rows inserted. `social_review_tags` untouched.

@@ -1289,6 +1289,7 @@ export type Database = {
           cost: string | null
           created_at: string
           id: string
+          is_named: boolean
           outcome: Database["public"]["Enums"]["post_outcome"] | null
           prompt_id: string | null
           sessions: string | null
@@ -1306,6 +1307,7 @@ export type Database = {
           cost?: string | null
           created_at?: string
           id?: string
+          is_named?: boolean
           outcome?: Database["public"]["Enums"]["post_outcome"] | null
           prompt_id?: string | null
           sessions?: string | null
@@ -1323,6 +1325,7 @@ export type Database = {
           cost?: string | null
           created_at?: string
           id?: string
+          is_named?: boolean
           outcome?: Database["public"]["Enums"]["post_outcome"] | null
           prompt_id?: string | null
           sessions?: string | null

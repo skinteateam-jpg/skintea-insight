@@ -226,6 +226,8 @@ export default function TreatmentTea({
                 ? "Posting under your name is not switched on yet, so this post will be anonymous."
                 : !myUsername
                 ? "Set a username on your profile to post under your name. Without one, this post will be anonymous."
+                : postNamed
+                ? `This post will show @${myUsername} and your avatar, linking to your profile. Your sign-up name is never shown.`
                 : "Anonymous posts show no name, no avatar and no link to your profile."}
             </div>
           </div>

@@ -58,9 +58,14 @@ function appendParam(url: string, param: string): string {
   return `${url}${sep}${param}`;
 }
 
-// Order of resolution: affiliate_url, then product_url + affiliate param, then product_url.
-// No search-page fallback (removed 2026-09-16): a retailer's search results are not a per-product URL,
-// and a search link would show a retailer that may not carry the product at all.
+// Order of resolution: affiliate_url, then product_url + affiliate param, then product_url, then a
+// search URL on that retailer built from brand + product name.
+//
+// DO NOT REMOVE THE SEARCH FALLBACK. Owner decision 2026-09-17. No per-retailer product URLs exist
+// yet, so without it every retailer chip disappears and the page ships with a single Shop button.
+// A search chip is labelled "Search" in the UI so it never claims the retailer stocks the product.
+// This fallback is removed only when that retailer has real per-product or affiliate URLs in
+// product_retailer_links, and it is then removed per retailer, never globally.
 export function resolveRetailerLink(
   retailer: RetailerRow,
   link: ProductRetailerLinkRow | undefined,
@@ -76,8 +81,17 @@ export function resolveRetailerLink(
     return { url: link.product_url, linkType: "direct" };
   }
 
-  void opts;
-  return null;
+  // Search fallback: the retailer's own search URL, built from brand + product name, labelled
+  // "Search" in the UI. Never claims the retailer stocks the product.
+  if (!retailer.search_url_template) return null;
+  const q = [opts.brand, opts.productName].filter(Boolean).join(" ").trim();
+  if (!q) return null;
+  const searchUrl = retailer.search_url_template.replace(/\{q\}/g, encodeURIComponent(q));
+  if (retailer.affiliate_id && retailer.affiliate_param_template) {
+    const param = retailer.affiliate_param_template.replace("{id}", encodeURIComponent(retailer.affiliate_id));
+    return { url: appendParam(searchUrl, param), linkType: "affiliate" };
+  }
+  return { url: searchUrl, linkType: "search" };
 }
 
 // The product's own "Shop" link (brand_site) leads when the product has a URL, then each of the six

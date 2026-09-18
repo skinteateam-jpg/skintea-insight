@@ -14,9 +14,9 @@ const CREAM_TINT = "#F5EFEC";
  * Worth it or any other figure; "Who has talked about it" (celebrity / influencer evidence) is a
  * separate section and a separate query.
  *
- * A member is shown with the username they chose. profiles.name (the sign-up name) is never read
- * or shown, and a member who has set no username is shown as an avatar with no name and no link,
- * because there is nothing public to link to.
+ * Only members who chose to post under their name appear here (owner, 2026-09-17). Everyone else is counted
+ * in one line and never shown: no avatar, no username, no link, nothing that leads back to a profile.
+ * profiles.name (the sign-up name) is never read or shown.
  */
 
 export type TreatmentMember = {
@@ -34,20 +34,40 @@ function initials(username: string | null): string {
 
 export default function TreatmentMembers({
   members,
+  anonymousCount,
   onOpenTea,
 }: {
   members: TreatmentMember[];
+  anonymousCount: number;
   onOpenTea: () => void;
 }) {
   const shown = members.slice(0, MAX_AVATARS);
-  const more = members.length - shown.length;
+  const rest = members.length - shown.length + anonymousCount;
 
-  if (members.length === 0) {
+  if (members.length === 0 && anonymousCount === 0) {
     return (
       <div className="border border-dashed border-brand-border rounded-[10px] px-[13px] py-3 bg-brand-cream">
         <div className="text-[10px] font-semibold text-brand-muted mb-[5px]">Not enough data yet</div>
         <div className="text-[11.5px] text-brand-muted leading-[1.55]">
           No Skintea member has posted about this treatment yet.
+        </div>
+      </div>
+    );
+  }
+
+  // Nobody posted under their name: the section is the count line alone.
+  if (members.length === 0) {
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={onOpenTea}
+          style={{ background: "none", border: "none", padding: 0, fontSize: 12.5, color: CRIMSON, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+        >
+          {anonymousCount} {anonymousCount === 1 ? "member has" : "members have"} posted anonymously — read them in Tea
+        </button>
+        <div style={{ fontSize: 10, color: MUTED, marginTop: 8, lineHeight: 1.4 }}>
+          Posting under your name is the member's own choice. Not counted in Worth it.
         </div>
       </div>
     );
@@ -95,17 +115,17 @@ export default function TreatmentMembers({
           );
         })}
       </div>
-      {more > 0 && (
+      {rest > 0 && (
         <button
           type="button"
           onClick={onOpenTea}
           style={{ marginTop: 10, background: "none", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: "8px 12px", fontSize: 11.5, fontWeight: 600, color: CRIMSON, cursor: "pointer", fontFamily: "inherit" }}
         >
-          See all {members.length} in Tea
+          {rest} more in Tea
         </button>
       )}
       <div style={{ fontSize: 10, color: MUTED, marginTop: 8, lineHeight: 1.4 }}>
-        Skintea members who posted about this treatment. Not counted in Worth it.
+        Members who chose to post under their name. Anonymous posts are counted here but never named. Not counted in Worth it.
       </div>
     </div>
   );

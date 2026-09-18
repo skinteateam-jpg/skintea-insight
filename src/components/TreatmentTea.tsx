@@ -23,6 +23,13 @@ const CREAM_TINT = "#F5EFEC";
 export const FIRST_TIME_TAG = "#first-time";
 export const REPEAT_TAG = "#had-it-before";
 
+// Named or anonymous is the member's own choice, never inferred, and anonymous is the default (owner, 2026-09-17).
+// `posts` has no column for it, so the choice is read from `tags`, the same way first time / had it before is.
+// HOW IT IS STORED IS NOT DECIDED YET: this renders the choice, and the form below does not write it until the
+// owner picks the mechanism. With nothing written, every post is anonymous, which is the default the owner asked for.
+export const NAMED_TAG = "#named";
+export const isNamedPost = (p: { tags: string[] | null }) => (p.tags ?? []).includes(NAMED_TAG);
+
 type Outcome = "would_again" | "modified" | "wouldnt";
 const OUTCOMES: { key: Outcome; label: string; bg: string; fg: string; border: string }[] = [
   { key: "would_again", label: "Would do again", bg: "#DDF1DD", fg: "#1F5E2E", border: "#C5E4C5" },
@@ -277,12 +284,16 @@ export default function TreatmentTea({
         <div>
           {filtered.map((p) => {
             const author = authors[p.user_id] ?? { username: null, avatarUrl: null };
+            const tags = p.tags ?? [];
             const meta = [
               p.skin_type ? SKIN_LABEL[p.skin_type] ?? p.skin_type : null,
               p.sessions ? `${p.sessions} sessions` : null,
               p.cost,
+              tags.includes(FIRST_TIME_TAG) ? "First time" : tags.includes(REPEAT_TAG) ? "Had it before" : null,
               formatDate(p.created_at),
             ].filter(Boolean) as string[];
+            // An anonymous post carries no avatar, no username and no link: nothing that leads back to a profile.
+            const named = isNamedPost(p) && !!author.username;
             const outcomeChip = p.outcome ? OUTCOMES.find((o) => o.key === p.outcome) : null;
             const avatar = author.avatarUrl ? (
               <img src={author.avatarUrl} alt="" style={{ width: 38, height: 38, borderRadius: 38, objectFit: "cover", display: "block" }} />
@@ -294,14 +305,16 @@ export default function TreatmentTea({
             return (
               <div key={p.id} style={{ padding: "14px 16px", borderBottom: `0.5px solid ${BORDER}` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  {author.username ? (
-                    <Link to="/profile/$username" params={{ username: author.username }} style={{ textDecoration: "none" }}>{avatar}</Link>
-                  ) : avatar}
+                  {named && (
+                    <Link to="/profile/$username" params={{ username: author.username! }} style={{ textDecoration: "none" }}>{avatar}</Link>
+                  )}
                   <div style={{ minWidth: 0 }}>
-                    {author.username && (
-                      <Link to="/profile/$username" params={{ username: author.username }} style={{ textDecoration: "none" }}>
+                    {named ? (
+                      <Link to="/profile/$username" params={{ username: author.username! }} style={{ textDecoration: "none" }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: ESPRESSO }}>@{author.username}</div>
                       </Link>
+                    ) : (
+                      <div style={{ fontSize: 13, fontWeight: 600, color: MUTED }}>Anonymous</div>
                     )}
                     {meta.length > 0 && (
                       <div style={{ fontSize: 10.5, color: MUTED, marginTop: 2 }}>{meta.join(" · ")}</div>

@@ -6,7 +6,7 @@ import AppFrame from "@/components/AppFrame";
 import BottomNav from "@/components/BottomNav";
 import TreatmentVoices from "@/components/TreatmentVoices";
 import TreatmentVideos from "@/components/TreatmentVideos";
-import TreatmentTea, { type TeaAuthor, type TeaPostRow } from "@/components/TreatmentTea";
+import TreatmentTea, { isNamedPost, type TeaAuthor, type TeaPostRow } from "@/components/TreatmentTea";
 import TreatmentMembers, { type TreatmentMember } from "@/components/TreatmentMembers";
 import {
   breakdown, COUNTED_PLATFORMS, MIN_TREATMENT_REVIEWS, MIN_COST_VALUES, MAX_SENSITIVITY_POINTS, REGRET_LABELS, VERDICT_LABELS,
@@ -678,14 +678,6 @@ function TreatmentPage() {
         })()}
 
         {/*
-          Who has talked about it — celebrity / influencer evidence, kept exactly as it was and left in place
-          next to "About this treatment" (owner, 2026-09-17: it is replaced in a separate task). Treatment-scoped
-          only: these rows are never joined to a clinic and never link to one, and they are not the member
-          section below ("Who has done it").
-        */}
-        <TreatmentVoices treatmentId={treatment.id} />
-
-        {/*
           Patient videos: what the treatment looks like (owner-approved, up to 6; see TreatmentVideos).
           Display only, never counted in Worth it. Separate component and query from "Who has talked about it".
         */}
@@ -733,22 +725,34 @@ function TreatmentPage() {
         })()}
 
         {/*
+          Who has talked about it — celebrity / influencer evidence, kept exactly as it was and only moved with the
+          2026-09-17 order (owner; it is replaced in a separate task). Treatment-scoped
+          only: these rows are never joined to a clinic and never link to one, and they are not the member
+          section below ("Who has done it").
+        */}
+        <TreatmentVoices treatmentId={treatment.id} />
+
+        {/*
           Who has done it — Skintea members who posted about this treatment, never celebrities. Separate rows and a
           separate query from "Who has talked about it" (celebrity evidence), and counted in no figure.
         */}
         <Section title="Who has done it">
           <TreatmentMembers
             members={(() => {
+              // Only members who chose to post under their name, one entry each. The choice is the member's own
+              // (isNamedPost); anonymous posts are counted below and never named here.
               const seen = new Set<string>();
               const out: TreatmentMember[] = [];
               for (const p of teaPosts) {
-                if (seen.has(p.user_id)) continue;
-                seen.add(p.user_id);
+                if (!isNamedPost(p) || seen.has(p.user_id)) continue;
                 const a = teaAuthors[p.user_id];
-                out.push({ userId: p.user_id, username: a?.username ?? null, avatarUrl: a?.avatarUrl ?? null });
+                if (!a?.username) continue;
+                seen.add(p.user_id);
+                out.push({ userId: p.user_id, username: a.username, avatarUrl: a.avatarUrl ?? null });
               }
               return out;
             })()}
+            anonymousCount={teaPosts.filter((p) => !isNamedPost(p) || !teaAuthors[p.user_id]?.username).length}
             onOpenTea={() => setPageTab("tea")}
           />
         </Section>

@@ -1,11 +1,13 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ArrowLeft, ChevronRight, ExternalLink, MapPin } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useCallback, useEffect, useState } from "react";
+import { ArrowLeft, ChevronDown, ChevronRight, ExternalLink, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import AppFrame from "@/components/AppFrame";
 import BottomNav from "@/components/BottomNav";
 import TreatmentVoices from "@/components/TreatmentVoices";
 import TreatmentVideos from "@/components/TreatmentVideos";
+import TreatmentTea, { type TeaAuthor, type TeaPostRow } from "@/components/TreatmentTea";
+import TreatmentMembers, { type TreatmentMember } from "@/components/TreatmentMembers";
 import {
   breakdown, COUNTED_PLATFORMS, MIN_TREATMENT_REVIEWS, MIN_COST_VALUES, MAX_SENSITIVITY_POINTS, REGRET_LABELS, VERDICT_LABELS,
   type TreatmentQuoteRow, type TreatmentReviewRow, type VerdictCell,
@@ -91,7 +93,7 @@ type ClinicLink = {
 };
 
 const SECTION_LABEL: React.CSSProperties = {
-  fontSize: 9, fontWeight: 800, letterSpacing: "0.14em",
+  fontSize: 9, fontWeight: 700, letterSpacing: "0.14em",
   textTransform: "uppercase", color: CRIMSON,
 };
 
@@ -144,12 +146,25 @@ function ageRows(rows: { age_bracket: string | null }[]) {
 // A field with no sourced text is not rendered at all (no "Not added yet."). A field with text always shows
 // where it comes from.
 function Field({ label, value, sources }: { label: string; value: string | null; sources: SourceLink[] }) {
+  // Every field starts collapsed; tapping the row opens that field's text and its source links (owner, 2026-09-17).
+  const [open, setOpen] = useState(false);
   if (!value || !value.trim()) return null;
   return (
     <div style={{ padding: "10px 0", borderBottom: `0.5px solid ${BORDER}` }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: MUTED, marginBottom: 3 }}>{label}</div>
-      <div style={{ fontSize: 13, lineHeight: 1.55, color: ESPRESSO, whiteSpace: "pre-line" }}>{value}</div>
-      {sources.length > 0 && (
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
+          background: "none", border: "none", padding: 0, cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
+      >
+        <span style={{ fontSize: 12.5, fontWeight: 600, color: ESPRESSO }}>{label}</span>
+        <ChevronDown size={15} color={MUTED} style={{ transform: open ? "rotate(180deg)" : "none", flex: "none" }} />
+      </button>
+      {open && (
+        <div style={{ fontSize: 13, lineHeight: 1.55, color: ESPRESSO, whiteSpace: "pre-line", marginTop: 8 }}>{value}</div>
+      )}
+      {open && sources.length > 0 && (
         <div style={{ fontSize: 10.5, color: MUTED, marginTop: 5, lineHeight: 1.45 }}>
           {sources.length === 1 ? "Source: " : "Sources: "}
           {sources.map((src, i) => (
@@ -328,7 +343,7 @@ function QuoteSection({ rows, treatmentName }: { rows: TreatmentQuoteRow[]; trea
           </button>
         )}
         <div className="text-[10px] text-brand-muted mt-0.5 leading-[1.4]">
-          {shown.length === rows.length ? rows.length : `${shown.length} of ${rows.length}`} {rows.length === 1 ? "quote" : "quotes"} from Reddit, copied exactly as written; a long one is shown as an excerpt and says so. Tap one to read the original. Quotes are not a vote count.
+          {shown.length === rows.length ? rows.length : `${shown.length} of ${rows.length}`} {rows.length === 1 ? "quote" : "quotes"} from Reddit, copied as written. Not a vote count.
         </div>
       </div>
     </>
@@ -344,6 +359,39 @@ function TreatmentPage() {
   const [similar, setSimilar] = useState<SimilarTreatment[]>([]);
   const [beforeAfters, setBeforeAfters] = useState<BeforeAfterRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pageTab, setPageTab] = useState<"treatment" | "tea">("treatment");
+  const [userId, setUserId] = useState<string | null>(null);
+  const [teaPosts, setTeaPosts] = useState<TeaPostRow[]>([]);
+  const [teaAuthors, setTeaAuthors] = useState<Record<string, TeaAuthor>>({});
+  const navigate = useNavigate();
+
+
+  // Tea posts are members' own words: never counted, never merged into any figure. profiles.name (the sign-up
+  // name) is never selected; a member is shown by the username they chose, or not named at all.
+  const loadTea = useCallback(async (treatmentId: string) => {
+    const { data: rows } = await (supabase as any)
+      .from("posts")
+      .select("id, user_id, cost, sessions, what_happened, surprised_me, works_for, warn_if, outcome, tags, skin_type, created_at")
+      .eq("treatment_id", treatmentId)
+      .order("created_at", { ascending: false });
+    const posts = ((rows as any[]) ?? []) as TeaPostRow[];
+    setTeaPosts(posts);
+    const ids = Array.from(new Set(posts.map((p) => p.user_id)));
+    if (ids.length === 0) { setTeaAuthors({}); return; }
+    const { data: profs } = await (supabase as any)
+      .from("profiles")
+      .select("user_id, username, avatar_url")
+      .in("user_id", ids);
+    const map: Record<string, TeaAuthor> = {};
+    for (const p of ((profs as any[]) ?? [])) map[p.user_id] = { username: p.username ?? null, avatarUrl: p.avatar_url ?? null };
+    setTeaAuthors(map);
+  }, []);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user?.id ?? null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => setUserId(session?.user?.id ?? null));
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -387,6 +435,7 @@ function TreatmentPage() {
           .order("created_at", { ascending: false });
         if (!alive) return;
         setQuoteRows(((qr as any[]) ?? []) as TreatmentQuoteRow[]);
+        void loadTea((t as any).id);
         // You might also like: other active treatments in the same category (as before 2026-09-14).
         const category = (t as any).category as string | null;
         const { data: sim } = category
@@ -427,50 +476,55 @@ function TreatmentPage() {
 
   return (
     <AppFrame>
-      <div style={{ background: WARM_WHITE, minHeight: "100vh", color: ESPRESSO, fontFamily: "system-ui, -apple-system, sans-serif", paddingBottom: 80 }}>
+      <div style={{ background: WARM_WHITE, minHeight: "100vh", color: ESPRESSO, paddingBottom: 80 }}>
         <div style={{ position: "sticky", top: 0, zIndex: 10, background: WARM_WHITE, borderBottom: `0.5px solid ${BORDER}`, padding: "12px 16px" }}>
-          <Link to="/treatments" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: ESPRESSO, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>
+          <Link to="/treatments" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: ESPRESSO, fontSize: 13, fontWeight: 600, textDecoration: "none" }}>
             <ArrowLeft size={16} /> Treatments
           </Link>
         </div>
 
         <div style={{ padding: "16px", borderBottom: `0.5px solid ${BORDER}` }}>
           {treatment.category && <div style={SECTION_LABEL}>{treatment.category}</div>}
-          <h1 style={{ fontSize: 22, fontWeight: 800, margin: "4px 0 0" }}>{treatment.name}</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 0" }}>{treatment.name}</h1>
           {treatment.subtitle && <div style={{ fontSize: 13, color: MUTED, marginTop: 4, lineHeight: 1.45 }}>{treatment.subtitle}</div>}
         </div>
 
-        {(() => {
-          const fields: { key: "what_it_is" | "how_it_works" | "who_its_for" | "who_its_not_for" | "downtime" | "results_duration" | "sessions_recommended"; label: string }[] = [
-            { key: "what_it_is", label: "What it is" },
-            { key: "how_it_works", label: "How it works" },
-            { key: "who_its_for", label: "Who it's for" },
-            { key: "who_its_not_for", label: "Who should skip it" },
-            { key: "downtime", label: "Recovery" },
-            { key: "results_duration", label: "How long results last" },
-            { key: "sessions_recommended", label: "Sessions" },
-          ];
-          const filled = fields.filter((f) => (treatment[f.key] ?? "").trim() !== "");
-          if (filled.length === 0) return null;
-          return (
-            <Section title="About this treatment">
-              <div style={{ fontSize: 11, color: MUTED, lineHeight: 1.5, marginBottom: 2 }}>
-                Written by Skintea from FDA labelling, manufacturer clinical documentation, peer-reviewed studies and
-                professional bodies. Each part links to its source. Not medical advice.
-              </div>
-              {filled.map((f) => (
-                <Field key={f.key} label={f.label} value={treatment[f.key]} sources={sourcesOf(treatment, f.key)} />
-              ))}
-            </Section>
-          );
-        })()}
+        {/* Shared page tabs, the same pattern as the product and clinic detail pages; local state only. */}
+        <div role="tablist" aria-label="Treatment details" style={{ display: "flex", borderBottom: `0.5px solid ${BORDER}` }}>
+          {(["treatment", "tea"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              aria-selected={pageTab === t}
+              onClick={() => setPageTab(t)}
+              style={{
+                flex: 1, background: "none", border: "none",
+                borderBottom: pageTab === t ? `2px solid ${CRIMSON}` : "2px solid transparent",
+                color: pageTab === t ? ESPRESSO : MUTED,
+                fontSize: 13, fontWeight: pageTab === t ? 600 : 500, padding: "11px 4px 9px", cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              {t === "treatment" ? "Treatment" : (
+                <span>Tea{teaPosts.length > 0 && <span style={{ fontSize: 10, color: CRIMSON, fontWeight: 600, marginLeft: 3 }}>{teaPosts.length}</span>}</span>
+              )}
+            </button>
+          ))}
+        </div>
 
-        {/*
-          Who has talked about it — celebrity / influencer evidence, between "About this
-          treatment" and "What people say". Treatment-scoped only: these rows are never
-          joined to a clinic and never link to one.
-        */}
-        <TreatmentVoices treatmentId={treatment.id} />
+        {pageTab === "tea" && (
+          <TreatmentTea
+            treatmentId={treatment.id}
+            posts={teaPosts}
+            authors={teaAuthors}
+            userId={userId}
+            onPosted={() => void loadTea(treatment.id)}
+            onLoginNeeded={() => navigate({ to: "/login" })}
+          />
+        )}
+
+        {pageTab === "treatment" && (
+        <>
 
         {/*
           Opinion figures come only from tagged treatment_reviews rows for this treatment
@@ -489,7 +543,6 @@ function TreatmentPage() {
               <SubLabel>Worth it?</SubLabel>
               <VerdictBars cell={br.overall} who="" />
 
-              <QuoteSection rows={quoteRows} treatmentName={treatment.name} />
 
               {(() => {
                 // A breakdown that clears its gate renders in full. Every held one is listed in ONE line instead of a
@@ -539,43 +592,6 @@ function TreatmentPage() {
             </Section>
           );
         })()}
-
-        {(() => {
-          const { n, buckets } = ageRows(quoteRows);
-          return (
-            <Section title="Ages people stated">
-              {n >= MIN_TREATMENT_REVIEWS ? (
-                <div className="bg-card border border-brand-border rounded-xl p-3.5">
-                  {buckets.map(([age, count]) => {
-                    const pct = Math.round((count / n) * 100);
-                    return (
-                      <div key={age} className="py-1">
-                        <div className="flex justify-between text-xs text-brand-espresso">
-                          <span>{age}</span>
-                          <span className="text-brand-muted">{count} of {n}</span>
-                        </div>
-                        <div className="h-[3px] bg-brand-border rounded-sm mt-1 overflow-hidden">
-                          <div className="h-full bg-brand-crimson" style={{ width: `${pct}%` }} />
-                        </div>
-                      </div>
-                    );
-                  })}
-                  <div className="text-[10px] text-brand-muted mt-1.5 leading-[1.4]">
-                    Only Reddit reviewers who mentioned their age. It shows who talked about {treatment.name}, not who gets it.
-                  </div>
-                </div>
-              ) : (
-                <DataPending>{n} of {MIN_TREATMENT_REVIEWS} Reddit reviews stating an age needed.</DataPending>
-              )}
-            </Section>
-          );
-        })()}
-
-        {/*
-          Patient videos: what the treatment looks like (owner-approved, up to 6; see TreatmentVideos).
-          Display only, never counted in Worth it. Separate component and query from "Who has talked about it".
-        */}
-        <TreatmentVideos treatmentId={treatment.id} />
 
         {/*
           Price. Two different facts, never merged: what listed clinics state on their own websites
@@ -637,65 +653,103 @@ function TreatmentPage() {
           );
         })()}
 
-        <Section title={`Clinics offering ${treatment.name}`}>
-          {links.length === 0 ? (
-            <div style={{ background: CREAM_TINT, borderRadius: 10, padding: "14px 12px" }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO }}>No listed clinics yet</div>
-              <div style={{ fontSize: 12, color: MUTED, marginTop: 4, lineHeight: 1.5 }}>
-                No clinic we list is linked to {treatment.name} yet. <Link to="/clinics" style={{ color: CRIMSON, fontWeight: 700 }}>Browse all clinics →</Link>
+        {(() => {
+          const fields: { key: "what_it_is" | "how_it_works" | "who_its_for" | "who_its_not_for" | "downtime" | "results_duration" | "sessions_recommended"; label: string }[] = [
+            { key: "what_it_is", label: "What it is" },
+            { key: "how_it_works", label: "How it works" },
+            { key: "who_its_for", label: "Who it's for" },
+            { key: "who_its_not_for", label: "Who should skip it" },
+            { key: "downtime", label: "Recovery" },
+            { key: "results_duration", label: "How long results last" },
+            { key: "sessions_recommended", label: "Sessions" },
+          ];
+          const filled = fields.filter((f) => (treatment[f.key] ?? "").trim() !== "");
+          if (filled.length === 0) return null;
+          return (
+            <Section title="About this treatment">
+              <div style={{ fontSize: 11, color: MUTED, lineHeight: 1.5, marginBottom: 2 }}>
+                Written by Skintea from published medical sources, each part linked. Not medical advice.
               </div>
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {/*
-                Cards link only to the Skintea clinic page. No outbound website or booking
-                links here: the visitor would leave before intent is captured, and most
-                website_url values come from the Google Maps scrape that is on hold.
-                clinic_view is recorded by the clinic page itself, once per mount.
-              */}
-              {links.map((l) => {
-                const c = l.clinics!;
-                const price = shownPrice(l.price_from, l.price_unit, l.field_provenance);
-                return (
-                  <div key={l.id} style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 10 }}>
-                    <Link
-                      to="/clinics/$id"
-                      params={{ id: c.id }}
-                      style={{ padding: 12, display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
-                    >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO }}>{c.name}</div>
-                        {c.neighborhood && (
-                          <div style={{ fontSize: 11, color: MUTED, marginTop: 3, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                            <MapPin size={11} /> {c.neighborhood}
-                          </div>
-                        )}
-                        {price && (
-                          <div style={{ fontSize: 12, fontWeight: 800, color: CRIMSON, marginTop: 4 }}>{price.text}</div>
-                        )}
+              {filled.map((f) => (
+                <Field key={f.key} label={f.label} value={treatment[f.key]} sources={sourcesOf(treatment, f.key)} />
+              ))}
+            </Section>
+          );
+        })()}
+
+        {/*
+          Who has talked about it — celebrity / influencer evidence, between "About this
+          treatment" and "What people say". Treatment-scoped only: these rows are never
+          joined to a clinic and never link to one.
+        */}
+        <TreatmentVoices treatmentId={treatment.id} />
+
+        {/*
+          Patient videos: what the treatment looks like (owner-approved, up to 6; see TreatmentVideos).
+          Display only, never counted in Worth it. Separate component and query from "Who has talked about it".
+        */}
+        <TreatmentVideos treatmentId={treatment.id} />
+
+        {/*
+          In their words — the same Reddit quotes, now their own section (owner, 2026-09-17). Same rows, same
+          component, same labels; only their place on the page changed. Quotes are counted nowhere.
+        */}
+        {quoteRows.length > 0 && (
+          <Section title="In their words">
+            <QuoteSection rows={quoteRows} treatmentName={treatment.name} />
+          </Section>
+        )}
+
+        {(() => {
+          const { n, buckets } = ageRows(quoteRows);
+          return (
+            <Section title="Ages people stated">
+              {n >= MIN_TREATMENT_REVIEWS ? (
+                <div className="bg-card border border-brand-border rounded-xl p-3.5">
+                  {buckets.map(([age, count]) => {
+                    const pct = Math.round((count / n) * 100);
+                    return (
+                      <div key={age} className="py-1">
+                        <div className="flex justify-between text-xs text-brand-espresso">
+                          <span>{age}</span>
+                          <span className="text-brand-muted">{count} of {n}</span>
+                        </div>
+                        <div className="h-[3px] bg-brand-border rounded-sm mt-1 overflow-hidden">
+                          <div className="h-full bg-brand-crimson" style={{ width: `${pct}%` }} />
+                        </div>
                       </div>
-                      <ChevronRight size={16} color={MUTED} />
-                    </Link>
-                    {/*
-                      The price's date and its evidence page. Outside the card Link, because an anchor cannot be nested
-                      inside another. A stale price (over 120 days) is not rendered at all, so there is no line here.
-                    */}
-                    {price && (
-                      <div style={{ padding: "0 12px 10px", fontSize: 10, color: MUTED }}>
-                        {price.url ? (
-                          <a href={price.url} target="_blank" rel="noopener noreferrer" style={{ color: MUTED, display: "inline-flex", alignItems: "center", gap: 3 }}>
-                            {price.dateLabel} <ExternalLink width={10} height={10} />
-                          </a>
-                        ) : (
-                          price.dateLabel
-                        )}
-                      </div>
-                    )}
+                    );
+                  })}
+                  <div className="text-[10px] text-brand-muted mt-1.5 leading-[1.4]">
+                    Only Reddit reviewers who mentioned their age. It shows who talked about {treatment.name}, not who gets it.
                   </div>
-                );
-              })}
-            </div>
-          )}
+                </div>
+              ) : (
+                <DataPending>{n} of {MIN_TREATMENT_REVIEWS} Reddit reviews stating an age needed.</DataPending>
+              )}
+            </Section>
+          );
+        })()}
+
+        {/*
+          Who has done it — Skintea members who posted about this treatment, never celebrities. Separate rows and a
+          separate query from "Who has talked about it" (celebrity evidence), and counted in no figure.
+        */}
+        <Section title="Who has done it">
+          <TreatmentMembers
+            members={(() => {
+              const seen = new Set<string>();
+              const out: TreatmentMember[] = [];
+              for (const p of teaPosts) {
+                if (seen.has(p.user_id)) continue;
+                seen.add(p.user_id);
+                const a = teaAuthors[p.user_id];
+                out.push({ userId: p.user_id, username: a?.username ?? null, avatarUrl: a?.avatarUrl ?? null });
+              }
+              return out;
+            })()}
+            onOpenTea={() => setPageTab("tea")}
+          />
         </Section>
 
         <Section title="Before & After">
@@ -715,7 +769,7 @@ function TreatmentPage() {
                       {([["Before", r.before_url], ["After", r.after_url]] as const).map(([label, url]) => (
                         <div key={label} style={{ position: "relative", aspectRatio: "1", background: CREAM_TINT }}>
                           <img src={url!} alt={`${label}: ${treatment.name}`} loading="lazy" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                          <span style={{ position: "absolute", left: 6, top: 6, background: "rgba(28,10,0,0.75)", color: WARM_WHITE, fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 4 }}>{label}</span>
+                          <span style={{ position: "absolute", left: 6, top: 6, background: "rgba(28,10,0,0.75)", color: WARM_WHITE, fontSize: 9, fontWeight: 600, padding: "2px 6px", borderRadius: 4 }}>{label}</span>
                         </div>
                       ))}
                     </div>
@@ -748,9 +802,9 @@ function TreatmentPage() {
                   style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 10, padding: 10, width: 130, flexShrink: 0, textDecoration: "none" }}
                 >
                   {sim.category && (
-                    <div style={{ fontSize: 9, fontWeight: 800, color: CRIMSON, textTransform: "uppercase", letterSpacing: "0.08em" }}>{sim.category}</div>
+                    <div style={{ fontSize: 9, fontWeight: 600, color: CRIMSON, textTransform: "uppercase", letterSpacing: "0.08em" }}>{sim.category}</div>
                   )}
-                  <div style={{ fontSize: 13, fontWeight: 800, color: ESPRESSO, marginTop: 4, lineHeight: 1.25 }}>{sim.name}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: ESPRESSO, marginTop: 4, lineHeight: 1.25 }}>{sim.name}</div>
                   {sim.subtitle && (
                     <div style={{ fontSize: 10, color: MUTED, marginTop: 4, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                       {sim.subtitle}
@@ -759,12 +813,75 @@ function TreatmentPage() {
                   {sim.average_cost && (
                     <div style={{ fontSize: 11, color: CRIMSON, marginTop: 6, fontWeight: 700 }}>{sim.average_cost}</div>
                   )}
-                  <div style={{ fontSize: 10, fontWeight: 800, color: CRIMSON, marginTop: 6 }}>See treatment →</div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: CRIMSON, marginTop: 6 }}>See treatment →</div>
                 </Link>
               ))}
             </div>
           )}
         </Section>
+
+        <Section title={`Clinics offering ${treatment.name}`}>
+          {links.length === 0 ? (
+            <div style={{ background: CREAM_TINT, borderRadius: 10, padding: "14px 12px" }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: ESPRESSO }}>No listed clinics yet</div>
+              <div style={{ fontSize: 12, color: MUTED, marginTop: 4, lineHeight: 1.5 }}>
+                No clinic we list is linked to {treatment.name} yet. <Link to="/clinics" style={{ color: CRIMSON, fontWeight: 700 }}>Browse all clinics →</Link>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {/*
+                Cards link only to the Skintea clinic page. No outbound website or booking
+                links here: the visitor would leave before intent is captured, and most
+                website_url values come from the Google Maps scrape that is on hold.
+                clinic_view is recorded by the clinic page itself, once per mount.
+              */}
+              {links.map((l) => {
+                const c = l.clinics!;
+                const price = shownPrice(l.price_from, l.price_unit, l.field_provenance);
+                return (
+                  <div key={l.id} style={{ background: "#FFFFFF", border: `0.5px solid ${BORDER}`, borderRadius: 10 }}>
+                    <Link
+                      to="/clinics/$id"
+                      params={{ id: c.id }}
+                      style={{ padding: 12, display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}
+                    >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: ESPRESSO }}>{c.name}</div>
+                        {c.neighborhood && (
+                          <div style={{ fontSize: 11, color: MUTED, marginTop: 3, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                            <MapPin size={11} /> {c.neighborhood}
+                          </div>
+                        )}
+                        {price && (
+                          <div style={{ fontSize: 12, fontWeight: 600, color: CRIMSON, marginTop: 4 }}>{price.text}</div>
+                        )}
+                      </div>
+                      <ChevronRight size={16} color={MUTED} />
+                    </Link>
+                    {/*
+                      The price's date and its evidence page. Outside the card Link, because an anchor cannot be nested
+                      inside another. A stale price (over 120 days) is not rendered at all, so there is no line here.
+                    */}
+                    {price && (
+                      <div style={{ padding: "0 12px 10px", fontSize: 10, color: MUTED }}>
+                        {price.url ? (
+                          <a href={price.url} target="_blank" rel="noopener noreferrer" style={{ color: MUTED, display: "inline-flex", alignItems: "center", gap: 3 }}>
+                            {price.dateLabel} <ExternalLink width={10} height={10} />
+                          </a>
+                        ) : (
+                          price.dateLabel
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Section>
+        </>
+        )}
 
         <BottomNav />
       </div>

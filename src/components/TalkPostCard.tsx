@@ -412,6 +412,8 @@ export type TalkPostCardProps = {
   /** The first line of the body. Rendered heavier, in the same 17px block. */
   hook?: string | null;
   body?: string | null;
+  /** Quote tea: the quoted post, nested in a bordered box directly under the body. */
+  quoted?: React.ReactNode;
   /** Product card, routine steps, photo carousel or receipt strip — whatever this tab shows. */
   module?: React.ReactNode;
   details?: TalkDetail[];
@@ -434,7 +436,7 @@ export type TalkPostCardProps = {
 export default function TalkPostCard({
   authorName = null, authorAvatarUrl = null, authorHref = null, isOwn = false, skinType = null, age = null, createdAt = null,
   subject = null, subjectIcon = null, typeLabel = null, verdict = null, hook = null, body = null,
-  module = null, details = [], voteBlock = null, onOpen,
+  quoted = null, module = null, details = [], voteBlock = null, onOpen,
   reply, quote, save, share, like, onDelete, error = null, footer = null,
 }: TalkPostCardProps) {
   const skin = normalizeSkin(skinType);
@@ -563,6 +565,9 @@ export default function TalkPostCard({
           {body.trim()}
         </p>
       )}
+
+      {/* 3b. Quoted post (Quote tea) */}
+      {quoted}
 
       {/* 4. Module */}
       {module}

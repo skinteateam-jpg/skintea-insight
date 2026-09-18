@@ -9,6 +9,7 @@ import TalkPostCard, {
   TalkProductModule, TalkRoutineSteps,
 } from "@/components/TalkPostCard";
 import TalkVoteBlock from "@/components/TalkVoteBlock";
+import { profileHref } from "@/lib/talkAuthors";
 import { emptySplit, usePostVotes } from "@/lib/postVotes";
 
 export const Route = createFileRoute("/tea-products")({
@@ -98,6 +99,8 @@ export type ProductPost = {
   userId: string;
   /** profiles.username of the author. null when they have not set one — never invented. */
   authorUsername: string | null;
+  /** profiles.avatar_url of the author at post time. */
+  authorAvatarUrl: string | null;
   /** The author's own skin type, read from their profile at post time. null when unknown. */
   skinType: string | null;
   headline: string | null;
@@ -116,7 +119,7 @@ export type ProductPost = {
 };
 
 export const PRODUCT_POST_COLS =
-  "id, product_id, user_id, username, skin_type, headline, body, verdict, usage_duration, when_to_use, how_much, watch_out, post_type, tag, hashtags, steps, created_at, products(id, name, brand, image_url)";
+  "id, product_id, user_id, username, avatar_url, skin_type, headline, body, verdict, usage_duration, when_to_use, how_much, watch_out, post_type, tag, hashtags, steps, created_at, products(id, name, brand, image_url)";
 
 export function mapProductPost(row: any): ProductPost {
   const p = row?.products ?? null;
@@ -126,6 +129,7 @@ export function mapProductPost(row: any): ProductPost {
     productId: row.product_id ?? null,
     userId: row.user_id,
     authorUsername: row.username ?? null,
+    authorAvatarUrl: row.avatar_url ?? null,
     skinType: row.skin_type ?? null,
     headline: row.headline ?? null,
     body: row.body ?? "",
@@ -548,6 +552,8 @@ export function ProductPostCard({
   return (
     <TalkPostCard
       authorName={post.authorUsername}
+      authorAvatarUrl={post.authorAvatarUrl}
+      authorHref={post.authorUsername ? profileHref(post.authorUsername) : null}
       isOwn={isOwn}
       skinType={post.skinType}
       createdAt={post.createdAt}

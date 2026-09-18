@@ -4,7 +4,8 @@ import { ArrowLeft, ChevronDown, ChevronRight, ExternalLink, MapPin } from "luci
 import { supabase } from "@/integrations/supabase/client";
 import AppFrame from "@/components/AppFrame";
 import BottomNav from "@/components/BottomNav";
-import TreatmentVoices from "@/components/TreatmentVoices";
+import TreatmentCelebrityLine from "@/components/TreatmentCelebrityLine";
+import TreatmentMembers from "@/components/TreatmentMembers";
 import TreatmentVideos from "@/components/TreatmentVideos";
 import TreatmentTea, { type TeaPostRow } from "@/components/TreatmentTea";
 import { useMyUsername, useTalkAuthors } from "@/lib/talkAuthors";
@@ -484,6 +485,12 @@ function TreatmentPage() {
           {treatment.category && <div style={SECTION_LABEL}>{treatment.category}</div>}
           <h1 style={{ fontSize: 22, fontWeight: 600, margin: "4px 0 0" }}>{treatment.name}</h1>
           {treatment.subtitle && <div style={{ fontSize: 13, color: MUTED, marginTop: 4, lineHeight: 1.45 }}>{treatment.subtitle}</div>}
+          {/*
+            The celebrity / influencer layer, as one line (Chi, 2026-09-18): names only, each linking to where the
+            person said it. Treatment-scoped, never joined or linked to a clinic; the stored quote is evidence and is
+            never displayed. Counted in no figure. Absent entirely when no row qualifies.
+          */}
+          <TreatmentCelebrityLine treatmentId={treatment.id} />
         </div>
 
         {/* Shared page tabs, the same pattern as the product and clinic detail pages; local state only. */}
@@ -508,29 +515,6 @@ function TreatmentPage() {
             </button>
           ))}
         </div>
-
-        {pageTab === "treatment" && (
-          // How many members have posted about this treatment, linking to the Tea tab (Chi, 2026-09-17: the avatar
-          // row is revisited once there are real posts). A count of rows, never a name and never a figure on the page.
-          <div style={{ padding: "10px 16px", borderBottom: `0.5px solid ${BORDER}` }}>
-            {teaPosts.length === 0 ? (
-              <div className="border border-dashed border-brand-border rounded-[10px] px-[13px] py-3 bg-brand-cream">
-                <div className="text-[10px] font-semibold text-brand-muted mb-[5px]">Not enough data yet</div>
-                <div className="text-[11.5px] text-brand-muted leading-[1.55]">
-                  No Skintea member has posted about this treatment yet.
-                </div>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setPageTab("tea")}
-                style={{ background: "none", border: "none", padding: 0, fontSize: 12.5, fontWeight: 600, color: CRIMSON, cursor: "pointer", fontFamily: "inherit" }}
-              >
-                {teaPosts.length} {teaPosts.length === 1 ? "post" : "posts"} about this treatment — read them in Tea
-              </button>
-            )}
-          </div>
-        )}
 
         {pageTab === "tea" && (
           <TreatmentTea
@@ -747,12 +731,15 @@ function TreatmentPage() {
         })()}
 
         {/*
-          Who has talked about it — celebrity / influencer evidence, kept exactly as it was and only moved with the
-          2026-09-17 order (Chi; it is replaced in a separate task). Treatment-scoped only: these rows are never
-          joined to a clinic and never link to one, and they are nothing to do with members, who are counted in
-          one line under the tab bar and read in the Tea tab.
+          Who has talked about it — the Skintea members who posted Tea about this treatment (Chi, 2026-09-18). The
+          name used to carry the celebrity layer, which is now one line under the treatment name above the tabs.
+          Named posts only in the row; the count line under it is every post, so anonymous posters are counted
+          without being identified. Authorship comes from talk_post_authors(); user_id is never selected. Counted in
+          no figure.
         */}
-        <TreatmentVoices treatmentId={treatment.id} />
+        <Section title="Who has talked about it">
+          <TreatmentMembers posts={teaPosts} authors={teaAuthors} onOpenTea={() => setPageTab("tea")} />
+        </Section>
 
         <Section title="Before & After">
           {beforeAfters.length === 0 ? (

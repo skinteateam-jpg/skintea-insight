@@ -6,7 +6,7 @@ import AppFrame from "@/components/AppFrame";
 import BottomNav from "@/components/BottomNav";
 import TreatmentVoices from "@/components/TreatmentVoices";
 import TreatmentVideos from "@/components/TreatmentVideos";
-import TreatmentTea, { type TeaAuthor, type TeaPostRow } from "@/components/TreatmentTea";
+import TreatmentTea, { isNamedPost, type TeaAuthor, type TeaPostRow } from "@/components/TreatmentTea";
 import {
   breakdown, COUNTED_PLATFORMS, MIN_TREATMENT_REVIEWS, MIN_COST_VALUES, MAX_SENSITIVITY_POINTS, REGRET_LABELS, VERDICT_LABELS,
   type TreatmentQuoteRow, type TreatmentReviewRow, type VerdictCell,
@@ -362,6 +362,7 @@ function TreatmentPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [teaPosts, setTeaPosts] = useState<TeaPostRow[]>([]);
   const [teaAuthors, setTeaAuthors] = useState<Record<string, TeaAuthor>>({});
+  const [viewerUsername, setViewerUsername] = useState<string | null>(null);
   const navigate = useNavigate();
 
 
@@ -370,12 +371,13 @@ function TreatmentPage() {
   const loadTea = useCallback(async (treatmentId: string) => {
     const { data: rows } = await (supabase as any)
       .from("posts")
-      .select("id, user_id, cost, sessions, what_happened, surprised_me, works_for, warn_if, outcome, tags, skin_type, created_at")
+      .select("id, user_id, cost, sessions, what_happened, surprised_me, works_for, warn_if, outcome, tags, skin_type, created_at, is_named")
       .eq("treatment_id", treatmentId)
       .order("created_at", { ascending: false });
     const posts = ((rows as any[]) ?? []) as TeaPostRow[];
     setTeaPosts(posts);
-    const ids = Array.from(new Set(posts.map((p) => p.user_id)));
+    // Profiles are fetched only for posts the member chose to name: an anonymous post's author is never looked up.
+    const ids = Array.from(new Set(posts.filter((p) => isNamedPost(p)).map((p) => p.user_id)));
     if (ids.length === 0) { setTeaAuthors({}); return; }
     const { data: profs } = await (supabase as any)
       .from("profiles")
@@ -385,6 +387,15 @@ function TreatmentPage() {
     for (const p of ((profs as any[]) ?? [])) map[p.user_id] = { username: p.username ?? null, avatarUrl: p.avatar_url ?? null };
     setTeaAuthors(map);
   }, []);
+
+  // The signed-in member's own username decides whether the form can offer "post under my name".
+  useEffect(() => {
+    if (!userId) { setViewerUsername(null); return; }
+    let alive = true;
+    (supabase as any).from("profiles").select("username").eq("user_id", userId).maybeSingle()
+      .then(({ data }: { data: { username: string | null } | null }) => { if (alive) setViewerUsername(data?.username ?? null); });
+    return () => { alive = false; };
+  }, [userId]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user?.id ?? null));
@@ -541,6 +552,7 @@ function TreatmentPage() {
             posts={teaPosts}
             authors={teaAuthors}
             userId={userId}
+            viewerUsername={viewerUsername}
             onPosted={() => void loadTea(treatment.id)}
             onLoginNeeded={() => navigate({ to: "/login" })}
           />

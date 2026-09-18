@@ -27,10 +27,10 @@ export const REPEAT_TAG = "#had-it-before";
 // It decides whether a real person's name sits next to a post about surgery or injectables, so it is a column the
 // database enforces, `posts.is_named` (boolean, not null, default false) — never a string convention in `tags`.
 //
-// HAS_IS_NAMED_COLUMN flips to true in the same commit that creates the column (the DDL is waiting for Chi's go).
-// While it is false the page never reads or writes the column, so nothing breaks and every post is anonymous, and
-// the form says naming is not available yet instead of quietly posting someone anonymously.
-export const HAS_IS_NAMED_COLUMN = false;
+// The column exists since 2026-09-18 (Chi's go), with trigger `posts_named_requires_username`: the database rejects
+// is_named = true for a member with no username, so the form's rule below is enforced server-side as well.
+// Setting HAS_IS_NAMED_COLUMN back to false hides the named option and stops reading the column.
+export const HAS_IS_NAMED_COLUMN = true;
 export const isNamedPost = (p: { is_named?: boolean | null }) => p.is_named === true;
 
 type Outcome = "would_again" | "modified" | "wouldnt";
@@ -88,12 +88,14 @@ function Answer({ label, value }: { label: string; value: string | null }) {
 }
 
 export default function TreatmentTea({
-  treatmentId, posts, authors, userId, onPosted, onLoginNeeded,
+  treatmentId, posts, authors, userId, viewerUsername, onPosted, onLoginNeeded,
 }: {
   treatmentId: string;
   posts: TeaPostRow[];
   authors: Record<string, TeaAuthor>;
   userId: string | null;
+  // The signed-in member's own username, read from their profile (not from post authors, which misses a first post).
+  viewerUsername: string | null;
   onPosted: () => void;
   onLoginNeeded: () => void;
 }) {
@@ -111,7 +113,7 @@ export default function TreatmentTea({
   const [timesTag, setTimesTag] = useState<string | null>(null);
   // Anonymous is preselected, always. A member with no username cannot choose named.
   const [postNamed, setPostNamed] = useState(false);
-  const myUsername = userId ? authors[userId]?.username ?? null : null;
+  const myUsername = userId && viewerUsername && viewerUsername.trim() ? viewerUsername : null;
   const canPostNamed = HAS_IS_NAMED_COLUMN && !!myUsername;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -139,8 +141,8 @@ export default function TreatmentTea({
       sessions: sessions.trim() || null,
       skin_type: skinType,
       tags: timesTag ? [timesTag] : [],
-      // The column is only written once it exists; until then the control is disabled and this stays out.
-      ...(HAS_IS_NAMED_COLUMN ? { is_named: postNamed && !!myUsername } : {}),
+      // Named only when the member chose it and has a username; the trigger rejects anything else.
+      is_named: HAS_IS_NAMED_COLUMN && postNamed && !!myUsername,
     });
     setSubmitting(false);
     // On failure the form stays open with everything the member typed.

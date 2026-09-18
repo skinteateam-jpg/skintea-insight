@@ -10,6 +10,8 @@ import {
   CAPTION, CARD_BORDER, CRIMSON, ESPRESSO, SANS, WARM_WHITE,
 } from "@/components/TalkPostCard";
 import { PRODUCT_POST_COLS, ProductPostCard, mapProductPost, type ProductPost } from "./tea-products";
+import TalkQuoteBox from "@/components/TalkQuoteBox";
+import { useQuotedPosts } from "@/lib/talkQuotes";
 
 export const Route = createFileRoute("/tea-products/$postId")({
   component: PostDetailPage,
@@ -23,6 +25,8 @@ function PostDetailPage() {
   const [userId, setUserId] = React.useState<string | null>(null);
   const [rowError, setRowError] = React.useState<string | null>(null);
   const [shareNote, setShareNote] = React.useState<string | null>(null);
+  // Quote tea: what this post quotes. Called before any early return, as hooks must be.
+  const { quoted, loaded: quotedLoaded } = useQuotedPosts("product", post?.quotedPostId ? [post.quotedPostId] : [], userId);
 
   React.useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user?.id ?? null));
@@ -99,7 +103,12 @@ function PostDetailPage() {
   return shell(
     <>
       {rowError && <p style={{ fontSize: 13, color: CRIMSON, marginBottom: 10 }}>{rowError}</p>}
-      <ProductPostCard post={post} isOwn={isOwn} onDelete={isOwn ? () => void deletePost() : undefined} />
+      <ProductPostCard
+        post={post}
+        isOwn={isOwn}
+        onDelete={isOwn ? () => void deletePost() : undefined}
+        quotedBox={post.quotedPostId ? <TalkQuoteBox quoted={quoted.get(post.quotedPostId) ?? null} loaded={quotedLoaded} /> : null}
+      />
 
       {post.product && (
         <button

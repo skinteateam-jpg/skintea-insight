@@ -8,6 +8,8 @@ import TalkPostCard, {
   BORDER, CAPTION, CARD_BORDER, CRIMSON, DISABLED, ESPRESSO, NEUTRAL_FILL, SANS, WARM_WHITE,
   TalkProductModule, TalkRoutineSteps,
 } from "@/components/TalkPostCard";
+import TalkVoteBlock from "@/components/TalkVoteBlock";
+import { emptySplit, usePostVotes } from "@/lib/postVotes";
 
 export const Route = createFileRoute("/tea-products")({
   head: () => ({
@@ -319,6 +321,11 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
   const [composePrompt, setComposePrompt] = React.useState<string | undefined>();
   const [rowError, setRowError] = React.useState<string | null>(null);
 
+  // One RPC for every post on screen. The 20-vote floor is applied inside post_vote_split, so a
+  // closed split arrives with its percentages already absent rather than hidden here.
+  const postIds = React.useMemo(() => posts.map((p) => p.id), [posts]);
+  const { splits, myVotes, vote, error: voteError } = usePostVotes("product", postIds, viewer?.userId ?? null);
+
   // One editorial prompt, shown only alongside a real feed. Not framed as daily:
   // it does not rotate, and nothing here measures a day.
   const featuredPrompt = PROMPTS[0];
@@ -459,6 +466,17 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
                 isOwn={!!viewer && viewer.userId === post.userId}
                 onOpen={() => navigate({ to: "/tea-products/$postId", params: { postId: post.id } })}
                 onDelete={() => void deletePost(post.id)}
+                voteBlock={
+                  <TalkVoteBlock
+                    split={splits.get(post.id) ?? emptySplit(post.id)}
+                    myVote={myVotes.get(post.id) ?? null}
+                    canVote={!!viewer && viewer.userId !== post.userId}
+                    disabledReason={viewer ? "You can't vote on your own post" : "Sign in to vote"}
+                    onVote={(v) => void vote(post.id, v)}
+                    onSignIn={viewer ? undefined : () => void navigate({ to: "/login" })}
+                    error={voteError?.postId === post.id ? voteError.message : null}
+                  />
+                }
               />
             ))}
           </div>
@@ -516,12 +534,13 @@ function TeaProductsPage() {
 /* ---------- Post card ---------- */
 
 export function ProductPostCard({
-  post, isOwn, onOpen, onDelete,
+  post, isOwn, onOpen, onDelete, voteBlock = null,
 }: {
   post: ProductPost;
   isOwn: boolean;
   onOpen?: () => void;
   onDelete?: () => void;
+  voteBlock?: React.ReactNode;
 }) {
   const tagLabel = post.tag ? TAG_LABEL[post.tag] : null;
   const hasRoutine = post.steps.length > 0;
@@ -562,6 +581,7 @@ export function ProductPostCard({
         { label: "How much", value: post.howMuch ?? "" },
         { label: "Wish I knew before", value: post.watchOut ?? "", warning: true },
       ]}
+      voteBlock={voteBlock}
       reply={{ key: "Reply", label: "Reply", disabled: true, title: "Replies open when commenting does" }}
       quote={{ key: "Quote", label: "Quote", disabled: true, title: "Quoting is not built yet" }}
       save={{ key: "Save", disabled: true, title: "Saving product posts isn't built yet" }}

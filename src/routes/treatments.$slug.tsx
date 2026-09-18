@@ -6,8 +6,7 @@ import AppFrame from "@/components/AppFrame";
 import BottomNav from "@/components/BottomNav";
 import TreatmentVoices from "@/components/TreatmentVoices";
 import TreatmentVideos from "@/components/TreatmentVideos";
-import TreatmentTea, { isNamedPost, type TeaAuthor, type TeaPostRow } from "@/components/TreatmentTea";
-import TreatmentMembers, { type TreatmentMember } from "@/components/TreatmentMembers";
+import TreatmentTea, { type TeaAuthor, type TeaPostRow } from "@/components/TreatmentTea";
 import {
   breakdown, COUNTED_PLATFORMS, MIN_TREATMENT_REVIEWS, MIN_COST_VALUES, MAX_SENSITIVITY_POINTS, REGRET_LABELS, VERDICT_LABELS,
   type TreatmentQuoteRow, type TreatmentReviewRow, type VerdictCell,
@@ -512,6 +511,30 @@ function TreatmentPage() {
           ))}
         </div>
 
+        {pageTab === "treatment" && (
+          // How many members have posted about this treatment, linking to the Tea tab (Chi, 2026-09-17: the avatar
+          // row is revisited once there are real posts). A count of rows, never a name and never a figure on the page.
+          <div style={{ padding: "10px 16px", borderBottom: `0.5px solid ${BORDER}` }}>
+            {teaPosts.length === 0 ? (
+              <div className="border border-dashed border-brand-border rounded-[10px] px-[13px] py-3 bg-brand-cream">
+                <div className="text-[10px] font-semibold text-brand-muted mb-[5px]">Not enough data yet</div>
+                <div className="text-[11.5px] text-brand-muted leading-[1.55]">
+                  No Skintea member has posted about this treatment yet.
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setPageTab("tea")}
+                style={{ background: "none", border: "none", padding: 0, fontSize: 12.5, fontWeight: 600, color: CRIMSON, cursor: "pointer", fontFamily: "inherit" }}
+              >
+                {new Set(teaPosts.map((p) => p.user_id)).size}{" "}
+                {new Set(teaPosts.map((p) => p.user_id)).size === 1 ? "member has" : "members have"} posted about this treatment — read them in Tea
+              </button>
+            )}
+          </div>
+        )}
+
         {pageTab === "tea" && (
           <TreatmentTea
             treatmentId={treatment.id}
@@ -726,36 +749,11 @@ function TreatmentPage() {
 
         {/*
           Who has talked about it — celebrity / influencer evidence, kept exactly as it was and only moved with the
-          2026-09-17 order (owner; it is replaced in a separate task). Treatment-scoped
-          only: these rows are never joined to a clinic and never link to one, and they are not the member
-          section below ("Who has done it").
+          2026-09-17 order (Chi; it is replaced in a separate task). Treatment-scoped only: these rows are never
+          joined to a clinic and never link to one, and they are nothing to do with members, who are counted in
+          one line under the tab bar and read in the Tea tab.
         */}
         <TreatmentVoices treatmentId={treatment.id} />
-
-        {/*
-          Who has done it — Skintea members who posted about this treatment, never celebrities. Separate rows and a
-          separate query from "Who has talked about it" (celebrity evidence), and counted in no figure.
-        */}
-        <Section title="Who has done it">
-          <TreatmentMembers
-            members={(() => {
-              // Only members who chose to post under their name, one entry each. The choice is the member's own
-              // (isNamedPost); anonymous posts are counted below and never named here.
-              const seen = new Set<string>();
-              const out: TreatmentMember[] = [];
-              for (const p of teaPosts) {
-                if (!isNamedPost(p) || seen.has(p.user_id)) continue;
-                const a = teaAuthors[p.user_id];
-                if (!a?.username) continue;
-                seen.add(p.user_id);
-                out.push({ userId: p.user_id, username: a.username, avatarUrl: a.avatarUrl ?? null });
-              }
-              return out;
-            })()}
-            anonymousCount={teaPosts.filter((p) => !isNamedPost(p) || !teaAuthors[p.user_id]?.username).length}
-            onOpenTea={() => setPageTab("tea")}
-          />
-        </Section>
 
         <Section title="Before & After">
           {beforeAfters.length === 0 ? (

@@ -23,12 +23,15 @@ const CREAM_TINT = "#F5EFEC";
 export const FIRST_TIME_TAG = "#first-time";
 export const REPEAT_TAG = "#had-it-before";
 
-// Named or anonymous is the member's own choice, never inferred, and anonymous is the default (owner, 2026-09-17).
-// `posts` has no column for it, so the choice is read from `tags`, the same way first time / had it before is.
-// HOW IT IS STORED IS NOT DECIDED YET: this renders the choice, and the form below does not write it until the
-// owner picks the mechanism. With nothing written, every post is anonymous, which is the default the owner asked for.
-export const NAMED_TAG = "#named";
-export const isNamedPost = (p: { tags: string[] | null }) => (p.tags ?? []).includes(NAMED_TAG);
+// Named or anonymous is the member's own choice, never inferred, and anonymous is the default (Chi, 2026-09-17).
+// It decides whether a real person's name sits next to a post about surgery or injectables, so it is a column the
+// database enforces, `posts.is_named` (boolean, not null, default false) — never a string convention in `tags`.
+//
+// HAS_IS_NAMED_COLUMN flips to true in the same commit that creates the column (the DDL is waiting for Chi's go).
+// While it is false the page never reads or writes the column, so nothing breaks and every post is anonymous, and
+// the form says naming is not available yet instead of quietly posting someone anonymously.
+export const HAS_IS_NAMED_COLUMN = false;
+export const isNamedPost = (p: { is_named?: boolean | null }) => p.is_named === true;
 
 type Outcome = "would_again" | "modified" | "wouldnt";
 const OUTCOMES: { key: Outcome; label: string; bg: string; fg: string; border: string }[] = [
@@ -54,6 +57,7 @@ export type TeaPostRow = {
   tags: string[] | null;
   skin_type: string | null;
   created_at: string;
+  is_named?: boolean | null; // read only once HAS_IS_NAMED_COLUMN is true
 };
 
 export type TeaAuthor = { username: string | null; avatarUrl: string | null };
@@ -105,6 +109,10 @@ export default function TreatmentTea({
   const [sessions, setSessions] = useState("");
   const [skinType, setSkinType] = useState<string | null>(null);
   const [timesTag, setTimesTag] = useState<string | null>(null);
+  // Anonymous is preselected, always. A member with no username cannot choose named.
+  const [postNamed, setPostNamed] = useState(false);
+  const myUsername = userId ? authors[userId]?.username ?? null : null;
+  const canPostNamed = HAS_IS_NAMED_COLUMN && !!myUsername;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -131,13 +139,15 @@ export default function TreatmentTea({
       sessions: sessions.trim() || null,
       skin_type: skinType,
       tags: timesTag ? [timesTag] : [],
+      // The column is only written once it exists; until then the control is disabled and this stays out.
+      ...(HAS_IS_NAMED_COLUMN ? { is_named: postNamed && !!myUsername } : {}),
     });
     setSubmitting(false);
     // On failure the form stays open with everything the member typed.
     if (insertError) { setError(`Couldn't post: ${insertError.message}`); return; }
     setShowForm(false); setMore(false);
     setWhatHappened(""); setSurprisedMe(""); setWorksFor(""); setWarnIf("");
-    setOutcome(null); setCost(""); setSessions(""); setSkinType(null); setTimesTag(null);
+    setOutcome(null); setCost(""); setSessions(""); setSkinType(null); setTimesTag(null); setPostNamed(false);
     onPosted();
   }
 
@@ -188,6 +198,36 @@ export default function TreatmentTea({
             placeholder="What happened? Your own words."
             style={{ ...inputStyle, borderRadius: 10, padding: "10px 12px", fontSize: 13, resize: "none" }}
           />
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontSize: 10.5, color: MUTED, marginBottom: 4 }}>Post as</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {([[false, "Anonymous"], [true, myUsername ? `@${myUsername}` : "My username"]] as const).map(([value, label]) => {
+                const active = postNamed === value;
+                const disabled = value === true && !canPostNamed;
+                return (
+                  <button
+                    key={String(value)}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => setPostNamed(value)}
+                    style={{ borderRadius: 20, padding: "5px 11px", fontSize: 11, cursor: disabled ? "not-allowed" : "pointer", fontFamily: "inherit",
+                      border: `1px solid ${active ? ESPRESSO : BORDER}`, background: active ? ESPRESSO : "#FFFFFF",
+                      color: active ? "#FFFCF8" : disabled ? MUTED : ESPRESSO, opacity: disabled ? 0.6 : 1 }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ fontSize: 10, color: MUTED, marginTop: 4, lineHeight: 1.45 }}>
+              {!HAS_IS_NAMED_COLUMN
+                ? "Posting under your name is not switched on yet, so this post will be anonymous."
+                : !myUsername
+                ? "Set a username on your profile to post under your name. Without one, this post will be anonymous."
+                : "Anonymous posts show no name, no avatar and no link to your profile."}
+            </div>
+          </div>
+
           <button
             type="button"
             onClick={() => setMore((v) => !v)}

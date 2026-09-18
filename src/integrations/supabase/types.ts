@@ -1840,6 +1840,7 @@ export type Database = {
           id: string
           post_id: string
           post_type: string
+          updates_seen_at: string
           user_id: string
         }
         Insert: {
@@ -1847,6 +1848,7 @@ export type Database = {
           id?: string
           post_id: string
           post_type: string
+          updates_seen_at?: string
           user_id: string
         }
         Update: {
@@ -1854,6 +1856,7 @@ export type Database = {
           id?: string
           post_id?: string
           post_type?: string
+          updates_seen_at?: string
           user_id?: string
         }
         Relationships: []
@@ -2269,18 +2272,21 @@ export type Database = {
           created_at: string
           id: string
           post_id: string
+          updates_seen_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
           post_id: string
+          updates_seen_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
           post_id?: string
+          updates_seen_at?: string
           user_id?: string
         }
         Relationships: [

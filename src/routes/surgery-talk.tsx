@@ -7,6 +7,8 @@ import TalkPostCard, {
   BORDER, CAPTION, CARD_BORDER, CRIMSON, DISPLAY, ESPRESSO, NEUTRAL_FILL, SANS, WARM_WHITE,
   TalkPhotoCarousel, TalkReceipt, receiptCells,
 } from "@/components/TalkPostCard";
+import TalkVoteBlock from "@/components/TalkVoteBlock";
+import { emptySplit, usePostVotes, type VoteSplit, type VoteValue } from "@/lib/postVotes";
 
 export const Route = createFileRoute("/surgery-talk")({
   head: () => ({
@@ -391,8 +393,10 @@ function CommentSection({ postId, userId }: { postId: string; userId: string | n
 }
 
 // ============= Post card =============
-function PostCard({ post, userId, onLikeChange, onDeleted }: {
+function PostCard({ post, userId, onLikeChange, onDeleted, split, myVote, canVote, onVote, onSignIn, voteError }: {
   post: EnrichedPost; userId: string | null; onLikeChange: (delta: number) => void; onDeleted: () => void;
+  split: VoteSplit; myVote: VoteValue | null; canVote: boolean;
+  onVote: (v: VoteValue) => void; onSignIn?: () => void; voteError: string | null;
 }) {
   const isOwn = !!userId && post.user_id === userId;
   const [deleting, setDeleting] = useState(false);
@@ -495,6 +499,17 @@ function PostCard({ post, userId, onLikeChange, onDeleted }: {
         { label: "Wish I knew before", value: post.warn_if ?? "", warning: true },
         { label: "Who it's for", value: post.works_for ?? "" },
       ]}
+      voteBlock={
+        <TalkVoteBlock
+          split={split}
+          myVote={myVote}
+          canVote={canVote}
+          disabledReason={onSignIn ? "Sign in to vote" : "You can't vote on your own post"}
+          onVote={onVote}
+          onSignIn={onSignIn}
+          error={voteError}
+        />
+      }
       like={{ key: "Like", count: likesCount, active: liked, onClick: () => void toggleLike(), disabled: !userId, title: userId ? undefined : "Sign in to like" }}
       reply={{
         key: "Reply",
@@ -953,6 +968,10 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
     }))];
   }, [surgeries, rankCounts, posts.length]);
 
+  // One RPC for every post on screen; the floors are applied inside post_vote_split.
+  const postIds = useMemo(() => posts.map((p) => p.id), [posts]);
+  const { splits, myVotes, vote, error: voteError } = usePostVotes("surgery", postIds, userId);
+
   const filtered = useMemo(() => {
     return posts
       .filter((p) => chip === "All" ? true : p.surgery_name === chip)
@@ -1109,6 +1128,12 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
                   userId={userId}
                   onLikeChange={(delta) => updatePost(p.id, { likes_count: Math.max(0, p.likes_count + delta) })}
                   onDeleted={() => removePost(p.id)}
+                  split={splits.get(p.id) ?? emptySplit(p.id)}
+                  myVote={myVotes.get(p.id) ?? null}
+                  canVote={!!userId && p.user_id !== userId}
+                  onVote={(v) => void vote(p.id, v)}
+                  onSignIn={userId ? undefined : () => navigate({ to: "/login" })}
+                  voteError={voteError?.postId === p.id ? voteError.message : null}
                 />
               ))
             )}

@@ -9,6 +9,8 @@ import TalkPostCard, {
 } from "@/components/TalkPostCard";
 import TalkVoteBlock from "@/components/TalkVoteBlock";
 import { emptySplit, usePostVotes, type VoteSplit, type VoteValue } from "@/lib/postVotes";
+import TalkVisibilityPicker from "@/components/TalkVisibilityPicker";
+import { ANONYMOUS_AUTHOR, profileHref, useMyUsername, useTalkAuthors, type TalkAuthor } from "@/lib/talkAuthors";
 
 export const Route = createFileRoute("/treatment-talk")({
   head: () => ({
@@ -124,7 +126,8 @@ const NEGATIVE_OUTCOMES = new Set<Outcome>(["wouldnt"]);
 
 type PostRow = {
   id: string;
-  user_id: string;
+  // No user_id: who wrote a post comes from talk_post_authors(), which returns an author only for a named post.
+  is_named: boolean;
   treatment_id: string | null;
   cost: string | null;
   sessions: string | null;
@@ -193,6 +196,7 @@ function PostCard({
   onVote,
   onSignIn,
   voteError,
+  author,
 }: {
   post: PostRow;
   treatmentName: string | null;
@@ -206,6 +210,7 @@ function PostCard({
   onVote: (v: VoteValue) => void;
   onSignIn?: () => void;
   voteError: string | null;
+  author: TalkAuthor;
 }) {
   const cells = receiptCells([
     ["Paid", post.cost],
@@ -215,8 +220,11 @@ function PostCard({
 
   return (
     <TalkPostCard
-      /* Treatment Talk posts are nameless (2026-09-17): no author name is fetched or shown. */
-      authorName={null}
+      /* Named only when the author chose to be (posts.is_named). The author comes from talk_post_authors(),
+         which returns nothing for an anonymous post. */
+      authorName={author.username}
+      authorAvatarUrl={author.avatarUrl}
+      authorHref={author.username ? profileHref(author.username) : null}
       isOwn={isOwn}
       skinType={post.skin_type}
       createdAt={post.created_at}
@@ -299,6 +307,11 @@ function Composer({
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [skinType, setSkinType] = useState<string | null>(null);
   const [tags, setTags] = useState("");
+  // Starts on "Post as @username"; null means the author has not touched it. Without a username the post
+  // cannot be named, and is_named is sent as false — explicitly, never left to the column default.
+  const { username, loaded: usernameLoaded } = useMyUsername(userId);
+  const [namedChoice, setNamedChoice] = useState<boolean | null>(null);
+  const named = !!username && (namedChoice ?? true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -330,6 +343,7 @@ function Composer({
       outcome,
       skin_type: skinType,
       tags: tagList,
+      is_named: named,
     } as any);
     setSubmitting(false);
     // On failure the form stays open with everything the poster typed.
@@ -424,6 +438,7 @@ function Composer({
             <label className={label} style={{ color: MUTED }}>Tags</label>
             <input value={tags} onChange={(e) => setTags(e.target.value)} className="w-full rounded-lg px-3" style={inputStyle} placeholder="#firsttimer #forehead" />
           </div>
+          <TalkVisibilityPicker username={username} named={named} loaded={usernameLoaded} onChange={setNamedChoice} />
           {missing.length > 0 && (
             <div style={{ fontSize: 13, color: MUTED }}>Still to fill in: {missing.join(", ")}.</div>
           )}
@@ -437,7 +452,9 @@ function Composer({
             {submitting ? "Posting…" : "Spill the needle"}
           </button>
           <div style={{ fontSize: 13, lineHeight: 1.5, color: MUTED }}>
-            Your post is public on Skintea without your name: it shows your skin type, the treatment and the date.
+            {named
+              ? `Your post is public on Skintea as @${username}, with your skin type, the treatment and the date.`
+              : "Your post is public on Skintea without your name: it shows your skin type, the treatment and the date."}
           </div>
         </div>
       </div>
@@ -463,7 +480,8 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
     setPostsLoading(true);
     const { data, error } = await supabase
       .from("posts")
-      .select("id, user_id, treatment_id, cost, sessions, what_happened, surprised_me, works_for, warn_if, outcome, tags, skin_type, created_at")
+      // user_id is never selected: an anonymous post must not carry its author to the browser.
+      .select("id, is_named, treatment_id, cost, sessions, what_happened, surprised_me, works_for, warn_if, outcome, tags, skin_type, created_at")
       .order("created_at", { ascending: false })
       .limit(100);
     setPostsError(!!error);
@@ -501,6 +519,7 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
   // One RPC for every post on screen; the floors are applied inside post_vote_split.
   const postIds = useMemo(() => posts.map((p) => p.id), [posts]);
   const { splits, myVotes, vote, error: voteError } = usePostVotes("treatment", postIds, userId);
+  const { authors } = useTalkAuthors("treatment", postIds, userId);
 
   const nameById = useMemo(() => new Map(treatments.map((t) => [t.id, t.name])), [treatments]);
   const chipItems = useMemo(() => ["All", ...treatments.map((t) => t.name)], [treatments]);
@@ -517,7 +536,8 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
     if (!userId) return;
     if (!window.confirm("Delete this post? It is removed for everyone and cannot be undone.")) return;
     setSaveError(null);
-    const { error, count } = await supabase.from("posts").delete({ count: "exact" }).eq("id", postId).eq("user_id", userId);
+    // By id alone: the RLS policy (auth.uid() = user_id) is what restricts this to the author's own row.
+    const { error, count } = await supabase.from("posts").delete({ count: "exact" }).eq("id", postId);
     if (error || count === 0) { setSaveError(error ? `Couldn't delete: ${error.message}` : "Couldn't delete this post."); return; }
     setPosts((prev) => prev.filter((p) => p.id !== postId));
     setSavedIds((prev) => { const next = new Set(prev); next.delete(postId); return next; });
@@ -690,11 +710,12 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
                       treatmentName={p.treatment_id ? nameById.get(p.treatment_id) ?? null : null}
                       saved={savedIds.has(p.id)}
                       onToggleSave={() => void toggleSave(p.id)}
-                      isOwn={!!userId && p.user_id === userId}
+                      isOwn={(authors.get(p.id) ?? ANONYMOUS_AUTHOR).isOwn}
+                      author={authors.get(p.id) ?? ANONYMOUS_AUTHOR}
                       onDelete={() => void deletePost(p.id)}
                       split={splits.get(p.id) ?? emptySplit(p.id)}
                       myVote={myVotes.get(p.id) ?? null}
-                      canVote={!!userId && p.user_id !== userId}
+                      canVote={!!userId && !(authors.get(p.id) ?? ANONYMOUS_AUTHOR).isOwn}
                       onVote={(v) => void vote(p.id, v)}
                       onSignIn={userId ? undefined : () => { navigate({ to: "/login" }).catch(() => {}); }}
                       voteError={voteError?.postId === p.id ? voteError.message : null}

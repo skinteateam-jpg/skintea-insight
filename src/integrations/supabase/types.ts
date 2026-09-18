@@ -2165,6 +2165,7 @@ export type Database = {
           created_at: string
           hashtags: string[]
           id: string
+          is_named: boolean
           likes_count: number
           my_thoughts_vs_reality: string | null
           outcome: Database["public"]["Enums"]["surgery_outcome"] | null
@@ -2191,6 +2192,7 @@ export type Database = {
           created_at?: string
           hashtags?: string[]
           id?: string
+          is_named?: boolean
           likes_count?: number
           my_thoughts_vs_reality?: string | null
           outcome?: Database["public"]["Enums"]["surgery_outcome"] | null
@@ -2217,6 +2219,7 @@ export type Database = {
           created_at?: string
           hashtags?: string[]
           id?: string
+          is_named?: boolean
           likes_count?: number
           my_thoughts_vs_reality?: string | null
           outcome?: Database["public"]["Enums"]["surgery_outcome"] | null
@@ -3232,6 +3235,17 @@ export type Database = {
           subcategory: string
           total_views: number
           video_count: number
+        }[]
+      }
+      talk_post_authors: {
+        Args: { p_post_ids: string[]; p_post_type: string }
+        Returns: {
+          author_avatar_url: string
+          author_is_derm: boolean
+          author_username: string
+          is_named: boolean
+          is_own: boolean
+          post_id: string
         }[]
       }
     }

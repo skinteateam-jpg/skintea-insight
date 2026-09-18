@@ -1110,3 +1110,38 @@ Nothing below was reconstructed from memory without a source.
   public.<table> TO anon, authenticated`. Never re-grant table-level SELECT: that brings `user_id` back.
 - Left unchanged, recorded (Chi, 2026-09-18): `surgery_comments.user_id` and `surgery_likes` stay publicly readable.
 - Deleted session_ids: none. No rows inserted or deleted.
+
+### 2026-09-18 07:25 UTC — Quote tea: quoted_post_id on the three post tables, and its existence guard
+
+- Who: pipeline session (Talk block 6), on Chi's instruction ("Add quoted_post_id the same way").
+- What, one statement per call, each read back from `pg_catalog`:
+  1. `ALTER TABLE ... ADD COLUMN IF NOT EXISTS quoted_post_id uuid` on `posts`, `surgery_posts` and `product_posts`.
+     A quote points at a post **in the same table** (a Treatment post quotes a Treatment post), so one id is enough.
+     **No foreign key, on purpose:** an author can always delete their own post, and `ON DELETE SET NULL` would
+     silently erase the reference, leaving a quote that points at nothing. The id stays; the quote box says "The post
+     this quotes was deleted by its author."
+  2. `GRANT SELECT (quoted_post_id) ON public.posts / public.surgery_posts TO anon, authenticated` — required since
+     the 07:05 revoke removed table-level SELECT on those two tables (the trap recorded in that entry). `product_posts`
+     still has table-level SELECT and needed no grant.
+  3. `public.enforce_quoted_post_exists()` — plpgsql, SECURITY DEFINER, `search_path = public`, EXECUTE revoked from
+     PUBLIC, anon, authenticated. On INSERT, or on an UPDATE that changes `quoted_post_id`, it rejects a quoted id that
+     does not exist in the same table (`foreign_key_violation`) and a post quoting itself (`check_violation`). It uses
+     `tg_table_name`, so one function serves all three tables.
+  4. Triggers `posts_quoted_post_exists`, `surgery_posts_quoted_post_exists`, `product_posts_quoted_post_exists`:
+     BEFORE INSERT OR UPDATE OF `quoted_post_id`.
+- Verified: all three columns `uuid`; all three triggers enabled (`O`); `quoted_post_id` readable by anon on all three;
+  `user_id` still unreadable on `posts` and `surgery_posts`.
+- Test, as the `authenticated` role in a block that aborted: another member's quote of an existing post accepted; a
+  quote of a non-existent id rejected; a Treatment post quoting a Surgery id rejected; a self-quote rejected; the
+  original's author then deleted it (1 row) and the quoting post still carried the id. Afterwards 0 rows.
+- App side (Lovable `76f1760`…`ab3dce7`): `src/lib/talkQuotes.ts`, `src/components/TalkQuoteBox.tsx`, a `quoted`
+  slot on `TalkPostCard`, and the three Talk routes plus `tea-products.$postId.tsx`. The quoted post's author comes
+  from `talk_post_authors()` (an anonymous post stays anonymous inside a quote) and its split from `post_vote_split()`
+  (nothing under 20 votes). No select includes `user_id`. `tsgo` and `bun run build` clean at `ab3dce7`; the four
+  Talk and treatment routes render with no console errors and no REST response ≥ 400.
+- Incident, no data affected: the treatment-page session's git push `111c0de` landed mid-batch. Lovable's sandbox
+  branch went back to its parent and restored the old `TalkPostCard.tsx` for three commits (`8f9ad3c`, `fac90a4`,
+  `a837517`) while GitHub kept the new one (`7692851`). Lovable's merge `67a5dc6` resolved it correctly, but the
+  sandbox typecheck failed while the two histories were split. Coordinate a git push to `main` with any session that
+  is mid-batch through Lovable.
+- Deleted session_ids: none. No rows inserted or deleted.

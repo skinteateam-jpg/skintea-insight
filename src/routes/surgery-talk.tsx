@@ -13,6 +13,8 @@ import TalkVisibilityPicker from "@/components/TalkVisibilityPicker";
 import { ANONYMOUS_AUTHOR, profileHref, useMyUsername, useTalkAuthors, type TalkAuthor } from "@/lib/talkAuthors";
 import TalkQuoteBox from "@/components/TalkQuoteBox";
 import { useQuotedPosts } from "@/lib/talkQuotes";
+import { TalkUpdatesLink } from "@/components/TalkUpdateTimeline";
+import { useUpdateSummaries } from "@/lib/postUpdates";
 
 export const Route = createFileRoute("/surgery-talk")({
   head: () => ({
@@ -39,7 +41,7 @@ const SECTION_LABEL = {
    standing in for it: a substituted list offers filters that match nothing and
    hides the fact that the query failed. */
 
-type Surgery = { id: string; name: string };
+export type Surgery = { id: string; name: string };
 
 /* Ranking needs a population to rank. Below this many posts, every ranking
    surface stays hidden — rank numbers, "Top Tea", "Most Controversial"
@@ -57,8 +59,8 @@ const SKIN_TYPES = [
   { id: "Normal", label: "Normal" },
 ];
 
-type Photo = { url: string; label: string };
-type PostRow = {
+export type Photo = { url: string; label: string };
+export type PostRow = {
   id: string;
   // No user_id: who wrote a post comes from talk_post_authors(), which returns an author only for a named post.
   is_named: boolean;
@@ -89,20 +91,20 @@ type PostRow = {
 /* "Wouldn't" is the only negative outcome, so it is the only one that stamps in crimson. */
 const NEGATIVE_OUTCOMES = new Set<string>(["Wouldn't"]);
 
-type EnrichedPost = PostRow & {
+export type EnrichedPost = PostRow & {
   surgery_name: string;
 };
 
 /* Every column the feed reads, and deliberately not user_id: an anonymous post must not carry its author to
    the browser. select("*") is not used, because it would include user_id. */
-const SURGERY_FEED_COLS =
+export const SURGERY_FEED_COLS =
   "id, is_named, quoted_post_id, surgery_id, clinic_name, country, city, total_cost, recovery_time, pain_level, " +
   "my_thoughts_vs_reality, struggle, what_happened, surprised_me, works_for, warn_if, outcome, hashtags, " +
   "skin_type, photos, comments_open, likes_count, created_at";
 
 
 // ============= Hooks =============
-function useSurgeries() {
+export function useSurgeries() {
   const [surgeries, setSurgeries] = useState<Surgery[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -135,7 +137,7 @@ function useSurgeries() {
   return { surgeries, loading, failed };
 }
 
-function useSession() {
+export function useSession() {
   const [userId, setUserId] = useState<string | null>(null);
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user?.id ?? null));
@@ -387,13 +389,15 @@ function CommentSection({ postId, userId }: { postId: string; userId: string | n
 }
 
 // ============= Post card =============
-function PostCard({ post, userId, onLikeChange, onDeleted, split, myVote, canVote, onVote, onSignIn, voteError, author, quotedBox, onQuote }: {
+export function PostCard({ post, userId, onLikeChange, onDeleted, split, myVote, canVote, onVote, onSignIn, voteError, author, quotedBox, onQuote, updatesLink = null }: {
   post: EnrichedPost; userId: string | null; onLikeChange: (delta: number) => void; onDeleted: () => void;
   split: VoteSplit; myVote: VoteValue | null; canVote: boolean;
   onVote: (v: VoteValue) => void; onSignIn?: () => void; voteError: string | null;
   author: TalkAuthor;
   quotedBox?: React.ReactNode;
   onQuote?: () => void;
+  /** In the feed, the way into the post's own page (TalkUpdatesLink). Comments, when open, render under it. */
+  updatesLink?: React.ReactNode;
 }) {
   const isOwn = author.isOwn;
   const [deleting, setDeleting] = useState(false);
@@ -530,7 +534,10 @@ function PostCard({ post, userId, onLikeChange, onDeleted, split, myVote, canVot
       share={{ key: "Share", disabled: true, title: "Surgery Talk posts are anonymous and have no shareable page" }}
       onDelete={isOwn ? () => void deletePost() : undefined}
       error={rowError}
-      footer={showComments && post.comments_open ? <CommentSection postId={post.id} userId={userId} /> : null}
+      footer={<>
+        {updatesLink}
+        {showComments && post.comments_open ? <CommentSection postId={post.id} userId={userId} /> : null}
+      </>}
     />
   );
 }
@@ -642,7 +649,7 @@ function MostControversial({ post }: { post: EnrichedPost | null }) {
 
 
 // ============= Disclaimer modal =============
-function DisclaimerModal({ onCancel, onConfirm }: { onCancel: () => void; onConfirm: () => void }) {
+export function DisclaimerModal({ onCancel, onConfirm }: { onCancel: () => void; onConfirm: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(28,10,0,0.5)" }}>
       <div className="rounded-2xl w-full max-w-sm p-5" style={{ background: "#fff" }}>
@@ -670,7 +677,7 @@ function DisclaimerModal({ onCancel, onConfirm }: { onCancel: () => void; onConf
 }
 
 // ============= Composer (post form) =============
-function Composer({ onClose, surgeries, userId, onCreated, quotedPostId = null }: {
+export function Composer({ onClose, surgeries, userId, onCreated, quotedPostId = null }: {
   onClose: () => void; surgeries: Surgery[]; userId: string; onCreated: () => void;
   /** Quote tea: the post this new post quotes. Written to quoted_post_id; the database checks it exists. */
   quotedPostId?: string | null;
@@ -998,6 +1005,8 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
   const postIds = useMemo(() => posts.map((p) => p.id), [posts]);
   const { splits, myVotes, vote, error: voteError } = usePostVotes("surgery", postIds, userId);
   const { authors } = useTalkAuthors("surgery", postIds, userId);
+  // Block 7: each card leads to the post's own page, with its update count and "New" for a saver.
+  const updateSummaries = useUpdateSummaries("surgery", postIds, userId);
   const quotedIds = useMemo(() => posts.map((p) => p.quoted_post_id).filter((v): v is string => !!v), [posts]);
   const { quoted, loaded: quotedLoaded } = useQuotedPosts("surgery", quotedIds, userId);
 
@@ -1174,6 +1183,7 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
                   quotedBox={p.quoted_post_id
                     ? <TalkQuoteBox quoted={quoted.get(p.quoted_post_id) ?? null} loaded={quotedLoaded} />
                     : null}
+                  updatesLink={<TalkUpdatesLink kind="surgery" postId={p.id} summary={updateSummaries.get(p.id)} />}
                 />
               ))
             )}

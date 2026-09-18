@@ -1221,12 +1221,76 @@ export type Database = {
           },
         ]
       }
+      post_updates: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          label: string | null
+          post_id: string
+          post_type: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          label?: string | null
+          post_id: string
+          post_type: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          label?: string | null
+          post_id?: string
+          post_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      post_votes: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          post_type: string
+          skin_type: string | null
+          updated_at: string
+          user_id: string
+          vote: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          post_type: string
+          skin_type?: string | null
+          updated_at?: string
+          user_id: string
+          vote: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          post_type?: string
+          skin_type?: string | null
+          updated_at?: string
+          user_id?: string
+          vote?: string
+        }
+        Relationships: []
+      }
       posts: {
         Row: {
           cost: string | null
           created_at: string
           id: string
           outcome: Database["public"]["Enums"]["post_outcome"] | null
+          prompt_id: string | null
           sessions: string | null
           skin_type: string | null
           surprised_me: string | null
@@ -1243,6 +1307,7 @@ export type Database = {
           created_at?: string
           id?: string
           outcome?: Database["public"]["Enums"]["post_outcome"] | null
+          prompt_id?: string | null
           sessions?: string | null
           skin_type?: string | null
           surprised_me?: string | null
@@ -1259,6 +1324,7 @@ export type Database = {
           created_at?: string
           id?: string
           outcome?: Database["public"]["Enums"]["post_outcome"] | null
+          prompt_id?: string | null
           sessions?: string | null
           skin_type?: string | null
           surprised_me?: string | null
@@ -1271,6 +1337,13 @@ export type Database = {
           works_for?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "posts_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_prompts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "posts_treatment_id_fkey"
             columns: ["treatment_id"]
@@ -1355,6 +1428,7 @@ export type Database = {
           photo_urls: string[] | null
           post_type: string | null
           product_id: string | null
+          prompt_id: string | null
           skin_type: string | null
           steps: Json | null
           tag: string | null
@@ -1378,6 +1452,7 @@ export type Database = {
           photo_urls?: string[] | null
           post_type?: string | null
           product_id?: string | null
+          prompt_id?: string | null
           skin_type?: string | null
           steps?: Json | null
           tag?: string | null
@@ -1401,6 +1476,7 @@ export type Database = {
           photo_urls?: string[] | null
           post_type?: string | null
           product_id?: string | null
+          prompt_id?: string | null
           skin_type?: string | null
           steps?: Json | null
           tag?: string | null
@@ -1418,6 +1494,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_posts_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_prompts"
             referencedColumns: ["id"]
           },
         ]
@@ -1832,6 +1915,8 @@ export type Database = {
           match: string | null
           product_id: string | null
           product_name: string
+          sort_order: number | null
+          status: string | null
           updated_at: string
           user_id: string
         }
@@ -1847,6 +1932,8 @@ export type Database = {
           match?: string | null
           product_id?: string | null
           product_name: string
+          sort_order?: number | null
+          status?: string | null
           updated_at?: string
           user_id: string
         }
@@ -1862,6 +1949,8 @@ export type Database = {
           match?: string | null
           product_id?: string | null
           product_name?: string
+          sort_order?: number | null
+          status?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -2078,6 +2167,7 @@ export type Database = {
           outcome: Database["public"]["Enums"]["surgery_outcome"] | null
           pain_level: number | null
           photos: Json
+          prompt_id: string | null
           recovery_time: string | null
           skin_type: Database["public"]["Enums"]["surgery_skin_type"] | null
           struggle: string | null
@@ -2103,6 +2193,7 @@ export type Database = {
           outcome?: Database["public"]["Enums"]["surgery_outcome"] | null
           pain_level?: number | null
           photos?: Json
+          prompt_id?: string | null
           recovery_time?: string | null
           skin_type?: Database["public"]["Enums"]["surgery_skin_type"] | null
           struggle?: string | null
@@ -2128,6 +2219,7 @@ export type Database = {
           outcome?: Database["public"]["Enums"]["surgery_outcome"] | null
           pain_level?: number | null
           photos?: Json
+          prompt_id?: string | null
           recovery_time?: string | null
           skin_type?: Database["public"]["Enums"]["surgery_skin_type"] | null
           struggle?: string | null
@@ -2141,6 +2233,13 @@ export type Database = {
           works_for?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "surgery_posts_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_prompts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "surgery_posts_surgery_id_fkey"
             columns: ["surgery_id"]
@@ -2619,6 +2718,33 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_prompts: {
+        Row: {
+          active: boolean
+          closes_at: string
+          created_at: string
+          id: string
+          opens_at: string
+          question: string
+        }
+        Insert: {
+          active?: boolean
+          closes_at: string
+          created_at?: string
+          id?: string
+          opens_at: string
+          question: string
+        }
+        Update: {
+          active?: boolean
+          closes_at?: string
+          created_at?: string
+          id?: string
+          opens_at?: string
+          question?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       clinic_visitor_profile: {
@@ -2873,6 +2999,17 @@ export type Database = {
           p_zip?: string
         }
         Returns: string
+      }
+      post_vote_split: {
+        Args: { p_post_ids: string[]; p_post_type: string }
+        Returns: {
+          breakdown: Json
+          is_open: boolean
+          not_pct: number
+          post_id: string
+          same_pct: number
+          total: number
+        }[]
       }
       quiz_response_save: {
         Args: {

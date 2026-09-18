@@ -406,6 +406,8 @@ export type TalkPostCardProps = {
   /** Product card, routine steps, photo carousel or receipt strip — whatever this tab shows. */
   module?: React.ReactNode;
   details?: TalkDetail[];
+  /** "Readers who tried it" — the agreement vote. Sits under the details, above the actions. */
+  voteBlock?: React.ReactNode;
   onOpen?: () => void;
   reply?: TalkAction;
   quote?: TalkAction;
@@ -423,7 +425,7 @@ export type TalkPostCardProps = {
 export default function TalkPostCard({
   authorName = null, isOwn = false, skinType = null, age = null, createdAt = null,
   subject = null, subjectIcon = null, typeLabel = null, verdict = null, hook = null, body = null,
-  module = null, details = [], onOpen,
+  module = null, details = [], voteBlock = null, onOpen,
   reply, quote, save, share, like, onDelete, error = null, footer = null,
 }: TalkPostCardProps) {
   const skin = normalizeSkin(skinType);
@@ -531,6 +533,9 @@ export default function TalkPostCard({
           {shownDetails.map((d, i) => <DetailRow key={d.label} detail={d} first={i === 0} />)}
         </div>
       )}
+
+      {/* 5b. Agreement vote */}
+      {voteBlock}
 
       {/* 6. Actions */}
       <div

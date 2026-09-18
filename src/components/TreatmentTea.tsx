@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { ANONYMOUS_AUTHOR, type TalkAuthor } from "@/lib/talkAuthors";
 
 const CRIMSON = "#A8001C";
 const BORDER = "#E8DDD4";
@@ -46,7 +47,6 @@ const SKIN_LABEL: Record<string, string> = {
 
 export type TeaPostRow = {
   id: string;
-  user_id: string;
   cost: string | null;
   sessions: string | null;
   what_happened: string | null;
@@ -57,10 +57,12 @@ export type TeaPostRow = {
   tags: string[] | null;
   skin_type: string | null;
   created_at: string;
-  is_named?: boolean | null; // read only once HAS_IS_NAMED_COLUMN is true
+  is_named?: boolean | null;
 };
 
-export type TeaAuthor = { username: string | null; avatarUrl: string | null };
+// Who wrote each post comes from talk_post_authors() (src/lib/talkAuthors.ts), keyed by post id. user_id is never
+// read: an anonymous post must carry nothing to the browser that leads back to a person (Chi, 2026-09-18).
+export type TeaAuthors = Map<string, TalkAuthor>;
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -88,15 +90,16 @@ function Answer({ label, value }: { label: string; value: string | null }) {
 }
 
 export default function TreatmentTea({
-  treatmentId, posts, authors, userId, viewerUsername, onPosted, onLoginNeeded,
+  treatmentId, posts, authors, userId, viewerUsername, onPosted, onDeleted, onLoginNeeded,
 }: {
   treatmentId: string;
   posts: TeaPostRow[];
-  authors: Record<string, TeaAuthor>;
+  authors: TeaAuthors;
   userId: string | null;
   // The signed-in member's own username, read from their profile (not from post authors, which misses a first post).
   viewerUsername: string | null;
   onPosted: () => void;
+  onDeleted: () => void;
   onLoginNeeded: () => void;
 }) {
   const [filter, setFilter] = useState<"all" | "first" | "repeat">("all");
@@ -117,6 +120,18 @@ export default function TreatmentTea({
   const canPostNamed = HAS_IS_NAMED_COLUMN && !!myUsername;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Only the author can delete: RLS "Users can delete their own posts" (auth.uid() = user_id) restricts it, so the
+  // delete goes by post id alone. Saved copies are removed by the database trigger.
+  async function deletePost(postId: string) {
+    if (!userId) return;
+    if (!window.confirm("Delete this post? It is removed for everyone and cannot be undone.")) return;
+    setDeleteError(null);
+    const { error: delError, count } = await supabase.from("posts").delete({ count: "exact" }).eq("id", postId);
+    if (delError || count === 0) { setDeleteError(delError ? `Couldn't delete: ${delError.message}` : "Couldn't delete this post."); return; }
+    onDeleted();
+  }
 
   const filtered = posts.filter((p) => {
     if (filter === "all") return true;
@@ -326,8 +341,9 @@ export default function TreatmentTea({
         </div>
       ) : (
         <div>
+          {deleteError && <div style={{ padding: "8px 16px", fontSize: 11.5, color: CRIMSON }}>{deleteError}</div>}
           {filtered.map((p) => {
-            const author = authors[p.user_id] ?? { username: null, avatarUrl: null };
+            const author = authors.get(p.id) ?? ANONYMOUS_AUTHOR;
             const tags = p.tags ?? [];
             const meta = [
               p.skin_type ? SKIN_LABEL[p.skin_type] ?? p.skin_type : null,
@@ -337,7 +353,7 @@ export default function TreatmentTea({
               formatDate(p.created_at),
             ].filter(Boolean) as string[];
             // An anonymous post carries no avatar, no username and no link: nothing that leads back to a profile.
-            const named = isNamedPost(p) && !!author.username;
+            const named = isNamedPost(p) && author.isNamed && !!author.username;
             const outcomeChip = p.outcome ? OUTCOMES.find((o) => o.key === p.outcome) : null;
             const avatar = author.avatarUrl ? (
               <img src={author.avatarUrl} alt="" style={{ width: 38, height: 38, borderRadius: 38, objectFit: "cover", display: "block" }} />
@@ -360,10 +376,20 @@ export default function TreatmentTea({
                     ) : (
                       <div style={{ fontSize: 13, fontWeight: 600, color: MUTED }}>Anonymous</div>
                     )}
-                    {meta.length > 0 && (
-                      <div style={{ fontSize: 10.5, color: MUTED, marginTop: 2 }}>{meta.join(" · ")}</div>
+                    {(meta.length > 0 || author.isOwn) && (
+                      <div style={{ fontSize: 10.5, color: MUTED, marginTop: 2 }}>{[author.isOwn ? "Your post" : null, ...meta].filter(Boolean).join(" · ")}</div>
                     )}
                   </div>
+                  {author.isOwn && (
+                    <button
+                      type="button"
+                      onClick={() => void deletePost(p.id)}
+                      title="Delete your post"
+                      style={{ marginLeft: "auto", background: "none", border: "none", padding: 0, fontSize: 11, color: CRIMSON, cursor: "pointer", fontFamily: "inherit" }}
+                    >
+                      Delete
+                    </button>
+                  )}
                 </div>
                 {p.what_happened && (
                   <div style={{ fontSize: 12.5, color: ESPRESSO, lineHeight: 1.6, marginTop: 10, whiteSpace: "pre-line" }}>{p.what_happened}</div>

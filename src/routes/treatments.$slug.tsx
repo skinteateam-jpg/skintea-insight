@@ -6,7 +6,8 @@ import AppFrame from "@/components/AppFrame";
 import BottomNav from "@/components/BottomNav";
 import TreatmentVoices from "@/components/TreatmentVoices";
 import TreatmentVideos from "@/components/TreatmentVideos";
-import TreatmentTea, { isNamedPost, type TeaAuthor, type TeaPostRow } from "@/components/TreatmentTea";
+import TreatmentTea, { type TeaPostRow } from "@/components/TreatmentTea";
+import { useMyUsername, useTalkAuthors } from "@/lib/talkAuthors";
 import {
   breakdown, COUNTED_PLATFORMS, MIN_TREATMENT_REVIEWS, MIN_COST_VALUES, MAX_SENSITIVITY_POINTS, REGRET_LABELS, VERDICT_LABELS,
   type TreatmentQuoteRow, type TreatmentReviewRow, type VerdictCell,
@@ -361,8 +362,6 @@ function TreatmentPage() {
   const [pageTab, setPageTab] = useState<"treatment" | "tea">("treatment");
   const [userId, setUserId] = useState<string | null>(null);
   const [teaPosts, setTeaPosts] = useState<TeaPostRow[]>([]);
-  const [teaAuthors, setTeaAuthors] = useState<Record<string, TeaAuthor>>({});
-  const [viewerUsername, setViewerUsername] = useState<string | null>(null);
   const navigate = useNavigate();
 
 
@@ -371,31 +370,19 @@ function TreatmentPage() {
   const loadTea = useCallback(async (treatmentId: string) => {
     const { data: rows } = await (supabase as any)
       .from("posts")
-      .select("id, user_id, cost, sessions, what_happened, surprised_me, works_for, warn_if, outcome, tags, skin_type, created_at, is_named")
+      // user_id is never selected: who wrote a post comes from talk_post_authors() (useTalkAuthors below).
+      .select("id, is_named, cost, sessions, what_happened, surprised_me, works_for, warn_if, outcome, tags, skin_type, created_at")
       .eq("treatment_id", treatmentId)
       .order("created_at", { ascending: false });
     const posts = ((rows as any[]) ?? []) as TeaPostRow[];
     setTeaPosts(posts);
-    // Profiles are fetched only for posts the member chose to name: an anonymous post's author is never looked up.
-    const ids = Array.from(new Set(posts.filter((p) => isNamedPost(p)).map((p) => p.user_id)));
-    if (ids.length === 0) { setTeaAuthors({}); return; }
-    const { data: profs } = await (supabase as any)
-      .from("profiles")
-      .select("user_id, username, avatar_url")
-      .in("user_id", ids);
-    const map: Record<string, TeaAuthor> = {};
-    for (const p of ((profs as any[]) ?? [])) map[p.user_id] = { username: p.username ?? null, avatarUrl: p.avatar_url ?? null };
-    setTeaAuthors(map);
   }, []);
 
+  // Authorship per post, from talk_post_authors(): isOwn for the reader, and username / avatar only for a named post.
+  // Re-read when the posts or the reader change, since isOwn depends on who is reading.
+  const { authors: teaAuthors } = useTalkAuthors("treatment", teaPosts.map((p) => p.id), userId);
   // The signed-in member's own username decides whether the form can offer "post under my name".
-  useEffect(() => {
-    if (!userId) { setViewerUsername(null); return; }
-    let alive = true;
-    (supabase as any).from("profiles").select("username").eq("user_id", userId).maybeSingle()
-      .then(({ data }: { data: { username: string | null } | null }) => { if (alive) setViewerUsername(data?.username ?? null); });
-    return () => { alive = false; };
-  }, [userId]);
+  const { username: viewerUsername } = useMyUsername(userId);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user?.id ?? null));
@@ -539,8 +526,7 @@ function TreatmentPage() {
                 onClick={() => setPageTab("tea")}
                 style={{ background: "none", border: "none", padding: 0, fontSize: 12.5, fontWeight: 600, color: CRIMSON, cursor: "pointer", fontFamily: "inherit" }}
               >
-                {new Set(teaPosts.map((p) => p.user_id)).size}{" "}
-                {new Set(teaPosts.map((p) => p.user_id)).size === 1 ? "member has" : "members have"} posted about this treatment — read them in Tea
+                {teaPosts.length} {teaPosts.length === 1 ? "post" : "posts"} about this treatment — read them in Tea
               </button>
             )}
           </div>
@@ -554,6 +540,7 @@ function TreatmentPage() {
             userId={userId}
             viewerUsername={viewerUsername}
             onPosted={() => void loadTea(treatment.id)}
+            onDeleted={() => void loadTea(treatment.id)}
             onLoginNeeded={() => navigate({ to: "/login" })}
           />
         )}

@@ -1029,3 +1029,52 @@ Nothing below was reconstructed from memory without a source.
   `hold/2026-09-17-treatment-videos`, not on `main`. Until that merges, nothing writes `is_named`, so every post
   stays anonymous by the default.
 - Deleted session_ids: none. No rows inserted or deleted.
+
+### 2026-09-18 02:00 UTC — surgery_posts.is_named, talk_post_authors(); the user_id revoke dry-run (NOT applied)
+
+- Who: pipeline session (Talk blocks), on Chi's instruction of 2026-09-18: Treatment and Surgery posts are named by
+  default in the composer with an anonymous opt-out; reuse `posts.is_named` (the treatment-page session's column, not
+  touched here), add the same to `surgery_posts`, never add `is_anonymous`.
+- What, each statement as its own `query_database` call, each read back from `pg_catalog`:
+  1. `ALTER TABLE public.surgery_posts ADD COLUMN IF NOT EXISTS is_named boolean NOT NULL DEFAULT false`. The default
+     is write safety, not the UI default: a row written by code that asked nobody stays anonymous. `surgery_posts` had
+     0 rows; nothing backfilled.
+  2. `public.surgery_posts_enforce_named_username()` — plpgsql, SECURITY DEFINER, `search_path = public`. A **copy**
+     of `posts_enforce_named_username()`, not a reuse: that function belongs to the treatment-page session, and
+     sharing it would let a change made for `posts` silently change `surgery_posts`. Logic identical.
+  3. Trigger `surgery_posts_named_requires_username` BEFORE INSERT OR UPDATE.
+  4. `REVOKE EXECUTE` on that function from PUBLIC, anon, authenticated (mirrors theirs).
+  5. **`public.talk_post_authors(p_post_type text, p_post_ids uuid[])`** — SECURITY DEFINER, STABLE, EXECUTE to anon
+     and authenticated. Returns `(post_id, is_own, is_named, author_username, author_avatar_url, author_is_derm)`.
+     `is_own` is a fact about the reader. The three `author_*` fields are returned **only for a named post**; for an
+     anonymous post the function does not even join `profiles`. The raw `user_id` is never returned. Product posts
+     count as named (Product Talk is always named). The Derm flag requires `field_provenance.is_derm {source,
+     recorded_at}`, as `profiles_enforce_provenance` does, and now appears only on named posts: with so few verified
+     derms, the badge on an anonymous post could point to the person.
+- Verified: `pg_attribute`/`pg_attrdef` show `is_named boolean NOT NULL DEFAULT false` on `surgery_posts`; the trigger
+  is enabled (`O`); the function is `prosecdef = true` with `search_path=public`; neither anon nor authenticated can
+  execute it. Rolled-back test (username set inside the block, since no profile has one): member B sees the named
+  post's username and nothing for the anonymous one; the author sees `is_own = true` on both; the anon role sees
+  nothing for an anonymous surgery post; a named surgery post from a member with no username is rejected
+  (`check_violation`). Afterwards 0 posts, 0 surgery_posts, 0 profiles with a username.
+- **The revoke was dry-run, not applied.** In one transaction that aborted: `REVOKE SELECT` on `posts`,
+  `surgery_posts`, `post_updates` from anon and authenticated, then `GRANT SELECT (<every column except user_id>)`.
+  Against a seeded anonymous post in each table: anon `user_id` DENIED on all three; anon `select *` on posts DENIED;
+  anon still reads the post itself; `talk_post_authors` returns no author to anon or to another member; another member
+  filtering `posts` by `user_id` DENIED; the author deleting by id alone deleted 1 row (RLS decides). And the query
+  `/skin-profile` uses today for "My posts" (`src/lib/userPosts.ts`, `.eq("user_id", userId)`) **fails**. After the
+  rollback `has_column_privilege` confirms anon and authenticated can still read `user_id` on all three tables, so
+  **the leak is still open at the database level** until the revoke is approved and applied.
+- What applying the revoke would break on `main` as of `305ce59`: `src/lib/userPosts.ts` ("My posts" on
+  `/skin-profile`), and `src/routes/treatments.$slug.tsx` line 374 (Treatment Tea feed selects `user_id` from
+  `posts`). The second is the treatment-page session's file and reached `main` in `19cf565`…`1a12973` (see
+  CLAUDE.md, Holds). Nothing on the SQL side breaks: every function touching the three tables is SECURITY DEFINER or
+  never reads `user_id` (`ranking_soaring` names a CTE "posts" over `social_review_tags`; `surgery_likes_count_trigger`
+  reads `id` and `likes_count`).
+- Not in scope, reported: `surgery_comments.user_id` is publicly readable (policy `Surgery comments viewable by
+  everyone`) and the Surgery Talk page selects it to label "You"; `surgery_likes` is publicly readable too. Both reveal
+  who commented or liked, not who wrote the post.
+- App side (Lovable `96127e6`…`305ce59`, six files, each `cp` md5-guarded, `tsgo` and `bun run build` clean): the Talk
+  feeds no longer select `user_id`, delete by id, read authors through the function, and the Treatment and Surgery
+  composers send `is_named` explicitly (starting on "Post as @username").
+- Deleted session_ids: none. No rows inserted or deleted.

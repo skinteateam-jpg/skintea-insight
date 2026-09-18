@@ -11,6 +11,8 @@ import TalkVoteBlock from "@/components/TalkVoteBlock";
 import { emptySplit, usePostVotes, type VoteSplit, type VoteValue } from "@/lib/postVotes";
 import TalkVisibilityPicker from "@/components/TalkVisibilityPicker";
 import { ANONYMOUS_AUTHOR, profileHref, useMyUsername, useTalkAuthors, type TalkAuthor } from "@/lib/talkAuthors";
+import TalkQuoteBox from "@/components/TalkQuoteBox";
+import { useQuotedPosts } from "@/lib/talkQuotes";
 
 export const Route = createFileRoute("/treatment-talk")({
   head: () => ({
@@ -128,6 +130,8 @@ type PostRow = {
   id: string;
   // No user_id: who wrote a post comes from talk_post_authors(), which returns an author only for a named post.
   is_named: boolean;
+  /** Quote tea: the Treatment Talk post this one quotes, or null. */
+  quoted_post_id: string | null;
   treatment_id: string | null;
   cost: string | null;
   sessions: string | null;
@@ -197,6 +201,8 @@ function PostCard({
   onSignIn,
   voteError,
   author,
+  quotedBox,
+  onQuote,
 }: {
   post: PostRow;
   treatmentName: string | null;
@@ -211,6 +217,8 @@ function PostCard({
   onSignIn?: () => void;
   voteError: string | null;
   author: TalkAuthor;
+  quotedBox?: React.ReactNode;
+  onQuote?: () => void;
 }) {
   const cells = receiptCells([
     ["Paid", post.cost],
@@ -235,6 +243,7 @@ function PostCard({
           : null
       }
       body={post.what_happened ?? ""}
+      quoted={quotedBox}
       module={
         <>
           <TalkReceipt cells={cells} />
@@ -260,7 +269,9 @@ function PostCard({
         />
       }
       reply={{ key: "Reply", label: "Reply", disabled: true, title: "Replies open when commenting does" }}
-      quote={{ key: "Quote", label: "Quote", disabled: true, title: "Quoting is not built yet" }}
+      quote={onQuote
+        ? { key: "Quote", label: "Quote", onClick: onQuote, title: "Quote this post in a post of your own" }
+        : { key: "Quote", label: "Quote", disabled: true, title: "Quoting is not available here" }}
       save={{ key: "Save", active: saved, onClick: onToggleSave, title: saved ? "Saved" : "Save" }}
       share={{ key: "Share", disabled: true, title: "Treatment Talk posts are nameless and have no shareable page" }}
       onDelete={isOwn ? onDelete : undefined}
@@ -293,12 +304,16 @@ function Composer({
   treatments,
   userId,
   onCreated,
+  quotedPostId = null,
 }: {
   onClose: () => void;
   treatments: TreatmentOption[];
   userId: string;
   onCreated: () => void;
+  /** Quote tea: the post this new post quotes. Written to quoted_post_id; the database checks it exists. */
+  quotedPostId?: string | null;
 }) {
+  const { quoted: quotedMap, loaded: quotedLoaded } = useQuotedPosts("treatment", quotedPostId ? [quotedPostId] : [], userId);
   // Treatment, outcome and skin type are the poster's own claims: nothing is pre-chosen.
   const [treatmentId, setTreatmentId] = useState("");
   const [cost, setCost] = useState("");
@@ -344,6 +359,7 @@ function Composer({
       skin_type: skinType,
       tags: tagList,
       is_named: named,
+      quoted_post_id: quotedPostId ?? null,
     } as any);
     setSubmitting(false);
     // On failure the form stays open with everything the poster typed.
@@ -371,6 +387,12 @@ function Composer({
           <button onClick={onClose} aria-label="Close" style={{ minWidth: 44, minHeight: 44 }}><X size={20} color={ESPRESSO} /></button>
         </div>
         <div className="space-y-4 px-5 py-4">
+          {quotedPostId && (
+            <div>
+              <label className={label} style={{ color: MUTED }}>Quoting</label>
+              <TalkQuoteBox quoted={quotedMap.get(quotedPostId) ?? null} loaded={quotedLoaded} />
+            </div>
+          )}
           <div>
             <label className={label} style={{ color: MUTED }}>Treatment</label>
             <div className="relative">
@@ -468,6 +490,8 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
   const [skin, setSkin] = useState("all");
   const [sort, setSort] = useState(SORTS[0].label);
   const [composerOpen, setComposerOpen] = useState(false);
+  // Quote tea: the post the composer is quoting, or null for an ordinary post.
+  const [quoteTarget, setQuoteTarget] = useState<string | null>(null);
   const { treatments, loading: treatmentsLoading, failed: treatmentsFailed } = useTreatments();
   const userId = useUserId();
   const [posts, setPosts] = useState<PostRow[]>([]);
@@ -481,7 +505,7 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
     const { data, error } = await supabase
       .from("posts")
       // user_id is never selected: an anonymous post must not carry its author to the browser.
-      .select("id, is_named, treatment_id, cost, sessions, what_happened, surprised_me, works_for, warn_if, outcome, tags, skin_type, created_at")
+      .select("id, is_named, quoted_post_id, treatment_id, cost, sessions, what_happened, surprised_me, works_for, warn_if, outcome, tags, skin_type, created_at")
       .order("created_at", { ascending: false })
       .limit(100);
     setPostsError(!!error);
@@ -520,6 +544,8 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
   const postIds = useMemo(() => posts.map((p) => p.id), [posts]);
   const { splits, myVotes, vote, error: voteError } = usePostVotes("treatment", postIds, userId);
   const { authors } = useTalkAuthors("treatment", postIds, userId);
+  const quotedIds = useMemo(() => posts.map((p) => p.quoted_post_id).filter((v): v is string => !!v), [posts]);
+  const { quoted, loaded: quotedLoaded } = useQuotedPosts("treatment", quotedIds, userId);
 
   const nameById = useMemo(() => new Map(treatments.map((t) => [t.id, t.name])), [treatments]);
   const chipItems = useMemo(() => ["All", ...treatments.map((t) => t.name)], [treatments]);
@@ -545,6 +571,14 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
 
   function openComposer() {
     if (!userId) { navigate({ to: "/login" }).catch(() => {}); return; }
+    setQuoteTarget(null);
+    setComposerOpen(true);
+  }
+
+  // Quote tea: a new post of your own, carrying the quoted post's id.
+  function openQuote(postId: string) {
+    if (!userId) { navigate({ to: "/login" }).catch(() => {}); return; }
+    setQuoteTarget(postId);
     setComposerOpen(true);
   }
 
@@ -719,6 +753,10 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
                       onVote={(v) => void vote(p.id, v)}
                       onSignIn={userId ? undefined : () => { navigate({ to: "/login" }).catch(() => {}); }}
                       voteError={voteError?.postId === p.id ? voteError.message : null}
+                      onQuote={() => openQuote(p.id)}
+                      quotedBox={p.quoted_post_id
+                        ? <TalkQuoteBox quoted={quoted.get(p.quoted_post_id) ?? null} loaded={quotedLoaded} />
+                        : null}
                     />
                   ))
                 )}
@@ -730,7 +768,7 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
         {!embedded && <BottomNav />}
 
         {composerOpen && userId && (
-          <Composer onClose={() => setComposerOpen(false)} treatments={treatments} userId={userId} onCreated={() => void loadPosts()} />
+          <Composer onClose={() => setComposerOpen(false)} treatments={treatments} userId={userId} onCreated={() => void loadPosts()} quotedPostId={quoteTarget} />
         )}
 
         <button

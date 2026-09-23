@@ -159,8 +159,8 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
       treatments: [...mappedTreatmentIds].map((id) => treatmentById.get(id)?.name).filter(Boolean).slice(0, 3),
     };
   }).sort((a, b) => {
-    if (a.recommendPct != null || b.recommendPct != null) return (b.recommendPct ?? -1) - (a.recommendPct ?? -1);
-    return b.reviewCount - a.reviewCount || b.mappedTreatmentCount - a.mappedTreatmentCount || a.name.localeCompare(b.name);
+    const recommendOrder = (b.recommendPct ?? -1) - (a.recommendPct ?? -1);
+    return recommendOrder || b.reviewCount - a.reviewCount || b.mappedTreatmentCount - a.mappedTreatmentCount || a.name.localeCompare(b.name);
   }).slice(0, 3);
 
   const datedReviews = opinions.map((row) => ({ productId: row.product_id, at: row.tagged_at ?? row.created_at })).filter((row): row is { productId: string; at: string } => Boolean(row.productId && row.at));

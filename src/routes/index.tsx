@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { ArrowRight, LockKeyhole, MapPin, Sparkles } from "lucide-react";
 import AppFrame from "@/components/AppFrame";
 import BottomNav from "@/components/BottomNav";
@@ -7,7 +8,7 @@ import ProductCard, { formatCompact } from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { getHomeData } from "@/lib/home.functions";
-import { getHomeAccountData } from "@/lib/account.functions";
+import { claimQuizResult, getHomeAccountData } from "@/lib/account.functions";
 
 export const Route = createFileRoute("/")({
   loader: () => getHomeData(),
@@ -47,6 +48,7 @@ function HomePage() {
   const [selectedSkin, setSelectedSkin] = useState<Skin>("combination");
   const [account, setAccount] = useState<AccountData | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
+  const claimQuiz = useServerFn(claimQuizResult);
 
   useEffect(() => setSelectedSkin(readSkin()), []);
   useEffect(() => {
@@ -54,6 +56,11 @@ function HomePage() {
     void supabase.auth.getUser().then(async ({ data }) => {
       if (data.user) {
         try {
+          const stored = localStorage.getItem("skintea.quizResult");
+          if (stored) {
+            const parsed = JSON.parse(stored) as { shareSlug?: string };
+            if (parsed.shareSlug) await claimQuiz({ data: { shareSlug: parsed.shareSlug } });
+          }
           const result = await getHomeAccountData();
           if (!cancelled) setAccount(result);
         } catch (error) {
@@ -63,7 +70,7 @@ function HomePage() {
       if (!cancelled) setSessionChecked(true);
     });
     return () => { cancelled = true; };
-  }, []);
+  }, [claimQuiz]);
 
   const chooseSkin = (skin: Skin) => {
     setSelectedSkin(skin);

@@ -14,6 +14,7 @@ export const getHomeAccountData = createServerFn({ method: "GET" })
     if (quizResult.error) throw quizResult.error;
     if (savedResult.error) throw savedResult.error;
     return {
+      userId,
       profile: profileResult.data,
       quiz: quizResult.data,
       savedProducts: (savedResult.data ?? []).flatMap((row: any) => row.products ? [{ ...row.products, savedAt: row.created_at }] : []),

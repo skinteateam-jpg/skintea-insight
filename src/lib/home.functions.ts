@@ -60,9 +60,10 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
   const opinions = await allOpinionRows(client);
   const productIds = [...new Set(opinions.map((row) => row.product_id).filter((id): id is string => Boolean(id)))];
 
-  const [productsResult, activeProductCountResult, concernsResult, productConcernsResult, treatmentConcernsResult, treatmentsResult, treatmentReviewsResult, clinicsResult, clinicTreatmentsResult, clinicScoresResult, clinicReviewsResult, weekPostsResult, weekSurgeryResult] = await Promise.all([
+  const [productsResult, activeProductCountResult, brandFacetsResult, concernsResult, productConcernsResult, treatmentConcernsResult, treatmentsResult, treatmentReviewsResult, clinicsResult, clinicTreatmentsResult, clinicScoresResult, clinicReviewsResult, weekPostsResult, weekSurgeryResult] = await Promise.all([
     productIds.length ? client.from("products").select("id,name,brand,image_url").in("id", productIds).eq("is_active", true) : Promise.resolve({ data: [], error: null }),
     client.from("products").select("id", { count: "exact", head: true }).eq("is_active", true),
+    client.rpc("catalog_brand_facets", { p_category: null, p_subcategory: null, p_product_type: null, p_search: null }),
     client.from("concerns").select("id,slug,label,sort_order").eq("is_active", true).order("sort_order"),
     client.from("product_concerns").select("product_id,concern_id,confidence").in("confidence", ["high", "medium"]),
     client.from("treatment_concerns").select("treatment_id,concern_id,confidence"),
@@ -117,9 +118,7 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
     : [];
   const bridgeTreatments = bridgeIds.map((id) => treatmentRows.find((row) => row.id === id)).filter((row): row is NonNullable<typeof row> => Boolean(row?.slug)).slice(0, 2).map((row) => ({ ...row, reviewCount: treatmentReviewCounts.get(row.id) ?? 0 }));
 
-  const brandCounts = new Map<string, number>();
-  for (const product of products) if (product.brand) brandCounts.set(product.brand, (brandCounts.get(product.brand) ?? 0) + 1);
-  const brands = [...brandCounts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 18).map(([name, count]) => ({ name, count }));
+  const brands = (brandFacetsResult.data ?? []).slice(0, 18).map((row: any) => ({ name: row.brand as string, count: Number(row.n) }));
 
   const latestTea = [...opinions]
     .filter((row) => row.product_id && row.source_url && reviewText(row))

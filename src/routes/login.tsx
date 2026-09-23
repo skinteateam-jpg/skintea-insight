@@ -4,7 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Sign in — Skintea" }] }),
+  head: () => ({ meta: [
+    { title: "Sign in — Skintea" },
+    { name: "description", content: "Sign in to your Skintea profile, saved products, and Fit Summary." },
+    { property: "og:title", content: "Sign in — Skintea" },
+    { property: "og:description", content: "Sign in to your Skintea profile, saved products, and Fit Summary." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: LoginPage,
 });
 

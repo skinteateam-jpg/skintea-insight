@@ -6,7 +6,14 @@ import { AuthShell, Divider, GoogleIcon, Field, authStyles } from "./login";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/signup")({
-  head: () => ({ meta: [{ title: "Create account — Skintea" }] }),
+  head: () => ({ meta: [
+    { title: "Create account — Skintea" },
+    { name: "description", content: "Create your Skintea account after completing your Fit Summary." },
+    { property: "og:title", content: "Create account — Skintea" },
+    { property: "og:description", content: "Create your Skintea account after completing your Fit Summary." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: SignupPage,
 });
 

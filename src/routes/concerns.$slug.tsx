@@ -8,6 +8,8 @@ import { getConcernData } from "@/lib/home.functions";
 export const Route = createFileRoute("/concerns/$slug")({
   loader: ({ params }) => getConcernData({ data: { slug: params.slug } }),
   component: ConcernPage,
+  errorComponent: () => <div className="grid min-h-screen place-items-center bg-background px-6 text-center text-foreground">This concern could not be loaded.</div>,
+  notFoundComponent: () => <div className="grid min-h-screen place-items-center bg-background px-6 text-center text-foreground">This concern is not available.</div>,
   head: ({ params }) => ({
     meta: [
       { title: `${params.slug.replace(/-/g, " ")} — Skintea` },

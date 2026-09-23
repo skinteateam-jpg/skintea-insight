@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowRight, LockKeyhole, MapPin, Sparkles } from "lucide-react";
 import AppFrame from "@/components/AppFrame";
@@ -70,7 +70,7 @@ function HomePage() {
       if (!cancelled) setSessionChecked(true);
     });
     return () => { cancelled = true; };
-  }, [claimQuiz]);
+  }, []);
 
   const chooseSkin = (skin: Skin) => {
     setSelectedSkin(skin);

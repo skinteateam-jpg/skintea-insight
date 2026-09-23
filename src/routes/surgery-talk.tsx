@@ -25,6 +25,8 @@ export const Route = createFileRoute("/surgery-talk")({
       { name: "description", content: "Share and read surgery experiences." },
       { property: "og:title", content: "Surgery Talk — Skintea" },
       { property: "og:description", content: "Share and read surgery experiences." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: SurgeryTalkPage,

@@ -60,8 +60,9 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
   const opinions = await allOpinionRows(client);
   const productIds = [...new Set(opinions.map((row) => row.product_id).filter((id): id is string => Boolean(id)))];
 
-  const [productsResult, concernsResult, productConcernsResult, treatmentConcernsResult, treatmentsResult, treatmentReviewsResult, clinicsResult, clinicTreatmentsResult, clinicScoresResult, clinicReviewsResult, weekPostsResult, weekSurgeryResult] = await Promise.all([
+  const [productsResult, activeProductCountResult, concernsResult, productConcernsResult, treatmentConcernsResult, treatmentsResult, treatmentReviewsResult, clinicsResult, clinicTreatmentsResult, clinicScoresResult, clinicReviewsResult, weekPostsResult, weekSurgeryResult] = await Promise.all([
     productIds.length ? client.from("products").select("id,name,brand,image_url").in("id", productIds).eq("is_active", true) : Promise.resolve({ data: [], error: null }),
+    client.from("products").select("id", { count: "exact", head: true }).eq("is_active", true),
     client.from("concerns").select("id,slug,label,sort_order").eq("is_active", true).order("sort_order"),
     client.from("product_concerns").select("product_id,concern_id,confidence").in("confidence", ["high", "medium"]),
     client.from("treatment_concerns").select("treatment_id,concern_id,confidence"),
@@ -155,7 +156,7 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
     concerns,
     bridge: bridgeConcern ? { concern: bridgeConcern, treatments: bridgeTreatments } : null,
     brands,
-    activeProductCount: products.length,
+    activeProductCount: activeProductCountResult.count ?? 0,
     latestTea,
     clinics,
     weeklyStoryCount: (weekPostsResult.count ?? 0) + (weekSurgeryResult.count ?? 0),

@@ -26,11 +26,11 @@ export const Route = createFileRoute("/")({
 });
 
 const PEOPLE = [
-  { skin: "oily", name: "The Butter Girl", type: "Oily", emoji: "🧈" },
-  { skin: "dry", name: "The Peach", type: "Dry", emoji: "🍑" },
-  { skin: "combination", name: "The Everything Bagel", type: "Combination", emoji: "🥯" },
-  { skin: "sensitive", name: "The Glass of Milk", type: "Sensitive", emoji: "🥛" },
-  { skin: "normal", name: "The Cracker", type: "Normal", emoji: "🫙" },
+  { skin: "oily", name: "The Butter Girl", type: "Oily" },
+  { skin: "dry", name: "The Peach", type: "Dry" },
+  { skin: "combination", name: "The Everything Bagel", type: "Combination" },
+  { skin: "sensitive", name: "The Glass of Milk", type: "Sensitive" },
+  { skin: "normal", name: "The Cracker", type: "Normal" },
 ] as const;
 type Skin = (typeof PEOPLE)[number]["skin"];
 type AccountData = Awaited<ReturnType<typeof getHomeAccountData>>;
@@ -51,6 +51,10 @@ function HomePage() {
   const claimQuiz = useServerFn(claimQuizResult);
 
   useEffect(() => setSelectedSkin(readSkin()), []);
+  useEffect(() => {
+    const profileSkin = account?.profile?.skin_type;
+    if (profileSkin && PEOPLE.some((person) => person.skin === profileSkin)) setSelectedSkin(profileSkin as Skin);
+  }, [account?.profile?.skin_type]);
   useEffect(() => {
     let cancelled = false;
     void supabase.auth.getUser().then(async ({ data }) => {
@@ -96,7 +100,7 @@ function HomePage() {
 
         <main>
           {sessionChecked && account ? (
-            <LoggedInTop account={account} home={home} person={activePerson} />
+            <LoggedInTop account={account} home={home} person={activePerson} selectedSkin={selectedSkin} chooseSkin={chooseSkin} selectedStats={selectedStats} />
           ) : (
             <LoggedOutTop home={home} selectedSkin={selectedSkin} chooseSkin={chooseSkin} headlineProduct={headlineProduct} selectedStats={selectedStats} />
           )}
@@ -125,14 +129,7 @@ function LoggedOutTop({ home, selectedSkin, chooseSkin, headlineProduct, selecte
       <p className="mt-5 max-w-2xl text-base leading-7 text-brand-muted">Real opinions pulled from TikTok, Reddit and Instagram, sorted by skin type. Negatives left in.</p>
     </section>
     <section className="border-y border-brand-border bg-card py-6">
-      <div className="no-scrollbar mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 md:px-8">
-        {PEOPLE.map((person) => {
-          const active = person.skin === selectedSkin;
-          return <Button key={person.skin} variant="outline" onClick={() => chooseSkin(person.skin)} className={`h-auto min-w-36 shrink-0 justify-start rounded-md px-4 py-3 ${active ? "border-brand-crimson bg-brand-crimson text-primary-foreground hover:bg-brand-crimson hover:text-primary-foreground" : "bg-card"}`}>
-            <span className="text-xl" aria-hidden>{person.emoji}</span><span className="text-left"><span className="block font-display text-sm font-bold italic">{person.name}</span><span className="mt-1 block text-[9px] font-extrabold uppercase">{person.type}</span></span>
-          </Button>;
-        })}
-      </div>
+      <SkinSelector selectedSkin={selectedSkin} chooseSkin={chooseSkin} />
     </section>
     {home.trust && home.trust.taggedCount > 0 && <div className="border-b border-brand-border"><div className="mx-auto grid max-w-6xl grid-cols-3 px-4 md:px-8"><TrustCell value={formatCompact(home.trust.taggedCount)} label="Tagged opinions" /><TrustCell value={String(home.trust.platformCount)} label="Platforms" /><TrustCell value="No" label="Paid ranking" /></div></div>}
     {headlineProduct && <Numbers product={headlineProduct} />}
@@ -140,7 +137,7 @@ function LoggedOutTop({ home, selectedSkin, chooseSkin, headlineProduct, selecte
   </>;
 }
 
-function LoggedInTop({ account, home, person }: { account: AccountData; home: any; person: (typeof PEOPLE)[number] }) {
+function LoggedInTop({ account, home, person, selectedSkin, chooseSkin, selectedStats }: { account: AccountData; home: any; person: (typeof PEOPLE)[number]; selectedSkin: Skin; chooseSkin: (skin: Skin) => void; selectedStats: any[] }) {
   const firstName = account.profile?.name?.trim().split(/\s+/)[0] || "there";
   const skin = person.skin;
   const fits = home.productStats.filter((product: any) => (product.skin[skin]?.pct ?? -1) >= 50);
@@ -165,14 +162,19 @@ function LoggedInTop({ account, home, person }: { account: AccountData; home: an
       <p className="mt-1 text-xs font-extrabold uppercase text-brand-muted">{person.type} skin</p>
       {account.quiz ? <div className="mt-8 max-w-2xl rounded-md border border-brand-border bg-card p-5">
         <div className="flex items-center justify-between"><h2 className="text-lg font-extrabold">Your fit summary</h2><Sparkles size={18} className="text-brand-crimson" /></div>
-        <div className="mt-5 grid grid-cols-2 divide-x divide-brand-border border-y border-brand-border py-4"><div><strong className="text-3xl">{fits.length}</strong><span className="block text-xs text-brand-muted">products that fit</span></div><div className="pl-5"><strong className="text-3xl">{avoids.length}</strong><span className="block text-xs text-brand-muted">products to avoid</span></div></div>
-        <div className="mt-4 flex items-center justify-between gap-3 text-xs"><span className="text-brand-muted">Updated {new Date(account.quiz.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span><Link to="/quiz-result" className="font-bold text-brand-crimson no-underline">Open your full summary</Link></div>
+        <div className="mt-5 grid grid-cols-2 divide-x divide-brand-border border-y border-brand-border py-4"><div><strong className="text-3xl">{fits.length}</strong><span className="block text-xs text-brand-muted">recommended for {person.type.toLowerCase()} skin</span></div><div className="pl-5"><strong className="text-3xl">{avoids.length}</strong><span className="block text-xs text-brand-muted">not recommended for {person.type.toLowerCase()} skin</span></div></div>
+        <p className="mt-3 text-xs text-brand-muted">Based on your skin type and every tagged opinion we have today.</p>
+        <div className="mt-4 flex items-center justify-between gap-3 text-xs"><span className="text-brand-muted">Skin type from your quiz on {new Date(account.quiz.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span><Link to="/quiz-result" className="font-bold text-brand-crimson no-underline">Open your full summary</Link></div>
       </div> : <div className="mt-8 max-w-2xl rounded-md border border-brand-border bg-card p-5"><h2 className="text-lg font-extrabold">Your fit summary starts with five questions.</h2><Button asChild className="mt-4 rounded-full"><Link to="/quiz">Take the quiz</Link></Button></div>}
     </section>
+    <section className="border-y border-brand-border bg-card py-6"><SkinSelector selectedSkin={selectedSkin} chooseSkin={chooseSkin} /></section>
+    {selectedStats.length > 0 && <ProductRail title={`More for ${PEOPLE.find((candidate) => candidate.skin === selectedSkin)?.type ?? selectedSkin} skin`} products={selectedStats} skin={selectedSkin} />}
     {changes.length > 0 && <section className="mx-auto max-w-6xl px-4 pb-10 md:px-8"><SectionTitle>New since you were here</SectionTitle><div className="divide-y divide-brand-border border-y border-brand-border">{changes.map(({ product, count }) => <Link key={product.id} to="/product-detail/$id" params={{ id: product.id }} className="flex items-center gap-3 py-3 text-foreground no-underline">{product.image_url ? <img src={product.image_url} alt="" className="h-12 w-12 rounded-md object-contain" /> : <span className="grid h-12 w-12 place-items-center rounded-md bg-secondary">{product.brand?.charAt(0)}</span>}<span className="min-w-0"><strong className="block truncate text-sm">{product.name}</strong><span className="text-xs text-brand-muted">{count} new tagged {count === 1 ? "opinion" : "opinions"}</span></span></Link>)}</div></section>}
     {account.savedProducts.length > 0 && <ProductRail title="Saved" products={account.savedProducts} footer={`${account.savedProducts.length} saved`} />}
   </>;
 }
+
+function SkinSelector({ selectedSkin, chooseSkin }: { selectedSkin: Skin; chooseSkin: (skin: Skin) => void }) { return <div className="no-scrollbar mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 md:px-8">{PEOPLE.map((person) => { const active = person.skin === selectedSkin; return <Button key={person.skin} variant="outline" onClick={() => chooseSkin(person.skin)} className={`h-auto min-w-36 shrink-0 justify-start rounded-md px-4 py-3 ${active ? "border-brand-crimson bg-brand-crimson text-primary-foreground hover:bg-brand-crimson hover:text-primary-foreground" : "bg-card"}`}><span className="text-left"><span className="block font-display text-sm font-bold italic">{person.name}</span><span className="mt-1 block text-[9px] font-extrabold uppercase">{person.type}</span></span></Button>; })}</div>; }
 
 function TrustCell({ value, label }: { value: string; label: string }) { return <div className="border-r border-brand-border px-3 py-5 text-center last:border-0"><strong className="block text-xl">{value}</strong><span className="mt-1 block text-[10px] font-bold uppercase text-brand-muted">{label}</span></div>; }
 function SectionTitle({ children, eyebrow }: { children: React.ReactNode; eyebrow?: string }) { return <div className="mb-5">{eyebrow && <p className="mb-1 text-[10px] font-extrabold uppercase text-brand-crimson">{eyebrow}</p>}<h2 className="text-xl font-extrabold md:text-2xl">{children}</h2></div>; }
@@ -192,8 +194,9 @@ function Brands({ brands, total }: { brands: any[]; total: number }) { if (!bran
 
 function LatestTea({ items }: { items: any[] }) { return <section className="px-4 py-10 md:px-8"><SectionTitle>Latest tea</SectionTitle><div className="grid gap-3 md:grid-cols-2">{items.map((item) => <article key={item.id} className="rounded-md border border-brand-border bg-card p-5"><div className="flex items-center justify-between gap-3 text-[10px] font-bold uppercase"><span>{item.source}</span><span className="text-brand-crimson">{item.sentiment}</span></div><blockquote className="my-5 text-sm leading-6">“{item.quote}”</blockquote>{item.product && <Link to="/product-detail/$id" params={{ id: item.product.id }} className="block text-sm font-extrabold text-foreground no-underline">{item.product.name}</Link>}<a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-xs font-bold text-brand-crimson">View source</a></article>)}</div></section>; }
 
-function TeaLayer({ signedIn, weeklyCount }: { signedIn: boolean; weeklyCount: number }) { return <section className="mx-4 my-10 rounded-md bg-brand-espresso p-7 text-primary-foreground md:mx-8"><LockKeyhole size={22} className="text-brand-crimson" /><p className="mt-4 text-[10px] font-extrabold uppercase text-brand-crimson">The tea layer</p><h2 className="mt-2 text-2xl font-extrabold">{signedIn ? (weeklyCount > 0 ? `${weeklyCount} new treatment ${weeklyCount === 1 ? "story" : "stories"} this week.` : "No new treatment stories this week.") : "Treatments and surgery, told the same way."}</h2><div className="mt-6 grid gap-3 border-y border-primary-foreground/20 py-5 text-sm md:grid-cols-3"><span>What actually happened</span><span>What surprised them</span><span>What they wish they knew before</span></div><Button asChild className="mt-6 rounded-full bg-brand-crimson text-primary-foreground hover:bg-brand-crimson/90"><Link to="/tea">See what's inside</Link></Button></section>; }
+function TeaLayer({ signedIn, weeklyCount }: { signedIn: boolean; weeklyCount: number }) { return <section className="mx-4 my-10 rounded-md bg-brand-espresso p-7 text-primary-foreground md:mx-8"><LockKeyhole size={22} className="text-brand-crimson" /><p className="mt-4 text-[10px] font-extrabold uppercase text-brand-crimson">The tea layer</p><h2 className="mt-2 text-2xl font-extrabold">{signedIn && weeklyCount > 0 ? `${weeklyCount} new treatment ${weeklyCount === 1 ? "story" : "stories"} this week.` : "Treatments and surgery, told the same way."}</h2><div className="mt-6 grid gap-3 border-y border-primary-foreground/20 py-5 text-sm md:grid-cols-3"><span>What actually happened</span><span>What surprised them</span><span>What they wish they knew before</span></div><Button asChild className="mt-6 rounded-full bg-brand-crimson text-primary-foreground hover:bg-brand-crimson/90"><Link to="/tea">See what's inside</Link></Button></section>; }
 
-function Clinics({ clinics }: { clinics: any[] }) { return <section className="px-4 py-10 md:px-8"><div className="flex items-center gap-2"><MapPin size={19} className="text-brand-crimson" /><h2 className="text-xl font-extrabold">In Koreatown</h2></div><p className="mt-2 text-xs text-brand-muted">Ranked by real user data. Clinics can't buy position.</p><div className="mt-5 grid gap-3 md:grid-cols-3">{clinics.map((clinic) => { const canScore = clinic.reviewCount >= 10 && clinic.recommendPct != null; return <Link key={clinic.id} to="/clinics/$id" params={{ id: clinic.id }} className="rounded-md border border-brand-border bg-card p-5 text-foreground no-underline"><h3 className="font-extrabold">{clinic.name}</h3>{clinic.distanceMiles != null && <p className="mt-1 text-xs text-brand-muted">{Number(clinic.distanceMiles).toFixed(1)} miles</p>}<p className="mt-4 min-h-10 text-xs leading-5 text-brand-muted">{clinic.treatments.join(" · ") || "No treatments listed"}</p>{canScore ? <div className="mt-4"><div className="flex justify-between text-xs font-bold"><span>Would go again</span><span>{clinic.recommendPct}%</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-secondary"><span className="block h-full bg-brand-crimson" style={{ width: `${clinic.recommendPct}%` }} /></div></div> : <p className="mt-4 border-t border-brand-border pt-3 text-xs font-bold text-brand-muted">Not enough data yet</p>}</Link>; })}</div><Link to="/clinics" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-brand-crimson no-underline">See all clinics in Koreatown <ArrowRight size={15} /></Link></section>; }
+// Restore a recommend-percentage bar here once clinic_reviews contains real data.
+function Clinics({ clinics }: { clinics: any[] }) { return <section className="px-4 py-10 md:px-8"><div className="flex items-center gap-2"><MapPin size={19} className="text-brand-crimson" /><h2 className="text-xl font-extrabold">In Koreatown</h2></div><p className="mt-2 text-xs text-brand-muted">Listed by the treatments they offer. No clinic pays for placement.</p><div className="mt-5 grid gap-3 md:grid-cols-3">{clinics.map((clinic) => <Link key={clinic.id} to="/clinics/$id" params={{ id: clinic.id }} className="rounded-md border border-brand-border bg-card p-5 text-foreground no-underline"><h3 className="font-extrabold">{clinic.name}</h3>{clinic.distanceMiles != null && <p className="mt-1 text-xs text-brand-muted">{Number(clinic.distanceMiles).toFixed(1)} miles</p>}<p className="mt-4 min-h-10 text-xs leading-5 text-brand-muted">{clinic.treatments.join(" · ") || "No treatments listed"}</p></Link>)}</div><Link to="/clinics" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-brand-crimson no-underline">See all clinics in Koreatown <ArrowRight size={15} /></Link></section>; }
 
 function FitSummary() { return <section className="mx-4 my-10 rounded-md bg-secondary p-7 md:mx-8"><p className="text-[10px] font-extrabold uppercase text-brand-crimson">Get your Fit Summary</p><h2 className="mt-2 max-w-xl text-2xl font-extrabold">5 questions. You get what fits, what to skip, and why.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-brand-muted">Saves to your profile so it updates as new data comes in.</p><Button asChild className="mt-6 rounded-full"><Link to="/quiz">Take the quiz</Link></Button></section>; }

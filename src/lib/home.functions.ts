@@ -59,8 +59,10 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
   const client = publicClient();
   const opinions = await allOpinionRows(client);
   const productIds = [...new Set(opinions.map((row) => row.product_id).filter((id): id is string => Boolean(id)))];
+  const now = new Date();
+  const utcWeekStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - ((now.getUTCDay() + 6) % 7)));
 
-  const [productsResult, activeProductCountResult, brandFacetsResult, concernsResult, productConcernsResult, treatmentConcernsResult, treatmentsResult, treatmentReviewsResult, clinicsResult, clinicTreatmentsResult, clinicScoresResult, clinicReviewsResult, weekPostsResult, weekSurgeryResult] = await Promise.all([
+  const [productsResult, activeProductCountResult, brandFacetsResult, concernsResult, productConcernsResult, treatmentConcernsResult, treatmentsResult, treatmentReviewsResult, clinicsResult, clinicTreatmentsResult, weekPostsResult, weekSurgeryResult] = await Promise.all([
     productIds.length ? client.from("products").select("id,name,brand,image_url").in("id", productIds).eq("is_active", true) : Promise.resolve({ data: [], error: null }),
     client.from("products").select("id", { count: "exact", head: true }).eq("is_active", true),
     client.rpc("catalog_brand_facets", { p_category: null, p_subcategory: null, p_product_type: null, p_search: null }),
@@ -69,12 +71,10 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
     client.from("treatment_concerns").select("treatment_id,concern_id,confidence"),
     client.from("treatments").select("id,name,slug,subtitle").eq("active", true),
     client.from("treatment_reviews").select("treatment_id"),
-    client.from("clinics").select("id,name,neighborhood,distance_miles").eq("listing_filter", "passed").ilike("neighborhood", "%Koreatown%").limit(3),
+    client.from("clinics").select("id,name,neighborhood,distance_miles").eq("listing_filter", "passed").ilike("neighborhood", "%Koreatown%"),
     client.from("clinic_treatments").select("clinic_id,treatment_id"),
-    client.from("clinic_skin_scores").select("clinic_id,recommend_pct"),
-    client.from("clinic_reviews").select("clinic_id"),
-    client.from("posts").select("id", { count: "exact", head: true }).gte("created_at", new Date(Date.now() - 7 * 864e5).toISOString()),
-    client.from("surgery_posts").select("id", { count: "exact", head: true }).gte("created_at", new Date(Date.now() - 7 * 864e5).toISOString()),
+    client.from("posts").select("id", { count: "exact", head: true }).gte("created_at", utcWeekStart.toISOString()),
+    client.from("surgery_posts").select("id", { count: "exact", head: true }).gte("created_at", utcWeekStart.toISOString()),
   ]);
 
   const fatal = [productsResult, concernsResult, productConcernsResult, treatmentConcernsResult, treatmentsResult].find((result) => result.error);
@@ -134,19 +134,13 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
     }));
 
   const treatmentById = new Map(treatmentRows.map((row) => [row.id, row]));
-  const clinicReviewCounts = new Map<string, number>();
-  for (const row of clinicReviewsResult.data ?? []) if (row.clinic_id) clinicReviewCounts.set(row.clinic_id, (clinicReviewCounts.get(row.clinic_id) ?? 0) + 1);
-  const clinicScores = new Map<string, number>();
-  for (const row of clinicScoresResult.data ?? []) if (row.clinic_id && row.recommend_pct != null) clinicScores.set(row.clinic_id, row.recommend_pct);
   const clinics = (clinicsResult.data ?? []).map((clinic: any) => ({
     id: clinic.id as string,
     name: clinic.name as string,
     neighborhood: clinic.neighborhood as string | null,
     distanceMiles: clinic.distance_miles as number | null,
     treatments: [...new Set((clinicTreatmentsResult.data ?? []).filter((row: any) => row.clinic_id === clinic.id).map((row: any) => treatmentById.get(row.treatment_id)?.name).filter(Boolean))].slice(0, 3),
-    reviewCount: clinicReviewCounts.get(clinic.id) ?? 0,
-    recommendPct: clinicScores.get(clinic.id) ?? null,
-  }));
+  })).sort((a, b) => b.treatments.length - a.treatments.length || a.name.localeCompare(b.name)).slice(0, 3);
 
   const datedReviews = opinions.map((row) => ({ productId: row.product_id, at: row.tagged_at ?? row.created_at })).filter((row): row is { productId: string; at: string } => Boolean(row.productId && row.at));
   return {

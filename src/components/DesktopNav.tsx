@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { House, Search, Coffee, Trophy, User, Bell } from "lucide-react";
+import { House, ShoppingBag, Coffee, MapPin, User, Bell } from "lucide-react";
 
 const ESPRESSO = "#1C0A00";
 const CRIMSON = "#A8001C";
@@ -9,10 +9,10 @@ const INACTIVE = "#999999";
 
 const TABS = [
   { to: "/", label: "Home", Icon: House },
-  { to: "/clinics", label: "Clinics", Icon: Search },
+  { to: "/products", label: "Products", Icon: ShoppingBag },
   { to: "/tea", label: "Tea", Icon: Coffee },
-  { to: "/products", label: "Ranking", Icon: Trophy },
-  { to: "/skin-profile", label: "My Skin", Icon: User },
+  { to: "/clinics", label: "Clinics", Icon: MapPin },
+  { to: "/skin-profile", label: "Profile", Icon: User },
 ] as const;
 
 export default function DesktopNav() {

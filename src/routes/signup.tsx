@@ -1,11 +1,19 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { AuthShell, Divider, GoogleIcon, Field, authStyles } from "./login";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/signup")({
-  head: () => ({ meta: [{ title: "Create account — Skintea" }] }),
+  head: () => ({ meta: [
+    { title: "Create account — Skintea" },
+    { name: "description", content: "Create your Skintea account after completing your Fit Summary." },
+    { property: "og:title", content: "Create account — Skintea" },
+    { property: "og:description", content: "Create your Skintea account after completing your Fit Summary." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: SignupPage,
 });
 
@@ -19,6 +27,26 @@ function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [quizComplete, setQuizComplete] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    try {
+      const result = JSON.parse(localStorage.getItem("skintea.quizResult") ?? "null") as { shareSlug?: string } | null;
+      setQuizComplete(Boolean(result?.shareSlug));
+    } catch {
+      setQuizComplete(false);
+    }
+  }, []);
+
+  if (quizComplete === null) return null;
+  if (!quizComplete) {
+    return <AuthShell title="skintea">
+      <h2 style={authStyles.subtitleStyle}>Your account starts with your skin</h2>
+      <p style={{ color: "#999999", fontSize: 13, lineHeight: 1.6, marginTop: 12 }}>Complete the five questions first. Your Fit Summary will be ready when your account is created.</p>
+      <Button asChild className="mt-5 w-full rounded-full"><Link to="/quiz">Take the quiz</Link></Button>
+      <p style={authStyles.footerText}>Already have an account? <Link to="/login" style={authStyles.linkStyle}>Sign in</Link></p>
+    </AuthShell>;
+  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();

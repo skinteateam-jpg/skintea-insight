@@ -1785,6 +1785,7 @@ export type Database = {
           lead_id: string
           quiz_version: number
           share_slug: string | null
+          user_id: string | null
         }
         Insert: {
           answers: Json
@@ -1795,6 +1796,7 @@ export type Database = {
           lead_id: string
           quiz_version?: number
           share_slug?: string | null
+          user_id?: string | null
         }
         Update: {
           answers?: Json
@@ -1805,6 +1807,7 @@ export type Database = {
           lead_id?: string
           quiz_version?: number
           share_slug?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -2207,19 +2210,22 @@ export type Database = {
           created_at: string
           id: string
           post_id: string
-          user_id: string
+          user_id: string | null
+          visitor_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           post_id: string
-          user_id: string
+          user_id?: string | null
+          visitor_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           post_id?: string
-          user_id?: string
+          user_id?: string | null
+          visitor_id?: string | null
         }
         Relationships: [
           {
@@ -3068,6 +3074,7 @@ export type Database = {
           product_count: number
         }[]
       }
+      claim_quiz_response: { Args: { p_share_slug: string }; Returns: boolean }
       clinic_intent_report: {
         Args: { p_from?: string; p_to?: string }
         Returns: {
@@ -3367,6 +3374,13 @@ export type Database = {
           is_named: boolean
           is_own: boolean
           post_id: string
+        }[]
+      }
+      toggle_surgery_like: {
+        Args: { p_post_id: string; p_visitor_id: string }
+        Returns: {
+          like_count: number
+          liked: boolean
         }[]
       }
     }

@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { House, Search, Coffee, Trophy, User } from "lucide-react";
+import { House, ShoppingBag, Coffee, MapPin, User } from "lucide-react";
 
 const ACTIVE_TEXT = "#1C0A00";
 const ACTIVE_DOT = "#A8001C";
@@ -9,10 +9,10 @@ const BORDER = "#E8DDD4";
 
 const TABS = [
   { to: "/", label: "Home", Icon: House },
-  { to: "/clinics", label: "Clinics", Icon: Search },
+  { to: "/products", label: "Products", Icon: ShoppingBag },
   { to: "/tea", label: "Tea", Icon: Coffee },
-  { to: "/products", label: "Ranking", Icon: Trophy },
-  { to: "/skin-profile", label: "My Skin", Icon: User },
+  { to: "/clinics", label: "Clinics", Icon: MapPin },
+  { to: "/skin-profile", label: "Profile", Icon: User },
 ] as const;
 
 export default function BottomNav() {

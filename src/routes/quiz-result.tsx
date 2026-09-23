@@ -243,8 +243,8 @@ function QuizResultPage() {
               <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 20, color: "#FFFCF8" }}>Skin</span>
               <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 20, color: "#A8001C" }}>tea</span>
             </Link>
-            <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(255,252,248,0.4)", marginTop: 2 }}>
-              GOT SKINTEA? SPILL IT
+            <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: "0.14em", color: "rgba(255,252,248,0.4)", marginTop: 2 }}>
+              Got Skintea? Spill it.
             </div>
           </div>
           <nav style={{ display: "flex", gap: 18, fontSize: 13 }}>

@@ -98,7 +98,7 @@ function ResetPasswordPage() {
   };
 
   if (mode === "recovery") {
-    return <AuthShell title="skintea">
+    return <AuthShell title="Skintea">
       <h2 style={authStyles.subtitleStyle}>Set a new password</h2>
       {updated ? (
         <div style={{ marginTop: 18, display: "grid", gap: 12 }}>
@@ -119,7 +119,7 @@ function ResetPasswordPage() {
     </AuthShell>;
   }
 
-  return <AuthShell title="skintea">
+  return <AuthShell title="Skintea">
     <h2 style={authStyles.subtitleStyle}>Reset password</h2>
     {linkError && (
       <div style={{ marginTop: 14, color: CRIMSON, fontSize: 13, lineHeight: 1.5 }}>

@@ -46,7 +46,7 @@ function LoginPage() {
     navigate({ to: "/" });
   };
 
-  return <AuthShell title="skintea">
+  return <AuthShell title="Skintea">
     <h2 style={subtitleStyle}>Sign in</h2>
     <form onSubmit={submit} style={{ display: "grid", gap: 12, marginTop: 18 }}>
       <Field label="Email">

@@ -446,7 +446,7 @@ function QuizPage() {
                 <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 18, color: "#1C0A00" }}>Skin</span>
                 <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 18, color: "#A8001C" }}>tea</span>
               </Link>
-              <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "#999", marginTop: 2 }}>GOT SKINTEA? SPILL IT</div>
+              <div style={{ fontSize: 7, fontWeight: 700, letterSpacing: "0.14em", color: "#999", marginTop: 2 }}>Got Skintea? Spill it.</div>
             </div>
             <div style={{ fontSize: 11, fontWeight: 700, color: C.textLight, letterSpacing: "0.14em" }}>
               {questionNumber} / {totalQuestions}

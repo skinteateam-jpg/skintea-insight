@@ -827,6 +827,33 @@ export type Database = {
         }
         Relationships: []
       }
+      concerns: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       consultation_clicks: {
         Row: {
           clicked_at: string
@@ -1394,6 +1421,45 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "product_categories"
             referencedColumns: ["slug"]
+          },
+        ]
+      }
+      product_concerns: {
+        Row: {
+          concern_id: string
+          confidence: string
+          created_at: string
+          product_id: string
+          source: string
+        }
+        Insert: {
+          concern_id: string
+          confidence?: string
+          created_at?: string
+          product_id: string
+          source?: string
+        }
+        Update: {
+          concern_id?: string
+          confidence?: string
+          created_at?: string
+          product_id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_concerns_concern_id_fkey"
+            columns: ["concern_id"]
+            isOneToOne: false
+            referencedRelation: "concerns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_concerns_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2342,6 +2408,45 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "treatment_before_afters_treatment_id_fkey"
+            columns: ["treatment_id"]
+            isOneToOne: false
+            referencedRelation: "treatments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_concerns: {
+        Row: {
+          concern_id: string
+          confidence: string
+          created_at: string
+          source: string
+          treatment_id: string
+        }
+        Insert: {
+          concern_id: string
+          confidence?: string
+          created_at?: string
+          source?: string
+          treatment_id: string
+        }
+        Update: {
+          concern_id?: string
+          confidence?: string
+          created_at?: string
+          source?: string
+          treatment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_concerns_concern_id_fkey"
+            columns: ["concern_id"]
+            isOneToOne: false
+            referencedRelation: "concerns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treatment_concerns_treatment_id_fkey"
             columns: ["treatment_id"]
             isOneToOne: false
             referencedRelation: "treatments"

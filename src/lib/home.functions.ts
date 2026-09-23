@@ -134,13 +134,17 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
     }));
 
   const treatmentById = new Map(treatmentRows.map((row) => [row.id, row]));
-  const clinics = (clinicsResult.data ?? []).map((clinic: any) => ({
-    id: clinic.id as string,
-    name: clinic.name as string,
-    neighborhood: clinic.neighborhood as string | null,
-    distanceMiles: clinic.distance_miles as number | null,
-    treatments: [...new Set((clinicTreatmentsResult.data ?? []).filter((row: any) => row.clinic_id === clinic.id).map((row: any) => treatmentById.get(row.treatment_id)?.name).filter(Boolean))].slice(0, 3),
-  })).sort((a, b) => b.treatments.length - a.treatments.length || a.name.localeCompare(b.name)).slice(0, 3);
+  const clinics = (clinicsResult.data ?? []).map((clinic: any) => {
+    const mappedTreatmentIds = new Set((clinicTreatmentsResult.data ?? []).filter((row: any) => row.clinic_id === clinic.id).map((row: any) => row.treatment_id as string));
+    return {
+      id: clinic.id as string,
+      name: clinic.name as string,
+      neighborhood: clinic.neighborhood as string | null,
+      distanceMiles: clinic.distance_miles as number | null,
+      mappedTreatmentCount: mappedTreatmentIds.size,
+      treatments: [...mappedTreatmentIds].map((id) => treatmentById.get(id)?.name).filter(Boolean).slice(0, 3),
+    };
+  }).sort((a, b) => b.mappedTreatmentCount - a.mappedTreatmentCount || a.name.localeCompare(b.name)).slice(0, 3);
 
   const datedReviews = opinions.map((row) => ({ productId: row.product_id, at: row.tagged_at ?? row.created_at })).filter((row): row is { productId: string; at: string } => Boolean(row.productId && row.at));
   return {

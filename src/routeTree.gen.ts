@@ -35,6 +35,7 @@ import { Route as TeaProductsPostIdRouteImport } from './routes/tea-products.$po
 import { Route as SurgeryTalkPostIdRouteImport } from './routes/surgery-talk_.$postId'
 import { Route as ProfileUsernameRouteImport } from './routes/profile.$username'
 import { Route as ProductDetailIdRouteImport } from './routes/product-detail.$id'
+import { Route as ConcernsSlugRouteImport } from './routes/concerns.$slug'
 import { Route as ClinicsIdRouteImport } from './routes/clinics/$id'
 import { Route as CategorySlugRouteImport } from './routes/category.$slug'
 import { Route as AdminTreatmentsRouteImport } from './routes/admin.treatments'
@@ -174,6 +175,11 @@ const ProductDetailIdRoute = ProductDetailIdRouteImport.update({
   path: '/product-detail/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConcernsSlugRoute = ConcernsSlugRouteImport.update({
+  id: '/concerns/$slug',
+  path: '/concerns/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClinicsIdRoute = ClinicsIdRouteImport.update({
   id: '/clinics/$id',
   path: '/clinics/$id',
@@ -241,6 +247,7 @@ export interface FileRoutesByFullPath {
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
+  '/concerns/$slug': typeof ConcernsSlugRoute
   '/product-detail/$id': typeof ProductDetailIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/surgery-talk/$postId': typeof SurgeryTalkPostIdRoute
@@ -277,6 +284,7 @@ export interface FileRoutesByTo {
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
+  '/concerns/$slug': typeof ConcernsSlugRoute
   '/product-detail/$id': typeof ProductDetailIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/surgery-talk/$postId': typeof SurgeryTalkPostIdRoute
@@ -314,6 +322,7 @@ export interface FileRoutesById {
   '/admin/treatments': typeof AdminTreatmentsRoute
   '/category/$slug': typeof CategorySlugRoute
   '/clinics/$id': typeof ClinicsIdRoute
+  '/concerns/$slug': typeof ConcernsSlugRoute
   '/product-detail/$id': typeof ProductDetailIdRoute
   '/profile/$username': typeof ProfileUsernameRoute
   '/surgery-talk_/$postId': typeof SurgeryTalkPostIdRoute
@@ -352,6 +361,7 @@ export interface FileRouteTypes {
     | '/admin/treatments'
     | '/category/$slug'
     | '/clinics/$id'
+    | '/concerns/$slug'
     | '/product-detail/$id'
     | '/profile/$username'
     | '/surgery-talk/$postId'
@@ -388,6 +398,7 @@ export interface FileRouteTypes {
     | '/admin/treatments'
     | '/category/$slug'
     | '/clinics/$id'
+    | '/concerns/$slug'
     | '/product-detail/$id'
     | '/profile/$username'
     | '/surgery-talk/$postId'
@@ -424,6 +435,7 @@ export interface FileRouteTypes {
     | '/admin/treatments'
     | '/category/$slug'
     | '/clinics/$id'
+    | '/concerns/$slug'
     | '/product-detail/$id'
     | '/profile/$username'
     | '/surgery-talk_/$postId'
@@ -461,6 +473,7 @@ export interface RootRouteChildren {
   AdminTreatmentsRoute: typeof AdminTreatmentsRoute
   CategorySlugRoute: typeof CategorySlugRoute
   ClinicsIdRoute: typeof ClinicsIdRoute
+  ConcernsSlugRoute: typeof ConcernsSlugRoute
   ProductDetailIdRoute: typeof ProductDetailIdRoute
   ProfileUsernameRoute: typeof ProfileUsernameRoute
   SurgeryTalkPostIdRoute: typeof SurgeryTalkPostIdRoute
@@ -658,6 +671,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductDetailIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/concerns/$slug': {
+      id: '/concerns/$slug'
+      path: '/concerns/$slug'
+      fullPath: '/concerns/$slug'
+      preLoaderRoute: typeof ConcernsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/clinics/$id': {
       id: '/clinics/$id'
       path: '/clinics/$id'
@@ -752,6 +772,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminTreatmentsRoute: AdminTreatmentsRoute,
   CategorySlugRoute: CategorySlugRoute,
   ClinicsIdRoute: ClinicsIdRoute,
+  ConcernsSlugRoute: ConcernsSlugRoute,
   ProductDetailIdRoute: ProductDetailIdRoute,
   ProfileUsernameRoute: ProfileUsernameRoute,
   SurgeryTalkPostIdRoute: SurgeryTalkPostIdRoute,

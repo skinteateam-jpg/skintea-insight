@@ -1,473 +1,192 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Bell, Search } from "lucide-react";
-import BottomNav from "@/components/BottomNav";
-import Footer from "@/components/Footer";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, LockKeyhole, MapPin, Sparkles } from "lucide-react";
 import AppFrame from "@/components/AppFrame";
+import BottomNav from "@/components/BottomNav";
+import ProductCard, { formatCompact } from "@/components/ProductCard";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { ClinicImage } from "@/components/ClinicImage";
-import { displayImages, useCategoryImages, type DisplayImage } from "@/lib/clinicPhotos";
-import { CATEGORY_LABEL_TO_SLUG } from "@/lib/categorySlugs";
+import { getHomeData } from "@/lib/home.functions";
+import { getHomeAccountData } from "@/lib/account.functions";
 
 export const Route = createFileRoute("/")({
+  loader: () => getHomeData(),
   component: HomePage,
   head: () => ({
     meta: [
-      { title: "Skintea — Honest skincare, decoded" },
-      { name: "description", content: "Real reviews, treatments, surgery and clinic tea — decoded for your skin." },
+      { title: "Skintea — What actually happened to skin like yours" },
+      { name: "description", content: "Real opinions from TikTok, Reddit and Instagram, sorted by skin type. Negatives left in." },
+      { property: "og:title", content: "Skintea — What actually happened to skin like yours" },
+      { property: "og:description", content: "Real opinions from TikTok, Reddit and Instagram, sorted by skin type. Negatives left in." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });
 
-const C = {
-  espresso: "#1C0A00",
-  crimson: "#A8001C",
-  cream: "#FFFCF8",
-  warm: "#FFFCF8",
-  border: "#E8DDD4",
-  muted: "#999999",
-};
-
-// Every pill is a real destination. "Ranking" was dropped: no ranking page exists, and pointing it
-// at /products would have been a second, differently-labelled Products pill.
-const CATEGORY_LINKS = [
-  { label: "All", to: "/" },
-  { label: "Products", to: "/products" },
-  { label: "Treatments", to: "/treatments" },
-  { label: "Surgery", to: "/surgery-talk" },
-  { label: "Clinics", to: "/clinics" },
+const PEOPLE = [
+  { skin: "oily", name: "The Butter Girl", type: "Oily", emoji: "🧈" },
+  { skin: "dry", name: "The Peach", type: "Dry", emoji: "🍑" },
+  { skin: "combination", name: "The Everything Bagel", type: "Combination", emoji: "🥯" },
+  { skin: "sensitive", name: "The Glass of Milk", type: "Sensitive", emoji: "🥛" },
+  { skin: "normal", name: "The Cracker", type: "Normal", emoji: "🫙" },
 ] as const;
+type Skin = (typeof PEOPLE)[number]["skin"];
+type AccountData = Awaited<ReturnType<typeof getHomeAccountData>>;
 
-// Category chips link to /category/<slug>, so only labels that resolve to a real
-// product_categories slug through CATEGORY_LABEL_TO_SLUG may appear. Anything else is dropped
-// rather than pointed at a page it does not name.
-const CATEGORY_CHIPS = ["Skincare", "Suncare", "Base Makeup", "Eye Makeup", "Lip", "Cheek & Contour", "Body", "Device", "Fragrance", "Goods"]
-  .map((label) => ({ label, slug: CATEGORY_LABEL_TO_SLUG[label.toLowerCase()] as string | undefined }))
-  .filter((chip): chip is { label: string; slug: string } => Boolean(chip.slug));
-
-type DbProduct = {
-  id: string;
-  name: string;
-  brand: string | null;
-  image_url: string | null;
-};
-
-type DbClinic = {
-  id: string;
-  name: string;
-  neighborhood: string | null;
-  image_url: string | null;
-  best_for: string[] | null;
-  photos: unknown;
-  category: string | null;
-};
+function readSkin(): Skin {
+  try {
+    const stored = localStorage.getItem("skintea.homeSkin");
+    if (PEOPLE.some((person) => person.skin === stored)) return stored as Skin;
+  } catch { /* storage can be unavailable */ }
+  return "combination";
+}
 
 function HomePage() {
-  const categoryImages = useCategoryImages();
-  const navigate = useNavigate();
-  void navigate;
+  const home = Route.useLoaderData();
+  const [selectedSkin, setSelectedSkin] = useState<Skin>("combination");
+  const [account, setAccount] = useState<AccountData | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
-  const [products, setProducts] = useState<DbProduct[]>([]);
-  const [productsLoading, setProductsLoading] = useState(true);
-  const [clinics, setClinics] = useState<DbClinic[]>([]);
-  const [clinicsLoading, setClinicsLoading] = useState(true);
-
+  useEffect(() => setSelectedSkin(readSkin()), []);
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      const [{ data: p }, { data: c }] = await Promise.all([
-        supabase
-          .from("products")
-          .select("id,name,brand,image_url")
-          .eq("is_active", true)
-          .order("created_at", { ascending: false })
-          .limit(6),
-        supabase
-          .from("clinics")
-          .select("id,name,neighborhood,image_url,best_for,photos,category")
-          .eq("listing_filter", "passed")
-          // Deterministic order. There is no location filter here, so the rail is "clinics we
-          // list", alphabetically — never a proximity claim.
-          .order("name", { ascending: true })
-          .limit(4),
-      ]);
-      if (cancelled) return;
-      setProducts((p ?? []) as DbProduct[]);
-      setProductsLoading(false);
-      setClinics((c ?? []) as DbClinic[]);
-      setClinicsLoading(false);
-    })();
-    return () => {
-      cancelled = true;
-    };
+    void supabase.auth.getUser().then(async ({ data }) => {
+      if (data.user) {
+        try {
+          const result = await getHomeAccountData();
+          if (!cancelled) setAccount(result);
+        } catch (error) {
+          console.error("Home account data failed", error);
+        }
+      }
+      if (!cancelled) setSessionChecked(true);
+    });
+    return () => { cancelled = true; };
   }, []);
 
+  const chooseSkin = (skin: Skin) => {
+    setSelectedSkin(skin);
+    try { localStorage.setItem("skintea.homeSkin", skin); } catch { /* keep the in-memory selection */ }
+  };
+
+  const userSkin = (account?.profile?.skin_type && PEOPLE.some((person) => person.skin === account.profile?.skin_type))
+    ? account.profile.skin_type as Skin
+    : selectedSkin;
+  const activePerson = PEOPLE.find((person) => person.skin === userSkin) ?? PEOPLE[2];
+  const selectedStats = home.productStats.filter((product) => product.skin[selectedSkin]).sort((a, b) => b.skin[selectedSkin].pct - a.skin[selectedSkin].pct || b.skin[selectedSkin].n - a.skin[selectedSkin].n);
+  const headlineProduct = [...home.productStats].sort((a, b) => Object.keys(b.skin).length - Object.keys(a.skin).length || Math.max(...Object.values(b.skin).map((v) => v.n)) - Math.max(...Object.values(a.skin).map((v) => v.n)))[0];
+
   return (
-    <AppFrame>
-    <div style={{ background: C.cream, minHeight: "100vh", paddingBottom: 80, overflowX: "hidden" }}>
-      <style>{`.no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{scrollbar-width:none}`}</style>
-
-      {/* HEADER */}
-      <header
-        style={{
-          background: C.cream,
-          borderBottom: `1px solid ${C.border}`,
-          padding: "14px 16px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          position: "sticky",
-          top: 0,
-          zIndex: 40,
-        }}
-      >
-        <div>
-          <div style={{ lineHeight: 1 }}>
-            <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 22, color: "#1C0A00" }}>Skin</span>
-            <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontWeight: 700, fontSize: 22, color: "#A8001C" }}>tea</span>
+    <AppFrame fluid>
+      <div className="min-h-screen bg-background pb-24 text-foreground">
+        <header className="border-b border-brand-border bg-background px-4 py-4 md:px-8">
+          <div className="mx-auto flex max-w-6xl items-center justify-between">
+            <Link to="/" className="font-display text-2xl font-bold italic text-brand-espresso no-underline">Skin<span className="text-brand-crimson">tea</span></Link>
+            <Link to={account ? "/skin-profile" : "/login"} className="text-xs font-bold text-brand-crimson no-underline">{account ? "Profile" : "Sign in"}</Link>
           </div>
-          <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "#999999", marginTop: 2 }}>Got Skintea? Spill it.</div>
-        </div>
-        <div style={{ display: "flex", gap: 16, color: C.espresso }}>
-          <Bell size={20} />
-          <Search size={20} />
-        </div>
-      </header>
+        </header>
 
-      {/* CATEGORY PILLS */}
-      <div className="no-scrollbar" style={{ overflowX: "auto", padding: "12px 16px" }}>
-        <div style={{ display: "flex", gap: 8, width: "max-content" }}>
-          {CATEGORY_LINKS.map((c, i) => {
-            const active = i === 0;
-            return (
-              <Link
-                key={c.label}
-                to={c.to}
-                style={{
-                  background: active ? C.espresso : "#fff",
-                  color: active ? "#fff" : C.espresso,
-                  border: active ? "none" : `1px solid ${C.border}`,
-                  borderRadius: 99,
-                  padding: "7px 16px",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  whiteSpace: "nowrap",
-                  textDecoration: "none",
-                  display: "inline-block",
-                }}
-              >
-                {c.label}
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* NEW ON SKINTEA — the whole rail is hidden while it has nothing real to show. */}
-      {(productsLoading || products.length > 0) && (
-      <>
-      <SectionHeader title="✨ New on Skintea" linkTo="/products" />
-      <div className="no-scrollbar" style={{ overflowX: "auto", padding: "0 16px" }}>
-        <div style={{ display: "flex", gap: 10, width: "max-content" }}>
-          {productsLoading ? (
-            [0, 1, 2].map((i) => (
-              <div
-                key={i}
-                style={{
-                  minWidth: 150,
-                  background: "#fff",
-                  border: `0.5px solid ${C.border}`,
-                  borderRadius: 12,
-                  padding: 12,
-                }}
-              >
-                <div style={{ width: "100%", height: 100, background: C.warm, borderRadius: 8 }} />
-                <div style={{ height: 10, width: "60%", background: C.warm, borderRadius: 4, marginTop: 10 }} />
-                <div style={{ height: 12, width: "90%", background: C.warm, borderRadius: 4, marginTop: 6 }} />
-              </div>
-            ))
+        <main>
+          {sessionChecked && account ? (
+            <LoggedInTop account={account} home={home} person={activePerson} />
           ) : (
-            products.map((p) => (
-              <Link
-                key={p.id}
-                to="/product-detail/$id"
-                params={{ id: p.id }}
-                style={{ textDecoration: "none" }}
-              >
-                <div
-                  style={{
-                    minWidth: 150,
-                    background: "#fff",
-                    border: `0.5px solid ${C.border}`,
-                    borderRadius: 12,
-                    padding: 12,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "100%",
-                      height: 100,
-                      background: C.warm,
-                      borderRadius: 8,
-                      overflow: "hidden",
-                      display: "grid",
-                      placeItems: "center",
-                    }}
-                  >
-                    {p.image_url ? (
-                      <img
-                        src={p.image_url}
-                        alt={p.name}
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      />
-                    ) : (
-                      <span style={{ fontSize: 28 }}>🧴</span>
-                    )}
-                  </div>
-                  {p.brand && (
-                    <div style={{ color: C.muted, fontSize: 10, marginTop: 10, textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 700 }}>
-                      {p.brand}
-                    </div>
-                  )}
-                  <div style={{ color: C.espresso, fontSize: 13, fontWeight: 700, marginTop: 4, lineHeight: 1.3 }}>
-                    {p.name}
-                  </div>
-                </div>
-              </Link>
-            ))
+            <LoggedOutTop home={home} selectedSkin={selectedSkin} chooseSkin={chooseSkin} headlineProduct={headlineProduct} selectedStats={selectedStats} />
           )}
-        </div>
+
+          <div className="mx-auto max-w-6xl">
+            <Concerns concerns={home.concerns} />
+            {home.bridge && home.bridge.treatments.length > 0 && <TreatmentBridge bridge={home.bridge} />}
+            <Brands brands={home.brands} total={home.activeProductCount} />
+            {home.latestTea.length > 0 && <LatestTea items={home.latestTea} />}
+            <TeaLayer signedIn={Boolean(account)} weeklyCount={home.weeklyStoryCount} />
+            {home.clinics.length > 0 && <Clinics clinics={home.clinics} />}
+            {!account && <FitSummary />}
+          </div>
+        </main>
+        <BottomNav />
       </div>
-      </>
-      )}
-
-      {/* BROWSE BY CATEGORY */}
-      {CATEGORY_CHIPS.length > 0 && (
-      <>
-      <SectionHeader title="Browse by category" linkTo="/products" />
-      <div className="no-scrollbar" style={{ overflowX: "auto", padding: "0 16px" }}>
-        <div style={{ display: "flex", gap: 8, width: "max-content" }}>
-          {CATEGORY_CHIPS.map((chip) => (
-            <Link
-              key={chip.slug}
-              to="/category/$slug"
-              params={{ slug: chip.slug }}
-              style={{
-                background: "#fff",
-                color: C.espresso,
-                border: `1px solid ${C.border}`,
-                borderRadius: 99,
-                padding: "8px 16px",
-                fontSize: 12,
-                fontWeight: 600,
-                whiteSpace: "nowrap",
-                textDecoration: "none",
-              }}
-            >
-              {chip.label}
-            </Link>
-          ))}
-        </div>
-      </div>
-      </>
-      )}
-
-      {/* TREATMENT SPOTLIGHT — links into the treatments the site actually has. No per-treatment
-          stat is claimed here; the numbers that exist live on the treatment pages themselves. */}
-      <SectionHeader title="💉 Treatment Spotlight" />
-      <Link to="/treatments" style={{ textDecoration: "none", display: "block" }}>
-        <div style={{ margin: "0 16px", background: "#fff", border: "0.5px solid #E8DDD4", borderRadius: 16, padding: 18 }}>
-          <div style={{ fontSize: 13, color: C.crimson, fontWeight: 700 }}>
-            See all treatments →
-          </div>
-        </div>
-      </Link>
-
-      {/* CLINICS — hidden entirely while there is nothing to list. */}
-      {(clinicsLoading || clinics.length > 0) && (
-      <>
-      <SectionHeader title="🏥 Clinics on Skintea" linkTo="/clinics" />
-      <div className="no-scrollbar" style={{ overflowX: "auto", padding: "0 16px" }}>
-        <div style={{ display: "flex", gap: 10, width: "max-content" }}>
-          {clinicsLoading ? (
-            [0, 1].map((i) => (
-              <div
-                key={i}
-                style={{
-                  minWidth: 200,
-                  background: "#fff",
-                  border: `0.5px solid ${C.border}`,
-                  borderRadius: 14,
-                  padding: 14,
-                }}
-              >
-                <div style={{ width: "100%", height: 80, background: C.warm, borderRadius: 10 }} />
-                <div style={{ height: 12, width: "70%", background: C.warm, borderRadius: 4, marginTop: 10 }} />
-                <div style={{ height: 10, width: "50%", background: C.warm, borderRadius: 4, marginTop: 6 }} />
-              </div>
-            ))
-          ) : (
-            clinics.map((c) => (
-              <Link
-                key={c.id}
-                to="/clinics/$id"
-                params={{ id: c.id }}
-                style={{ textDecoration: "none" }}
-              >
-                <ClinicCard
-                  name={c.name}
-                  loc={c.neighborhood ?? ""}
-                  tags={(c.best_for ?? []).slice(0, 3)}
-                  images={displayImages(c, categoryImages, 400)}
-                />
-              </Link>
-            ))
-          )}
-        </div>
-      </div>
-      </>
-      )}
-
-      {/* SAMPLE KIT (locked) */}
-      <SectionHeader title="🧴 Sample Kit" />
-      <div style={{ position: "relative", borderRadius: 16, overflow: "hidden", margin: "0 16px" }}>
-        <div
-          style={{
-            background: "#fff",
-            border: `1px solid ${C.border}`,
-            padding: 18,
-            borderRadius: 16,
-            filter: "blur(3px)",
-          }}
-        >
-          <div style={{ display: "flex", gap: 8 }}>
-            {["🧴", "💧", "✨", "🌿"].map((e) => (
-              <div
-                key={e}
-                style={{
-                  flex: 1,
-                  height: 70,
-                  background: C.warm,
-                  borderRadius: 10,
-                  display: "grid",
-                  placeItems: "center",
-                  fontSize: 26,
-                }}
-              >
-                {e}
-              </div>
-            ))}
-          </div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: C.espresso, marginTop: 14 }}>
-            Your Skin-Type Kit
-          </div>
-          <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
-            Cleanser · Toner · Serum · Moisturizer matched to your skin
-          </div>
-          <div
-            style={{
-              marginTop: 14,
-              background: C.espresso,
-              color: "#fff",
-              borderRadius: 99,
-              padding: "12px 18px",
-              textAlign: "center",
-              fontWeight: 700,
-              fontSize: 13,
-            }}
-          >
-            Get your kit
-          </div>
-        </div>
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: "rgba(255,252,248,0.65)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            borderRadius: 16,
-          }}
-        >
-          <div style={{ fontSize: 28 }}>🔒</div>
-          <div
-            style={{
-              background: C.espresso,
-              color: "#fff",
-              borderRadius: 99,
-              padding: "8px 20px",
-              fontSize: 12,
-              fontWeight: 700,
-            }}
-          >
-            Coming Soon
-          </div>
-        </div>
-      </div>
-
-      <Footer />
-      <BottomNav />
-    </div>
-  </AppFrame>
+    </AppFrame>
   );
 }
 
-function SectionHeader({ title, linkTo }: { title: string; linkTo?: string }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "16px 16px 10px",
-      }}
-    >
-      <div style={{ fontSize: 14, fontWeight: 700, color: C.espresso }}>{title}</div>
-      {linkTo && (
-        <Link
-          to={linkTo}
-          style={{ fontSize: 11, color: C.crimson, fontWeight: 600, textDecoration: "none" }}
-        >
-          See all
-        </Link>
-      )}
-    </div>
-  );
+function LoggedOutTop({ home, selectedSkin, chooseSkin, headlineProduct, selectedStats }: any) {
+  return <>
+    <section className="mx-auto max-w-6xl px-4 pb-8 pt-10 md:px-8 md:pt-16">
+      <p className="text-xs font-extrabold uppercase text-brand-crimson">Skintea, without the spin</p>
+      <h1 className="mt-3 max-w-3xl text-4xl font-extrabold leading-[1.08] md:text-6xl">Find out what actually happened to skin like yours.</h1>
+      <p className="mt-5 max-w-2xl text-base leading-7 text-brand-muted">Real opinions pulled from TikTok, Reddit and Instagram, sorted by skin type. Negatives left in.</p>
+    </section>
+    <section className="border-y border-brand-border bg-card py-6">
+      <div className="no-scrollbar mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 md:px-8">
+        {PEOPLE.map((person) => {
+          const active = person.skin === selectedSkin;
+          return <Button key={person.skin} variant="outline" onClick={() => chooseSkin(person.skin)} className={`h-auto min-w-36 shrink-0 justify-start rounded-md px-4 py-3 ${active ? "border-brand-crimson bg-brand-crimson text-primary-foreground hover:bg-brand-crimson hover:text-primary-foreground" : "bg-card"}`}>
+            <span className="text-xl" aria-hidden>{person.emoji}</span><span className="text-left"><span className="block font-display text-sm font-bold italic">{person.name}</span><span className="mt-1 block text-[9px] font-extrabold uppercase">{person.type}</span></span>
+          </Button>;
+        })}
+      </div>
+    </section>
+    {home.trust && home.trust.taggedCount > 0 && <div className="border-b border-brand-border"><div className="mx-auto grid max-w-6xl grid-cols-3 px-4 md:px-8"><TrustCell value={formatCompact(home.trust.taggedCount)} label="Tagged opinions" /><TrustCell value={String(home.trust.platformCount)} label="Platforms" /><TrustCell value="No" label="Paid ranking" /></div></div>}
+    {headlineProduct && <Numbers product={headlineProduct} />}
+    {selectedStats.length > 0 && <ProductRail title={`More for ${PEOPLE.find((person) => person.skin === selectedSkin)?.type ?? selectedSkin} skin`} products={selectedStats} skin={selectedSkin} />}
+  </>;
 }
 
-function ClinicCard({ name, loc, tags, images }: { name: string; loc: string; tags: string[]; images: DisplayImage[] }) {
-  return (
-    <div
-      style={{
-        minWidth: 200,
-        background: "#fff",
-        border: `0.5px solid ${C.border}`,
-        borderRadius: 14,
-        padding: 14,
-      }}
-    >
-      <ClinicImage images={images} height={80} radius={10} compact />
-      <div style={{ fontSize: 13, fontWeight: 700, color: C.espresso, marginTop: 10 }}>{name}</div>
-      <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{loc}</div>
-      <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-        {tags.map((t) => (
-          <span
-            key={t}
-            style={{
-              background: C.warm,
-              borderRadius: 99,
-              padding: "3px 8px",
-              fontSize: 10,
-              color: C.espresso,
-            }}
-          >
-            {t}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
+function LoggedInTop({ account, home, person }: { account: AccountData; home: any; person: (typeof PEOPLE)[number] }) {
+  const firstName = account.profile?.name?.trim().split(/\s+/)[0] || "there";
+  const skin = person.skin;
+  const fits = home.productStats.filter((product: any) => (product.skin[skin]?.pct ?? -1) >= 50);
+  const avoids = home.productStats.filter((product: any) => (product.skin[skin]?.pct ?? 101) < 50);
+  const [changes, setChanges] = useState<Array<{ product: any; count: number }>>([]);
+
+  useEffect(() => {
+    const key = `skintea.homeLastVisit.${account.userId}`;
+    const previous = localStorage.getItem(key);
+    if (previous) {
+      const counts = new Map<string, number>();
+      for (const row of home.datedReviews) if (row.at > previous) counts.set(row.productId, (counts.get(row.productId) ?? 0) + 1);
+      setChanges([...counts].map(([id, count]) => ({ product: home.productStats.find((p: any) => p.id === id), count })).filter((row) => row.product).sort((a, b) => b.count - a.count).slice(0, 3));
+    }
+    localStorage.setItem(key, new Date().toISOString());
+  }, [account.userId]);
+
+  return <>
+    <section className="mx-auto max-w-6xl px-4 py-10 md:px-8 md:py-14">
+      <p className="text-sm font-bold text-brand-crimson">Welcome back, {firstName}</p>
+      <h1 className="mt-2 font-display text-4xl font-bold italic">{person.name}</h1>
+      <p className="mt-1 text-xs font-extrabold uppercase text-brand-muted">{person.type} skin</p>
+      {account.quiz ? <div className="mt-8 max-w-2xl rounded-md border border-brand-border bg-card p-5">
+        <div className="flex items-center justify-between"><h2 className="text-lg font-extrabold">Your fit summary</h2><Sparkles size={18} className="text-brand-crimson" /></div>
+        <div className="mt-5 grid grid-cols-2 divide-x divide-brand-border border-y border-brand-border py-4"><div><strong className="text-3xl">{fits.length}</strong><span className="block text-xs text-brand-muted">products that fit</span></div><div className="pl-5"><strong className="text-3xl">{avoids.length}</strong><span className="block text-xs text-brand-muted">products to avoid</span></div></div>
+        <div className="mt-4 flex items-center justify-between gap-3 text-xs"><span className="text-brand-muted">Updated {new Date(account.quiz.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span><Link to="/quiz-result" className="font-bold text-brand-crimson no-underline">Open your full summary</Link></div>
+      </div> : <div className="mt-8 max-w-2xl rounded-md border border-brand-border bg-card p-5"><h2 className="text-lg font-extrabold">Your fit summary starts with five questions.</h2><Button asChild className="mt-4 rounded-full"><Link to="/quiz">Take the quiz</Link></Button></div>}
+    </section>
+    {changes.length > 0 && <section className="mx-auto max-w-6xl px-4 pb-10 md:px-8"><SectionTitle>New since you were here</SectionTitle><div className="divide-y divide-brand-border border-y border-brand-border">{changes.map(({ product, count }) => <Link key={product.id} to="/product-detail/$id" params={{ id: product.id }} className="flex items-center gap-3 py-3 text-foreground no-underline">{product.image_url ? <img src={product.image_url} alt="" className="h-12 w-12 rounded-md object-contain" /> : <span className="grid h-12 w-12 place-items-center rounded-md bg-secondary">{product.brand?.charAt(0)}</span>}<span className="min-w-0"><strong className="block truncate text-sm">{product.name}</strong><span className="text-xs text-brand-muted">{count} new tagged {count === 1 ? "opinion" : "opinions"}</span></span></Link>)}</div></section>}
+    {account.savedProducts.length > 0 && <ProductRail title="Saved" products={account.savedProducts} footer={`${account.savedProducts.length} saved`} />}
+  </>;
 }
+
+function TrustCell({ value, label }: { value: string; label: string }) { return <div className="border-r border-brand-border px-3 py-5 text-center last:border-0"><strong className="block text-xl">{value}</strong><span className="mt-1 block text-[10px] font-bold uppercase text-brand-muted">{label}</span></div>; }
+function SectionTitle({ children, eyebrow }: { children: React.ReactNode; eyebrow?: string }) { return <div className="mb-5">{eyebrow && <p className="mb-1 text-[10px] font-extrabold uppercase text-brand-crimson">{eyebrow}</p>}<h2 className="text-xl font-extrabold md:text-2xl">{children}</h2></div>; }
+
+function Numbers({ product }: { product: any }) {
+  const total = Object.values(product.skin).reduce((sum: number, value: any) => sum + value.n, 0);
+  return <section className="mx-auto max-w-6xl px-4 py-10 md:px-8"><SectionTitle eyebrow="The numbers">Skin types did not agree</SectionTitle><div className="max-w-2xl rounded-md border border-brand-border bg-card p-5"><p className="text-[10px] font-bold uppercase text-brand-muted">{product.brand}</p><h3 className="mt-1 text-lg font-extrabold">{product.name}</h3><p className="mt-1 text-xs text-brand-muted">{total} tagged opinions across qualifying skin types</p><div className="mt-5 space-y-3">{PEOPLE.map((person) => product.skin[person.skin] ? <div key={person.skin} className="grid grid-cols-[86px_1fr_42px] items-center gap-3 text-xs"><span>{person.type}</span><span className="h-2 overflow-hidden rounded-full bg-secondary"><span className="block h-full rounded-full bg-brand-crimson" style={{ width: `${product.skin[person.skin].pct}%` }} /></span><strong>{product.skin[person.skin].pct}%</strong></div> : null)}</div><Link to="/product-detail/$id" params={{ id: product.id }} className="mt-6 flex items-center justify-between border-t border-brand-border pt-4 text-sm font-bold text-brand-crimson no-underline"><span>Read the minority report</span><ArrowRight size={16} /></Link></div></section>;
+}
+
+function ProductRail({ title, products, skin, footer }: { title: string; products: any[]; skin?: string; footer?: string }) { return <section className="mx-auto max-w-6xl px-4 py-10 md:px-8"><div className="flex items-end justify-between"><SectionTitle>{title}</SectionTitle>{footer && <Link to="/skin-profile" className="mb-5 text-xs font-bold text-brand-crimson no-underline">{footer}</Link>}</div><div className="no-scrollbar flex gap-3 overflow-x-auto pb-2">{products.slice(0, 12).map((product) => <div key={product.id} className="w-40 shrink-0 md:w-48"><ProductCard id={product.id} brand={product.brand ?? ""} name={product.name} price={null} imageUrl={product.image_url} metricLabel={skin && product.skin?.[skin] ? `${product.skin[skin].n} tagged opinions` : undefined} recommendPct={skin ? product.skin?.[skin]?.pct : null} decisiveTags={skin ? product.skin?.[skin]?.n : null} /></div>)}</div></section>; }
+
+function Concerns({ concerns }: { concerns: any[] }) { return <section className="px-4 py-10 md:px-8"><SectionTitle>What are you dealing with</SectionTitle><div className="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-5">{concerns.map((concern) => <Link key={concern.id} to="/concerns/$slug" params={{ slug: concern.slug }} className="min-h-32 rounded-md border border-brand-border bg-card p-4 text-foreground no-underline transition-colors hover:border-brand-crimson"><h3 className="font-extrabold leading-5">{concern.label}</h3><div className="mt-5 space-y-1 text-xs text-brand-muted"><p>{concern.productCount} {concern.productCount === 1 ? "product" : "products"}</p><p>{concern.treatmentCount} {concern.treatmentCount === 1 ? "treatment" : "treatments"}</p></div></Link>)}</div></section>; }
+
+function TreatmentBridge({ bridge }: { bridge: any }) { const first = bridge.treatments[0]; return <section className="mx-4 mb-10 rounded-md bg-brand-espresso p-6 text-primary-foreground md:mx-8"><p className="text-[10px] font-extrabold uppercase text-brand-crimson">{bridge.concern.label}</p><h2 className="mt-2 max-w-xl text-2xl font-extrabold">Skincare gets you only so far. Here's what people did next.</h2><div className="mt-5 divide-y divide-primary-foreground/20 border-y border-primary-foreground/20">{bridge.treatments.map((treatment: any) => <Link key={treatment.id} to="/treatments/$slug" params={{ slug: treatment.slug }} className="flex items-center justify-between py-4 text-primary-foreground no-underline"><strong>{treatment.name}</strong>{treatment.reviewCount > 0 && <span className="text-xs opacity-70">{treatment.reviewCount} reviews</span>}</Link>)}</div><Link to="/treatments/$slug" params={{ slug: first.slug }} className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-primary-foreground underline underline-offset-4">See what actually happened, including the regrets <ArrowRight size={15} /></Link></section>; }
+
+function Brands({ brands, total }: { brands: any[]; total: number }) { if (!brands.length) return null; return <section className="px-4 py-10 md:px-8"><div className="flex items-end justify-between"><SectionTitle>Or by brand</SectionTitle><Link to="/products" className="mb-5 text-xs font-bold text-brand-crimson no-underline">All {formatCompact(total)} products</Link></div><div className="no-scrollbar flex gap-2 overflow-x-auto pb-2">{brands.map((brand) => <Link key={brand.name} to="/products" search={{ q: brand.name } as any} className="shrink-0 rounded-full border border-brand-border bg-card px-4 py-2 text-sm font-bold text-foreground no-underline">{brand.name}</Link>)}</div></section>; }
+
+function LatestTea({ items }: { items: any[] }) { return <section className="px-4 py-10 md:px-8"><SectionTitle>Latest tea</SectionTitle><div className="grid gap-3 md:grid-cols-2">{items.map((item) => <article key={item.id} className="rounded-md border border-brand-border bg-card p-5"><div className="flex items-center justify-between gap-3 text-[10px] font-bold uppercase"><span>{item.source}</span><span className="text-brand-crimson">{item.sentiment}</span></div><blockquote className="my-5 text-sm leading-6">“{item.quote}”</blockquote>{item.product && <Link to="/product-detail/$id" params={{ id: item.product.id }} className="block text-sm font-extrabold text-foreground no-underline">{item.product.name}</Link>}<a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block text-xs font-bold text-brand-crimson">View source</a></article>)}</div></section>; }
+
+function TeaLayer({ signedIn, weeklyCount }: { signedIn: boolean; weeklyCount: number }) { return <section className="mx-4 my-10 rounded-md bg-brand-espresso p-7 text-primary-foreground md:mx-8"><LockKeyhole size={22} className="text-brand-crimson" /><p className="mt-4 text-[10px] font-extrabold uppercase text-brand-crimson">The tea layer</p><h2 className="mt-2 text-2xl font-extrabold">{signedIn ? (weeklyCount > 0 ? `${weeklyCount} new treatment ${weeklyCount === 1 ? "story" : "stories"} this week.` : "No new treatment stories this week.") : "Treatments and surgery, told the same way."}</h2><div className="mt-6 grid gap-3 border-y border-primary-foreground/20 py-5 text-sm md:grid-cols-3"><span>What actually happened</span><span>What surprised them</span><span>What they wish they knew before</span></div><Button asChild className="mt-6 rounded-full bg-brand-crimson text-primary-foreground hover:bg-brand-crimson/90"><Link to="/tea">See what's inside</Link></Button></section>; }
+
+function Clinics({ clinics }: { clinics: any[] }) { return <section className="px-4 py-10 md:px-8"><div className="flex items-center gap-2"><MapPin size={19} className="text-brand-crimson" /><h2 className="text-xl font-extrabold">In Koreatown</h2></div><p className="mt-2 text-xs text-brand-muted">Ranked by real user data. Clinics can't buy position.</p><div className="mt-5 grid gap-3 md:grid-cols-3">{clinics.map((clinic) => { const canScore = clinic.reviewCount >= 10 && clinic.recommendPct != null; return <Link key={clinic.id} to="/clinics/$id" params={{ id: clinic.id }} className="rounded-md border border-brand-border bg-card p-5 text-foreground no-underline"><h3 className="font-extrabold">{clinic.name}</h3>{clinic.distanceMiles != null && <p className="mt-1 text-xs text-brand-muted">{Number(clinic.distanceMiles).toFixed(1)} miles</p>}<p className="mt-4 min-h-10 text-xs leading-5 text-brand-muted">{clinic.treatments.join(" · ") || "No treatments listed"}</p>{canScore ? <div className="mt-4"><div className="flex justify-between text-xs font-bold"><span>Would go again</span><span>{clinic.recommendPct}%</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-secondary"><span className="block h-full bg-brand-crimson" style={{ width: `${clinic.recommendPct}%` }} /></div></div> : <p className="mt-4 border-t border-brand-border pt-3 text-xs font-bold text-brand-muted">Not enough data yet</p>}</Link>; })}</div><Link to="/clinics" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-brand-crimson no-underline">See all clinics in Koreatown <ArrowRight size={15} /></Link></section>; }
+
+function FitSummary() { return <section className="mx-4 my-10 rounded-md bg-secondary p-7 md:mx-8"><p className="text-[10px] font-extrabold uppercase text-brand-crimson">Get your Fit Summary</p><h2 className="mt-2 max-w-xl text-2xl font-extrabold">5 questions. You get what fits, what to skip, and why.</h2><p className="mt-3 max-w-2xl text-sm leading-6 text-brand-muted">Saves to your profile so it updates as new data comes in.</p><Button asChild className="mt-6 rounded-full"><Link to="/quiz">Take the quiz</Link></Button></section>; }

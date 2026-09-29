@@ -453,6 +453,7 @@ export type Database = {
           content: string
           cost_paid_usd: number | null
           created_at: string
+          display_status: string
           field_provenance: Json
           id: string
           platform: string
@@ -473,6 +474,7 @@ export type Database = {
           content: string
           cost_paid_usd?: number | null
           created_at?: string
+          display_status?: string
           field_provenance?: Json
           id?: string
           platform: string
@@ -493,6 +495,7 @@ export type Database = {
           content?: string
           cost_paid_usd?: number | null
           created_at?: string
+          display_status?: string
           field_provenance?: Json
           id?: string
           platform?: string
@@ -2957,6 +2960,75 @@ export type Database = {
       }
     }
     Views: {
+      clinic_social_reviews_public: {
+        Row: {
+          author_handle: string | null
+          clinic_id: string | null
+          content: string | null
+          cost_paid_usd: number | null
+          id: string | null
+          is_summary_only: boolean | null
+          owner_responded: boolean | null
+          platform: string | null
+          posted_at: string | null
+          pre_ownership_change: boolean | null
+          sentiment: string | null
+          skin_type: string | null
+          source_url: string | null
+          treatment_id: string | null
+          verdict: string | null
+        }
+        Insert: {
+          author_handle?: never
+          clinic_id?: string | null
+          content?: never
+          cost_paid_usd?: number | null
+          id?: string | null
+          is_summary_only?: never
+          owner_responded?: never
+          platform?: string | null
+          posted_at?: string | null
+          pre_ownership_change?: never
+          sentiment?: string | null
+          skin_type?: string | null
+          source_url?: never
+          treatment_id?: string | null
+          verdict?: string | null
+        }
+        Update: {
+          author_handle?: never
+          clinic_id?: string | null
+          content?: never
+          cost_paid_usd?: number | null
+          id?: string | null
+          is_summary_only?: never
+          owner_responded?: never
+          platform?: string | null
+          posted_at?: string | null
+          pre_ownership_change?: never
+          sentiment?: string | null
+          skin_type?: string | null
+          source_url?: never
+          treatment_id?: string | null
+          verdict?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_social_reviews_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_social_reviews_treatment_id_fkey"
+            columns: ["treatment_id"]
+            isOneToOne: false
+            referencedRelation: "treatments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_visitor_profile: {
         Row: {
           clinic_id: string | null
@@ -3442,10 +3514,6 @@ export type Database = {
           total_views: number
           video_count: number
         }[]
-      }
-      refresh_clinic_skin_scores: {
-        Args: { p_min_rows?: number }
-        Returns: number
       }
       talk_post_authors: {
         Args: { p_post_ids: string[]; p_post_type: string }

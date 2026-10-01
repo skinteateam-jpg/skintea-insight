@@ -42,7 +42,7 @@ function SignupPage() {
   if (!quizComplete) {
     return <AuthShell title="Skintea">
       <h2 style={authStyles.subtitleStyle}>Your account starts with your skin</h2>
-      <p style={{ color: "#999999", fontSize: 13, lineHeight: 1.6, marginTop: 12 }}>Complete the five questions first. Your Fit Summary will be ready when your account is created.</p>
+      <p style={{ color: "#999999", fontSize: 13, lineHeight: 1.6, marginTop: 12 }}>Complete the skin quiz first. Your Fit Summary will be ready when your account is created.</p>
       <Button asChild className="mt-5 w-full rounded-full"><Link to="/quiz">Take the quiz</Link></Button>
       <p style={authStyles.footerText}>Already have an account? <Link to="/login" style={authStyles.linkStyle}>Sign in</Link></p>
     </AuthShell>;

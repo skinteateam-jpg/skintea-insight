@@ -11,9 +11,9 @@ export const Route = createFileRoute("/quiz")({
   head: () => ({
     meta: [
       { title: "Skin Quiz — Skintea" },
-      { name: "description", content: "Take the 7-question Skintea skin quiz to decode your skin type, sensitivity, and concerns." },
+      { name: "description", content: "Take the Skintea skin quiz to decode your skin type, sensitivity, and concerns." },
       { property: "og:title", content: "Skin Quiz — Skintea" },
-      { property: "og:description", content: "Find your skin character in 7 questions." },
+      { property: "og:description", content: "Find your skin character with a short quiz." },
     ],
   }),
 });

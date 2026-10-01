@@ -1,6 +1,7 @@
 import * as React from "react";
 import { createFileRoute, useNavigate, Outlet, useMatchRoute } from "@tanstack/react-router";
 import BottomNav from "@/components/BottomNav";
+import Footer from "@/components/Footer";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
 import { X, Plus, Search } from "lucide-react";
@@ -546,7 +547,8 @@ export function TeaProductsContent({ embedded = false }: { embedded?: boolean } 
           onPosted={() => { setComposeOpen(false); void reload(); setActiveTag("all"); }}
         />
       )}
-      {!embedded && <BottomNav />}
+      {!embedded && <Footer navSpacer />}
+        {!embedded && <BottomNav />}
     </div>
   );
 }

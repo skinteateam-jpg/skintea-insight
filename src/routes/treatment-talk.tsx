@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
+import Footer from "@/components/Footer";
 import { Lock, X, ChevronDown } from "lucide-react";
 import TalkPostCard, {
   BORDER, CAPTION, CARD_BORDER, CRIMSON, DISPLAY, ESPRESSO, SANS, WARM_WHITE,
@@ -779,6 +780,7 @@ export function TreatmentTalkContent({ embedded = false }: { embedded?: boolean 
           </div>
         </main>
 
+        {!embedded && <Footer navSpacer />}
         {!embedded && <BottomNav />}
 
         {composerOpen && userId && (

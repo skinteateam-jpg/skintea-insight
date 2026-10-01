@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-// One image path for every clinic card and the clinic page. A clinic's own photos (clinics.photos) always win; with none,
-// the card shows a stock image for the clinic's category, marked "Photo coming soon". Replacing a category image with a
-// real photo is a data change only: add entries to clinics.photos.
+// One image path for every clinic card and the clinic page. Only a clinic's own photos (clinics.photos, sources
+// clinic_supplied or skintea_shot) render; with none, ClinicImage shows the neutral "Photo coming soon" tile. A stock or
+// category image never sits in a clinic's photo slot (CLAUDE.md, 2026-09-16).
 
 export type ClinicCategory = "dermatology" | "laser" | "med_spa" | "plastic_surgery" | "skin_care_clinic";
 
@@ -64,7 +64,8 @@ export function useCategoryImages(): CategoryImageMap {
 export function clinicPhotos(value: unknown): ClinicPhoto[] {
   if (!Array.isArray(value)) return [];
   return value.filter((p: any) =>
-    p && typeof p.url === "string" && /^https:\/\//.test(p.url) && (p.source === "clinic_supplied" || p.source === "skintea_shot" || p.source === "google_places_scrape")) as ClinicPhoto[];
+    // google_places_scrape is still a valid stored source but never renders: Places photos may not be stored or shown.
+    p && typeof p.url === "string" && /^https:\/\//.test(p.url) && (p.source === "clinic_supplied" || p.source === "skintea_shot")) as ClinicPhoto[];
 }
 
 function sized(url: string, width: number): string {

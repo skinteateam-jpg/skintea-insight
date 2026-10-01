@@ -7,6 +7,7 @@ import * as React from "react";
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
+import Footer from "@/components/Footer";
 import { CAPTION, CARD_BORDER, CRIMSON, ESPRESSO, SANS, WARM_WHITE } from "@/components/TalkPostCard";
 import TalkQuoteBox from "@/components/TalkQuoteBox";
 import { TalkUpdateTimeline } from "@/components/TalkUpdateTimeline";
@@ -141,6 +142,7 @@ function TreatmentPostPage() {
             )}
         </div>
       </div>
+      <Footer navSpacer />
       <BottomNav />
       {composerOpen && userId && post && (
         <Composer

@@ -522,7 +522,7 @@ function EmailCapture() {
     <Card>
       <form onSubmit={(e) => void submit(e)} noValidate style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ fontSize: 13, color: C.espresso, lineHeight: 1.6 }}>
-          Leave your email and we'll send you treatment options and clinics that match your result.
+          Leave your email to keep your result.
         </div>
         <div style={{ fontSize: 12, color: C.textMid, lineHeight: 1.6 }}>
           We don't sell your data and we don't hand it to advertisers. When you ask us to connect you with a specific clinic, we pass along only what that clinic needs to contact you, and we tell you before we do it.{" "}
@@ -545,7 +545,7 @@ function EmailCapture() {
         )}
         <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 12, color: C.textMid, lineHeight: 1.5 }}>
           <input type="checkbox" checked={clinicConsent} onChange={(e) => { setClinicConsent(e.target.checked); setSaved(null); }} style={{ marginTop: 2 }} />
-          <span>Let matched clinics near me contact me about a consultation.</span>
+          <span>Let matched clinics in the Los Angeles area contact me about a consultation.</span>
         </label>
         {status === "error" && (
           <div role="alert" style={{ fontSize: 11, fontWeight: 600, color: C.crimson }}>

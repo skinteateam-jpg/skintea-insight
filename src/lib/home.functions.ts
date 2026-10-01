@@ -62,7 +62,7 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
   const now = new Date();
   const utcWeekStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - ((now.getUTCDay() + 6) % 7)));
 
-  const [productsResult, activeProductCountResult, brandFacetsResult, concernsResult, productConcernsResult, treatmentConcernsResult, treatmentsResult, treatmentReviewsResult, clinicsResult, clinicTreatmentsResult, clinicReviewsResult, clinicScoresResult, weekPostsResult, weekSurgeryResult] = await Promise.all([
+  const [productsResult, activeProductCountResult, brandFacetsResult, concernsResult, productConcernsResult, treatmentConcernsResult, treatmentsResult, treatmentReviewsResult, clinicsResult, clinicTreatmentsResult, clinicReviewsResult, clinicScoresResult, newProductsResult, listedClinicsResult, weekPostsResult, weekSurgeryResult] = await Promise.all([
     productIds.length ? client.from("products").select("id,name,brand,image_url").in("id", productIds).eq("is_active", true) : Promise.resolve({ data: [], error: null }),
     client.from("products").select("id", { count: "exact", head: true }).eq("is_active", true),
     client.rpc("catalog_brand_facets", { p_category: null, p_subcategory: null, p_product_type: null, p_search: null }),
@@ -71,10 +71,13 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
     client.from("treatment_concerns").select("treatment_id,concern_id,confidence"),
     client.from("treatments").select("id,name,slug,subtitle").eq("active", true),
     client.from("treatment_reviews").select("treatment_id"),
-    client.from("clinics").select("id,name,neighborhood,distance_miles").eq("listing_filter", "passed").ilike("neighborhood", "%Koreatown%"),
+    client.from("clinics").select("id,name,neighborhood").eq("listing_filter", "passed").ilike("neighborhood", "%Koreatown%"),
     client.from("clinic_treatments").select("clinic_id,treatment_id"),
     client.from("clinic_reviews").select("id,clinic_id"),
     client.from("clinic_skin_scores").select("clinic_id,recommend_pct,field_provenance"),
+    client.from("products").select("id,name,brand,image_url").eq("is_active", true).order("created_at", { ascending: false }).limit(6),
+    // "Clinics on Skintea": listed clinics, alphabetically. No location filter, so never a proximity claim.
+    client.from("clinics").select("id,name,neighborhood,best_for,photos,category").eq("listing_filter", "passed").order("name", { ascending: true }).limit(4),
     client.from("posts").select("id", { count: "exact", head: true }).gte("created_at", utcWeekStart.toISOString()),
     client.from("surgery_posts").select("id", { count: "exact", head: true }).gte("created_at", utcWeekStart.toISOString()),
   ]);
@@ -145,17 +148,18 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
       return provenance?.source === "skintea_measured" && Number.isFinite(Number(provenance?.n)) && Number(provenance.n) > 0;
     });
     const measuredN = measuredScores.reduce((sum: number, row: any) => sum + Number(row.field_provenance.recommend_pct.n), 0);
-    const recommendPct = reviewCount >= 5 && measuredN > 0
+    // Same floor as every other recommend figure (MIN_TAGGED); the percentage only from skintea_measured rows.
+    const recommendPct = reviewCount >= MIN_TAGGED && measuredN > 0
       ? Math.round(measuredScores.reduce((sum: number, row: any) => sum + Number(row.recommend_pct) * Number(row.field_provenance.recommend_pct.n), 0) / measuredN)
       : null;
     return {
       id: clinic.id as string,
       name: clinic.name as string,
       neighborhood: clinic.neighborhood as string | null,
-      distanceMiles: clinic.distance_miles as number | null,
       mappedTreatmentCount: mappedTreatmentIds.size,
       reviewCount,
       recommendPct,
+      recommendN: recommendPct == null ? null : measuredN,
       treatments: [...mappedTreatmentIds].map((id) => treatmentById.get(id)?.name).filter(Boolean).slice(0, 3),
     };
   }).sort((a, b) => {
@@ -173,6 +177,8 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
     activeProductCount: activeProductCountResult.count ?? 0,
     latestTea,
     clinics,
+    newProducts: (newProductsResult.data ?? []) as Product[],
+    listedClinics: (listedClinicsResult.data ?? []) as Array<{ id: string; name: string; neighborhood: string | null; best_for: string[] | null; photos: unknown; category: string | null }>,
     weeklyStoryCount: (weekPostsResult.count ?? 0) + (weekSurgeryResult.count ?? 0),
     datedReviews,
   };

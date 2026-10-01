@@ -1,16 +1,16 @@
 import { Link } from "@tanstack/react-router";
 
 const ESPRESSO = "#1C0A00";
-const CRIMSON = "#A8001C";
 const BORDER = "#E8DDD4";
 const MUTED = "#999999";
 
-export default function Footer() {
+// Site-wide footer. `navSpacer` leaves room for the fixed bottom nav on pages that have one.
+export default function Footer({ navSpacer = false }: { navSpacer?: boolean }) {
   return (
     <footer
       style={{
         borderTop: `0.5px solid ${BORDER}`,
-        padding: "24px 16px",
+        padding: navSpacer ? "24px 16px 104px" : "24px 16px",
         background: "#FFFCF8",
       }}
     >
@@ -25,17 +25,25 @@ export default function Footer() {
           textAlign: "center",
         }}
       >
-        <div style={{ display: "flex", gap: 20, fontSize: 13, fontWeight: 600 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "8px 20px", fontSize: 13, fontWeight: 600 }}>
           <Link to="/about" style={{ color: ESPRESSO, textDecoration: "none" }}>
             About
           </Link>
           <Link to="/privacy" style={{ color: ESPRESSO, textDecoration: "none" }}>
             Privacy
           </Link>
+          <Link to="/disclosure" style={{ color: ESPRESSO, textDecoration: "none" }}>
+            Disclosure
+          </Link>
           <Link to="/for-clinics" style={{ color: ESPRESSO, textDecoration: "none" }}>
             For clinics
           </Link>
         </div>
+
+        <p style={{ fontSize: 11, color: MUTED, lineHeight: 1.6, maxWidth: 520, margin: 0 }}>
+          Skintea shares what people say about products, treatments and clinics. It is not medical advice. Talk to a
+          licensed provider before any treatment or procedure.
+        </p>
 
         <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.6 }}>
           © {new Date().getFullYear()} Skintea. Got Skintea? Spill it.

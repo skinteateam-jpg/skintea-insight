@@ -6,6 +6,7 @@ import { leadEvent, recordConsultationClick } from "@/lib/leads";
 import { logClinicIntent, previousTreatmentSlug, websiteChannel } from "@/lib/clinicIntent";
 import { classifyWebsite, isBookingPath, websiteLinkLabel } from "@/lib/bookingPath";
 import { ClinicImage } from "@/components/ClinicImage";
+import Footer from "@/components/Footer";
 import { clinicPhotos, displayImages, useCategoryImages, type ClinicPhoto } from "@/lib/clinicPhotos";
 import { shownPrice } from "@/lib/clinicPrices";
 // The app-wide floor under any displayed percentage. It lives in exactly one place.
@@ -896,7 +897,11 @@ function ClinicDetailPage() {
   const mapsHref = hasAddress
     ? `https://maps.google.com/?q=${encodeURIComponent(clinic.address)}`
     : typeof clinic.google_maps_url === "string" && /^https:\/\//.test(clinic.google_maps_url) ? clinic.google_maps_url : null;
-  const hasParkingText = clinic.parking_available != null || !!clinic.parking_notes || clinic.parking_is_free != null;
+  // Parking fields render only with a recorded source (the one parking_is_free value has none).
+  const parkingAvailable = sourced(clinic, "parking_available") ? clinic.parking_available : null;
+  const parkingNotes = sourced(clinic, "parking_notes") ? clinic.parking_notes : null;
+  const parkingIsFree = sourced(clinic, "parking_is_free") ? clinic.parking_is_free : null;
+  const hasParkingText = parkingAvailable != null || !!parkingNotes || parkingIsFree != null;
   const hasParkingPhotos = parkingPhotos.length > 0;
   const hasYelp = clinic.yelp_rating != null && sourced(clinic, "yelp_rating");
   const aboutVideos = videos.filter((v) => v.relationship !== "official");
@@ -988,7 +993,7 @@ function ClinicDetailPage() {
       key: "location", hasData: hasAddress || hasCoords, node: <Section title="Location">{!hasAddress && !hasCoords ? <EmptyState>The clinic's address and a map. No address recorded for this clinic yet.</EmptyState> : <>{hasAddress && <div style={{ display: "flex", alignItems: "flex-start", gap: 6, fontSize: 12, color: ESPRESSO, lineHeight: 1.45 }}><MapPin size={14} style={{ flexShrink: 0, marginTop: 1 }} /><span>{clinic.address}</span></div>}{hasCoords && <ClinicMap lat={latitude} lng={longitude} name={clinic.name} />}{mapsHref && <a href={mapsHref} target="_blank" rel="noreferrer" onClick={() => logIntent("directions", "maps", "location_section")} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: CREAM_TINT, borderRadius: 10, height: 44, marginTop: 10, color: ESPRESSO, fontSize: 11, fontWeight: 700, textDecoration: "none" }}><MapIcon size={14} /> Open in Maps</a>}</>}</Section>,
     },
     {
-      key: "parking", hasData: hasParkingText || hasParkingPhotos, node: <Section title="Parking">{hasParkingText || hasParkingPhotos ? <>{hasParkingText && <div style={{ display: "flex", alignItems: "center", gap: 10 }}><Car size={16} color={ESPRESSO} /><div style={{ flex: 1 }}><div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>{clinic.parking_available === true ? "Parking available" : clinic.parking_available === false ? "No parking" : "Parking"}</div>{clinic.parking_notes && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{clinic.parking_notes}</div>}</div>{clinic.parking_is_free != null && <span style={{ background: clinic.parking_is_free ? "#E8F5E9" : CREAM_TINT, color: clinic.parking_is_free ? "#2D7A3A" : MUTED, fontSize: 10, fontWeight: 800, padding: "4px 8px", borderRadius: 4, textTransform: "uppercase" }}>{clinic.parking_is_free ? "Free" : "Paid"}</span>}</div>}{hasParkingPhotos ? <div style={{ marginTop: hasParkingText ? 10 : 0 }}><PhotoGrid photos={parkingPhotos} alt={`Parking at ${clinic.name}`} /></div> : <div style={{ fontSize: 10.5, color: MUTED, marginTop: 8 }}>No parking photos yet.</div>}</> : <EmptyState>Whether there is parking, whether it is free, and photos of where to park and the entrance from the lot. Nothing recorded yet; photos come only from the clinic itself, with permission, or from Skintea.</EmptyState>}</Section>,
+      key: "parking", hasData: hasParkingText || hasParkingPhotos, node: <Section title="Parking">{hasParkingText || hasParkingPhotos ? <>{hasParkingText && <div style={{ display: "flex", alignItems: "center", gap: 10 }}><Car size={16} color={ESPRESSO} /><div style={{ flex: 1 }}><div style={{ fontSize: 12, fontWeight: 700, color: ESPRESSO }}>{parkingAvailable === true ? "Parking available" : parkingAvailable === false ? "No parking" : "Parking"}</div>{parkingNotes && <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>{parkingNotes}</div>}</div>{parkingIsFree != null && <span style={{ background: parkingIsFree ? "#E8F5E9" : CREAM_TINT, color: parkingIsFree ? "#2D7A3A" : MUTED, fontSize: 10, fontWeight: 800, padding: "4px 8px", borderRadius: 4, textTransform: "uppercase" }}>{parkingIsFree ? "Free" : "Paid"}</span>}</div>}{hasParkingPhotos ? <div style={{ marginTop: hasParkingText ? 10 : 0 }}><PhotoGrid photos={parkingPhotos} alt={`Parking at ${clinic.name}`} /></div> : <div style={{ fontSize: 10.5, color: MUTED, marginTop: 8 }}>No parking photos yet.</div>}</> : <EmptyState>Whether there is parking, whether it is free, and photos of where to park and the entrance from the lot. Nothing recorded yet; photos come only from the clinic itself, with permission, or from Skintea.</EmptyState>}</Section>,
     },
   ];
   const sortedSectionNodes = sectionNodes.map((section, index) => ({ ...section, index })).sort((a, b) => Number(b.hasData) - Number(a.hasData) || a.index - b.index);
@@ -1336,6 +1341,8 @@ function ClinicDetailPage() {
           </div>
         </div>
       )}
+
+      <Footer />
 
       {/* 15. Spacer — only when the fixed bar below renders */}
       {(clinic.phone || (typeof clinic.address === "string" && clinic.address.trim() !== "") || bookMode) && <div style={{ height: 76 }} />}

@@ -47,10 +47,10 @@ type SkinType = "Oily" | "Dry" | "Combination" | "Sensitive" | "Normal";
 type Persona = { name: string; emoji: string; color: string; bg: string };
 const PERSONAS: Record<SkinType, Persona> = {
   Oily:        { name: "The Butter Girl",        emoji: "🧈", color: "#A8001C", bg: "#FFF5F5" },
-  Dry:         { name: "The Cracker",            emoji: "🫙", color: "#B5651D", bg: "#FBEDDC" },
+  Dry:         { name: "The Peach",              emoji: "🍑", color: "#B5651D", bg: "#FBEDDC" },
   Combination: { name: "The Everything Bagel",   emoji: "🥯", color: "#6B3FA0", bg: "#EFE5F7" },
-  Sensitive:   { name: "The Peach",              emoji: "🍑", color: "#C2185B", bg: "#FCE4EC" },
-  Normal:      { name: "The Glass of Milk",      emoji: "🥛", color: "#2E7D32", bg: "#E6F4EA" },
+  Sensitive:   { name: "The Glass of Milk",      emoji: "🥛", color: "#C2185B", bg: "#FCE4EC" },
+  Normal:      { name: "The Cracker",            emoji: "🫙", color: "#2E7D32", bg: "#E6F4EA" },
 };
 
 // The only way a persona is chosen. Unknown / unrecognised skin type → null → no persona renders.
@@ -416,6 +416,7 @@ function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog, userId, 
                   </Link>
                 )}
               </div>
+              {userId && profile && !profile.username && <UsernameSetter userId={userId} />}
             </div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
             <button
@@ -465,6 +466,44 @@ function Header({ persona, tab, setTab, logs, onTogglePublic, onAddLog, userId, 
 }
 
 // ---------- Reusable bits ----------
+// A member sets a username here; without one nobody can post under their name, and /profile/$username cannot exist.
+// Lowercase letters, numbers and underscores, 3 to 20 characters. Unique in the database (profiles_username_key).
+function UsernameSetter({ userId }: { userId: string }) {
+  const [value, setValue] = useState("");
+  const [state, setState] = useState<"idle" | "saving" | "taken" | "invalid" | "error">("idle");
+  const [saved, setSaved] = useState<string | null>(null);
+  if (saved) return <div style={{ fontSize: 12, marginTop: 6 }}>Saved as <strong>@{saved}</strong></div>;
+  async function save() {
+    const name = value.trim().toLowerCase();
+    if (!/^[a-z0-9_]{3,20}$/.test(name)) { setState("invalid"); return; }
+    setState("saving");
+    const { error, count } = await supabase.from("profiles").update({ username: name }, { count: "exact" }).eq("user_id", userId);
+    let err = error;
+    if (!err && count === 0) err = (await supabase.from("profiles").insert({ user_id: userId, username: name })).error;
+    if (err) { setState((err as any).code === "23505" ? "taken" : "error"); return; }
+    setSaved(name);
+  }
+  return (
+    <div style={{ marginTop: 8 }}>
+      <label htmlFor="username-input" style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#999999", marginBottom: 4 }}>
+        Choose a username to post under your name
+      </label>
+      <div style={{ display: "flex", gap: 6 }}>
+        <input id="username-input" value={value} onChange={(e) => { setValue(e.target.value); setState("idle"); }} placeholder="username"
+          maxLength={20} autoCapitalize="none" autoComplete="off"
+          style={{ flex: 1, minWidth: 0, fontSize: 13, padding: "6px 10px", border: "1px solid #E8DDD4", borderRadius: 8, background: "#fff" }} />
+        <button type="button" onClick={() => void save()} disabled={state === "saving" || value.trim() === ""}
+          style={{ fontSize: 12, fontWeight: 700, padding: "6px 12px", borderRadius: 8, border: "none", background: "#1C0A00", color: "#fff", opacity: state === "saving" ? 0.6 : 1 }}>
+          {state === "saving" ? "Saving" : "Save"}
+        </button>
+      </div>
+      {state === "invalid" && <div style={{ fontSize: 11, color: "#A8001C", marginTop: 4 }}>3 to 20 characters: lowercase letters, numbers and underscores.</div>}
+      {state === "taken" && <div style={{ fontSize: 11, color: "#A8001C", marginTop: 4 }}>That username is taken.</div>}
+      {state === "error" && <div style={{ fontSize: 11, color: "#A8001C", marginTop: 4 }}>Couldn't save. Try again.</div>}
+    </div>
+  );
+}
+
 function PrivateLabel() {
   return (
     <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: C.textLight, fontWeight: 700, letterSpacing: 0.5, marginBottom: 16 }}>

@@ -398,7 +398,8 @@ function ClinicsPage() {
       const { data } = await (supabase as any).from("trending_treatments").select("*").eq("is_active", true).order("sort_order", { ascending: true });
       if (!alive) return;
       if (data && data.length > 0) {
-        setTrending(data as TrendingTreatment[]);
+        // A trend shows only when it was measured by Skintea and says which month it measured (sourced or absent).
+        setTrending((data as any[]).filter((row) => row?.field_provenance?.source === "skintea_measured" && row?.month) as TrendingTreatment[]);
         setTrendingMonth((data[0] as TrendingTreatment).month ?? "");
       }
     })();

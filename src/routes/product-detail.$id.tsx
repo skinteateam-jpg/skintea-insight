@@ -4,7 +4,7 @@ import type { ReactNode, ComponentType } from "react";
 import { Play, ExternalLink, ArrowLeft, Gift, Bookmark, Layers, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import AppFrame from "@/components/AppFrame";
 import { supabase } from "@/integrations/supabase/client";
-import { getFlags, isFungalAcneSafe, hasIngredientData, readSkinType } from "@/lib/ingredientFlags";
+import { hasIngredientData, readSkinType } from "@/lib/ingredientFlags";
 import type { SkinType } from "@/lib/ingredientFlags";
 import { MIN_TAGGED, isOpinionRow, opinionShares, aggregate } from "@/lib/opinionAggregate";
 import { excerptStart, excerptTerms } from "@/lib/quoteExcerpt";
@@ -157,16 +157,11 @@ function extractTikTokVideoId(url: string | null): string | null {
   return match ? match[1] : null;
 }
 
-function formatViewCount(value: number | null | undefined): string {
-  if (value == null) return "—";
-  if (value >= 1_000_000) {
-    const formatted = (value / 1_000_000).toFixed(1).replace(/\.0$/, "");
-    return `${formatted}M`;
-  }
-  if (value >= 1_000) {
-    const formatted = (value / 1_000).toFixed(1).replace(/\.0$/, "");
-    return `${formatted}K`;
-  }
+// View counts are floored, never rounded up (1.96M shows as 1.9M). No count recorded means no count shown.
+function formatViewCount(value: number | null | undefined): string | null {
+  if (value == null) return null;
+  if (value >= 1_000_000) return `${(Math.floor(value / 100_000) / 10).toString()}M`;
+  if (value >= 1_000) return `${(Math.floor(value / 100) / 10).toString()}K`;
   return `${value}`;
 }
 
@@ -966,63 +961,20 @@ function ProductPage() {
             the skin-type recommend shares would only restate the "Works for you" rows above as a yes/skip verdict at a
             cut-off, which those samples cannot carry. The rows show the same data with their counts. */}
 
-        {/* 7b. For your skin type — ingredient flags */}
-        {hasIngredientData(activeProduct?.ingredients) && (() => {
-          const ingredients = activeProduct!.ingredients as string[];
-          const fungalSafe = isFungalAcneSafe(ingredients);
-          const flags = skinType ? getFlags(ingredients, skinType) : [];
-          const fungalBadge = fungalSafe === null ? null : (
-            <span className={`inline-block text-[11px] font-semibold px-3 py-[5px] rounded-[20px] border ${
-              fungalSafe
-                ? "bg-emerald-50 text-emerald-700 border-emerald-700"
-                : "bg-muted text-brand-muted border-brand-border"
-            }`}>
-              {fungalSafe ? "Fungal-acne safe" : "Not fungal-acne safe"}
-            </span>
-          );
-          return (
-            <Section
-              title={skinType ? "For your skin type" : "Ingredients and your skin"}
-              right={skinType ? (
-                <span className="text-[11px] font-semibold text-brand-espresso">{skinType.charAt(0).toUpperCase() + skinType.slice(1)}</span>
-              ) : undefined}
-            >
-              {!skinType && (
-                <Link to="/quiz" className="no-underline">
-                  <div className="bg-brand-cream border border-brand-border rounded-[10px] px-[13px] py-3 mb-2.5">
-                    <div className="text-xs text-brand-espresso leading-[1.55]">
-                      Take the 2-minute quiz to see which of these ingredients suit your skin
-                    </div>
-                    <div className="text-[11px] font-semibold text-brand-crimson mt-1.5">Take the quiz →</div>
-                  </div>
-                </Link>
-              )}
-              {skinType && flags.map((f) => {
-                const isRed = f.verdict === "red";
-                return (
-                  <div key={f.label} className={`rounded-[10px] px-[13px] py-2.5 mb-2 border ${
-                    isRed ? "bg-brand-crimson/5 border-brand-crimson" : "bg-emerald-50 border-emerald-700"
-                  }`}>
-                    <div className={`text-xs font-semibold mb-1.5 ${isRed ? "text-brand-crimson" : "text-emerald-700"}`}>
-                      {f.label}
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {f.matched.map((ing) => (
-                        <span key={ing} className={`bg-brand-cream text-[11px] px-2.5 py-[3px] rounded-[20px] border ${
-                          isRed ? "text-brand-crimson border-brand-crimson" : "text-emerald-700 border-emerald-700"
-                        }`}>{ing}</span>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-              {fungalBadge && <div className={skinType ? "mt-0.5" : ""}>{fungalBadge}</div>}
-              <div className="text-[10px] text-brand-muted italic mt-2.5">
-                Based on the ingredient list. Separate from the review percentages above.
-              </div>
-            </Section>
-          );
-        })()}
+        {/* 7b. For your skin type: ingredient flags. The section stays (sections rule); its verdicts are off until they are
+            sourced. The old flags ("Fungal-acne safe", "May clog pores", ...) came from hand-written lists in
+            ingredientFlags.ts with no recorded source (removed 2026-10-01, sourced-or-absent). */}
+        {hasIngredientData(activeProduct?.ingredients) && (
+          <Section title={skinType ? "For your skin type" : "Ingredients and your skin"}>
+            <div className="text-xs text-brand-muted leading-[1.55]">
+              Ingredient flags for each skin type are not sourced yet. They will be added only with a published dermatology
+              source behind every flag.
+            </div>
+            <Link to="/quiz-result" className="mt-2 inline-block text-[11px] font-semibold text-brand-crimson no-underline">
+              What the American Academy of Dermatology says about your skin type →
+            </Link>
+          </Section>
+        )}
 
         {/* 8. Key ingredients */}
         <Section title="Key ingredients">
@@ -1110,7 +1062,7 @@ function ProductPage() {
                           <div className="absolute bottom-0 left-0 right-0 px-2.5 py-2 bg-gradient-to-t from-black/85 to-transparent">
                             {t.user && <div className="text-[11px] font-semibold text-white">{t.user}</div>}
                             <div className="text-[9px] text-white/70 mt-0.5 leading-[1.3] overflow-hidden line-clamp-2">{t.caption}</div>
-                            <div className="text-[9px] text-white/50 mt-[3px]">{t.views} views</div>
+                            {t.views && <div className="text-[9px] text-white/50 mt-[3px]">{t.views} views</div>}
                           </div>
                         </div>
                       );
@@ -1162,7 +1114,7 @@ function ProductPage() {
                             {/* No handle recorded means no byline. Never a stand-in handle. */}
                             {r.author_handle && <div className="text-[11px] font-semibold text-white">{r.author_handle}</div>}
                             <div className="text-[9px] text-white/70 mt-0.5 leading-[1.3] overflow-hidden line-clamp-2">{r.content ?? ""}</div>
-                            <div className="text-[9px] text-white/50 mt-[3px]">{formatViewCount(r.views)} views</div>
+                            {formatViewCount(r.views) && <div className="text-[9px] text-white/50 mt-[3px]">{formatViewCount(r.views)} views</div>}
                           </div>
                         </div>
                       );

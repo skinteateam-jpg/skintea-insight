@@ -13,7 +13,7 @@ function NotFoundComponent() {
         </p>
         <div className="mt-6">
           <Link
-            to="/products"
+            to="/"
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Go home
@@ -32,6 +32,9 @@ export const Route = createRootRoute({
       { title: "Skintea" },
       { name: "description", content: "The honest skincare decision platform. Real reviews from TikTok, Reddit, and Instagram — turned into clear insights." },
       { name: "author", content: "Skintea" },
+      // Site-wide noindex until clinic data is re-sourced from clinics' own sites (Chi, 2026-10-01).
+      // Remove this line in the same change that releases the site for indexing.
+      { name: "robots", content: "noindex, nofollow" },
       { property: "og:title", content: "Skintea" },
       { property: "og:description", content: "The honest skincare decision platform. Real reviews from TikTok, Reddit, and Instagram — turned into clear insights." },
       { property: "og:type", content: "website" },

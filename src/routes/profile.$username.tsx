@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { Lock, X, User } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/profile/$username")({
@@ -354,6 +355,8 @@ function PublicProfilePage() {
           </div>
         </div>
       )}
+
+      <Footer navSpacer />
 
       <BottomNav />
     </div>

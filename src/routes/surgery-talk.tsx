@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
+import Footer from "@/components/Footer";
 import { Lock, X, Send } from "lucide-react";
 import TalkPostCard, {
   BORDER, CAPTION, CARD_BORDER, CRIMSON, DISPLAY, ESPRESSO, NEUTRAL_FILL, SANS, WARM_WHITE,
@@ -16,7 +16,6 @@ import TalkQuoteBox from "@/components/TalkQuoteBox";
 import { useQuotedPosts } from "@/lib/talkQuotes";
 import { TalkUpdatesLink } from "@/components/TalkUpdateTimeline";
 import { useUpdateSummaries } from "@/lib/postUpdates";
-import { togglePublicSurgeryLike } from "@/lib/surgeryLikes.functions";
 
 export const Route = createFileRoute("/surgery-talk")({
   head: () => ({
@@ -412,7 +411,7 @@ export function PostCard({ post, userId, onLikeChange, onDeleted, split, myVote,
   const [showComments, setShowComments] = useState(false);
   const [commentsCount, setCommentsCount] = useState<number>(0);
   const [likeBusy, setLikeBusy] = useState(false);
-  const publicLike = useServerFn(togglePublicSurgeryLike);
+  const navigate = useNavigate();
 
   // Only the author can delete (RLS "Users can delete their own surgery posts": auth.uid() = user_id). Likes, saves and
   // comments on the post are removed with it (ON DELETE CASCADE), so it disappears from everyone's saved posts.
@@ -440,11 +439,6 @@ export function PostCard({ post, userId, onLikeChange, onDeleted, split, myVote,
         const { data: s } = await supabase.from("surgery_saves")
           .select("id").eq("post_id", post.id).eq("user_id", userId).maybeSingle();
         if (!cancel) { setLiked(!!l); setSaved(!!s); }
-      } else {
-        try {
-          const likedPosts = JSON.parse(localStorage.getItem("skintea.surgeryLikes") ?? "[]") as string[];
-          if (!cancel) setLiked(likedPosts.includes(post.id));
-        } catch { /* a blocked browser store leaves the like inactive */ }
       }
     })();
     return () => { cancel = true; };
@@ -452,29 +446,10 @@ export function PostCard({ post, userId, onLikeChange, onDeleted, split, myVote,
 
   async function toggleLike() {
     if (likeBusy) return;
-    if (!userId) {
-      setLikeBusy(true);
-      try {
-        let visitorId = localStorage.getItem("skintea.visitorId");
-        if (!visitorId) {
-          visitorId = crypto.randomUUID();
-          localStorage.setItem("skintea.visitorId", visitorId);
-        }
-        const result = await publicLike({ data: { postId: post.id, visitorId } });
-        const delta = result.liked === liked ? 0 : result.liked ? 1 : -1;
-        setLiked(result.liked);
-        setLikesCount(result.likeCount);
-        onLikeChange(delta);
-        const current = JSON.parse(localStorage.getItem("skintea.surgeryLikes") ?? "[]") as string[];
-        const next = result.liked ? [...new Set([...current, post.id])] : current.filter((id) => id !== post.id);
-        localStorage.setItem("skintea.surgeryLikes", JSON.stringify(next));
-      } catch (error) {
-        setRowError(error instanceof Error ? error.message : "Couldn't update this like.");
-      } finally {
-        setLikeBusy(false);
-      }
-      return;
-    }
+    // A like is a signed-in action, like every other write. Signed-out likes ran through the service role with any
+    // browser-made visitor id, so the counts that rank Today's Tea and Top Tea could be inflated without limit
+    // (removed 2026-10-01, pre-publish audit).
+    if (!userId) { navigate({ to: "/login" }); return; }
     if (liked) {
       await supabase.from("surgery_likes").delete().eq("post_id", post.id).eq("user_id", userId);
       setLiked(false); setLikesCount((c) => Math.max(0, c - 1));
@@ -1224,6 +1199,7 @@ export function SurgeryTalkContent({ embedded = false }: { embedded?: boolean } 
           </div>
         </main>
 
+        {!embedded && <Footer navSpacer />}
         {!embedded && <BottomNav />}
 
         {disclaimerOpen && (

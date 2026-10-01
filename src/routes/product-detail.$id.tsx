@@ -104,14 +104,27 @@ const VERBATIM_QUOTE_TYPES = new Set(["product_search_comment", "reel_comment", 
 const EDITED_QUOTE_TYPES = new Set(["plain_brand", "fan_subreddit", "product_specific_search"]);
 const QUOTE_EXCERPT_MAX = 280;
 
+// Image links (Reddit's preview/i/v hosts, imgur) are pictures, not words: they are removed on screen only, the stored
+// text is unchanged (owner, 2026-10-01). A markdown link keeps its link text. Other links stay, because a sentence may
+// point at them. A verbatim quote with a link removed is labelled an excerpt, since it is no longer exactly as written.
+const IMAGE_LINK_HOSTS = String.raw`(?:preview\.redd\.it|i\.redd\.it|v\.redd\.it|(?:i\.)?imgur\.com)`;
+const IMAGE_MD_LINK_RE = new RegExp(String.raw`!?\[([^\]]*)\]\(https?:\/\/${IMAGE_LINK_HOSTS}\/[^)\s]*\)`, "gi");
+const IMAGE_BARE_LINK_RE = new RegExp(String.raw`https?:\/\/${IMAGE_LINK_HOSTS}\/\S*`, "gi");
+function stripImageLinks(text: string): string {
+  return text.replace(IMAGE_MD_LINK_RE, "$1").replace(IMAGE_BARE_LINK_RE, "").replace(/[ \t]+(\r?\n)/g, "$1");
+}
+
 // Render-only excerpt of a verbatim quote. Never shortens edited text, never touches what is stored. A long quote is
 // excerpted from the sentence where the tagged product is discussed (see @/lib/quoteExcerpt), not from its opening.
 function quoteDisplay(r: any, terms: string[] = []): { text: string; form: "verbatim" | "edited" | null; excerpted: boolean } {
-  const raw = String(r?.content ?? "").replace(/\s+/g, " ").trim();
+  const stored = String(r?.content ?? "");
+  const cleaned = stripImageLinks(stored);
+  const linkRemoved = cleaned !== stored;
+  const raw = cleaned.replace(/\s+/g, " ").trim();
   const form = VERBATIM_QUOTE_TYPES.has(r?.source_query_type) ? "verbatim" : EDITED_QUOTE_TYPES.has(r?.source_query_type) ? "edited" : null;
-  if (form !== "verbatim" || raw.length <= QUOTE_EXCERPT_MAX) return { text: raw, form, excerpted: false };
+  if (form !== "verbatim" || raw.length <= QUOTE_EXCERPT_MAX) return { text: raw, form, excerpted: form === "verbatim" && linkRemoved };
   // Located on the text with its real line breaks, then whitespace-collapsed for display.
-  const original = String(r?.content ?? "").trim();
+  const original = cleaned.trim();
   const start = excerptStart(original, terms);
   const lead = start > 0 ? "… " : "";
   const body = start > 0 ? original.slice(start).replace(/\s+/g, " ").trim() : raw;
@@ -370,6 +383,13 @@ function ProductPage() {
     if (counts[best] > 0) setTab(best);
   }, [id, socialReviews]);
 
+  // Title the tab with the product once the row is loaded, the same way the clinic and treatment pages do
+  // (owner, 2026-10-01: full catalog name, "Name — Skintea"). The route's static head covers the load.
+  useEffect(() => {
+    if (typeof document === "undefined" || !productData?.name) return;
+    document.title = `${productData.name} — Skintea`;
+  }, [productData?.name]);
+
 
 
   if (loading) {
@@ -475,27 +495,34 @@ function ProductPage() {
     }
     return { scope: "none", rows: own };
   }
-  function bucketPct(pred: (r: any) => boolean): { pct: number | null; scope: Scope; n: number } {
+  function bucketPct(pred: (r: any) => boolean): { pct: number | null; scope: Scope; n: number; pos: number } {
     // Same rows and same floor as the headline: positive + negative + mixed.
     const { scope, rows } = pickScope((r) => pred(r) && isOpinionRow(r));
-    if (scope === "none") return { pct: null, scope, n: rows.length };
-    return { pct: aggregate(rows).recommendPct, scope, n: rows.length };
+    if (scope === "none") return { pct: null, scope, n: rows.length, pos: 0 };
+    const agg = aggregate(rows);
+    return { pct: agg.recommendPct, scope, n: rows.length, pos: agg.pos };
   }
 
+  // Every bar percentage renders with its count ("90% · 9 of 10"): recommends over counted opinions, mixed included,
+  // the same rows the percentage is computed from (owner, 2026-10-01).
   const skinTypePct: Record<string, number | null> = {};
   const skinTypeScope: Record<string, Scope> = {};
+  const skinTypeCount: Record<string, { pos: number; n: number }> = {};
   for (const st of SKIN_ORDER) {
     const b = bucketPct((r) => String(r.skin_type).toLowerCase() === st);
     skinTypePct[st] = b.pct;
     skinTypeScope[st] = b.scope;
+    skinTypeCount[st] = { pos: b.pos, n: b.n };
   }
   const anySkinPct = SKIN_ORDER.some((st) => skinTypePct[st] !== null);
   const ageBracketPct: Record<string, number | null> = {};
   const ageBracketScope: Record<string, Scope> = {};
+  const ageBracketCount: Record<string, { pos: number; n: number }> = {};
   for (const a of AGE_ORDER) {
     const b = bucketPct((r) => String(r.age_bracket).toLowerCase() === a.key);
     ageBracketPct[a.key] = b.pct;
     ageBracketScope[a.key] = b.scope;
+    ageBracketCount[a.key] = { pos: b.pos, n: b.n };
   }
   const anyAgePct = AGE_ORDER.some((a) => ageBracketPct[a.key] !== null);
   const anyLineBar = [...Object.values(skinTypeScope), ...Object.values(ageBracketScope)].some((s) => s === "line");
@@ -883,7 +910,7 @@ function ProductPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="bg-brand-crimson text-brand-cream text-[10px] px-2 py-0.5 rounded-[20px] font-medium">You</span>
-                      <span className="text-brand-crimson font-semibold text-[13px]">{has ? `${pct}%` : "—"}{has && skinTypeScope[key] === "line" ? <span className="font-normal text-[10px] ml-1">line</span> : null}</span>
+                      <span className="text-brand-crimson font-semibold text-[13px]">{has ? `${pct}%` : "—"}{has ? <span className="font-normal text-[10px] ml-1">{skinTypeCount[key].pos} of {skinTypeCount[key].n}</span> : null}{has && skinTypeScope[key] === "line" ? <span className="font-normal text-[10px] ml-1">line</span> : null}</span>
                     </div>
                   </div>
                   <div className="h-1 bg-brand-crimson/10 rounded-[3px] overflow-hidden">
@@ -898,7 +925,7 @@ function ProductPage() {
                   <div className="flex items-center gap-2 text-brand-espresso text-xs">
                     <span>{c.name} <span className="font-normal text-[11px] text-brand-muted">({SKIN_TYPE_LABEL[key]})</span></span>
                   </div>
-                  <span className="text-brand-muted text-xs">{has ? `${pct}%` : "—"}{has && skinTypeScope[key] === "line" ? <span className="text-[10px] ml-1">line</span> : null}</span>
+                  <span className="text-brand-muted text-xs">{has ? `${pct}%` : "—"}{has ? <span className="text-[10px] ml-1">{skinTypeCount[key].pos} of {skinTypeCount[key].n}</span> : null}{has && skinTypeScope[key] === "line" ? <span className="text-[10px] ml-1">line</span> : null}</span>
                 </div>
                 <div className="h-1 bg-brand-border rounded-[3px] overflow-hidden">
                   <div className="h-full bg-brand-espresso/25" style={{ width: `${has ? pct : 0}%` }} />
@@ -924,7 +951,7 @@ function ProductPage() {
                     <div className="text-brand-crimson font-semibold text-[13px]">{a.label} <span className="text-brand-crimson font-normal text-[11px] ml-1">{a.sub}</span></div>
                     <div className="flex items-center gap-2">
                       <span className="bg-brand-crimson text-brand-cream text-[10px] px-2 py-0.5 rounded-[20px] font-medium">You</span>
-                      <span className="text-brand-crimson font-semibold text-[13px]">{has ? `${pct}%` : "—"}{has && ageBracketScope[a.key] === "line" ? <span className="font-normal text-[10px] ml-1">line</span> : null}</span>
+                      <span className="text-brand-crimson font-semibold text-[13px]">{has ? `${pct}%` : "—"}{has ? <span className="font-normal text-[10px] ml-1">{ageBracketCount[a.key].pos} of {ageBracketCount[a.key].n}</span> : null}{has && ageBracketScope[a.key] === "line" ? <span className="font-normal text-[10px] ml-1">line</span> : null}</span>
                     </div>
                   </div>
                   <div className="h-1 bg-brand-crimson/10 rounded-[3px] overflow-hidden">
@@ -937,7 +964,7 @@ function ProductPage() {
               <div key={a.key} className={`px-3 py-2 ${has ? "" : "opacity-55"}`}>
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="text-brand-espresso text-xs">{a.label} <span className="text-brand-muted text-[11px] ml-1">{a.sub}</span></div>
-                  <span className="text-brand-muted text-xs">{has ? `${pct}%` : "—"}{has && ageBracketScope[a.key] === "line" ? <span className="text-[10px] ml-1">line</span> : null}</span>
+                  <span className="text-brand-muted text-xs">{has ? `${pct}%` : "—"}{has ? <span className="text-[10px] ml-1">{ageBracketCount[a.key].pos} of {ageBracketCount[a.key].n}</span> : null}{has && ageBracketScope[a.key] === "line" ? <span className="text-[10px] ml-1">line</span> : null}</span>
                 </div>
                 <div className="h-1 bg-brand-border rounded-[3px] overflow-hidden">
                   <div className="h-full bg-brand-espresso/25" style={{ width: `${has ? pct : 0}%` }} />

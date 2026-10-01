@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
+import type { Json } from "@/integrations/supabase/types";
 import { aggregate, isOpinionRow, MIN_TAGGED, SKIN_TYPES } from "@/lib/opinionAggregate";
 
 type Product = { id: string; name: string; brand: string | null; image_url: string | null };
@@ -178,7 +179,7 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(async () =>
     latestTea,
     clinics,
     newProducts: (newProductsResult.data ?? []) as Product[],
-    listedClinics: (listedClinicsResult.data ?? []) as Array<{ id: string; name: string; neighborhood: string | null; best_for: string[] | null; photos: unknown; category: string | null }>,
+    listedClinics: (listedClinicsResult.data ?? []) as Array<{ id: string; name: string; neighborhood: string | null; best_for: string[] | null; photos: Json; category: string | null }>,
     weeklyStoryCount: (weekPostsResult.count ?? 0) + (weekSurgeryResult.count ?? 0),
     datedReviews,
   };

@@ -3224,7 +3224,12 @@ export type Database = {
           product_count: number
         }[]
       }
-      claim_quiz_response: { Args: { p_share_slug: string }; Returns: boolean }
+      claim_quiz_response:
+        | { Args: { p_share_slug: string }; Returns: boolean }
+        | {
+            Args: { p_session_id: string; p_share_slug: string }
+            Returns: boolean
+          }
       clinic_intent_report: {
         Args: { p_from?: string; p_to?: string }
         Returns: {

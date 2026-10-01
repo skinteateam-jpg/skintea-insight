@@ -1250,3 +1250,25 @@ Not changed: anon/authenticated still have MAINTAIN (`m`) on both objects, from 
   and a New York nail salon); its 2 existing rows (`f78e3ac2…`, `0d5b9734…`, run g0xG7jSWoE1wJ9zsq) are left for Chi.
 - Not changed: RLS, grants, views, schema, `clinic_skin_scores`.
 - Deleted session_ids: none. No rows deleted or updated.
+
+### 2026-10-01 ~05:00 UTC — profiles SELECT back to columns, quiz_responses UPDATE revoked, claim_quiz_response needs the quiz session (pre-publish audit session, Chi's go)
+- Who: skintea-pipeline pre-publish audit session.
+- Why: migration `20260923024541` (Lovable, Home rebuild) ran `GRANT SELECT ON public.profiles TO authenticated`. A table-level
+  grant overrides the column list from 2026-09-14/17, and the SELECT policy is `true`, so every signed-in user could read
+  every member's `email`, sign-up `name` and `is_member` (live in the database since 2026-09-23, whatever was deployed).
+- `REVOKE SELECT ON public.profiles FROM authenticated`, then `GRANT SELECT (id, user_id, username, avatar_url, skin_type,
+  is_derm, field_provenance, created_at, updated_at, is_admin) ON public.profiles TO authenticated`. `is_admin` stays
+  because the admin RLS policies (clinics, treatments, retailers, clinic_intent_events, ...) read it as the caller. anon
+  unchanged. Verified as authenticated (rolled back): email, name, is_member denied (`42501`); username and is_admin
+  readable; the admin-policy subquery on clinic_intent_events runs. Applied with Chi's explicit yes in chat.
+- Code that read `profiles.name` for the signed-in user (`src/lib/account.functions.ts`, Home) now reads the user's own
+  auth record (`claims.user_metadata`), the same as /skin-profile.
+- `REVOKE UPDATE ON public.quiz_responses FROM authenticated` (granted by `20260923022535` / `20260923024541`; no UPDATE
+  policy existed, and the only writer is the SECURITY DEFINER `claim_quiz_response`). Result: authenticated SELECT only.
+- `CREATE FUNCTION public.claim_quiz_response(p_share_slug text, p_session_id text)` (SECURITY DEFINER, search_path
+  public): claims a result only when `leads.session_id` of the result's lead equals the caller's quiz session. The old
+  one-argument version let any signed-in holder of a share link take someone else's result. EXECUTE: authenticated,
+  service_role (revoked from PUBLIC, anon). Home sends the lead session id (`getLeadSessionId()`).
+- **Not done (needs Chi's go; blocked by the permission check):** `DROP FUNCTION public.claim_quiz_response(text)`. Until
+  it is dropped the old hole stays open through a direct RPC call.
+- Deleted session_ids: none. No rows written or deleted.

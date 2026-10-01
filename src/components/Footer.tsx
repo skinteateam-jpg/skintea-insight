@@ -32,6 +32,9 @@ export default function Footer({ navSpacer = false }: { navSpacer?: boolean }) {
           <Link to="/privacy" style={{ color: ESPRESSO, textDecoration: "none" }}>
             Privacy
           </Link>
+          <Link to="/terms" style={{ color: ESPRESSO, textDecoration: "none" }}>
+            Terms
+          </Link>
           <Link to="/disclosure" style={{ color: ESPRESSO, textDecoration: "none" }}>
             Disclosure
           </Link>

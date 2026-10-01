@@ -103,6 +103,11 @@ function SignupPage() {
       <GoogleIcon /> Continue with Google
     </button>
 
+    <p style={{ fontSize: 12, color: "#999999", lineHeight: 1.6, marginTop: 14, textAlign: "center" }}>
+      By creating an account you agree to the <Link to="/terms" style={{ color: CRIMSON }}>Terms of Use</Link> and
+      the <Link to="/privacy" style={{ color: CRIMSON }}>Privacy Policy</Link>, and confirm you are 18 or older.
+    </p>
+
     <p style={authStyles.footerText}>
       Already have an account?{" "}
       <Link to="/login" style={authStyles.linkStyle}>Sign in</Link>

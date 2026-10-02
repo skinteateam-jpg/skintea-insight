@@ -38,15 +38,6 @@ function SignupPage() {
     }
   }, []);
 
-  if (quizComplete === null) return null;
-  if (!quizComplete) {
-    return <AuthShell title="Skintea">
-      <h2 style={authStyles.subtitleStyle}>Your account starts with your skin</h2>
-      <p style={{ color: "#999999", fontSize: 13, lineHeight: 1.6, marginTop: 12 }}>Complete the skin quiz first. Your Fit Summary will be ready when your account is created.</p>
-      <Button asChild className="mt-5 w-full rounded-full"><Link to="/quiz">Take the quiz</Link></Button>
-      <p style={authStyles.footerText}>Already have an account? <Link to="/login" style={authStyles.linkStyle}>Sign in</Link></p>
-    </AuthShell>;
-  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,6 +81,9 @@ function SignupPage() {
       <Field label="Password">
         <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} style={authStyles.inputStyle} />
       </Field>
+      {/* Sign-up never depends on this browser's storage (quiz on another device, storage blocked). The note only
+          points at the quiz; the Fit Summary fills in once a quiz result exists. 2026-10-02, Chi. */}
+      {quizComplete === false && <div style={{ fontSize: 12, color: "#999999", lineHeight: 1.6 }}>No skin quiz found in this browser. You can take it after signing up; your Fit Summary fills in from it. <Link to="/quiz" style={{ color: CRIMSON }}>Take the quiz</Link></div>}
       {err && <div style={{ color: CRIMSON, fontSize: 13 }}>{err}</div>}
       {info && <div style={{ color: "#22A06B", fontSize: 13 }}>{info}</div>}
       <button type="submit" disabled={loading} style={authStyles.primaryBtn(loading)}>

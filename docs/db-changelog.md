@@ -1272,3 +1272,14 @@ Not changed: anon/authenticated still have MAINTAIN (`m`) on both objects, from 
 - **Not done (needs Chi's go; blocked by the permission check):** `DROP FUNCTION public.claim_quiz_response(text)`. Until
   it is dropped the old hole stays open through a direct RPC call.
 - Deleted session_ids: none. No rows written or deleted.
+
+### 2026-10-02 — clinic_social_reviews: 2 Peony rows rejected (pre-publish audit session, Chi's go)
+- Who: skintea-pipeline pre-publish audit session.
+- What: `UPDATE public.clinic_social_reviews SET display_status = 'rejected'` (+ `field_provenance.rejected {by, recorded_at,
+  reason}`) on `f78e3ac2-4dbe-479c-916e-5d2814e972b3` and `0d5b9734-359c-42f2-b75c-667a2d166efb` (run g0xG7jSWoE1wJ9zsq),
+  guarded to exactly 2 staging rows of Peony Skin Care Center.
+- Why: both reviews are one reviewer's text about other businesses (a day spa; a nail salon near Times Square). Peony's
+  `google_place_id` (`ChIJ_714X33HwoARhyVyzeybxqY`) is kept: all six 2026-08 scrape records for that id carry Peony's name,
+  address (966 S Western Ave #204) and Instagram site. Chi's decision.
+- Verified: those 2 rows `rejected`; table totals staging 223, rejected 2, live 0.
+- Deleted session_ids: none. No rows deleted.
